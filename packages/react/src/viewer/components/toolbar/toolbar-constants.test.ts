@@ -10,7 +10,6 @@ import {
 	ics,
 	MODES,
 	ALIGN_BTNS,
-	DRAW_TOOLS,
 	OV,
 	FMT,
 	ATXT,
@@ -112,45 +111,6 @@ describe('aLIGN_BTNS', () => {
 // ---------------------------------------------------------------------------
 // DRAW_TOOLS
 // ---------------------------------------------------------------------------
-
-describe('dRAW_TOOLS', () => {
-	it('contains five drawing tools', () => {
-		expect(DRAW_TOOLS).toHaveLength(5);
-	});
-
-	it('each tool has id, icon, and labelKey properties', () => {
-		for (const tool of DRAW_TOOLS) {
-			expectTypeOf(tool.id).toBeString();
-			expect(tool.icon).toBeDefined();
-			expectTypeOf(tool.labelKey).toBeString();
-		}
-	});
-
-	it('includes select, pen, highlighter, eraser, and freeform', () => {
-		const ids = DRAW_TOOLS.map((d) => d.id);
-		expect(ids).toContain('select');
-		expect(ids).toContain('pen');
-		expect(ids).toContain('highlighter');
-		expect(ids).toContain('eraser');
-		expect(ids).toContain('freeform');
-	});
-
-	it('highlighter has a custom active class', () => {
-		const highlighter = DRAW_TOOLS.find((d) => d.id === 'highlighter');
-		expect(highlighter?.ac).toContain('bg-yellow-600');
-	});
-
-	it('all draw tools have an active class', () => {
-		for (const tool of DRAW_TOOLS) {
-			expect(tool.ac).toBeDefined();
-		}
-	});
-
-	it('eraser has a red active class', () => {
-		const eraser = DRAW_TOOLS.find((d) => d.id === 'eraser');
-		expect(eraser?.ac).toContain('bg-red-600');
-	});
-});
 
 // ---------------------------------------------------------------------------
 // OV (overflow menu items)

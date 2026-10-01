@@ -894,82 +894,18 @@ describe('toolbar - Insert tab', () => {
 // ===========================================================================
 
 describe('toolbar - Draw tab', () => {
-	it('renders five drawing tool buttons (Select, Pen, Highlighter, Eraser, Freeform)', () => {
+	it('renders the shared Draw placeholder before browser hydration', () => {
 		const html = render(
 			React.createElement(DrawSection, {
 				activeTool: 'select',
 				drawingColor: '#000000',
 				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
+				onSetActiveTool: vi.fn(),
+				onSetDrawingColor: vi.fn(),
+				onSetDrawingWidth: vi.fn(),
 			}),
 		);
-		expect(html).toContain('title="Select"');
-		expect(html).toContain('title="Pen"');
-		expect(html).toContain('title="Highlighter"');
-		expect(html).toContain('title="Eraser"');
-		expect(html).toContain('title="Freeform"');
-	});
-
-	it('active tool has highlight styling', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'pen',
-				drawingColor: '#000000',
-				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		// The pen button should have bg-accent class since pen is active
-		expect(html).toMatch(/bg-accent[^"]*"[^>]*title="Pen"/u);
-	});
-
-	it('renders color picker input', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'select',
-				drawingColor: '#ff0000',
-				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('type="color"');
-		expect(html).toContain('value="#ff0000"');
-	});
-
-	it('renders width range control', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'select',
-				drawingColor: '#000000',
-				drawingWidth: 5,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('type="range"');
-		expect(html).toContain('value="5"');
-	});
-
-	it('renders Colour and Width labels', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'select',
-				drawingColor: '#000000',
-				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('Colour');
-		expect(html).toContain('Width');
+		expect(html).toContain('pptx-ui-ribbon-draw');
 	});
 });
 
@@ -1804,8 +1740,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'draw' })),
 		);
-		expect(html).toContain('Colour');
-		expect(html).toContain('type="range"');
+		expect(html).toContain('pptx-ui-ribbon-draw');
 	});
 
 	it('renders DesignSection content when toolbarSection is design', () => {

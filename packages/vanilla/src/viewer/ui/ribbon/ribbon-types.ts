@@ -199,7 +199,7 @@ export interface RibbonDesignHandlers {
  */
 export interface RibbonDrawHandlers {
 	setTool(tool: DrawTool): void;
-	setColor(color: string): void;
+	setColor(color: string, committed?: boolean): void;
 	setWidth(width: number): void;
 }
 

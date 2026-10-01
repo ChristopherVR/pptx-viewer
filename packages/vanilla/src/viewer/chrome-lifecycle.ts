@@ -594,7 +594,7 @@ export interface ChromeHost {
 		getEditActions(): EditActions;
 		getFindReplaceActions(): FindReplaceActions;
 		setDrawTool(tool: DrawTool): void;
-		setDrawColor(color: string): void;
+		setDrawColor(color: string, committed?: boolean): void;
 		setDrawWidth(width: number): void;
 		armFreeformTool(tool: FreeformToolKind | null): void;
 	};
@@ -896,7 +896,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
 		applyPresentationTheme: (presetId) => host.applyPresentationTheme(presetId),
 		setDrawTool: (tool) => host.editor.setDrawTool(tool),
-		setDrawColor: (color) => host.editor.setDrawColor(color),
+		setDrawColor: (color, committed) => host.editor.setDrawColor(color, committed),
 		setDrawWidth: (width) => host.editor.setDrawWidth(width),
 		armFreeformTool: (tool) => host.editor.armFreeformTool(tool),
 		getQuickAccessOptions: () => host.getQuickAccessOptions(),

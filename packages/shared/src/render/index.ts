@@ -1734,3 +1734,4 @@ export * from './editor-chrome';
 
 export * from './ribbon-icons';
 export * from './theme-editor-model';
+export * from './ribbon-draw-state';

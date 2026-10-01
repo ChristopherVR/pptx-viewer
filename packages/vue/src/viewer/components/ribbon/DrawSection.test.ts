@@ -4,10 +4,13 @@
  * continuous `input` stream keeps driving the live pen colour only.
  */
 import { mount } from '@vue/test-utils';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import DrawSection from './DrawSection.vue';
+
+registerPptxWebControls();
 
 function mountDraw(push: (hex: string) => void, onSetDrawingColor: (hex: string) => void) {
 	return mount(DrawSection, {
@@ -26,6 +29,25 @@ function mountDraw(push: (hex: string) => void, onSetDrawingColor: (hex: string)
 }
 
 describe('drawSection pen colour (recent colours)', () => {
+	it('routes shared tools and width choices, updates controlled state and gates edits', async () => {
+		const wrapper = mountDraw(vi.fn(), vi.fn());
+		const tool = vi.fn(),
+			width = vi.fn();
+		await wrapper.setProps({ onSetActiveTool: tool, onSetDrawingWidth: width });
+		const command = wrapper.element.querySelector('[data-ribbon-control="draw.tools.freeform"]')!;
+		const button = command.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+		button.click();
+		expect(tool).toHaveBeenCalledExactlyOnceWith('freeform');
+		await wrapper.find('select').setValue('16');
+		expect(width).toHaveBeenCalledExactlyOnceWith(16);
+		await wrapper.setProps({ activeTool: 'freeform', canEdit: false });
+		expect(button.getAttribute('aria-pressed')).toBe('true');
+		expect(button.disabled).toBeTruthy();
+		button.click();
+		expect(tool).toHaveBeenCalledOnce();
+		wrapper.unmount();
+	});
+
 	it('drives the live pen colour on input without recording a recent colour', async () => {
 		const push = vi.fn();
 		const onSetDrawingColor = vi.fn();

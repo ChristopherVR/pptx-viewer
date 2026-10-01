@@ -19,21 +19,17 @@ import {
 	LuInfo,
 	LuItalic,
 	LuLock,
-	LuMinus,
-	LuMoveRight,
-	LuPencil,
 	LuPlay,
 	LuPrinter,
 	LuSearch,
 	LuShieldAlert,
-	LuSpline,
 	LuStrikethrough,
 	LuType,
 	LuUnderline,
 	LuVideo,
 } from 'react-icons/lu';
 
-import type { DrawingTool, ViewerMode } from '../../types';
+import type { ViewerMode } from '../../types';
 
 /* Style tokens: touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8)
  * via the `touch:` variant which maps to `@media (pointer: coarse)`.
@@ -65,44 +61,6 @@ export const ALIGN_BTNS = [
 export const DISTRIBUTE_BTNS = [
 	{ k: 'horizontal', el: <LuAlignHorizontalSpaceAround className={ic} /> },
 	{ k: 'vertical', el: <LuAlignVerticalSpaceAround className={ic} /> },
-];
-
-export const DRAW_TOOLS: Array<{
-	id: DrawingTool;
-	icon: React.ReactNode;
-	labelKey: string;
-	ac?: string;
-}> = [
-	{
-		id: 'select',
-		icon: <LuMoveRight className={ic} />,
-		labelKey: 'pptx.ribbon.tool.select',
-		ac: 'bg-primary text-white',
-	},
-	{
-		id: 'pen',
-		icon: <LuPencil className={ic} />,
-		labelKey: 'pptx.ribbon.tool.pen',
-		ac: 'bg-primary text-white',
-	},
-	{
-		id: 'highlighter',
-		icon: <LuType className={ic} />,
-		labelKey: 'pptx.ribbon.tool.highlighter',
-		ac: 'bg-yellow-600 text-white',
-	},
-	{
-		id: 'eraser',
-		icon: <LuMinus className={ic} />,
-		labelKey: 'pptx.ribbon.tool.eraser',
-		ac: 'bg-red-600 text-white',
-	},
-	{
-		id: 'freeform',
-		icon: <LuSpline className={ic} />,
-		labelKey: 'pptx.ribbon.tool.freeform',
-		ac: 'bg-primary text-white',
-	},
 ];
 
 export const OV: Array<{ labelKey: string; i: React.ReactNode; k: string }> = [

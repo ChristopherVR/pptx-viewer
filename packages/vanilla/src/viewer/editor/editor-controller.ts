@@ -117,7 +117,7 @@ export interface EditorController {
 	/** Switch the Draw ribbon tab's active tool (also clears selection when leaving `'select'`). */
 	setDrawTool(tool: DrawTool): void;
 	/** Set the pen/highlighter stroke colour used by the next committed stroke. */
-	setDrawColor(color: string): void;
+	setDrawColor(color: string, committed?: boolean): void;
 	/** Set the pen/highlighter stroke width used by the next committed stroke. */
 	setDrawWidth(width: number): void;
 	/** Start Edit Points on `id` (context menu); false when it cannot be edited. */
@@ -763,8 +763,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			ops.commitChange();
 		},
 		setDrawTool: (tool) => drawMode.setTool(tool),
-		setDrawColor: (color) => {
-			recordRecentColor(store, color);
+		setDrawColor: (color, committed = true) => {
+			if (committed) {
+				recordRecentColor(store, color);
+			}
 			drawMode.setColor(color);
 		},
 		setDrawWidth: (width) => drawMode.setWidth(width),

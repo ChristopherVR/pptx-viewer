@@ -1,5 +1,8 @@
 /** Trusted, shared SVG paths. No host-supplied markup is inserted into the icon. */
 export const RIBBON_ICON_PATHS: Readonly<Record<string, string>> = {
+	cursor: 'M3 2l13 9-6 1-3 5Z',
+	highlighter: 'M11 2l6 6-7 7-6-6ZM4 9l-2 7h7M2 18h10',
+	spline: 'M2 16C4 4 8 2 10 6s0 8 3 7 4-5 5-8',
 	spelling: 'M2 14 6 5l4 9M3.4 11.4h5.2M12 13.5l2 2 4-4.5',
 	book: 'M3 4h5a2 2 0 0 1 2 2v10a2 2 0 0 0-2-2H3zM17 4h-5a2 2 0 0 0-2 2v10a2 2 0 0 1 2-2h5z',
 	shield: 'M10 3 4 5.4v4.1c0 3.3 2.5 6 6 7.1 3.5-1.1 6-3.8 6-7.1V5.4zM7 10l2 2 4-4',

@@ -51,7 +51,6 @@ do not claim that the remaining UI inventory has already migrated.
 | -------------------------------------------- | ----- | ------------- |
 | Remaining Home controls                      | #373  | ChristopherVR |
 | Insert                                       | #374  | ChristopherVR |
-| Draw                                         | #375  | ChristopherVR |
 | Transitions                                  | #377  | ChristopherVR |
 | Animations                                   | #378  | ChristopherVR |
 | View                                         | #380  | ChristopherVR |
@@ -89,3 +88,24 @@ reload, Review spelling/language/comments actions, customization, focus,
 narrow layouts, touch targets and forced colors. Save/reload checks also
 identified and fixed missing SmartArt quick-style intensity serialization,
 SmartArt color-definition updates and chart gallery selection reconstruction.
+
+## Draw
+
+Draw (#375) uses one controlled shared view for Select, Pen, Highlighter,
+Eraser, Freeform, color and width. Native hosts own pointer gestures, ink
+creation, erasure, history and recent-color persistence. Live custom-color
+input updates the tool; a committed choice also updates native recent colors.
+All five bindings offer the same width range (1 to 16) and presets.
+
+The view preserves public customization ids and focused tool buttons during
+state updates. The color palette clamps to the viewport, closes on outside
+pointer or Escape, and restores opener focus on Escape. Read-only hosts
+disable drawing intents. Theme tokens, forced colors and coarse-pointer
+targets follow the shared control contract. Comparable screenshots are
+`<binding>-draw.png` in the baseline and after directories.
+
+`e2e/ribbon-draw-migration.spec.ts` covers keyboard tool activation, native
+ink creation, undo/redo, InkML save/reload, customization, tokens, touch
+targets and dismissal. Saved InkML verifies width and color; rendered paths
+or pressure circles verify the reloaded stroke. Existing highlighter and
+tilt specs separately cover variable geometry.

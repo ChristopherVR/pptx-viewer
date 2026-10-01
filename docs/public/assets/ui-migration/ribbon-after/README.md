@@ -27,4 +27,19 @@ e2e/ribbon-gallery-migration.spec.ts e2e/ribbon-review-migration.spec.ts
 
 The broader UI migration remains open. These results cover the completed
 Design, Review and contextual families; they do not claim completion of Home,
-Insert, Draw, Transitions, Animations, View or the non-ribbon inventory.
+Insert, Transitions, Animations, View or the non-ribbon inventory.
+
+## Draw (#375)
+
+The five `*-draw.png` captures use the baseline deck and viewport, with Pen,
+red and width 16 selected. Native gesture rendering and save behavior remain
+outside the shared controlled view.
+
+- Root build and typecheck, React 18 public typecheck: passed.
+- React 18 and React 19 Draw/toolbar/constants suites: 161 tests each.
+- Vue Draw: four tests; Angular Draw: four tests; Svelte Draw: four tests;
+  Vanilla Draw/ribbon/recent-color suites: 37 tests passed.
+- Shared Draw state/view: five tests; shared web-control regressions passed.
+- Draw neutral browser suite: 15 tests across all five bindings passed.
+  Existing highlighter and live-tilt suites: 20 tests passed.
+- Changed-file formatting/lint and neutral test contract: passed.

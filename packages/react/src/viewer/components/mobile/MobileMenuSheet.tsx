@@ -196,6 +196,7 @@ function MobileSectionBody({
 			return (
 				<div className={wrap}>
 					<DrawSection
+						canEdit={p.canEdit}
 						activeTool={p.activeTool}
 						drawingColor={p.drawingColor}
 						drawingWidth={p.drawingWidth}

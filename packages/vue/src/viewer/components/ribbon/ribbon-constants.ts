@@ -18,14 +18,10 @@ import {
 	Info,
 	Italic,
 	Lock,
-	Minus,
-	MoveRight,
-	Pencil,
 	Play,
 	Printer,
 	Search,
 	ShieldAlert,
-	Spline,
 	Strikethrough,
 	Type,
 	Underline,
@@ -40,7 +36,7 @@ import {
  */
 import type { Component } from 'vue';
 
-import type { DrawingTool, ViewerMode } from './ribbon-types';
+import type { ViewerMode } from './ribbon-types';
 
 /* Style tokens: touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8).
  * Tailwind 4 has no built-in `touch:` variant, so `max-md:` is used as a proxy
@@ -84,34 +80,6 @@ export const ALIGN_BTNS: Array<{ k: string; icon: Component; rotate?: boolean }>
 export const DISTRIBUTE_BTNS: Array<{ k: string; icon: Component }> = [
 	{ k: 'horizontal', icon: AlignHorizontalSpaceAround },
 	{ k: 'vertical', icon: AlignVerticalSpaceAround },
-];
-
-export const DRAW_TOOLS: Array<{
-	id: DrawingTool;
-	icon: Component;
-	labelKey: string;
-	ac?: string;
-}> = [
-	{
-		id: 'select',
-		icon: MoveRight,
-		labelKey: 'pptx.ribbon.tool.select',
-		ac: 'bg-primary text-white',
-	},
-	{ id: 'pen', icon: Pencil, labelKey: 'pptx.ribbon.tool.pen', ac: 'bg-primary text-white' },
-	{
-		id: 'highlighter',
-		icon: Type,
-		labelKey: 'pptx.ribbon.tool.highlighter',
-		ac: 'bg-yellow-600 text-white',
-	},
-	{ id: 'eraser', icon: Minus, labelKey: 'pptx.ribbon.tool.eraser', ac: 'bg-red-600 text-white' },
-	{
-		id: 'freeform',
-		icon: Spline,
-		labelKey: 'pptx.ribbon.tool.freeform',
-		ac: 'bg-primary text-white',
-	},
 ];
 
 /** Overflow / File menu entries (`---*` keys render as separators). */

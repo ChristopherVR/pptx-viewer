@@ -113,6 +113,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 			}
 			@case ('draw') {
 				<pptx-ribbon-draw-section
+					[canEdit]="canEdit()"
 					[activeTool]="activeTool()"
 					[drawingColor]="drawingColor()"
 					[drawingWidth]="drawingWidth()"

@@ -224,6 +224,7 @@ const { visibleTabs } = useToolbarVisibility(
 			/>
 
 			<DrawSection
+				:can-edit="props.canEdit"
 				v-if="s === 'draw'"
 				:active-tool="props.activeTool"
 				:drawing-color="props.drawingColor"

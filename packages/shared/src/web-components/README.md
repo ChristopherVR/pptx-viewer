@@ -231,3 +231,23 @@ has the public ID `review.language.language`; Hide Ink belongs to `review.ink`.
 Native adapters retain settings, comparison, spell-check preferences, comment
 mutation/history and accessibility panels. The Angular-only duplicate Link
 command is removed from Review; its native output remains compatible.
+
+## Draw tools
+
+`pptx-ui-ribbon-draw.state` is a controlled `RibbonDrawViewState`: tool, color,
+width, editability, recent colors and a translation callback. The light-DOM
+view keeps customization IDs effective, including the new additive
+`draw.tools.freeform` ID. It owns all tool icons, pressed/disabled state,
+standard/recent/custom color choices, width presets and the continuous slider.
+The 16px preset previously available only in Vanilla is reachable in every
+binding. Escape and outside pointer dismissal close the color popup; Escape
+returns focus to its opener. Disconnect removes document/window listeners.
+
+The composed `draw-request` event carries a `RibbonDrawIntent` discriminated
+by `kind`: `tool`, `width` or `color`. A color intent marks whether the pick is
+committed. Hosts apply live color previews immediately and record recent colors
+only for committed picks. Setting state emits no intent. Native hosts retain
+ink pointer capture, live stroke previews, freeform shape creation, erasing,
+selection, undo/history and serialization. The shared view preserves focused
+controls across updates, isolates instances and uses the common theme tokens,
+forced colors and 44px coarse-pointer targets.

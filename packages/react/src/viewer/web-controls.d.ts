@@ -23,6 +23,7 @@ declare module 'react' {
 			'pptx-ui-checkbox': WebControlProps;
 			'pptx-ui-slide-show-options': WebControlProps;
 			'pptx-ui-ribbon-command': WebControlProps;
+			'pptx-ui-ribbon-draw': WebControlProps;
 			'pptx-ui-ribbon-group': WebControlProps;
 			'pptx-ui-ribbon-section': WebControlProps;
 			'pptx-ui-ribbon-gallery': WebControlProps;

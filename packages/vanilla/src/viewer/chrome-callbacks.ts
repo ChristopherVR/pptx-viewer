@@ -137,7 +137,7 @@ export interface ChromeCallbackDeps {
 	/** Arm (or, with null, disarm) the Freeform: Shape / Curve drawing tool. */
 	armFreeformTool?(tool: FreeformToolKind | null): void;
 	/** Set the pen/highlighter stroke colour (Draw tab). */
-	setDrawColor(color: string): void;
+	setDrawColor(color: string, committed?: boolean): void;
 	/** Set the pen/highlighter stroke width (Draw tab). */
 	setDrawWidth(width: number): void;
 	/**
@@ -272,7 +272,7 @@ export function buildChromeCallbacks(
 		},
 		draw: {
 			setTool: (tool) => deps.setDrawTool(tool),
-			setColor: (color) => deps.setDrawColor(color),
+			setColor: (color, committed) => deps.setDrawColor(color, committed),
 			setWidth: (width) => deps.setDrawWidth(width),
 		},
 	};

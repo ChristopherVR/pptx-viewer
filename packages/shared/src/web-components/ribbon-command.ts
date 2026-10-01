@@ -22,6 +22,7 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 			'title',
 			'data-ribbon-control',
 			'badge',
+			'icon-only',
 		];
 		private readonly button: HTMLButtonElement;
 		private readonly text: HTMLSpanElement;
@@ -74,6 +75,12 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 		}
 		private sync(): void {
 			this.text.textContent = this.getAttribute('label') ?? '';
+			this.text.hidden = this.hasAttribute('icon-only');
+			if (this.text.hidden) {
+				this.button.setAttribute('aria-label', this.text.textContent);
+			} else {
+				this.button.removeAttribute('aria-label');
+			}
 			this.badge.textContent = this.getAttribute('badge') ?? '';
 			this.badge.hidden = !this.badge.textContent;
 			this.button.title = this.getAttribute('title') ?? this.text.textContent;

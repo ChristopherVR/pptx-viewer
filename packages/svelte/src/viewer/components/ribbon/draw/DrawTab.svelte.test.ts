@@ -1,8 +1,11 @@
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import DrawTab from './DrawTab.svelte';
+
+registerPptxWebControls();
 
 /**
  * DrawTab tests: the five-tool selector (React parity: Freeform beside
@@ -35,28 +38,37 @@ function mountTab(editable = true): HTMLElement {
 describe('drawTab', () => {
 	it('offers all five drawing tools', () => {
 		const target = mountTab();
-		const labels = [...target.querySelectorAll('button[aria-pressed]')].map((button) =>
-			button.getAttribute('aria-label'),
+		const labels = [...target.querySelectorAll('pptx-ui-ribbon-command')].map((button) =>
+			button.getAttribute('label'),
 		);
 		expect(labels).toStrictEqual(['Select', 'Pen', 'Highlighter', 'Eraser', 'Freeform']);
 	});
 
 	it('names the colour and width controls the way React does', () => {
 		const target = mountTab();
-		expect(target.querySelector('button[aria-label="Colour"]')).toBeTruthy();
+		expect(target.querySelector('summary')?.textContent).toContain('Colour');
 		const width = [...target.querySelectorAll('label')].find((node) =>
 			node.textContent?.includes('Width'),
 		);
-		// No aria-label on the slider: the wrapping label is what names it, so
-		// "Width" is both what the user reads and what the a11y tree reports.
-		expect(width?.querySelector('input')?.hasAttribute('aria-label')).toBeFalsy();
+		// The shared slider and preset list keep the same explicit accessible name.
+		expect(width?.querySelector('input')?.getAttribute('aria-label')).toBe('Width');
 	});
 
 	it('activates the freeform tool', () => {
 		const target = mountTab();
-		const freeform = target.querySelector<HTMLButtonElement>('button[aria-label="Freeform"]');
+		const freeform = target
+			.querySelector('[data-ribbon-control="draw.tools.freeform"]')
+			?.shadowRoot?.querySelector<HTMLButtonElement>('button');
 		freeform?.click();
 		flushSync();
 		expect(freeform?.getAttribute('aria-pressed')).toBe('true');
+	});
+
+	it('disables every tool in a read-only viewer', () => {
+		const target = mountTab(false);
+		for (const command of target.querySelectorAll('pptx-ui-ribbon-command')) {
+			expect(command.shadowRoot?.querySelector<HTMLButtonElement>('button')?.disabled).toBeTruthy();
+		}
+		expect(target.querySelector('select')?.disabled).toBeTruthy();
 	});
 });
