@@ -4,25 +4,17 @@
  * to current), Reset, and Section controls. Extracted from HomeSection to keep
  * it under 300 LOC. Vue port of React's `toolbar/SlidesGroup.tsx`.
  */
-import {
-	ChevronDown,
-	FolderPlus,
-	LayoutGrid,
-	LayoutTemplate,
-	Plus,
-	RotateCcw,
-} from 'lucide-vue-next';
 import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import type { SlideTemplateId } from 'pptx-viewer-shared';
-import { ref, watchEffect } from 'vue';
+import type { RibbonHomeRequestEvent, SlideTemplateId } from 'pptx-viewer-shared';
+import { slidesHomeControls } from 'pptx-viewer-shared';
+import { computed, onMounted, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../../utils';
 import SlideTemplateGalleryDialog from '../SlideTemplateGalleryDialog.vue';
 import LayoutGalleryMenu from './LayoutGalleryMenu.vue';
-import { ic, pill } from './ribbon-constants';
 import type { LayoutOption } from './ribbon-types';
 import { useDropdown } from './use-dropdown';
+import { useHomeHost } from './use-home-host';
 
 interface Props {
 	canEdit: boolean;
@@ -41,10 +33,58 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const layoutMenu = useDropdown();
 const layoutApplyMenu = useDropdown();
+const { host, anchorOf } = useHomeHost();
+/** Wrapper holding the shared strip and both menus: the outside-click boundary. */
+const root = ref<HTMLElement | null>(null);
+onMounted(() => {
+	layoutMenu.root.value = root.value;
+	layoutApplyMenu.root.value = root.value;
+});
+
+const state = computed(() => ({
+	// The locale is read so a language switch re-translates the shared labels.
+	locale: locale.value,
+	controls: slidesHomeControls({
+		editable: props.canEdit,
+		hasLayouts: props.layoutOptions.length > 0,
+		hasSlides: true,
+		showTemplates: Boolean(props.onInsertSlideFromTemplate),
+		newSlideNeedsLayout: true,
+		resetNeedsSlide: false,
+		layoutOpen: layoutApplyMenu.open.value,
+		newSlideOpen: layoutMenu.open.value,
+	}),
+	translate: t,
+}));
+
+function request(event: RibbonHomeRequestEvent): void {
+	switch (event.detail.id) {
+		case 'home.slides.newSlide':
+			if (event.detail.part === 'caret') {
+				layoutApplyMenu.close();
+				layoutMenu.toggle();
+			} else {
+				handleNewSlide();
+			}
+			break;
+		case 'home.slides.slideTemplates':
+			templateGalleryOpen.value = true;
+			break;
+		case 'home.slides.layout':
+			layoutMenu.close();
+			layoutApplyMenu.toggle();
+			break;
+		case 'home.slides.reset':
+			props.onResetSlide?.();
+			break;
+		case 'home.slides.section':
+			props.onAddSection?.();
+	}
+}
 const templateGalleryOpen = ref(false);
 
 /**
@@ -95,124 +135,29 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 </script>
 
 <template>
-	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.slides">
-		<div class="flex items-center gap-1" data-pptx-chrome="slides-controls">
-			<!-- New Slide split button -->
-			<div
-				:ref="layoutMenu.root"
-				class="relative inline-flex items-center"
-				data-ribbon-control="home.slides.newSlide"
-				data-pptx-chrome="split-button"
-			>
-				<button
-					data-pptx-chrome="split-main"
-					type="button"
-					:disabled="!props.canEdit || props.layoutOptions.length === 0"
-					:class="
-						cn(pill, 'whitespace-nowrap', props.layoutOptions.length > 0 ? 'rounded-r-none' : '')
-					"
-					:title="t('pptx.home.newSlide')"
-					@click="handleNewSlide()"
-				>
-					<Plus :class="ic" />
-					{{ t('pptx.home.newSlide') }}
-				</button>
-				<button
-					data-pptx-chrome="split-caret"
-					v-if="props.layoutOptions.length > 0"
-					type="button"
-					:disabled="!props.canEdit"
-					class="inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80"
-					:title="t('pptx.home.chooseLayout')"
-					@click="layoutMenu.toggle()"
-				>
-					<ChevronDown class="w-3 h-3" />
-				</button>
-				<LayoutGalleryMenu
-					v-if="layoutMenu.open.value"
-					:anchor="layoutMenu.root.value"
-					:layout-options="props.layoutOptions"
-					:previews="previews"
-					@select="handlePickLayout"
-				/>
-			</div>
-
-			<!-- Slide Templates gallery button -->
-			<button
-				v-if="props.onInsertSlideFromTemplate"
-				type="button"
-				data-ribbon-control="home.slides.slideTemplates"
-				:disabled="!props.canEdit"
-				:class="pill"
-				:title="t('pptx.home.slideTemplates')"
-				@click="templateGalleryOpen = true"
-			>
-				<LayoutTemplate :class="ic" />
-				{{ t('pptx.home.slideTemplates') }}
-			</button>
-
-			<!-- Layout (apply to current slide) -->
-			<div
-				:ref="layoutApplyMenu.root"
-				class="relative inline-flex items-center"
-				data-ribbon-control="home.slides.layout"
-			>
-				<button
-					type="button"
-					:disabled="!props.canEdit || props.layoutOptions.length === 0"
-					:class="pill"
-					:title="t('pptx.master.layout')"
-					@click="layoutApplyMenu.toggle()"
-				>
-					<LayoutGrid :class="ic" />
-					{{ t('pptx.master.layout') }}
-				</button>
-				<LayoutGalleryMenu
-					v-if="layoutApplyMenu.open.value"
-					:anchor="layoutApplyMenu.root.value"
-					:layout-options="props.layoutOptions"
-					:previews="previews"
-					:current-layout-path="props.currentLayoutPath"
-					@select="handleApplyLayout"
-				/>
-			</div>
-
-			<!-- Reset -->
-			<button
-				type="button"
-				data-ribbon-control="home.slides.reset"
-				:disabled="!props.canEdit"
-				:class="pill"
-				:title="t('pptx.sections.resetSlideTitle')"
-				@click="props.onResetSlide?.()"
-			>
-				<RotateCcw :class="ic" />
-				{{ t('pptx.animations.reset') }}
-			</button>
-
-			<!-- Section -->
-			<button
-				type="button"
-				data-ribbon-control="home.slides.section"
-				:disabled="!props.canEdit"
-				:class="pill"
-				:title="t('pptx.sections.addSection')"
-				@click="props.onAddSection?.()"
-			>
-				<FolderPlus :class="ic" />
-				{{ t('pptx.sections.sectionButtonLabel') }}
-			</button>
-		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.sections.slides')
-		}}</span>
+	<div ref="root" class="contents">
+		<pptx-ui-ribbon-home-slides ref="host" :state.prop="state" @home-request="request" />
+		<LayoutGalleryMenu
+			v-if="layoutMenu.open.value"
+			:anchor="anchorOf('home.slides.newSlide')"
+			:layout-options="props.layoutOptions"
+			:previews="previews"
+			@select="handlePickLayout"
+		/>
+		<LayoutGalleryMenu
+			v-if="layoutApplyMenu.open.value"
+			:anchor="anchorOf('home.slides.layout')"
+			:layout-options="props.layoutOptions"
+			:previews="previews"
+			:current-layout-path="props.currentLayoutPath"
+			@select="handleApplyLayout"
+		/>
+		<SlideTemplateGalleryDialog
+			v-if="props.onInsertSlideFromTemplate"
+			:open="templateGalleryOpen"
+			:scheme="props.templateScheme"
+			@insert="handleInsertTemplate"
+			@close="templateGalleryOpen = false"
+		/>
 	</div>
-
-	<SlideTemplateGalleryDialog
-		v-if="props.onInsertSlideFromTemplate"
-		:open="templateGalleryOpen"
-		:scheme="props.templateScheme"
-		@insert="handleInsertTemplate"
-		@close="templateGalleryOpen = false"
-	/>
 </template>

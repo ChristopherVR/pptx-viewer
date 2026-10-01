@@ -107,6 +107,45 @@ describe('drawingGroup recent colours (fill + outline popovers)', () => {
 	});
 });
 
+describe('drawingGroup shared triggers', () => {
+	const drawingProps = (overrides: Record<string, unknown> = {}) => ({
+		canEdit: true,
+		selectedElement: shape(),
+		newShapeType: 'rect',
+		onSetNewShapeType: vi.fn(),
+		onAddShape: vi.fn(),
+		onMoveLayer: vi.fn(),
+		onMoveLayerToEdge: vi.fn(),
+		...overrides,
+	});
+
+	it('keeps the control ids and opens the native Shapes menu from the shared trigger', async () => {
+		const props = drawingProps();
+		const wrapper = mount(DrawingGroup, { props, attachTo: document.body });
+		for (const id of ['shapes', 'arrange', 'shapeFill', 'shapeOutline']) {
+			expect(
+				document.body.querySelectorAll(`[data-ribbon-control="home.drawing.${id}"]`),
+			).toHaveLength(1);
+		}
+		await wrapper.get('[title="Shapes"]').trigger('click');
+		expect(wrapper.get('[title="Shapes"]').attributes('aria-expanded')).toBe('true');
+		const item = wrapper.findAll('button').find((b) => b.text() === 'Rectangle');
+		await item!.trigger('click');
+		expect(props.onSetNewShapeType).toHaveBeenCalledWith('rect');
+		expect(props.onAddShape).toHaveBeenCalledOnce();
+		wrapper.unmount();
+	});
+
+	it('gates Shapes on edit rights and the other triggers on a selection', () => {
+		const wrapper = mount(DrawingGroup, { props: drawingProps({ selectedElement: null }) });
+		const disabled = (title: string) =>
+			wrapper.get<HTMLButtonElement>(`[title="${title}"]`).element.disabled;
+		expect(disabled('Shapes')).toBeFalsy();
+		expect(disabled('Shape Fill')).toBeTruthy();
+		expect(disabled('Arrange')).toBeTruthy();
+	});
+});
+
 describe('drawingGroup theme colour grid (fill + outline popovers)', () => {
 	it('commits both the resolved hex and the ref on a theme swatch click (fill)', async () => {
 		const onUpdateElementStyle = vi.fn();
