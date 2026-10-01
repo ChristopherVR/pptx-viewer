@@ -8,6 +8,18 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-10-01
+
+_Releases: pptx-viewer-core@4.9.2, pptx-react-viewer@4.16.1, pptx-vue-viewer@4.16.1, pptx-angular-viewer@4.16.1, pptx-vanilla-viewer@3.16.1, pptx-svelte-viewer@4.16.1, @christophervr/pptx-viewer@2.33.1_
+
+### Bug Fixes
+
+- **core:** Preserve SmartArt quick styles across save and reload (by @ChristopherVR) ([b49b3fa](https://github.com/ChristopherVR/pptx-viewer/commit/b49b3fab8b0834850af950cdac44b1ffcb404e85))
+
+### Refactor
+
+- **ui:** Share Design, Review and contextual ribbon views (by @ChristopherVR) ([17d7554](https://github.com/ChristopherVR/pptx-viewer/commit/17d75540e437c291345d6a6f3b9735b287cf76c7))
+
 ## 2026-09-30
 
 _Releases: pptx-react-viewer@4.16.0, pptx-vue-viewer@4.16.0, pptx-angular-viewer@4.16.0, pptx-vanilla-viewer@3.16.0, pptx-svelte-viewer@4.16.0, @christophervr/pptx-viewer@2.33.0_

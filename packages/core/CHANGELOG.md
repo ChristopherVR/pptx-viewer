@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.9.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.9.2) - 2026-10-01
+
+### Bug Fixes
+
+- **core:** Preserve SmartArt quick styles across save and reload (by @ChristopherVR) ([b49b3fa](https://github.com/ChristopherVR/pptx-viewer/commit/b49b3fab8b0834850af950cdac44b1ffcb404e85))
+
 ## [4.9.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.9.1) - 2026-09-30
 
 ### Bug Fixes
