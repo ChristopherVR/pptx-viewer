@@ -27,10 +27,44 @@ function isAvailable(element: HTMLElement): boolean {
 	return style?.display !== 'none' && style?.visibility !== 'hidden';
 }
 
-function focusableElements(panel: HTMLElement): HTMLElement[] {
-	return Array.from(panel.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)).filter(
-		isAvailable,
-	);
+/**
+ * Tabbable elements in tree order, including those inside open shadow roots
+ * (the shared `pptx-ui-*` controls render their buttons there).
+ */
+function focusableElements(root: ParentNode, found: HTMLElement[] = []): HTMLElement[] {
+	for (const child of Array.from(root.children)) {
+		if (child instanceof HTMLElement) {
+			if (child.matches(MODAL_FOCUSABLE_SELECTOR) && isAvailable(child)) {
+				found.push(child);
+			}
+			if (child.shadowRoot && isAvailable(child)) {
+				focusableElements(child.shadowRoot, found);
+			}
+		}
+		focusableElements(child, found);
+	}
+	return found;
+}
+
+/** The focused element, resolved through nested open shadow roots. */
+function deepActiveElement(doc: Document): Element | null {
+	let active = doc.activeElement;
+	while (active?.shadowRoot?.activeElement) {
+		active = active.shadowRoot.activeElement;
+	}
+	return active;
+}
+
+/** `panel.contains` across shadow boundaries. */
+function containsDeep(panel: HTMLElement, node: Node | null): boolean {
+	let current: Node | null = node;
+	while (current) {
+		if (current === panel) {
+			return true;
+		}
+		current = current.parentNode ?? (current as ShadowRoot).host ?? null;
+	}
+	return false;
 }
 
 /**
@@ -42,10 +76,7 @@ export function activateModalFocus(
 	options: ModalFocusOptions = {},
 ): () => void {
 	const doc = panel.ownerDocument;
-	let activeElement = doc.activeElement;
-	while (activeElement?.shadowRoot?.activeElement) {
-		activeElement = activeElement.shadowRoot.activeElement;
-	}
+	const activeElement = deepActiveElement(doc);
 	const opener = activeElement instanceof HTMLElement ? activeElement : null;
 	const restoreFocus = options.restoreFocus ?? true;
 
@@ -91,11 +122,11 @@ export function activateModalFocus(
 
 		const first = focusable[0];
 		const last = focusable[focusable.length - 1];
-		const active = doc.activeElement;
-		if (event.shiftKey && (active === first || !panel.contains(active))) {
+		const active = deepActiveElement(doc);
+		if (event.shiftKey && (active === first || !containsDeep(panel, active))) {
 			event.preventDefault();
 			last.focus();
-		} else if (!event.shiftKey && (active === last || !panel.contains(active))) {
+		} else if (!event.shiftKey && (active === last || !containsDeep(panel, active))) {
 			event.preventDefault();
 			first.focus();
 		}

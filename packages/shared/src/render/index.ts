@@ -1259,6 +1259,7 @@ export * from './context-menu-inspector-anchor';
 // Paste Special (Ctrl+Alt+V) and the post-paste Paste Options toolbar: the
 // four paste formats and the pure element transforms behind them.
 export * from './paste-special';
+export * from './chrome-controls-state';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';

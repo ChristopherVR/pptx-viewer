@@ -1,7 +1,13 @@
 import { definePptxCheckbox } from './checkbox';
 import { definePptxContextMenu } from './context-menu';
+import { definePptxCompatToasts } from './compat-toasts';
+import { definePptxDialogFooter } from './dialog-footer';
 import { HOST_STYLES } from './host-styles';
 import { definePptxNotesToolbar } from './notes-toolbar';
+import { definePptxMobileBar } from './mobile-bar';
+import { definePptxMobileToolbar } from './mobile-toolbar';
+import { definePptxPasteOptions } from './paste-options';
+import { definePptxReadOnlyBanner } from './read-only-banner';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
 import { definePptxRibbonAnimations } from './ribbon-animations';
 import { definePptxRibbonCommand } from './ribbon-command';
@@ -34,6 +40,12 @@ import { definePptxThemeEditor } from './theme-editor';
 import { definePptxTitleBar } from './title-bar';
 
 export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-editor';
+export type { CompatToastsRequestEvent, PptxUiCompatToastsElement } from './compat-toasts';
+export type { DialogFooterRequestEvent, PptxUiDialogFooterElement } from './dialog-footer';
+export type { MobileBarRequestEvent, PptxUiMobileBarElement } from './mobile-bar';
+export type { MobileToolbarRequestEvent, PptxUiMobileToolbarElement } from './mobile-toolbar';
+export type { PasteOptionsRequestEvent, PptxUiPasteOptionsElement } from './paste-options';
+export type { PptxUiReadOnlyBannerElement, ReadOnlyBannerRequestEvent } from './read-only-banner';
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
 export type {
@@ -89,6 +101,12 @@ const controls = [
 	['pptx-ui-checkbox', definePptxCheckbox],
 	['pptx-ui-select', definePptxSelect],
 	['pptx-ui-slide-show-options', definePptxSlideShowOptions],
+	['pptx-ui-compat-toasts', definePptxCompatToasts],
+	['pptx-ui-dialog-footer', definePptxDialogFooter],
+	['pptx-ui-mobile-bar', definePptxMobileBar],
+	['pptx-ui-mobile-toolbar', definePptxMobileToolbar],
+	['pptx-ui-paste-options', definePptxPasteOptions],
+	['pptx-ui-read-only-banner', definePptxReadOnlyBanner],
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-animations', definePptxRibbonAnimations],
 	['pptx-ui-ribbon-draw', definePptxRibbonDraw],
