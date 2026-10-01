@@ -189,4 +189,37 @@ describe('selecting inside a group', () => {
 		h.handlers.handleElementMouseDown('cards', at(250, 130));
 		expect(h.applySelection).not.toHaveBeenCalledWith('a');
 	});
+
+	it('does not drill into a member locked with noSelect (press or double-click)', () => {
+		const first = (cards as unknown as { children: PptxElement[] }).children[0];
+		first.locks = { noSelect: true };
+		try {
+			const press = mount('cards');
+			press.handlers.handleElementMouseDown('cards', at(250, 130));
+			press.handlers.handleElementClick('cards', at(250, 130));
+			expect(press.applySelection).not.toHaveBeenCalledWith('a');
+			const dbl = mount(null);
+			dbl.handlers.handleElementDoubleClick('cards', at(250, 130));
+			expect(dbl.applySelection).not.toHaveBeenCalledWith('a');
+			expect(dbl.setInlineEditingElementId).not.toHaveBeenCalledWith('a');
+		} finally {
+			delete first.locks;
+		}
+	});
+
+	it('does not drill into a group locked with noDrilldown', () => {
+		const group = cards;
+		group.locks = { noDrilldown: true };
+		try {
+			const press = mount('cards');
+			press.handlers.handleElementMouseDown('cards', at(250, 130));
+			expect(press.applySelection).not.toHaveBeenCalledWith('a');
+			const dbl = mount(null);
+			dbl.handlers.handleElementDoubleClick('cards', at(250, 130));
+			expect(dbl.applySelection).not.toHaveBeenCalledWith('a');
+			expect(dbl.setInlineEditingElementId).not.toHaveBeenCalledWith('a');
+		} finally {
+			delete group.locks;
+		}
+	});
 });

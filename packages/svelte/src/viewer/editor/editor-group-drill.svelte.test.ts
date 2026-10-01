@@ -171,6 +171,33 @@ describe('svelte selecting inside a group', () => {
 		expect(h.editor.selectedElementId).toBeNull();
 	});
 
+	it('does not drill into a member locked with noSelect (press or double-click)', () => {
+		const locked = (): PptxElement => {
+			const g = cardsGroup() as unknown as { children: PptxElement[] };
+			g.children[0] = { ...g.children[0], locks: { noSelect: true } } as PptxElement;
+			return g as unknown as PptxElement;
+		};
+		const pressed = mount('cards', locked());
+		clickAt(pressed, 250, 130);
+		expect(pressed.editor.selectedElementId).not.toBe('a');
+		controller?.destroy();
+		const dbl = mount(null, locked());
+		dbl.controller.onStageDblClick(mouse('dblclick', dbl.groupNode, 250, 130));
+		expect(dbl.editor.selectedElementId).not.toBe('a');
+		expect(dbl.controller.editingId).not.toBe('a');
+	});
+
+	it('does not drill into a group locked with noDrilldown', () => {
+		const pressed = mount('cards', cardsGroup({ locks: { noDrilldown: true } }));
+		clickAt(pressed, 250, 130);
+		expect(pressed.editor.selectedElementId).toBe('cards');
+		controller?.destroy();
+		const dbl = mount(null, cardsGroup({ locks: { noDrilldown: true } }));
+		dbl.controller.onStageDblClick(mouse('dblclick', dbl.groupNode, 250, 130));
+		expect(dbl.editor.selectedElementId).not.toBe('a');
+		expect(dbl.controller.editingId).not.toBe('a');
+	});
+
 	it('keeps a rotated group as one: a press never drills into it', () => {
 		const h = mount('cards', cardsGroup({ rotation: 30 }));
 		clickAt(h, 250, 130);
