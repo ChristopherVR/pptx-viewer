@@ -62,7 +62,6 @@
 	.tabs label:hover { background: var(--pptx-accent, #33334d); }
 	.tabs label.locked { opacity: 0.6; cursor: not-allowed; }
 	.tabs label.locked:hover { background: transparent; }
-	.tabs input { width: 15px; height: 15px; accent-color: var(--pptx-primary, #6366f1); }
 	.reset { margin-top: 8px; border: 1px solid var(--pptx-border, #3f3f52); border-radius: 5px; padding: 6px 11px; background: transparent; color: var(--pptx-foreground, #e2e8f0); font-size: 11px; cursor: pointer; }
 	.reset:hover { background: var(--pptx-accent, #33334d); }
 	.shortcut { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; border-radius: 5px; padding: 7px 10px; font-size: 12px; }

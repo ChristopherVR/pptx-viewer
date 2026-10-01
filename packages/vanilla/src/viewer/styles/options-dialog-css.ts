@@ -39,7 +39,7 @@ label.pptxv-options-row { cursor: pointer; }
 .pptxv-options-row select, .pptxv-options-row input[type='text'], .pptxv-options-row input[type='number'] { max-width: 55%; padding: 5px 7px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; font: inherit; font-size: 12px; }
 .pptxv-options-row input[type='number'] { width: 72px; text-align: right; }
 .pptxv-options-row input[type='text'] { width: 180px; }
-.pptxv-options-row input[type='checkbox'] { flex: none; width: 15px; height: 15px; accent-color: var(--pptx-primary); }
+.pptxv-options-row input[type='checkbox'] { flex: none; }
 .pptxv-options-unit { color: var(--pptx-muted-foreground); font-size: 11px; }
 .pptxv-options-number { display: inline-flex; align-items: center; gap: 6px; }
 .pptxv-options-action { padding: 6px 11px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; font: inherit; font-size: 12px; cursor: pointer; }

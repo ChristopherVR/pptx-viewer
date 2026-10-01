@@ -235,9 +235,7 @@ const CHROME_CSS = `
  */
 .pptxv-titlebar-search { flex: 1 1 auto; display: flex; justify-content: center; min-width: 20px; }
 .pptxv-cmdsearch { position: relative; width: min(320px, 30vw); }
-.pptxv-cmdsearch-box { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 12px; border: 1px solid var(--pptx-border); border-radius: 6px; background: var(--pptx-muted); color: var(--pptx-muted-foreground); }
-.pptxv-cmdsearch-box:focus-within { border-color: var(--pptx-ring); }
-.pptxv-cmdsearch-box svg { width: 12px; height: 12px; flex: none; }
+.pptxv-cmdsearch-box { width: 100%; }
 .pptxv-cmdsearch-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pptx-foreground); font: inherit; }
 .pptxv-cmdsearch-menu { position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-card); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); }
 .pptxv-cmdsearch-item, .pptxv-cmdsearch-empty { display: block; width: 100%; padding: 7px 9px; border: 0; background: transparent; color: var(--pptx-foreground); font: inherit; text-align: left; }
