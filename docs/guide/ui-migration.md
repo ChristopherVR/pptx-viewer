@@ -278,3 +278,85 @@ real copy/paste/cut with undo and redo, the Format Painter, customization,
 touch targets, theme tokens and forced colors across all five bindings.
 Comparable screenshots are `<binding>-home.png` in the baseline and after
 directories.
+
+## Non-ribbon buttons (#386)
+
+The audit below covers every non-ribbon button or icon-button family. It was
+taken from the component inventory of the five bindings (React
+`viewer/components`, Vue `viewer/components`, Angular `viewer/*.component.ts`,
+Svelte `viewer/components`, Vanilla `viewer/ui`) and from reading the status bar,
+read-only banner and paste options sources. Families other than the status bar
+were classified from their file structure and the sources named in the table and
+were not migrated, so "keep native" is a scheduling decision, not a claim that no
+sharing is possible. Ribbon commands are out of scope: they already use
+`pptx-ui-ribbon-command` (#363). A family only migrates when one shared element
+can own its markup, gating and callbacks without changing behaviour.
+
+| Family                                                       | Where it appears                                                                                                                     | Duplicated markup or behaviour | Decision                                                                                                                           |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Status bar (counter, save state, notes, view modes, zoom)    | React `StatusBar.tsx`, Vue `StatusBar.vue`, Angular `status-bar.component.ts`, Svelte `StatusBar.svelte`, Vanilla `ui/status-bar.ts` | Yes, five hand-built copies    | **Migrate (this change)**: `pptx-ui-status-bar`. Same labels, gating and callbacks; hosts only map state and intents.              |
+| Read-only banner (Edit anyway, Dismiss, password prompt)     | `ReadOnlyBanner` in all five bindings                                                                                                | Yes                            | Keep native for now. It owns a password form with focus, error and busy states; migrate as its own element in a follow-up.         |
+| Paste options toolbar                                        | `PasteOptionsToolbar` in all five bindings                                                                                           | Yes                            | Keep native for now. Anchored to a canvas element with capture-phase dismissal; needs a shared popup-anchoring contract first.     |
+| Dialog footers (Cancel, OK, Apply, Close)                    | About 25 dialogs per binding, inside different modal shells (React `useModalFocus`, Vue `ModalDialog.vue`, others)                   | Yes, but per dialog            | Keep native. Footers are inseparable from each binding's focus trap and dismissal; a shared dialog shell contract must come first. |
+| Context menus (canvas, slide, section, sorter, presentation) | React 12 files, Vue 5, Angular 10, Svelte 6, Vanilla 7                                                                               | Yes, but not identical         | Keep native. Menu contents, nesting, positioning and roving focus differ by binding. Follow-up: shared menu contract.              |
+| Presentation toolbar and presenter console toolbar           | All five bindings                                                                                                                    | Partly                         | Keep native. Show-time overlay with auto-hide, touch and fullscreen coupling.                                                      |
+| Mobile bottom bar and mobile top toolbar                     | React, Vue, Angular, Vanilla; Svelte has no separate bottom bar                                                                      | No, differs by binding         | Keep native: not identical across bindings.                                                                                        |
+| File backstage navigation and cards                          | React, Angular, Svelte; Vue and Vanilla have no equivalent                                                                           | No, differs by binding         | Keep native: not present in all five bindings.                                                                                     |
+| Slide rail (thumbnails, drag reorder, section rows)          | All five bindings                                                                                                                    | Partly                         | Keep native. Hosts slide-content rendering and drag state, which the issue excludes.                                               |
+| Title bar and quick-access buttons                           | All five bindings                                                                                                                    | Yes                            | Keep native for now; the AutoSave switch and command search are interleaved with host state. Follow-up.                            |
+| Inspector panel actions                                      | React about 119 files, Vue 94, Svelte 74, Vanilla 63, Angular fewer, larger components                                               | Per panel                      | Keep native. Panel-by-panel owners; the generic contracts are the ribbon command, shared checkbox and select where they apply.     |
+| Compatibility toasts and collaboration status indicator      | All five bindings (the indicator is slotted into the status bar)                                                                     | Yes                            | Keep native; toast stacking and relay retry are host-owned. Follow-up.                                                             |
+| Notes toolbar and notes panel buttons                        | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Partly                         | Keep native: different feature sets per binding.                                                                                   |
+
+### Status bar (first batch)
+
+`pptx-ui-status-bar` is one controlled shared view for the bottom row: the
+"Slide n of m" counter, the language label, the save indicator, the Notes toggle,
+the Normal, Slide Sorter and Slide Show buttons, and the zoom cluster (zoom out,
+a percent readout that fits to window, zoom in). Hosts supply a
+`StatusBarViewState` (translated through the host translator) and route one typed
+`status-request` intent per activation to their native handlers. Notes expansion,
+view switching, presentation, the slide sorter and zoom stay native in each
+binding. A collaboration indicator is slotted through the named `collaboration`
+slot. `resolveStatusBarSave` is the one save-indicator rule (autosave state, then
+the dirty flag) and `statusBarViewMode` maps a viewer mode to the pressed button.
+The property and event contract is in `packages/shared/src/web-components/README.md`.
+
+Why this is not a ribbon command: the bar is one row with live readouts, a
+slotted indicator and clusters whose visibility depends on three host actions
+(`zoom`, `notes` and `fullscreen` in `hiddenActions`). Per-button ribbon commands
+would leave the gating and layout duplicated five times.
+
+Behaviour changed so all five bindings now agree:
+
+- The Notes, Normal, Slide Sorter and Slide Show buttons expose `aria-pressed` in
+  every binding. React, Vue and Angular previously had no pressed state, and
+  Vanilla had it only on Notes.
+- The percent readout is named "Zoom to fit" for assistive technology in all
+  five. React, Vue and Angular exposed only a tooltip, so the visible `100%` was
+  the accessible name.
+- The save text uses one shared rule, including "Saved just now / n minutes ago".
+  Svelte never showed the saved text, and Vanilla still shows its pushed label.
+- React reads the viewer mode for Normal and Slide Show; Svelte and Angular also
+  press Slide Sorter while the overlay is open. Vanilla does not track the sorter
+  overlay (unchanged).
+- Buttons are at least 24px square and grow to 44px on coarse pointers; the row
+  keeps the shared 29px minimum height. Forced colors use system colors.
+- React's zoom out and zoom in buttons were individually optional; they now show
+  whenever the zoom cluster shows, and a missing callback is a no-op. The viewer
+  always supplies all three.
+- Up to 767px the element hides the language and save text. React, Vue and Angular
+  omit the whole bar on phones, and Svelte and Vanilla hide the host with CSS;
+  those remain host-owned and unchanged.
+
+`e2e/status-bar-migration.spec.ts` covers the counter, names, pressed state, the
+zoom effect on the stage, keyboard activation, the slide sorter, panel
+customization, touch targets, theme tokens and forced colors on all five
+bindings. `chrome-shell-parity.spec.ts` now measures the bar through its shadow
+root. Adapter unit tests cover state mapping, intent routing, gating, slot
+projection and callback replacement for each binding.
+
+Not migrated, and to be split into owned follow-up issues before #386 closes:
+read-only banner, paste options toolbar, dialog footers with a shared dialog
+shell, context menus, presentation toolbars, title bar and quick access, and
+compatibility toasts. This is why the issue stays open.
