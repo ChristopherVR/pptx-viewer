@@ -1,16 +1,21 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
-import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import type {
+	ChangeCaseMode,
+	PptxUiRibbonHomeElement,
+	RibbonHomeRequestEvent,
+} from 'pptx-viewer-shared';
 import {
 	CHANGE_CASE_OPTIONS,
 	CHARACTER_SPACING_OPTIONS,
 	COMMON_FONT_SIZES,
+	fontHomeControls,
+	registerPptxWebControls,
 	resolveDefaultFontFamily,
 } from 'pptx-viewer-shared';
 
 import type { TextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
 import { makeDropdown } from '../../dropdown';
 import { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from '../../swatch-picker';
 import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
@@ -62,6 +67,7 @@ export function createFontGroup(
 	t: Translator,
 	handlers: FontGroupHandlers,
 ): FontGroup {
+	registerPptxWebControls();
 	const el = createEl(doc, 'div');
 	el.dataset.pptxChrome = 'font-groups';
 	const pickers = createEl(doc, 'div', 'pptxv-rgroup');
@@ -93,47 +99,38 @@ export function createFontGroup(
 		}),
 	);
 
-	const bold = makeButton(doc, {
-		label: t('pptx.textPanel.bold'),
-		icon: 'bold',
-		onClick: handlers.toggleBold,
-	});
-	const italic = makeButton(doc, {
-		label: t('pptx.textPanel.italic'),
-		icon: 'italic',
-		onClick: handlers.toggleItalic,
-	});
-	const underline = makeButton(doc, {
-		label: t('pptx.textPanel.underline'),
-		icon: 'underline',
-		onClick: handlers.toggleUnderline,
-	});
-	const strike = makeButton(doc, {
-		label: t('pptx.textPanel.strikethrough'),
-		icon: 'strikethrough',
-		onClick: handlers.toggleStrikethrough,
-	});
-	const shadow = makeButton(doc, {
-		label: t('pptx.textEffects.shadow'),
-		icon: 'text-shadow',
-		onClick: handlers.toggleTextShadow,
-	});
-
-	const shrink = makeButton(doc, {
-		label: t('pptx.text.decreaseFontSize'),
-		icon: 'a-down',
-		onClick: () => handlers.changeFontSize(-FONT_STEP),
-	});
-	const grow = makeButton(doc, {
-		label: t('pptx.text.increaseFontSize'),
-		icon: 'a-up',
-		onClick: () => handlers.changeFontSize(FONT_STEP),
-	});
-	const clear = makeButton(doc, {
-		label: t('pptx.text.clearFormatting'),
-		icon: 'clear-format',
-		onClick: handlers.clearFormatting,
-	});
+	// Character toggles, Text Shadow, size steps and Clear Formatting are the
+	// shared strip; its one intent is mapped onto the native handlers here.
+	const character = doc.createElement('pptx-ui-ribbon-home-font') as PptxUiRibbonHomeElement;
+	let characterState = { enabled: false, text: undefined as TextFormatState | undefined };
+	const syncCharacter = () => {
+		const text = characterState.text;
+		character.state = {
+			controls: fontHomeControls({
+				enabled: characterState.enabled,
+				bold: Boolean(text?.bold),
+				italic: Boolean(text?.italic),
+				underline: Boolean(text?.underline),
+				strikethrough: Boolean(text?.strikethrough),
+				shadow: Boolean(text?.hasTextShadow),
+			}),
+			translate: t,
+		};
+	};
+	const characterActions: Record<string, () => void> = {
+		'home.font.bold': handlers.toggleBold,
+		'home.font.italic': handlers.toggleItalic,
+		'home.font.underline': handlers.toggleUnderline,
+		'home.font.strikethrough': handlers.toggleStrikethrough,
+		'home.font.shadow': handlers.toggleTextShadow,
+		'home.font.increaseFontSize': () => handlers.changeFontSize(FONT_STEP),
+		'home.font.decreaseFontSize': () => handlers.changeFontSize(-FONT_STEP),
+		'home.font.clearFormatting': handlers.clearFormatting,
+	};
+	character.addEventListener('home-request', (event) =>
+		characterActions[(event as RibbonHomeRequestEvent).detail.id]?.(),
+	);
+	syncCharacter();
 
 	const charSpacing = makeDropdown(doc, {
 		triggerLabel: t('pptx.text.characterSpacing'),
@@ -171,50 +168,15 @@ export function createFontGroup(
 
 	tagRibbonControl(fontFamily.el, 'home.font.fontFamily');
 	tagRibbonControl(fontSize.el, 'home.font.fontSize');
-	tagRibbonControl(shrink.btn, 'home.font.decreaseFontSize');
-	tagRibbonControl(grow.btn, 'home.font.increaseFontSize');
-	tagRibbonControl(bold.btn, 'home.font.bold');
-	tagRibbonControl(italic.btn, 'home.font.italic');
-	tagRibbonControl(underline.btn, 'home.font.underline');
-	tagRibbonControl(strike.btn, 'home.font.strikethrough');
-	tagRibbonControl(shadow.btn, 'home.font.shadow');
-	tagRibbonControl(clear.btn, 'home.font.clearFormatting');
 	tagRibbonControl(charSpacing.el, 'home.font.characterSpacing');
 	tagRibbonControl(changeCase.el, 'home.font.changeCase');
 	tagRibbonControl(fontColor.el, 'home.font.fontColor');
 	tagRibbonControl(highlight.el, 'home.font.highlightColor');
 	pickerRow.append(fontFamily.el, fontSize.el);
-	const decoration = createEl(doc, 'div');
-	const growth = createEl(doc, 'div');
-	decoration.dataset.pptxChrome = growth.dataset.pptxChrome = 'control-cluster';
-	decoration.append(bold.btn, italic.btn, underline.btn, strike.btn);
-	growth.append(grow.btn, shrink.btn, clear.btn);
-	row.append(
-		decoration,
-		shadow.btn,
-		growth,
-		charSpacing.el,
-		changeCase.el,
-		fontColor.el,
-		highlight.el,
-	);
+	row.append(character, charSpacing.el, changeCase.el, fontColor.el, highlight.el);
 
-	const toggles = [bold, italic, underline, strike] as const;
 	// Formatting controls require an editable text or selected table cell.
-	const gated = [
-		shrink,
-		grow,
-		bold,
-		italic,
-		underline,
-		strike,
-		shadow,
-		clear,
-		charSpacing,
-		changeCase,
-		fontColor,
-		highlight,
-	];
+	const gated = [charSpacing, changeCase, fontColor, highlight];
 
 	return {
 		el,
@@ -235,11 +197,8 @@ export function createFontGroup(
 				embeddedFonts: embeddedFontFamilies,
 				customFonts: customFontFamilies,
 			});
-			bold.setActive(text.bold);
-			italic.setActive(text.italic);
-			underline.setActive(text.underline);
-			strike.setActive(text.strikethrough);
-			shadow.setActive(text.hasTextShadow);
+			characterState = { enabled: editable && canFormat, text };
+			syncCharacter();
 			fontFamily.setTriggerText(
 				text.fontFamily ?? resolveDefaultFontFamily(text.placeholderType, themeFonts),
 			);
@@ -255,11 +214,6 @@ export function createFontGroup(
 			fontSize.setDisabled(!editable || !canFormat);
 			for (const c of gated) {
 				c.setDisabled(!editable || !canFormat);
-			}
-			for (const b of toggles) {
-				if (!editable || !canFormat) {
-					b.setActive(false);
-				}
 			}
 		},
 	};

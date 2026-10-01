@@ -87,4 +87,23 @@ describe('editingGroup', () => {
 		// The menu closes behind the command, like every other ribbon menu.
 		expect(byText(target, 'Select All')).toBeUndefined();
 	});
+
+	it('toggles the docked find panel from Find and Replace and reflects it as pressed', () => {
+		const editor = makeEditor();
+		const target = mountGroup(editor);
+		const find = target.querySelector<HTMLButtonElement>(
+			'[data-ribbon-control="home.editing.find"]',
+		)!;
+		const replace = target.querySelector<HTMLButtonElement>(
+			'[data-ribbon-control="home.editing.replace"]',
+		)!;
+		expect(find.getAttribute('aria-pressed')).toBe('false');
+		find.click();
+		flushSync();
+		expect(find.getAttribute('aria-pressed')).toBe('true');
+		expect(replace.getAttribute('aria-pressed')).toBe('true');
+		replace.click();
+		flushSync();
+		expect(find.getAttribute('aria-pressed')).toBe('false');
+	});
 });

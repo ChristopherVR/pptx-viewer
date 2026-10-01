@@ -1,4 +1,3 @@
-import { NgClass } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -7,18 +6,11 @@ import {
 	inject,
 	input,
 } from '@angular/core';
-import {
-	LucideBold,
-	LucideItalic,
-	LucideUnderline,
-	LucideStrikethrough,
-	LucideHighlighter,
-	LucideRemoveFormatting,
-} from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { LucideHighlighter } from '@lucide/angular';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
 
-import type { ThemeColorPickerCommit } from '../internal/shared';
+import type { RibbonHomeRequestEvent, ThemeColorPickerCommit } from '../internal/shared';
 import {
 	COMMON_FONT_SIZES,
 	OFFICE_COLOR_SWATCH_HEXES,
@@ -36,6 +28,7 @@ import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
+import { fontHomeAction, fontHomeState } from './ribbon-font-home';
 /**
  * ribbon-font-controls.component.ts: the ribbon's reusable Font control group
  * (family/size dropdowns, grow/shrink, clear-formatting, bold/italic/underline/
@@ -110,23 +103,13 @@ const CHANGE_CASE_OPTIONS = [
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
-	imports: [
-		RibbonIconDirective,
-		LucideBold,
-		LucideItalic,
-		LucideUnderline,
-		LucideStrikethrough,
-		NgClass,
-		TranslatePipe,
-		RibbonColorPopoverComponent,
-		LucideRemoveFormatting,
-		LucideHighlighter,
-	],
+	imports: [RibbonIconDirective, TranslatePipe, RibbonColorPopoverComponent, LucideHighlighter],
 	templateUrl: './ribbon-font-controls.component.html',
 })
 export class RibbonFontControlsComponent {
 	private readonly editor = inject(EditorStateService);
 	private readonly inlineEditing = inject(ViewerCanvasEditingService, { optional: true });
+	private readonly translation = inject(TranslateService, { optional: true });
 
 	readonly slideIndex = input<number>(0);
 	readonly canEdit = input<boolean>(false);
@@ -201,6 +184,27 @@ export class RibbonFontControlsComponent {
 	/** Current character spacing of the selection (for dropdown state). */
 	protected curCharSpacing(): number {
 		return this.curStyle()?.characterSpacing ?? 0;
+	}
+
+	/** State for the shared character-format strip (toggles, shadow, size steps, clear). */
+	protected fontView() {
+		return fontHomeState(
+			this.curStyle(),
+			this.canEdit() && this.isText(),
+			(key) => this.translation?.instant(key) ?? key,
+		);
+	}
+	protected fontRequest(event: Event): void {
+		const action = fontHomeAction((event as RibbonHomeRequestEvent).detail.id);
+		if (action?.kind === 'toggle') {
+			this.toggleStyle(action.flag);
+		} else if (action?.kind === 'shadow') {
+			this.toggleShadow();
+		} else if (action?.kind === 'step') {
+			this.stepFontSize(action.direction);
+		} else if (action?.kind === 'clear') {
+			this.clearFormatting();
+		}
 	}
 
 	protected toggleShadow(): void {

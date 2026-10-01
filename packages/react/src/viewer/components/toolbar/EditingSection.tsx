@@ -1,10 +1,14 @@
+import { editingHomeControls } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuMousePointer2, LuReplace, LuSearch } from 'react-icons/lu';
+import { LuMousePointer2 } from 'react-icons/lu';
 
 import { controlAttr, groupAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
-import { gB, gL, grp, ic, pill, sep } from './toolbar-constants';
+import { ic, pill, sep } from './toolbar-constants';
+import { WebHomeControls } from './WebHomeControls';
+
+const editingControls = editingHomeControls();
 
 export interface EditingSectionProps {
 	onToggleFindReplace: () => void;
@@ -35,29 +39,12 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.editing')}>
 				<div className='flex items-center gap-1'>
-					{/* Find & Replace */}
-					<div className={grp}>
-						<button
-							type='button'
-							onMouseDown={(e) => e.preventDefault()}
-							onClick={p.onToggleFindReplace}
-							className={gB}
-							title={t('pptx.editing.find')}
-							{...controlAttr('home.editing.find')}
-						>
-							<LuSearch className={ic} />
-						</button>
-						<button
-							type='button'
-							onMouseDown={(e) => e.preventDefault()}
-							onClick={p.onToggleFindReplace}
-							className={gL}
-							title={t('pptx.ribbon.replace')}
-							{...controlAttr('home.editing.replace')}
-						>
-							<LuReplace className={ic} />
-						</button>
-					</div>
+					{/* Find & Replace: the shared Editing strip; both open the find panel. */}
+					<WebHomeControls
+						family='editing'
+						controls={editingControls}
+						onRequest={p.onToggleFindReplace}
+					/>
 
 					{/* Select dropdown */}
 					<div className='relative' ref={menuRef} {...controlAttr('home.editing.select')}>

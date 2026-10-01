@@ -1,11 +1,9 @@
 import {
 	AlignCenter,
 	AlignHorizontalSpaceAround,
-	AlignJustify,
 	AlignLeft,
 	AlignRight,
 	AlignVerticalSpaceAround,
-	Bold,
 	Check,
 	ChevronDown,
 	ChevronUp,
@@ -16,15 +14,12 @@ import {
 	FileText,
 	Image,
 	Info,
-	Italic,
 	Lock,
 	Play,
 	Printer,
 	Search,
 	ShieldAlert,
-	Strikethrough,
 	Type,
-	Underline,
 	Video,
 } from 'lucide-vue-next';
 /**
@@ -105,22 +100,6 @@ export const OV: Array<{ labelKey: string; icon: Component | null; k: string }> 
 	{ k: 'passwordProtection', labelKey: 'pptx.security.protectPresentation', icon: Lock },
 	{ k: 'fontEmbedding', labelKey: 'pptx.ribbon.embedFonts', icon: Type },
 	{ k: 'digitalSignatures', labelKey: 'pptx.viewer.digitalSignatures', icon: ShieldAlert },
-];
-
-/** Character formatting toggles (Bold/Italic/Underline/Strikethrough). */
-export const FMT: Array<{ id: string; icon: Component; labelKey: string }> = [
-	{ id: 'bold', icon: Bold, labelKey: 'pptx.textPanel.bold' },
-	{ id: 'italic', icon: Italic, labelKey: 'pptx.textPanel.italic' },
-	{ id: 'underline', icon: Underline, labelKey: 'pptx.textPanel.underline' },
-	{ id: 'strikethrough', icon: Strikethrough, labelKey: 'pptx.textPanel.strikethrough' },
-];
-
-/** Paragraph alignment toggles. */
-export const ATXT: Array<{ id: string; icon: Component; labelKey: string }> = [
-	{ id: 'left', icon: AlignLeft, labelKey: 'pptx.ribbon.alignLeft' },
-	{ id: 'center', icon: AlignCenter, labelKey: 'pptx.ribbon.alignCenter' },
-	{ id: 'right', icon: AlignRight, labelKey: 'pptx.ribbon.alignRight' },
-	{ id: 'justify', icon: AlignJustify, labelKey: 'pptx.ribbon.justify' },
 ];
 
 /**

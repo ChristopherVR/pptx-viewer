@@ -12,6 +12,7 @@
 	 * name, so this binding had no control called "Select All" at all: the
 	 * cross-binding effects spec had to skip it. Same shape as the others now.
 	 */
+	import { editingHomeControls } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
@@ -22,6 +23,12 @@
 		findReplace,
 	}: { editor: EditorState; findReplace: FindReplaceState } = $props();
 	const t = useTranslator();
+
+	// Find and Replace are the shared strip; both toggle the docked panel.
+	const stripState = $derived({
+		controls: editingHomeControls({ findOpen: findReplace.open }),
+		translate: t,
+	});
 
 	let selectMenuOpen = $state(false);
 	// The template's `bind:this` writes these (invisible to the linter).
@@ -47,29 +54,8 @@
 
 <div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.editing.find')} data-ribbon-group="home.editing">
 	<div class="pptx-svelte-rgroup-cluster" data-pptx-chrome="editing-controls">
-		<div class="pptx-svelte-rgroup-row" data-pptx-chrome="control-cluster">
-			<button
-				type="button"
-				data-ribbon-control="home.editing.find"
-				aria-label={t('pptx.editing.find')}
-				title={t('pptx.editing.find')}
-				aria-pressed={findReplace.open}
-				onclick={() => findReplace.toggle()}
-			>
-				<RibbonIcon name="home.editing.find" />
-			</button>
-			<button
-				type="button"
-				data-ribbon-control="home.editing.replace"
-				aria-label={t('pptx.ribbon.replace')}
-				title={t('pptx.ribbon.replace')}
-				aria-pressed={findReplace.open}
-				onclick={() => findReplace.toggle()}
-			>
-				<RibbonIcon name="home.editing.replace" />
-			</button>
-		</div>
-		<!-- Outside `.pptx-svelte-rgroup-row` on purpose: that row is
+		<pptx-ui-ribbon-home-editing state={stripState} onhome-request={() => findReplace.toggle()}></pptx-ui-ribbon-home-editing>
+		<!-- Outside the shared strip on purpose: its joined cluster is
 		     `overflow: hidden`, which would clip the popover (the same trap the
 		     Angular port documents). -->
 		<div class="pptx-svelte-select-host" data-ribbon-control="home.editing.select" bind:this={selectHost}>
@@ -121,43 +107,6 @@
 		font-size: 9px;
 		color: var(--pptx-muted-foreground, #94a3b8);
 		line-height: 1;
-	}
-
-	.pptx-svelte-rgroup-row {
-		display: inline-flex;
-		align-items: center;
-		gap: 1px;
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		overflow: hidden;
-	}
-
-	.pptx-svelte-rgroup-row button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 26px;
-		height: 26px;
-		padding: 0 5px;
-		border: none;
-		background: transparent;
-		color: inherit;
-		cursor: pointer;
-	}
-
-	.pptx-svelte-rgroup-row button:hover:not(:disabled) {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-rgroup-row button:disabled {
-		opacity: 0.35;
-		cursor: default;
-	}
-
-	.pptx-svelte-rgroup-row svg {
-		width: 14px;
-		height: 14px;
 	}
 
 	.pptx-svelte-rgroup-cluster {

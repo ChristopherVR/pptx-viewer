@@ -595,13 +595,11 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Paste"');
-		expect(html).toContain('title="Cut"');
-		expect(html).toContain('title="Copy"');
-		expect(html).toContain('title="Format Painter"');
+		// The shared element renders its buttons in the browser; see ClipboardGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
-	it('renders Clipboard group label', () => {
+	it('renders the shared Clipboard group host', () => {
 		const html = render(
 			React.createElement(HomeSection, {
 				canEdit: true,
@@ -615,7 +613,7 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('Clipboard');
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
 	it('renders New Slide button', () => {
@@ -700,23 +698,6 @@ describe('toolbar - Home tab', () => {
 			'value="48.1"',
 		);
 		expect(html).not.toContain('64.133333');
-	});
-
-	it('paste is disabled when no clipboard payload', () => {
-		const html = render(
-			React.createElement(HomeSection, {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Paste"/u);
 	});
 
 	it('font group label is present', () => {
@@ -1355,10 +1336,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Italic"');
-		expect(html).toContain('title="Underline"');
-		expect(html).toContain('title="Strikethrough"');
+		// The shared element renders its buttons in the browser; see FontFormatGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	it('renders text alignment buttons', () => {
@@ -1369,10 +1348,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Align left"');
-		expect(html).toContain('title="Align center"');
-		expect(html).toContain('title="Align right"');
-		expect(html).toContain('title="Justify"');
+		// The shared element renders its buttons in the browser; see ParagraphGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-paragraph');
 	});
 
 	it('renders Font color button', () => {
@@ -1384,17 +1361,6 @@ describe('toolbar - Text tab', () => {
 			}),
 		);
 		expect(html).toContain('title="Font Color"');
-	});
-
-	it('formatting buttons are disabled when no element is selected', () => {
-		const html = render(
-			React.createElement(TextSection, {
-				canEdit: true,
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Bold"/u);
 	});
 });
 
@@ -1408,7 +1374,7 @@ describe('toolbar - section content rendering', () => {
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
 		expect(html).toContain('New Slide');
-		expect(html).toContain('Clipboard');
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
 	it('renders FileSection content when toolbarSection is file', () => {
@@ -1482,16 +1448,14 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Italic"');
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	it('text section renders TextSection content', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'text' })),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Underline"');
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	// Narrow-viewport rendering moved to <MobileToolbar /> (see Toolbar.tsx

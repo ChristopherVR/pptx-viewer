@@ -1,3 +1,6 @@
+import { editingHomeControls, registerPptxWebControls } from 'pptx-viewer-shared';
+import type { PptxUiRibbonHomeElement } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
@@ -19,6 +22,7 @@ export function createEditingGroup(
 	t: Translator,
 	handlers: EditingGroupHandlers,
 ): EditingGroup {
+	registerPptxWebControls();
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
 	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.editing');
@@ -30,16 +34,10 @@ export function createEditingGroup(
 	label.textContent = t('pptx.shortcuts.group.editing');
 	el.appendChild(label);
 
-	const find = makeButton(doc, {
-		label: t('pptx.editing.find'),
-		icon: 'search',
-		onClick: handlers.toggleFindReplace,
-	});
-	const replace = makeButton(doc, {
-		label: t('pptx.ribbon.replace'),
-		icon: 'replace',
-		onClick: handlers.toggleFindReplace,
-	});
+	// Find and Replace are the shared strip; both toggle the find panel.
+	const strip = doc.createElement('pptx-ui-ribbon-home-editing') as PptxUiRibbonHomeElement;
+	strip.state = { controls: editingHomeControls(), translate: t };
+	strip.addEventListener('home-request', () => handlers.toggleFindReplace());
 	// "Select" is a MENU, not a button that selects: React, Vue and Angular all
 	// render a trigger named after the pointer tool with a "Select All" entry
 	// hanging off it, and every framework-neutral spec addresses ribbon commands
@@ -49,13 +47,8 @@ export function createEditingGroup(
 	// to skip this binding entirely. Plain buttons in a plain popover, exactly
 	// the other three bindings' shape.
 	const select = createSelectMenu(doc, t, handlers);
-	tagRibbonControl(find.btn, 'home.editing.find');
-	tagRibbonControl(replace.btn, 'home.editing.replace');
 	tagRibbonControl(select.el, 'home.editing.select');
-	const searchControls = createEl(doc, 'div');
-	searchControls.dataset.pptxChrome = 'control-cluster';
-	searchControls.append(find.btn, replace.btn);
-	row.append(searchControls, select.el);
+	row.append(strip, select.el);
 
 	return {
 		el,

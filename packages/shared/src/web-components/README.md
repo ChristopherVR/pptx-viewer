@@ -370,3 +370,77 @@ editor, hyperlink and Header & Footer dialogs, and the Date/Time format picker
 insert the current date directly, as before). Freeform arming and the canvas
 drawing overlay stay native. Focus is preserved across updates and instances are
 isolated.
+
+## Home ribbon
+
+Home (#373) migrates in group families. Each family is a light-DOM element
+`pptx-ui-ribbon-home-<family>` built from one declarative spec
+(`RIBBON_HOME_FAMILIES`) in shared render code, so ids, labels, order and icons
+cannot drift between bindings. Hosts assign `state`
+(`RibbonHomeViewState`: a `controls` map of `{ disabled, pressed, hidden }` per
+control id, plus an optional translator) and listen for the composed
+`home-request` event whose `detail` is `{ id: RibbonControlId }`. Setting state
+emits nothing; unknown, disabled and hidden ids are rejected. Controls are real
+`<button data-ribbon-control>` elements, so public customization hides them
+through the viewer's existing scoped styles. Pointer press keeps the slide text
+selection (the mousedown default is prevented) and Space/Enter stay out of the
+viewer's slide shortcuts. `pressed` is reflected as `aria-pressed` only when the
+host supplies it. Targets grow to 44px on coarse pointers and narrow widths,
+and forced colors outline the pressed state.
+
+| Family      | Element                         | Controls                                                                                                                                       |
+| ----------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clipboard` | `pptx-ui-ribbon-home-clipboard` | The whole `home.clipboard` group: Paste, Cut, Copy, Format Painter                                                                             |
+| `font`      | `pptx-ui-ribbon-home-font`      | The character strip inside `home.font`: Bold, Italic, Underline, Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear Formatting |
+| `paragraph` | `pptx-ui-ribbon-home-paragraph` | The indent and alignment strips inside `home.paragraph`: Decrease and Increase Indent, Align Left, Center, Align Right, Justify                |
+| `editing`   | `pptx-ui-ribbon-home-editing`   | The Find and Replace strip inside `home.editing`                                                                                               |
+
+`clipboardHomeControls` fixes the gating once: Paste needs edit rights and a
+clipboard, Cut needs edit rights and a selection, Copy needs only a selection,
+and the Format Painter needs edit rights plus a formattable selection but stays
+enabled while armed so it can be cancelled. Hosts without a Format Painter hide
+it with `hidden`. The painter button keeps `data-testid="format-painter-toggle"`
+and mirrors its armed state in `data-active`. Native hosts retain every
+clipboard action, history and persistence. The former React and Vue green
+"copied/cut" flash was cosmetic, existed in two of five bindings, and is not
+carried over.
+
+`fontHomeControls` disables the whole strip unless a text selection is editable
+and reflects `aria-pressed` for the four decorations and Text Shadow. Native
+hosts keep how each edit is made: React reads the run-level tri-state at click
+time, Angular and Svelte patch the element's text style, and Vanilla uses the
+format mutations. The font family and size pickers, character spacing, change
+case and the colour pickers are native or app-owned popovers and stay outside
+the strip. Bindings still differ on the size ladder (React and Vue add 2pt,
+Angular steps through the preset list), which is an existing editing difference
+this change does not unify. The old React Font buttons stayed live for
+non-text selections; they now disable like the other four bindings.
+
+`paragraphHomeAction` decodes the indent and alignment ids (the shared
+24-model-pixel indent step, or an alignment) and `paragraphHomeAlign` narrows a
+stored alignment to the four values the strip can show; alignment is reflected
+as `aria-pressed` only when the host can read an explicit alignment. The Bullets
+and Numbering toggles keep their library galleries, and line spacing, text
+direction and columns stay native selects, so they sit outside the strip.
+Svelte keeps its own indent step (`adjustIndentPatch` by one level) because the
+shared indent id only tells it which direction to go.
+
+Find and Replace both open the host's find panel (the host owns that panel).
+`editingHomeControls({ findOpen })` mirrors an open panel on both buttons when a
+host can report it (Svelte does); other hosts omit it and show no pressed state.
+The Select menu and its Select All command are app-owned popovers and stay
+native.
+
+### Home groups that stay native
+
+Slides (New Slide split button, Slide Templates dialog, Layout and Reset menus,
+Section), Drawing (Shapes, Arrange, Shape Fill/Outline, Quick Styles and Shape
+Effects galleries and colour popovers) and Arrange (align/distribute/flip/order
+selects, Group/Ungroup, Merge Shapes, Crop, outline width, Duplicate, Delete and
+the second Format Painter) still live in each binding. They are built from
+labelled split buttons, galleries, anchored popovers, dialogs and colour
+pickers that each binding anchors and focuses natively, and their labels,
+ordering and gating differ between bindings in ways a shared strip cannot
+unify without a behaviour change. They are tracked as the next Home batches.
+The font family and size selectors, character spacing, change case, font and
+highlight colour pickers stay native for the same reason.

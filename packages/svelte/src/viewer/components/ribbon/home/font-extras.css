@@ -39,12 +39,6 @@
 	height: 14px;
 }
 
-.pptx-svelte-fontx-glyph {
-	font-size: 12px;
-	font-weight: 700;
-	line-height: 1;
-}
-
 .pptx-svelte-fontx-menu {
 	position: relative;
 	display: inline-flex;

@@ -1738,5 +1738,6 @@ export * from './theme-editor-model';
 export * from './ribbon-animations-state';
 export * from './ribbon-draw-state';
 export * from './ribbon-insert-state';
+export * from './ribbon-home-state';
 export * from './ribbon-view-state';
 export * from './ribbon-transitions-state';

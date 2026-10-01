@@ -25,6 +25,10 @@ declare module 'react' {
 			'pptx-ui-ribbon-command': WebControlProps;
 			'pptx-ui-ribbon-animations': WebControlProps;
 			'pptx-ui-ribbon-draw': WebControlProps;
+			'pptx-ui-ribbon-home-clipboard': WebControlProps;
+			'pptx-ui-ribbon-home-editing': WebControlProps;
+			'pptx-ui-ribbon-home-font': WebControlProps;
+			'pptx-ui-ribbon-home-paragraph': WebControlProps;
 			'pptx-ui-ribbon-transitions': WebControlProps;
 			'pptx-ui-ribbon-insert': WebControlProps;
 			'pptx-ui-ribbon-view': WebControlProps;

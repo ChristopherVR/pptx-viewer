@@ -19,6 +19,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { translationsEn } from '../../../shared/src/i18n/translations-en';
 import {
 	EMPTY_RESOLVED_CUSTOMIZATION,
+	RIBBON_HOME_FAMILIES,
 	resolveCustomization,
 	ribbonCustomizationCss,
 } from '../internal/shared';
@@ -213,21 +214,14 @@ describe('ribbon group/control customisation', () => {
 		const home = [
 			'ribbon-home-section.component.ts',
 			'ribbon-font-controls.component.ts',
-			'ribbon-clipboard-group.component.ts',
 			'ribbon-drawing-group.component.ts',
 			'ribbon-arrange-section.component.ts',
 		]
 			.map((file) => componentSource(import.meta.dirname, file))
 			.join('\n');
-		for (const group of [
-			'clipboard',
-			'slides',
-			'font',
-			'paragraph',
-			'drawing',
-			'arrange',
-			'editing',
-		]) {
+		// The Clipboard group's wrapper now comes from the shared Home view.
+		expect(RIBBON_HOME_FAMILIES.clipboard.group?.id).toBe('home.clipboard');
+		for (const group of ['slides', 'font', 'paragraph', 'drawing', 'arrange', 'editing']) {
 			expect(home).toContain(`data-ribbon-group="home.${group}"`);
 		}
 		const paragraph = componentSource(

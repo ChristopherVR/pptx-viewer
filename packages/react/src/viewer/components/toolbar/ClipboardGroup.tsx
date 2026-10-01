@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } from 'react-icons/lu';
+import { clipboardHomeControls } from 'pptx-viewer-shared';
+import React, { useCallback, useMemo } from 'react';
 
-import { cn } from '../../utils';
-import { controlAttr, groupAttr } from './PowerPointRibbonControls';
-import { gB, gL, grp, ic } from './toolbar-constants';
+import { WebHomeControls } from './WebHomeControls';
 
 export interface ClipboardGroupProps {
 	canEdit: boolean;
@@ -19,75 +16,46 @@ export interface ClipboardGroupProps {
 	onToggleFormatPainter?: () => void;
 }
 
-/** Home > Clipboard: Paste, Cut, Copy and Format Painter. */
+/** Home > Clipboard: the shared Paste, Cut, Copy and Format Painter strip. */
 export function ClipboardGroup(p: ClipboardGroupProps): React.ReactElement {
-	const { t } = useTranslation();
-	const [copiedFeedback, setCopiedFeedback] = useState(false);
-	const [cutFeedback, setCutFeedback] = useState(false);
-	return (
-		<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.clipboard')}>
-			<div className={grp}>
-				<button
-					type='button'
-					onClick={p.onPaste}
-					disabled={!p.canPaste || !p.canEdit}
-					className={gB}
-					title={t('pptx.arrange.paste')}
-					{...controlAttr('home.clipboard.paste')}
-				>
-					<LuClipboardPaste className={ic} />
-				</button>
-				<button
-					type='button'
-					onClick={() => {
-						p.onCut();
-						setCutFeedback(true);
-						setTimeout(() => setCutFeedback(false), 600);
-					}}
-					disabled={!p.canEdit || !p.hasSelection}
-					className={cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')}
-					title={t('pptx.arrange.cut')}
-					{...controlAttr('home.clipboard.cut')}
-				>
-					<LuScissors className={ic} />
-				</button>
-				<button
-					type='button'
-					onClick={() => {
-						p.onCopy();
-						setCopiedFeedback(true);
-						setTimeout(() => setCopiedFeedback(false), 600);
-					}}
-					disabled={!p.hasSelection}
-					className={cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')}
-					title={t('pptx.arrange.copy')}
-					{...controlAttr('home.clipboard.copy')}
-				>
-					<LuCopy className={ic} />
-				</button>
-				{p.onToggleFormatPainter && (
-					<button
-						type='button'
-						onClick={p.onToggleFormatPainter}
-						disabled={
-							!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)
-						}
-						data-testid='format-painter-toggle'
-						data-active={p.formatPainterActive ? 'true' : 'false'}
-						className={cn(
-							gL,
-							p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
-						)}
-						title={t('pptx.arrange.formatPainter')}
-						{...controlAttr('home.clipboard.formatPainter')}
-					>
-						<LuPaintbrush className={ic} />
-					</button>
-				)}
-			</div>
-			<span className='text-[9px] text-muted-foreground leading-none'>
-				{t('pptx.ribbon.clipboard')}
-			</span>
-		</div>
+	const { canEdit, hasSelection, canPaste, formatPainterActive, canActivateFormatPainter } = p;
+	const { onPaste, onCut, onCopy, onToggleFormatPainter } = p;
+	const controls = useMemo(
+		() =>
+			clipboardHomeControls({
+				editable: canEdit,
+				hasSelection,
+				hasClipboard: canPaste,
+				formatPainterActive: Boolean(formatPainterActive),
+				canFormatPaint: canActivateFormatPainter !== false,
+				showFormatPainter: Boolean(onToggleFormatPainter),
+			}),
+		[
+			canEdit,
+			hasSelection,
+			canPaste,
+			formatPainterActive,
+			canActivateFormatPainter,
+			onToggleFormatPainter,
+		],
 	);
+	const request = useCallback(
+		(id: string) => {
+			switch (id) {
+				case 'home.clipboard.paste':
+					onPaste();
+					break;
+				case 'home.clipboard.cut':
+					onCut();
+					break;
+				case 'home.clipboard.copy':
+					onCopy();
+					break;
+				case 'home.clipboard.formatPainter':
+					onToggleFormatPainter?.();
+			}
+		},
+		[onPaste, onCut, onCopy, onToggleFormatPainter],
+	);
+	return <WebHomeControls family='clipboard' controls={controls} onRequest={request} />;
 }

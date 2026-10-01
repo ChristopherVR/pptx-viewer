@@ -1,13 +1,12 @@
 <script lang="ts">
 	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
-	 * FontExtrasGroup: the rest of the Home tab's Font group beyond
-	 * bold/italic/underline/size (which stay in `TextFormatGroup`): font
-	 * family, strikethrough, clear formatting, change case, character
-	 * spacing, and swatch-grid font-colour / highlight-colour pickers. Split
+	 * FontExtrasGroup: the native part of the Home tab's Font group: font
+	 * family, change case, character spacing, and swatch-grid font-colour /
+	 * highlight-colour pickers. The character toggles, Text Shadow, size steps
+	 * and Clear Formatting are the shared `pptx-ui-ribbon-home-font` strip. Split
 	 * out so no single file needs to own every font control (300-LOC budget).
 	 */
-	import { RemoveFormatting } from '@lucide/svelte';
 	import './font-extras.css';
 	import { hasTextProperties } from 'pptx-viewer-core';
 	import {
@@ -22,17 +21,15 @@
 	import { anchoredPopup } from '../anchored-popup';
 	import {
 		changeCasePatch,
-		clearFormattingPatch,
 		highlightColorOf,
 		setCharacterSpacingPatch,
 		setHighlightColorPatch,
 		setTextColorPatch,
-		toggleStrikethroughPatch,
 	} from '../../../editor';
 	import FontFamilySelect from './FontFamilySelect.svelte';
 	import SwatchColorPicker from '../SwatchColorPicker.svelte';
 
-	const { editor, showFamily = true, section = 'all' }: { editor: EditorState; showFamily?: boolean; section?: 'all' | 'clear' | 'menus' } = $props();
+	const { editor, showFamily = true }: { editor: EditorState; showFamily?: boolean } = $props();
 	const t = useTranslator();
 
 	// React renders change-case ("Aa") and character-spacing ("AV") as compact
@@ -52,9 +49,6 @@
 
 	const el = $derived(editor.selectedElement);
 	const active = $derived(el !== undefined && hasTextProperties(el));
-	const strikethrough = $derived(
-		el && hasTextProperties(el) ? Boolean(el.textStyle?.strikethrough) : false,
-	);
 	const textColor = $derived(el ? textColorOf(el) : '#000000');
 	const textColorRef = $derived(
 		el && hasTextProperties(el) ? el.textStyle?.colorRef : undefined,
@@ -69,37 +63,6 @@
 <div class="pptx-svelte-fontx" data-pptx-chrome={!showFamily ? 'font-controls-fragment' : undefined} role="group" aria-label={t('pptx.ribbon.font')}>
 	{#if showFamily}<FontFamilySelect {editor} />{/if}
 
-	{#if section === 'all'}
-	<button
-		type="button"
-		class="pptx-svelte-fontx-btn"
-		class:pptx-svelte-fontx-on={strikethrough}
-		disabled={!active}
-		aria-pressed={strikethrough}
-		data-ribbon-control="home.font.strikethrough"
-		aria-label={t('pptx.textPanel.strikethrough')}
-		title={t('pptx.textPanel.strikethrough')}
-		onclick={() => el && apply((current) => toggleStrikethroughPatch(current))}
-	>
-		<span style="text-decoration: line-through">S</span>
-	</button>
-
-	{/if}
-	{#if section !== 'menus'}
-	<button
-		type="button"
-		class="pptx-svelte-fontx-btn"
-		disabled={!active}
-		data-ribbon-control="home.font.clearFormatting"
-		aria-label={t('pptx.text.clearFormatting')}
-		title={t('pptx.text.clearFormatting')}
-		onclick={() => el && apply((current) => clearFormattingPatch(current))}
-	>
-		<RemoveFormatting size={16} />
-	</button>
-
-	{/if}
-	{#if section !== 'clear'}
 	<div class="pptx-svelte-fontx-menu" data-ribbon-control="home.font.characterSpacing" bind:this={spacingMenuEl} onfocusout={onFocusOut}>
 		<button
 			type="button"
@@ -206,5 +169,4 @@
 			editor.recordRecentColor(hex);
 		}}
 	/>
-	{/if}
 </div>

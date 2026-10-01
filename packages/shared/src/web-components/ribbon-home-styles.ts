@@ -1,0 +1,38 @@
+import { attachScopedRibbonStyles } from './ribbon-scoped-styles';
+
+export const RIBBON_HOME_TAGS = [
+	'pptx-ui-ribbon-home-clipboard',
+	'pptx-ui-ribbon-home-font',
+	'pptx-ui-ribbon-home-paragraph',
+	'pptx-ui-ribbon-home-editing',
+] as const;
+
+const RIBBON_HOME_STYLES = `
+:host { display:contents; }
+.home { display:contents; }
+.group { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.row { display:flex; align-items:center; gap:4px; }
+.caption { color:var(--pptx-muted-foreground,#94a3b8); font-size:9px; line-height:9px; text-align:center; }
+.cluster { display:inline-flex; align-items:center; border-radius:3px; overflow:hidden; background:var(--pptx-muted,#2a2a3d); }
+button { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:28px; padding:6px 10px; border:0; border-radius:0; background:transparent; color:var(--pptx-foreground,#f8fafc); font:inherit; font-size:12px; cursor:pointer; }
+button[hidden] { display:none !important; }
+button svg { width:16px; height:16px; flex:none; }
+button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); }
+button[aria-pressed=true] { background:var(--pptx-accent,#33334d); box-shadow:inset 0 0 0 1px var(--pptx-primary,#6366f1); }
+button:disabled { opacity:.4; cursor:default; }
+button:focus-visible { outline:2px solid var(--pptx-ring,#818cf8); outline-offset:-2px; }
+@media (pointer:coarse),(max-width:900px) {
+	button { min-width:44px !important; min-height:44px !important; }
+}
+@media (forced-colors:active) {
+	.cluster { border:1px solid ButtonText; }
+	button[aria-pressed=true] { outline:2px solid Highlight; outline-offset:-2px; }
+	button:disabled { color:GrayText; }
+}
+`;
+
+export function attachRibbonHomeStyles(doc: Document): void {
+	for (const tag of RIBBON_HOME_TAGS) {
+		attachScopedRibbonStyles(doc, `${tag}-styles`, tag, RIBBON_HOME_STYLES);
+	}
+}

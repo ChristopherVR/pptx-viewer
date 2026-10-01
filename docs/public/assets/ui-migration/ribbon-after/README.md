@@ -110,3 +110,18 @@ Native document insertion, file pickers, the SmartArt/equation/hyperlink/Header
   touch targets, theme tokens, forced colors). Existing equation, media,
   SmartArt, edit-points, save-corruption and compact-layout Insert checks passed.
 - Changed-file formatting/lint and neutral test contract: passed.
+
+## Home (#373, partial)
+
+The five `*-home.png` captures use the baseline deck, viewport and Home tab
+(no selection). Clipboard, Font characters, Paragraph indent/alignment and
+Editing Find/Replace are shared; Slides, Drawing and Arrange stay native (see
+`docs/guide/ui-migration.md`), so this does not complete #373.
+
+- Typecheck (0 errors) and build: passed.
+- Full unit suites: shared 10,978; React 7,496 (React 18 and 19); Vue 3,168;
+  Svelte 2,029; Angular 4,044 (2 pre-existing chart-data-helpers failures on
+  the base); Vanilla 2,105 tests passed.
+- Home neutral browser suite across all five bindings plus 16 related ribbon,
+  keyboard, Draw, View and text specs: 580 passed; only the known Design cases
+  of `ribbon-compact-layout.spec.ts` fail.

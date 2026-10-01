@@ -12,13 +12,6 @@ export const EDITOR_HOME_LAYOUT_CSS = `
     display: inline-flex; align-items: center; gap: 4px;
     border: 0; padding: 0; background: transparent;
   }
-  [data-pptx-editor-chrome] [data-pptx-chrome="paragraph-controls"] :is(
-    [data-ribbon-control="home.paragraph.decreaseIndent"],
-    [data-ribbon-control="home.paragraph.alignLeft"],
-    [data-ribbon-control="home.paragraph.alignCenter"],
-    [data-ribbon-control="home.paragraph.alignRight"]
-  ) { margin-right: -4px; }
-  [data-pptx-editor-chrome] [data-pptx-chrome="paragraph-controls"] [data-pptx-chrome="control-cluster"] { display: contents; }
   [data-pptx-editor-chrome] [data-pptx-chrome="ribbon-content"] :is(
     [data-ribbon-control="home.paragraph.bullets"], [data-ribbon-control="home.paragraph.numbering"]
   ) { display: inline-flex; align-items: center; gap: 0; }
@@ -39,11 +32,9 @@ export const EDITOR_HOME_LAYOUT_CSS = `
     width: 1px; height: 20px; align-self: center; margin: 0 4px;
     background: color-mix(in oklab, var(--pptx-border) 40%, transparent);
   }
-  [data-pptx-editor-chrome] [data-pptx-chrome="editing-controls"] [data-pptx-chrome="control-cluster"],
   [data-pptx-editor-chrome] [data-pptx-chrome="order-controls"] {
     display: inline-flex; align-items: center; gap: 0; border: 0; padding: 0;
   }
-  [data-pptx-editor-chrome] [data-pptx-chrome="editing-controls"] > button[data-ribbon-control="home.editing.find"] { margin-right: -4px; }
   [data-pptx-editor-chrome] [data-pptx-chrome="drawing-controls"] [data-pptx-chrome="ribbon-inline-label"] { display: none; }
   [data-pptx-editor-chrome] [data-pptx-chrome="drawing-controls"] [data-ribbon-control="home.drawing.shapes"] { order: 1; }
   [data-pptx-editor-chrome] [data-pptx-chrome="drawing-controls"] [data-ribbon-control="home.drawing.arrange"] { order: 2; }

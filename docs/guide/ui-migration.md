@@ -228,3 +228,53 @@ trip, the Chart/Action/Field menus, Freeform pressed state, Link selection
 gating, the native SmartArt/Equation dialogs and image file chooser,
 customization, touch targets, theme tokens and forced colors. Comparable
 screenshots are `<binding>-insert.png` in the baseline and after directories.
+
+## Home
+
+Home (#373) is delivered in group families, one commit each, so the large tab
+stays reviewable. PR #359 had already moved the Home icon artwork
+(`RIBBON_CONTROL_ICONS`), the catalogue ids and the editor-chrome layout CSS
+into shared code; the markup, gating and callbacks of every group were still
+duplicated per binding. Each family below now uses one controlled shared view,
+`pptx-ui-ribbon-home-<family>`, that renders the buttons, icons, labels,
+pressed and disabled state, and emits one typed `home-request` intent with the
+public control id. Hosts keep every document mutation, history entry,
+persistence and native popup. Public customization ids are unchanged.
+
+- Clipboard: Paste, Cut, Copy and Format Painter (the whole `home.clipboard`
+  group). Gating is now identical in all five bindings; Angular's Format
+  Painter previously stayed live in a read-only viewer and now follows the
+  other four. The React and Vue "copied/cut" green flash was cosmetic and is not
+  carried over.
+
+- Font: the character strip in `home.font` (Bold, Italic, Underline,
+  Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear
+  Formatting) with pressed state for the toggles. The family and size
+  selectors, character spacing, change case and the colour pickers stay native:
+  they are app-owned selects and popovers that read the deck's theme fonts,
+  embedded fonts and recent colours. How each binding computes the toggle and
+  size-step edits is unchanged (React reads the run-level tri-state at click
+  time; the size ladder differs between bindings). React's Font buttons now
+  disable for non-text selections like the other four.
+
+- Paragraph: Decrease and Increase Indent and the four alignments in
+  `home.paragraph`, with alignment reflected as pressed when the viewer can
+  read an explicit alignment. The Bullets and Numbering toggles (with their
+  library galleries), line spacing, text direction and columns stay native.
+  Angular's indent and alignment buttons now follow read-only mode like the
+  other bindings.
+- Editing: Find and Replace in `home.editing` (both open the host's find
+  panel; Svelte mirrors an open panel as pressed). The Select menu and Select All
+  stay native.
+
+Boundary: Slides, Drawing and Arrange are not migrated in this change. They are
+labelled split buttons, galleries, dialogs and colour pickers anchored natively
+by each binding, with different labels, order and gating per binding, so
+sharing them would change behaviour. They remain open under #373 as the next
+Home batches (see the shared README for the detail); the issue is not complete.
+
+`e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
+real copy/paste/cut with undo and redo, the Format Painter, customization,
+touch targets, theme tokens and forced colors across all five bindings.
+Comparable screenshots are `<binding>-home.png` in the baseline and after
+directories.

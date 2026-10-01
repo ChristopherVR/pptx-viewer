@@ -1,3 +1,4 @@
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import type { Component } from 'svelte';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -5,8 +6,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { EditorState } from '../../../editor/editor-state.svelte';
 import TextFormatGroup from '../../TextFormatGroup.svelte';
 import DrawingGroup from './DrawingGroup.svelte';
+import FontFormattingGroup from './FontFormattingGroup.svelte';
 import ParagraphDropdowns from './ParagraphDropdowns.svelte';
-import TextShadowToggle from './TextShadowToggle.svelte';
+
+registerPptxWebControls();
 
 /**
  * The Home-tab controls added to close the gap with React's ribbon: the
@@ -148,14 +151,18 @@ describe('home paragraph dropdowns', () => {
 
 describe('home text shadow toggle', () => {
 	it('is inert without a text selection', () => {
-		const target = mountComponent(TextShadowToggle, makeEditor());
-		expect(target.querySelector('button')?.disabled).toBeTruthy();
+		const target = mountComponent(FontFormattingGroup, makeEditor());
+		expect(
+			target.querySelector<HTMLButtonElement>('[data-ribbon-control="home.font.shadow"]')?.disabled,
+		).toBeTruthy();
 	});
 
 	it('turns the default shadow on and back off', () => {
 		const editor = makeEditor(true);
-		const target = mountComponent(TextShadowToggle, editor);
-		const button = target.querySelector<HTMLButtonElement>('button');
+		const target = mountComponent(FontFormattingGroup, editor);
+		const button = target.querySelector<HTMLButtonElement>(
+			'[data-ribbon-control="home.font.shadow"]',
+		);
 
 		button?.click();
 		flushSync();
