@@ -13,7 +13,7 @@
  *
  * ## What it does
  *
- * For every deck in `packages/core/src/__tests__/integration/fixture-corpus-manifest.ts`:
+ * For every deck in `../ooxml-core/src/pptx/__tests__/integration/fixture-corpus-manifest.ts`:
  *
  *   1. copy the ORIGINAL into a scratch directory;
  *   2. load it through `PptxHandler`, save it unmodified, write the result
@@ -33,7 +33,7 @@
  *
  * ## Supported runtimes
  *
- * **Bun only, and Windows only.** The script imports `packages/core/src` as
+ * **Bun only, and Windows only.** The script imports `../ooxml-core/src/pptx` as
  * TypeScript SOURCE, and that source uses extensionless and directory imports
  * (`from './core'`) which node's ESM resolver rejects even with
  * `--experimental-strip-types` (`ERR_UNSUPPORTED_DIR_IMPORT`). There is no flag
@@ -65,7 +65,7 @@
  * declared `powerpointRejects` in the manifest, or on a declared entry that
  * now opens fine (a stale ledger entry). Otherwise 0.
  *
- * @see packages/core/src/__tests__/integration/fixture-corpus-roundtrip.test.ts
+ * @see ../ooxml-core/src/pptx/__tests__/integration/fixture-corpus-roundtrip.test.ts
  *      for the automated half, which runs everywhere and gates CI.
  */
 import { spawnSync } from 'node:child_process';
@@ -79,7 +79,7 @@ const REPO = path.resolve(HERE, '..');
 
 if (!process.versions.bun) {
 	console.error(
-		'com-acceptance.mjs runs under bun only: it imports packages/core/src as\n' +
+		'com-acceptance.mjs runs under bun only: it imports ../ooxml-core/src/pptx as\n' +
 			"TypeScript source, whose extensionless/directory imports node's ESM\n" +
 			'resolver cannot follow. Run:\n\n    bun scripts/com-acceptance.mjs\n',
 	);
@@ -95,10 +95,10 @@ if (!process.versions.bun) {
  */
 const importFrom = (...segments) => import(pathToFileURL(path.join(REPO, ...segments)).href);
 
-const { PptxHandler } = await importFrom('packages/core/src/index.ts');
+const { PptxHandler } = await importFrom('../ooxml-core/src/pptx/index.ts');
 const { default: JSZip } = await importFrom('node_modules/jszip/lib/index.js');
 const { FIXTURE_MANIFEST, fixturePath } = await importFrom(
-	'packages/core/src/__tests__/integration/fixture-corpus-manifest.ts',
+	'../ooxml-core/src/pptx/__tests__/integration/fixture-corpus-manifest.ts',
 );
 
 const args = process.argv.slice(2);

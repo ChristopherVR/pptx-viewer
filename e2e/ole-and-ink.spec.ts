@@ -6,7 +6,7 @@
  * Before this spec, neither of these two `PptxElement` kinds (of the 11 in
  * `core/types/elements.ts`) had any e2e coverage. No real-world fixture with
  * genuine OLE or ink content existed anywhere in the repo (checked
- * `e2e/fixtures/`, `.github/assets/`, `packages/core/src/__tests__/fixtures/`
+ * `e2e/fixtures/`, `.github/assets/`, `ooxml-core/src/pptx/__tests__/fixtures/`
  * - none contain `p:oleObj` or `aink:` markup), and PowerPoint's own COM
  * automation (available on this machine per prior SmartArt work) was blocked
  * by the sandbox's safety classifier when attempting to script a real

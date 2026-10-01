@@ -10,7 +10,7 @@
   97-2003 exporter leaves `MediaFormat.Length` at 0 even for audio it wrote
   itself (a from-scratch `.ppt` built purely through COM `AddMediaObject2`
   and read back with a freshly-launched `PowerPoint.Application`; see
-  `packages/core/src/core/ppt/writer/media-writer.ts`'s doc comment), so
+  `../ooxml-core/src/pptx/core/ppt/writer/media-writer.ts`'s doc comment), so
   `MediaFormat.Length` is not a reliable pass/fail signal either way. The
   reliable proof is round-tripping through PowerPoint's own SaveAs to
   `.pptx` (format 24): if the SoundDataBlob this writer embedded was really

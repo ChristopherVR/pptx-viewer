@@ -9,7 +9,7 @@
   measure-model3d-ole-97.ps1, same measurement shape.
 
 .DESCRIPTION
-  Opens `packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`
+  Opens `../ooxml-core/src/pptx/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`
   - COM-authored via `SmartArtLayouts` (see fixture-corpus-manifest.ts):
   one manager with 6 direct reports, real SmartArt, not hand-written XML -
   reports `Shape.HasSmartArt` on the source, saves it as .ppt (SaveAs
@@ -26,7 +26,7 @@
   scripted here; the existing COM-authored corpus fixture is used instead.
 #>
 param(
-  [string]$SourcePath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')) 'packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-many.pptx')
+  [string]$SourcePath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')) '../ooxml-core/src/pptx/__tests__/fixtures/corpus/smartart-orgchart-many.pptx')
 )
 
 $ErrorActionPreference = 'Stop'

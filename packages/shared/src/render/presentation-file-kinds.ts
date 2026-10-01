@@ -16,7 +16,7 @@
  *
  * Input is a superset of output. We READ `.pptx`, `.ppsx`, `.pptm`, `.potx`,
  * legacy binary `.ppt` and portable `pptx-viewer-json`; we WRITE the OpenXML
- * family plus legacy binary `.ppt` (via `packages/core/src/core/ppt/writer/`,
+ * family plus legacy binary `.ppt` (via `ooxml-core/src/pptx/core/ppt/writer/`,
  * a real MS-PPT/OLE2 encoder, not a stub). `savedPresentationFileName`
  * REPLACES the source extension with the extension of the format actually
  * being written rather than keeping the source's: a deck opened as
@@ -34,7 +34,7 @@
  * Extensions the built-in file picker offers, in the order it offers them.
  *
  * `.ppt` is in the list because the loader genuinely handles it, not as a
- * courtesy: see `packages/core/src/core/ppt/` and the `ppt-import` integration
+ * courtesy: see `ooxml-core/src/pptx/core/ppt/` and the `ppt-import` integration
  * suite, which asserts a `.ppt` loads to the same model as the `.pptx` it was
  * exported from.
  */

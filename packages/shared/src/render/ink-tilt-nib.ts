@@ -31,7 +31,7 @@ export interface TiltVectorChannels {
  *
  * This is the Draw tool's own live-capture counterpart of
  * `pointsToTilt`/`tiltChannelsFromXY` in
- * `packages/core/src/core/utils/inkml-trace-decode.ts`, which decodes the
+ * `ooxml-core/src/pptx/core/utils/inkml-trace-decode.ts`, which decodes the
  * same convention from a loaded InkML file's `OTx`/`OTy` channels. The two
  * are intentionally NOT unified into one shared function: `shared` cannot
  * import a `core`-internal (non-public) utility, and this geometry is a

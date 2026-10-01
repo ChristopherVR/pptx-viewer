@@ -38,7 +38,7 @@ The converter takes already-parsed `PptxData`, not raw bytes - load with `PptxHa
 
 ## `PptxConverterOptions`
 
-The options object extends the base `ConversionOptions` (verified against `packages/core/src/converter`):
+The options object extends the base `ConversionOptions` (verified against `ooxml-core/src/pptx/converter`):
 
 | Field                 | Type                                          | From | Purpose                                                                          |
 | --------------------- | --------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
@@ -82,7 +82,7 @@ Use **semantic** for text extraction, RAG/indexing, or human reading. Use **posi
 
 ## The element processor registry
 
-Each `PptxElement` is dispatched by type to one of ten registered processors (all in `packages/core/src/converter/elements/`): **text**, **image**, **table**, **chart**, **SmartArt**, **group** (recursive), **media**, **OLE**, **ink**, and a **fallback** for anything unmatched. A `SlideProcessor` orchestrates per-slide conversion and a `TextSegmentRenderer` handles rich text runs - bold/italic, hyperlinks (unsafe schemes like `javascript:` are collapsed to `#`), and **equations**, which are converted from OMML to LaTeX via `OmmlLatexConverter`.
+Each `PptxElement` is dispatched by type to one of ten registered processors (all in `ooxml-core/src/pptx/converter/elements/`): **text**, **image**, **table**, **chart**, **SmartArt**, **group** (recursive), **media**, **OLE**, **ink**, and a **fallback** for anything unmatched. A `SlideProcessor` orchestrates per-slide conversion and a `TextSegmentRenderer` handles rich text runs - bold/italic, hyperlinks (unsafe schemes like `javascript:` are collapsed to `#`), and **equations**, which are converted from OMML to LaTeX via `OmmlLatexConverter`.
 
 `DocumentConverter` and `SlideProcessor` are exported from the `pptx-viewer-core/converter` subpath for custom converters. `ElementProcessorRegistry` and the built-in element processors are internal implementation details of `PptxMarkdownConverter`; use the exported base class rather than depending on that registry.
 

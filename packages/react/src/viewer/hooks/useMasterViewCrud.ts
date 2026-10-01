@@ -21,7 +21,7 @@ import { safePrompt } from '../utils/dom-helpers';
  *
  * The shared `master-view-crud` module only ever reads `.slides` /
  * `.slideMasters` off the `PptxData` it is handed (verified against
- * `packages/core/src/core/builders/sdk/master-layout-crud*.ts`: every lookup
+ * `ooxml-core/src/pptx/core/builders/sdk/master-layout-crud*.ts`: every lookup
  * and `saveToZip` call touches only those two fields), so the minimal object
  * built here is safe even though React keeps the rest of a loaded deck's
  * fields split into their own state slots rather than one `PptxData`

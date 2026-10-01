@@ -68,7 +68,7 @@ Both rules are expanded, with the concrete failures that motivated them, under
 
 ```bash
 bun install                  # Install all workspace dependencies
-bun run build                # Build foundations, five bindings, installer, and React demo
+bun run build                # Build foundations, five bindings, installer, and React demo (needs ../ooxml-core built first)
 bun run test                 # Run vitest across all packages
 bun run typecheck            # Type-check all packages
 bun run fmt                  # Format all files with oxfmt
@@ -108,7 +108,7 @@ CONTRIBUTING.md for the full explanation.
 
 ```
 packages/
-  core/             pptx-viewer-core     – Parse, edit, serialize PPTX (framework-agnostic)
+  core/             pptx-viewer-core     – Thin entry point re-exporting @christophervr/ooxml-core/pptx (the engine lives in ../ooxml-core)
   shared/           pptx-viewer-shared   – Framework-agnostic viewer logic (INTERNAL, bundled into each binding, never published)
   react/            pptx-react-viewer    - React viewer/editor component
   react-compat/     (private, no build)  – React 18 peer set; `packages/react` aliases onto it to
@@ -128,7 +128,7 @@ demos/
   demo-svelte/      Vite + Svelte 5 demo app (port 4177)
 ```
 
-The five bindings consume `core` and internal `shared` logic; shared also consumes browser-safe tools. Core depends on external `emf-converter` and `mtx-decompressor`. Internal dependencies use `workspace:*`; the root workspaces include `packages/*` and `demos/*`. The documentation site installs separately in `docs/`.
+The five bindings consume `core` and internal `shared` logic; shared also consumes browser-safe tools. The engine (parser, serializer, editing, converter, CLI, signatures) lives in the `pptx` area of the sibling private repository `../ooxml-core` (`@christophervr/ooxml-core/pptx`); `packages/core` is only its public entry point, depending on it through `file:../../../ooxml-core` during development. Build `../ooxml-core` (`bun install && bun run build`) before `bun install` here, and re-run `bun install --force` after rebuilding it. CI clones it at the revision in the `OOXML_CORE_REF` repository variable with the `OOXML_CORE_TOKEN` secret. `pptx-viewer-core` cannot be published until ooxml-core is (`scripts/publish-manifest.mjs` refuses a `file:` runtime dependency). `packages/core` keeps `jszip`, `fast-xml-parser` and `emf-converter` as devDependencies only so the e2e helpers (which resolve them from core's scope) and Vite's dev pre-bundle of the Angular demo still find them. Internal dependencies use `workspace:*`; the root workspaces include `packages/*` and `demos/*`. The documentation site installs separately in `docs/`.
 
 ## How the Demos Resolve Packages (read before debugging one)
 
@@ -205,7 +205,9 @@ Other demo gotchas:
 
 ## Architecture
 
-### Core Package (`packages/core/src/`)
+### Core engine (`../ooxml-core/src/pptx/`, exposed by `packages/core`)
+
+All paths below are relative to `../ooxml-core/src/pptx/`; do not add engine logic to this repository (the viewers own only the UI). The area is compiled with relaxed TypeScript flags for now, and its geometry, colour and unit primitives come from the `geometry`, `color` and `units` areas of ooxml-core.
 
 - **`PptxHandler`** → public facade. Wraps `PptxHandlerCore` → `PptxHandlerRuntime`.
 - **Runtime uses mixin composition**: focused modules in `core/core/runtime/` each add specific capabilities (parsing, saving, theme resolution, etc.) to `PptxHandlerRuntime`.
@@ -410,10 +412,10 @@ is the only attribution that belongs in a commit.
 
 ## Adding a New Element Type
 
-1. Define interface in `packages/core/src/core/types/elements.ts` extending `PptxElementBase`
+1. Define interface in `ooxml-core/src/pptx/core/types/elements.ts` extending `PptxElementBase`
 2. Add to `PptxElement` discriminated union
 3. Add type guard in `type-guards.ts`
 4. Add parsing module in `core/core/runtime/`
 5. Add serialization in `*SaveElementWriter.ts`
 6. Add framework-independent rendering logic in `packages/shared/src/render/`, then wire renderers in all five bindings with per-binding and framework-neutral e2e coverage
-7. Add converter processor in `packages/core/src/converter/elements/`
+7. Add converter processor in `ooxml-core/src/pptx/converter/elements/`

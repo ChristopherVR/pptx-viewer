@@ -3,7 +3,7 @@
   Regenerate e2e/fixtures/ole-embed-excel.ppt: a real PowerPoint-authored
   97-2003 (.ppt) deck with a native embedded Excel worksheet
   (Excel.Sheet.8), ground truth for the legacy `.ppt` reader's OLE
-  read-back (packages/core/src/core/ppt/ole-embed-parser.ts).
+  read-back (../ooxml-core/src/pptx/core/ppt/ole-embed-parser.ts).
 
 .DESCRIPTION
   Creates a blank presentation, adds one slide, and embeds a brand-new
@@ -20,7 +20,7 @@
   PowerPoint 97-2003 binary format in a modern PowerPoint install), so the
   slide's OLE shape round-trips through the real MS-PPT ExOleEmbedContainer
   / ExOleObjStg binary records this project's writer also produces (see
-  packages/core/src/core/ppt/writer/ole-writer.ts), except this time the
+  ../ooxml-core/src/pptx/core/ppt/writer/ole-writer.ts), except this time the
   nested storage is a genuine native Excel.Sheet.8 CFB rather than this
   project's own "Package" wrapper.
 

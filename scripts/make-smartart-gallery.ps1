@@ -38,7 +38,7 @@
 
 .PARAMETER OutDir
   Destination directory for the generated .pptx files. Defaults to
-  packages/core/src/__tests__/fixtures/smartart-gallery relative to the repo
+  ../ooxml-core/src/pptx/__tests__/fixtures/smartart-gallery relative to the repo
   root.
 
 .PARAMETER Only
@@ -52,7 +52,7 @@
   PowerPoint version and gallery.
 #>
 param(
-  [string]$OutDir = "$PSScriptRoot\..\packages\core\src\__tests__\fixtures\smartart-gallery",
+  [string]$OutDir = "$PSScriptRoot\..\..\ooxml-core\src\pptx\__tests__\fixtures\smartart-gallery",
   # Comma-separated list of exact SmartArtLayout.Name values to restrict
   # generation to (quick re-runs after fixing one layout's data set).
   [string]$Only = ''

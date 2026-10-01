@@ -3,7 +3,7 @@
   One-off measurement (not a fixture generator): what does real PowerPoint
   16.0 itself do with a 3D model (Insert > 3D Models, `Shapes.Add3DModel`,
   the same DrawingML `p16:model3D` this project's own writer/reader parse
-  in packages/core/src/core/utils/model3d-parser.ts) when it saves a deck
+  in ../ooxml-core/src/pptx/core/utils/model3d-parser.ts) when it saves a deck
   as 97-2003 (.ppt)? Task-scoped for the limitations.md `.ppt` degradation
   row: this writer does not attempt to write a native 3D model into a
   binary .ppt shape and instead degrades it to a picture/placeholder like

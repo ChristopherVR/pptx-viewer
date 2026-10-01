@@ -1,11 +1,11 @@
 name: CI
 
-# Runs for pull requests from forks as well as from this repo. That is safe
-# because no job here uses a secret: under the `pull_request` trigger a fork
-# gets a read-only GITHUB_TOKEN and no access to repository secrets. Do not add
-# a secret-consuming step to this file; put anything that needs one in a
-# separate `pull_request_target` workflow that never checks out PR code (see
-# pr-hygiene.yml).
+# Every job that installs dependencies first clones the private ooxml-core repository (the
+# engine, resolved by a `file:` dependency) at the revision pinned in the `OOXML_CORE_REF`
+# repository variable, using the `OOXML_CORE_TOKEN` secret. Pull requests from forks get no
+# secrets, so those jobs cannot run for them until ooxml-core is public and published; never
+# print the token, and do not add other secret-consuming steps here (put them in a separate
+# `pull_request_target` workflow that never checks out PR code, see pr-hygiene.yml).
 on:
   push:
     branches: [main]
@@ -159,7 +159,7 @@ jobs:
           FULL_CI_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
         run: |
           full_legs() {
-            echo 'test-legs=["core","core-crypto","shared","locales","react","react18","vue","angular","vanilla","svelte","tools","cli"]'
+            echo 'test-legs=["core","shared","locales","react","react18","vue","angular","vanilla","svelte","tools","cli"]'
             echo 'e2e-projects=["react","vue","angular","vanilla","svelte"]'
             echo 'has-tests=true'
           }
@@ -243,6 +243,16 @@ jobs:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
+
+      - name: Check out ooxml-core (private, pinned revision)
+        env:
+          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
+          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
+        run: |
+          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
+          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
+          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
+          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
 
       - name: Install dependencies
         run: bun install
@@ -354,6 +364,16 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
 
+      - name: Check out ooxml-core (private, pinned revision)
+        env:
+          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
+          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
+        run: |
+          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
+          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
+          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
+          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
+
       - name: Install dependencies
         run: bun install
 
@@ -393,6 +413,16 @@ jobs:
         with:
           name: build-output
           path: packages
+
+      - name: Check out ooxml-core (private, pinned revision)
+        env:
+          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
+          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
+        run: |
+          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
+          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
+          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
+          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
 
       - name: Install dependencies
         run: bun install
@@ -460,11 +490,21 @@ jobs:
           name: build-output
           path: packages
 
+      - name: Check out ooxml-core (private, pinned revision)
+        env:
+          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
+          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
+        run: |
+          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
+          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
+          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
+          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
+
       - name: Install dependencies
         run: bun install
 
-      # Leg -> directory and command. `core` is split from `core-crypto` because
-      # the crypto suite is slow enough to deserve its own runner. `react18` is
+      # Leg -> directory and command. `core` only runs the thin entry-point
+      # contract tests (the engine and its suite live in ooxml-core). `react18` is
       # the lower bound of the react/react-dom peer range (`^18.2.0 || ^19.0.0`,
       # issue #105): it re-runs the IDENTICAL specs with react/react-dom aliased
       # onto the React 18 pair owned by packages/react-compat, then type-checks a
@@ -479,8 +519,7 @@ jobs:
           # the flag to tsc (`TS5023: Unknown compiler option '--coverage'`).
           V="run --coverage --reporter=verbose --reporter=github-actions"
           case "${{ matrix.key }}" in
-            core)        dir=packages/core;    cmd="bun vitest $V --exclude 'src/core/utils/ooxml-crypto.test.ts'" ;;
-            core-crypto) dir=packages/core;    cmd="bun vitest $V src/core/utils/ooxml-crypto.test.ts" ;;
+            core)        dir=packages/core;    cmd="bun vitest $V" ;;
             shared)      dir=packages/shared;  cmd="bun vitest $V" ;;
             locales)     dir=packages/locales; cmd="bun vitest $V" ;;
             react)       dir=packages/react;   cmd="bun vitest $V" ;;
@@ -640,6 +679,16 @@ jobs:
           name: build-output
           path: packages
 
+      - name: Check out ooxml-core (private, pinned revision)
+        env:
+          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
+          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
+        run: |
+          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
+          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
+          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
+          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
+
       - name: Install dependencies
         run: bun install
 
@@ -740,6 +789,16 @@ jobs:
         with:
           name: build-output
           path: packages
+
+      - name: Check out ooxml-core (private, pinned revision)
+        env:
+          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
+          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
+        run: |
+          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
+          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
+          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
+          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
 
       - name: Install dependencies
         run: bun install

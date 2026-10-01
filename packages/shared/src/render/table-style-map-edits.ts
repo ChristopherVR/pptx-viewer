@@ -11,7 +11,7 @@
  * Deleting a style adds its id to `tableStylesToDelete` because core needs a
  * separate opt-in list: a style id merely absent from `tableStyles` is
  * "untouched", not "delete" (see `PptxHandlerSaveOptions.tableStyles`'s own
- * doc comment in `packages/core/src/core/core/types.ts`). Adding a style
+ * doc comment in `ooxml-core/src/pptx/core/core/types.ts`). Adding a style
  * back under the same id (e.g. re-creating one with the same GUID) drops it
  * back out of `tableStylesToDelete`, since at that point it is no longer
  * meant to be removed on save.

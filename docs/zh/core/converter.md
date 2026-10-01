@@ -38,7 +38,7 @@ const markdown = await converter.convert(data);
 
 ## `PptxConverterOptions` {#pptxconverteroptions}
 
-选项对象继承基础 `ConversionOptions`（已对照 `packages/core/src/converter` 验证）：
+选项对象继承基础 `ConversionOptions`（已对照 `ooxml-core/src/pptx/converter` 验证）：
 
 | 字段                  | 类型                                       | 来源 | 用途                                                                          |
 | --------------------- | ------------------------------------------ | ---- | ----------------------------------------------------------------------------- |
@@ -82,7 +82,7 @@ const markdown = await converter.convert(data);
 
 ## 元素处理器注册表 {#the-element-processor-registry}
 
-每个 `PptxElement` 按类型分发给十种已注册处理器之一（均位于 `packages/core/src/converter/elements/`）：**文本**、**图片**、**表格**、**图表**、**SmartArt**、**组合**（递归）、**媒体**、**OLE**、**墨迹**，以及处理未匹配类型的**回退处理器**。`SlideProcessor` 负责协调每张幻灯片的转换，`TextSegmentRenderer` 处理富文本片段，包括粗体、斜体、超链接（`javascript:` 等不安全协议会替换为 `#`）和**公式**；公式通过 `OmmlLatexConverter` 从 OMML 转换为 LaTeX。
+每个 `PptxElement` 按类型分发给十种已注册处理器之一（均位于 `ooxml-core/src/pptx/converter/elements/`）：**文本**、**图片**、**表格**、**图表**、**SmartArt**、**组合**（递归）、**媒体**、**OLE**、**墨迹**，以及处理未匹配类型的**回退处理器**。`SlideProcessor` 负责协调每张幻灯片的转换，`TextSegmentRenderer` 处理富文本片段，包括粗体、斜体、超链接（`javascript:` 等不安全协议会替换为 `#`）和**公式**；公式通过 `OmmlLatexConverter` 从 OMML 转换为 LaTeX。
 
 `DocumentConverter` 和 `SlideProcessor` 通过 `pptx-viewer-core/converter` 子路径导出，供自定义转换器使用。`ElementProcessorRegistry` 和内置元素处理器属于 `PptxMarkdownConverter` 的内部实现，应使用导出的基类，不要依赖该注册表。
 

@@ -8,7 +8,7 @@
  * playback through each binding's media renderer, not a placeholder icon.
  *
  * There is no pre-existing fixture `.pptx` with an embedded video/audio
- * stream in `packages/core/src/__tests__/fixtures/` or `e2e/fixtures/`, so
+ * stream in `ooxml-core/src/pptx/__tests__/fixtures/` or `e2e/fixtures/`, so
  * this spec instead drives the app's own "Insert > Media" ribbon flow (the
  * same `mediaData` data-URL code path a loaded `.pptx` would populate) with
  * two tiny real media assets synthesized locally via `ffmpeg` (no network

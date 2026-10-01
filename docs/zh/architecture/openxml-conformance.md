@@ -11,7 +11,7 @@ description: ECMA-376 / ISO/IEC 29500 符合性约定，Strict 和 Transitional 
 
 只有验证了以下所有适用能力，才能认为某项功能得到完整支持。保留未知 XML 很有价值，但不等于理解或编辑该 XML。
 
-覆盖清单 `OPENXML_COVERAGE` 位于 `packages/core/src/core/openxml/`，按**四个**维度评估每个结构，类型为 `OpenXmlCoverageFacet`：
+覆盖清单 `OPENXML_COVERAGE` 位于 `ooxml-core/src/pptx/core/openxml/`，按**四个**维度评估每个结构，类型为 `OpenXmlCoverageFacet`：
 
 | 维度        | 要求                                                             |
 | ----------- | ---------------------------------------------------------------- |
@@ -37,7 +37,7 @@ ISO/IEC 29500 为包内标记定义了两种符合性类别：
 
 ### 加载时的处理 {#what-happens-on-load}
 
-Strict 处理实现在 `packages/core/src/core/utils/strict-namespace-map.ts`，并接入运行时状态模块：
+Strict 处理实现在 `ooxml-core/src/pptx/core/utils/strict-namespace-map.ts`，并接入运行时状态模块：
 
 1. `detectStrictConformance()` 检查解析后的演示文稿根元素上的命名空间声明（`xmlns` / `xmlns:*`）。存在任意 `http://purl.oclc.org/ooxml/...` URI，就将文件标记为 Strict。
 2. `normalizeStrictXml()` **原地**重写已解析的树，将命名空间声明、关系 `Type` 属性和扩展 `uri` 属性转换为对应的 Transitional 形式。
@@ -96,7 +96,7 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 - **Strict 输入，Strict 输出。** 加载 Strict 文件时记录 `data.conformance === 'strict'`，使用默认 `'preserve'` 保存时，再次输出 Strict 命名空间和 `conformance="strict"`。
 - **无损内部规范化。** 规范化只针对命名空间 URI，不改变元素结构、顺序、属性和未知标记，因此 Strict 处理可以与透传保存行为配合。
 - **双向显式转换。** `conformance: 'strict'` 和 `conformance: 'transitional'` 可将包转换为另一类别，不改写与类别无关的 OPC 和 MCE 命名空间。
-- **依据真实包结构验证。** 映射本身由 `strict-namespace-map.test.ts` 单元测试覆盖，集成往返测试位于 `packages/core/src/__tests__/integration/strict-conformance-roundtrip.test.ts`。其中的包模拟真实 Office 创建的 Strict 文件结构，包括这些文件保留的规范 OPC 命名空间。
+- **依据真实包结构验证。** 映射本身由 `strict-namespace-map.test.ts` 单元测试覆盖，集成往返测试位于 `ooxml-core/src/pptx/__tests__/integration/strict-conformance-roundtrip.test.ts`。其中的包模拟真实 Office 创建的 Strict 文件结构，包括这些文件保留的规范 OPC 命名空间。
 
 ## 符合性检查门槛 {#conformance-gates}
 
@@ -132,11 +132,11 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 
 有些结构看起来像缺口，检查基础模式的实际声明后才能理解：
 
-**切换时长使用扩展命名空间是合法行为，并非遗漏。** `CT_SlideTransition`（S19.3.1.50，Transitional 模式）只声明 `spd`、`advClick` 和 `advTm` 属性；基础 PresentationML 模式中，没有任何以毫秒表示幻灯片切换时长的 `dur` 属性。PowerPoint 自身需要这个值，因此将其写入 Office 2010 扩展命名空间，作为 `p14:dur`。COM 已验证：在 PowerPoint 2016 中，通过 `Presentations.Add`、`Slide.SlideShowTransition.Duration = 2.5` 和 `SaveAs(ppSaveAsOpenXMLPresentation)`，PowerPoint 会将整个 `p:transition` 包在 `mc:AlternateContent` 中，写出 `<mc:Choice Requires="p14"><p:transition spd="slow" p14:dur="2500" .../></mc:Choice><mc:Fallback><p:transition spd="slow" .../></mc:Fallback>`。对于不带前缀的 `dur`，PowerPoint 不只是容忍，而是静默忽略：只含 `dur="2000"` 的包重新打开后使用 PowerPoint 默认的 0.5 秒，已通过 COM 验证。`pptx-viewer` 也写入 `p14:dur`（`packages/core/src/core/core/runtime/slide-transition-duration-ns.ts`），但使用更简单的幻灯片根元素 `mc:Ignorable="p14"` 声明，而不是把每个切换包进 `mc:AlternateContent`。PowerPoint 接受两种形式，并都遵循时长，已通过 COM 验证。两种形式都不理解的读取器会回退到 `spd` 速度关键字，因此 PowerPoint 和 `pptx-viewer` 都会在输出 `p14:dur` 的同时保留 `spd`。
+**切换时长使用扩展命名空间是合法行为，并非遗漏。** `CT_SlideTransition`（S19.3.1.50，Transitional 模式）只声明 `spd`、`advClick` 和 `advTm` 属性；基础 PresentationML 模式中，没有任何以毫秒表示幻灯片切换时长的 `dur` 属性。PowerPoint 自身需要这个值，因此将其写入 Office 2010 扩展命名空间，作为 `p14:dur`。COM 已验证：在 PowerPoint 2016 中，通过 `Presentations.Add`、`Slide.SlideShowTransition.Duration = 2.5` 和 `SaveAs(ppSaveAsOpenXMLPresentation)`，PowerPoint 会将整个 `p:transition` 包在 `mc:AlternateContent` 中，写出 `<mc:Choice Requires="p14"><p:transition spd="slow" p14:dur="2500" .../></mc:Choice><mc:Fallback><p:transition spd="slow" .../></mc:Fallback>`。对于不带前缀的 `dur`，PowerPoint 不只是容忍，而是静默忽略：只含 `dur="2000"` 的包重新打开后使用 PowerPoint 默认的 0.5 秒，已通过 COM 验证。`pptx-viewer` 也写入 `p14:dur`（`ooxml-core/src/pptx/core/core/runtime/slide-transition-duration-ns.ts`），但使用更简单的幻灯片根元素 `mc:Ignorable="p14"` 声明，而不是把每个切换包进 `mc:AlternateContent`。PowerPoint 接受两种形式，并都遵循时长，已通过 COM 验证。两种形式都不理解的读取器会回退到 `spd` 速度关键字，因此 PowerPoint 和 `pptx-viewer` 都会在输出 `p14:dur` 的同时保留 `spd`。
 
 **`p:animEffect/@filter="image"` 指定了没有实际载荷的滤镜。** `ST_TLAnimateEffectFilter`（19.5.5）枚举 `p:animEffect` 的 `@filter` 可指定的 SMIL 风格滤镜族，其中包括 `image`。但 `CT_TLAnimateEffectBehavior`（19.5.3）没有为该元素提供任何可承载第二个、独立指定图片引用的子元素或属性。`image` 表示基于图片的擦除或遮罩切换，但时间树和关系中没有任何模式位置可指定使用哪张图片，因此包括 PowerPoint 在内，任何符合规范的读取器都无法恢复预期滤镜。`pptx-viewer` 将它与其他没有专门渲染实现的滤镜族一样处理，回退为中性的淡入淡出。
 
-**`p:bldP/p:tmplLst` 是创作时模板，不是播放输入。** `CT_TLTemplateList`（19.5.84）及其 `p:tmpl` 条目（`CT_TLTemplate`，19.5.85），让文本构建为各大纲级别声明默认计时。`packages/core/src/core/services/animation-timing-templates.ts` 会以类型化形式解析并往返保留它们，但有意不将其用于播放。其语义是：只有某个大纲级别尚无实例化节点时，PowerPoint 才复制模板的 `p:tnLst` 为它初始化计时，也就是用户正在动画窗格中添加新项目符号时。保存文件中实际存在且可见的段落，在其所属级别下，都已在 `p:timing/p:tnLst` 中有明确节点；PowerPoint 保存前会为每个当前使用的级别实例化节点，因此合法保存的文稿中不存在只有模板覆盖的级别。真实 PowerPoint 创建的语料 `anatidae-animation.pptx`（由 `animation-build-templates-surgical-roundtrip.test.ts` 使用）和完整重建往返测试支持这一结论，但没有通过新的 COM `CreateVideo` 捕获重新验证。要构造当前使用级别缺少自身节点的文件，必须手工编辑时间树，而已知 PowerPoint 在关闭 `DisplayAlerts` 时会静默修复格式不正确的包（参见 `scripts/pptx-com-open.ps1`），这样无论观察到怎样的“模板被忽略”结果，都无法作为可靠证据。
+**`p:bldP/p:tmplLst` 是创作时模板，不是播放输入。** `CT_TLTemplateList`（19.5.84）及其 `p:tmpl` 条目（`CT_TLTemplate`，19.5.85），让文本构建为各大纲级别声明默认计时。`ooxml-core/src/pptx/core/services/animation-timing-templates.ts` 会以类型化形式解析并往返保留它们，但有意不将其用于播放。其语义是：只有某个大纲级别尚无实例化节点时，PowerPoint 才复制模板的 `p:tnLst` 为它初始化计时，也就是用户正在动画窗格中添加新项目符号时。保存文件中实际存在且可见的段落，在其所属级别下，都已在 `p:timing/p:tnLst` 中有明确节点；PowerPoint 保存前会为每个当前使用的级别实例化节点，因此合法保存的文稿中不存在只有模板覆盖的级别。真实 PowerPoint 创建的语料 `anatidae-animation.pptx`（由 `animation-build-templates-surgical-roundtrip.test.ts` 使用）和完整重建往返测试支持这一结论，但没有通过新的 COM `CreateVideo` 捕获重新验证。要构造当前使用级别缺少自身节点的文件，必须手工编辑时间树，而已知 PowerPoint 在关闭 `DisplayAlerts` 时会静默修复格式不正确的包（参见 `scripts/pptx-com-open.ps1`），这样无论观察到怎样的“模板被忽略”结果，都无法作为可靠证据。
 
 ## 组合边界重包围与编辑顺序 {#group-re-wrap-and-edit-order}
 
@@ -152,15 +152,15 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 
 ## `.ppt` 导出的能力上限 {#ppt-export-ceiling}
 
-`save(slides, { outputFormat: 'ppt' })` 在 OLE2（CFB）容器中写入真实的 MS-PPT/OfficeArt 记录流（`packages/core/src/core/ppt/writer/`），不是占位实现。它可无损往返保留幻灯片数量、形状几何、文本和文本片段格式、图片、组合、表格（使用 PowerPoint 2003 自身的组合矩形模型）和背景，支持明文及 RC4 CryptoAPI 密码保护（`pptPassword`）。完全通过 SDK 从零创建的文稿，可经 COM 在真实 PowerPoint 16.0 中打开，幻灯片和形状数量及文本一致，已由 `scripts/com-acceptance-ppt.mjs` 验证。
+`save(slides, { outputFormat: 'ppt' })` 在 OLE2（CFB）容器中写入真实的 MS-PPT/OfficeArt 记录流（`ooxml-core/src/pptx/core/ppt/writer/`），不是占位实现。它可无损往返保留幻灯片数量、形状几何、文本和文本片段格式、图片、组合、表格（使用 PowerPoint 2003 自身的组合矩形模型）和背景，支持明文及 RC4 CryptoAPI 密码保护（`pptPassword`）。完全通过 SDK 从零创建的文稿，可经 COM 在真实 PowerPoint 16.0 中打开，幻灯片和形状数量及文本一致，已由 `scripts/com-acceptance-ppt.mjs` 验证。
 
 **已完成并通过 COM 验证：**
 
 - 形状级和文本片段级超链接或点击操作，包括 URL、跳转到指定幻灯片、所有相对跳转（下一张、上一张、第一张、最后一张、结束放映、上次查看的幻灯片）、具名自定义放映、`mailto:`，以及打开文件或演示文稿，均对照 `ActionSettings(ppMouseClick)` 验证。
-- 存在 PNG/JPEG 预览时，嵌入 OLE 对象（`oleEmbeddedData`）会写为真实 Windows“OLE Package”对象，在嵌套 OLE2 存储中包含 `CompObj` / `Ole10Native`，验证结果为 `OLEFormat.ProgID === "Package"` / `msoEmbeddedOLEObject`。导入器也能读回：`ExOleEmbedContainer` / `ExOleObjStg`（`packages/core/src/core/ppt/ole-embed-parser.ts`）解析为可编辑的 `ole` 元素。已使用真实 PowerPoint 创建的、带原生 `Excel.Sheet.8` 嵌入对象的 `.ppt` 验证，样例为 `e2e/fixtures/ole-embed-excel.ppt`，由 `scripts/make-ole-embed-excel-fixture.ps1` 的 `Shapes.AddOLEObject` 创建，实测 `OLEFormat.ProgID` 为 `"Excel.Sheet.8"`。恢复字节经项目自身 BIFF8 读取器解码，得到与 PowerPoint 写入完全相同的单元格值。
+- 存在 PNG/JPEG 预览时，嵌入 OLE 对象（`oleEmbeddedData`）会写为真实 Windows“OLE Package”对象，在嵌套 OLE2 存储中包含 `CompObj` / `Ole10Native`，验证结果为 `OLEFormat.ProgID === "Package"` / `msoEmbeddedOLEObject`。导入器也能读回：`ExOleEmbedContainer` / `ExOleObjStg`（`ooxml-core/src/pptx/core/ppt/ole-embed-parser.ts`）解析为可编辑的 `ole` 元素。已使用真实 PowerPoint 创建的、带原生 `Excel.Sheet.8` 嵌入对象的 `.ppt` 验证，样例为 `e2e/fixtures/ole-embed-excel.ppt`，由 `scripts/make-ole-embed-excel-fixture.ps1` 的 `Shapes.AddOLEObject` 创建，实测 `OLEFormat.ProgID` 为 `"Excel.Sheet.8"`。恢复字节经项目自身 BIFF8 读取器解码，得到与 PowerPoint 写入完全相同的单元格值。
 - 嵌入音频（WAV）写为真实、可播放的 `SoundCollectionContainer` / `SoundDataBlob`（`media-writer.ts`），甚至超过 PowerPoint 16.0 自身的行为：PowerPoint“另存为 PowerPoint 97-2003”只保留 `SoundContainer` 外壳，`Shape.MediaFormat.Length` 为 0，任何位置都没有 `RIFF` 字节；此写入器的音频经 PowerPoint 重新保存为 `.pptx` 后，重新导出的 WAV 与源文件逐字节一致。
 - 视频不会嵌入，但 PowerPoint 16.0 也无法将视频嵌入 97-2003：尝试嵌入后保存会退化为静态图片，`Shape.Type` 为 `msoPicture`。因此写入器现有的图片或占位符降级已达到 PowerPoint 自身上限。真正链接外部文件路径的视频是另一项尚未实现的能力，而字节输入、字节输出的 `save()` API 没有可供建立链接的目标目录。
-- 墨迹、SmartArt、图表和三维模型现在还会额外写入一个 `metroBlob`（`packages/core/src/core/ppt/writer/metro-blob-package.ts`）：这正是真实 PowerPoint 2007+ 在另存为 97-2003 格式时写入的同一种 [MS-ODRAW] `OfficeArtTertiaryFOPT` 迷你包（未文档化属性 ID `0x03A9`），其中包含该元素自身的 OOXML：墨迹是 `p:contentPart`，SmartArt、图表以及为三维模型合成的图形帧都是重命名后的 `p:graphicFrame` / `p:E2oFrame`。这样 PowerPoint 2007 及更高版本重新打开时，会把形状还原为它本来的原生可编辑对象，而真正的 97-2003 时代阅读器仍然只会看到写入器的栅格预览图或占位矩形。OOXML 来自该处理器自身对同一批幻灯片的无损 `.pptx` 保存结果，因此已编辑元素往返保留的是其当前状态，而不是加载时的状态（`PptxHandlerRuntimeSaveLegacyPpt.ts` 的 `resolveMetroBlobs`）。已通过在真实 PowerPoint 16.0 中重新打开从零生成的 `.ppt` 文件验证：墨迹读回 `Shape.Type` 为 23 / `msoInk`，与 PowerPoint 自身的 97-2003 另存为完全一致；SmartArt 读回 `Shape.HasSmartArt` 为 `True`，节点数量（11 个）与文本内容均保持不变；图表读回 `Shape.HasChart` 为 `True`，`ChartType` 为 5 / `xlPie`，标题和系列数值精确一致；三维模型读回 `Shape.Type` 为 30 / `msoModel3D`，是一个可正常使用的 `Model3D` 对象。对图表和三维模型而言，这已经超越了 PowerPoint 自身 97-2003 另存为的上限（见下面两条）：PowerPoint 自己在 97-2003 另存为时会把两者都降级为静态内容，而此写入器生成的 `.ppt` 在 PowerPoint 2007+ 中重新打开后仍是可编辑的原生对象。携带 `metroBlob` 的降级元素会标记为信息级别的 `ppt-native-roundtrip-<type>` 兼容性警告，而不是普通的 `ppt-unsupported-<type>` 警告，因为回退图片或占位符现在只是 97-2003 阅读器的限制，不再是功能损失（`degrade-element.ts`）。
+- 墨迹、SmartArt、图表和三维模型现在还会额外写入一个 `metroBlob`（`ooxml-core/src/pptx/core/ppt/writer/metro-blob-package.ts`）：这正是真实 PowerPoint 2007+ 在另存为 97-2003 格式时写入的同一种 [MS-ODRAW] `OfficeArtTertiaryFOPT` 迷你包（未文档化属性 ID `0x03A9`），其中包含该元素自身的 OOXML：墨迹是 `p:contentPart`，SmartArt、图表以及为三维模型合成的图形帧都是重命名后的 `p:graphicFrame` / `p:E2oFrame`。这样 PowerPoint 2007 及更高版本重新打开时，会把形状还原为它本来的原生可编辑对象，而真正的 97-2003 时代阅读器仍然只会看到写入器的栅格预览图或占位矩形。OOXML 来自该处理器自身对同一批幻灯片的无损 `.pptx` 保存结果，因此已编辑元素往返保留的是其当前状态，而不是加载时的状态（`PptxHandlerRuntimeSaveLegacyPpt.ts` 的 `resolveMetroBlobs`）。已通过在真实 PowerPoint 16.0 中重新打开从零生成的 `.ppt` 文件验证：墨迹读回 `Shape.Type` 为 23 / `msoInk`，与 PowerPoint 自身的 97-2003 另存为完全一致；SmartArt 读回 `Shape.HasSmartArt` 为 `True`，节点数量（11 个）与文本内容均保持不变；图表读回 `Shape.HasChart` 为 `True`，`ChartType` 为 5 / `xlPie`，标题和系列数值精确一致；三维模型读回 `Shape.Type` 为 30 / `msoModel3D`，是一个可正常使用的 `Model3D` 对象。对图表和三维模型而言，这已经超越了 PowerPoint 自身 97-2003 另存为的上限（见下面两条）：PowerPoint 自己在 97-2003 另存为时会把两者都降级为静态内容，而此写入器生成的 `.ppt` 在 PowerPoint 2007+ 中重新打开后仍是可编辑的原生对象。携带 `metroBlob` 的降级元素会标记为信息级别的 `ppt-native-roundtrip-<type>` 兼容性警告，而不是普通的 `ppt-unsupported-<type>` 警告，因为回退图片或占位符现在只是 97-2003 阅读器的限制，不再是功能损失（`degrade-element.ts`）。
 - 对真正的 97-2003 时代阅读器来说，三维模型仍会栅格化为普通图片（`Shape.Type` 为 13 / `msoPicture`，没有 `OLEFormat`），与 PowerPoint 16.0 自身 97-2003 另存为的行为完全一致，测量脚本为 `scripts/measure-model3d-ole-97.ps1`，它在脚本内构造最小的符合规范的二进制 glTF，再通过 `Shapes.Add3DModel` 插入；PowerPoint 2007+ 阅读器则会改为把上面的 `metroBlob` 重新打开为原生 `Model3D` 对象。
 - 对真正的 97-2003 时代阅读器来说，图表也仍会栅格化为图片。PowerPoint 16.0 另存为 97-2003 时，则会将现代图表保留为嵌入的 `Excel.Chart.8` OLE 对象，即旧式 MS Graph。`scripts/measure-chart-ole-97.ps1` 测得 `Shape.Type` 为 7 / `msoEmbeddedOLEObject`，`OLEFormat.ProgID` 为 `"Excel.Chart.8"`，`Shape.HasChart` 为 `False`。针对这条纯 97-2003 的路径，目前仍不计划写入真正的 `Excel.Chart.8` 对象：上面已实现的 `ExOleObjStg` 有 [MS-PPT]/[MS-ODRAW] 文档，而旧式 MS Graph 图表内部二进制布局没有公开 Microsoft 规范可供验证；上面的 `metroBlob` 则完全绕开了这个问题，让任何 PowerPoint 2007+ 阅读器都能直接拿到真正的现代图表部件。
 - 导入不支持 CryptoAPI 之前的 Office 95 RC4/XOR 混淆方案。导入保真度受格式早于 DrawingML 这一事实限制：没有可传递的主题字体方案，转换器会根据文稿收集到的第一个字体合成名为“Imported PPT”的主题，回退字体为 Arial；没有二进制对应形式的效果会降级。每个降级元素都以 `save` 作用域的 `PptxCompatibilityWarning` 标记。
@@ -169,7 +169,7 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 
 **仍然存在的 `.ppt` 差距：** 只写入第一张幻灯片的母版，因此包含多个母版的演示文稿的每张幻灯片都会使用这一个母版；视频以及 WAV 之外的任何嵌入音频格式都会降级为图片（见上文）；加密 `.ppt` 导入仅支持 CryptoAPI 的 RC4，不支持早于 CryptoAPI 的 Office 95 方案（同样见上文）。
 
-**`metroBlob` 是如何被找到的。** 与图表、视频和三维模型不同，PowerPoint 16.0 在同样的 97-2003 往返过程中仍原生保留墨迹和 SmartArt，因此写入器早先仅把它们降级为图片的做法，并未达到 PowerPoint 自身上限。墨迹使用真实 PowerPoint 创建、带真正 `p14:` 墨迹内容的样例测量（`e2e/fixtures/ink-contentpart.pptx`、`scripts/measure-ink-ole-97.ps1`），每个墨迹形状读回后仍为 `Shape.Type` = 23 / `msoInk`。SmartArt 使用真实 COM 创建的样例测量（`packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`、`scripts/measure-smartart-ole-97.ps1`），前后 `Shape.HasSmartArt` 都为 `True`，`Shape.Type` 为 24 / `msoDiagram`。
+**`metroBlob` 是如何被找到的。** 与图表、视频和三维模型不同，PowerPoint 16.0 在同样的 97-2003 往返过程中仍原生保留墨迹和 SmartArt，因此写入器早先仅把它们降级为图片的做法，并未达到 PowerPoint 自身上限。墨迹使用真实 PowerPoint 创建、带真正 `p14:` 墨迹内容的样例测量（`e2e/fixtures/ink-contentpart.pptx`、`scripts/measure-ink-ole-97.ps1`），每个墨迹形状读回后仍为 `Shape.Type` = 23 / `msoInk`。SmartArt 使用真实 COM 创建的样例测量（`ooxml-core/src/pptx/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`、`scripts/measure-smartart-ole-97.ps1`），前后 `Shape.HasSmartArt` 都为 `True`，`Shape.Type` 为 24 / `msoDiagram`。
 
 2026-09-11 的从零复现尝试，通过项目自身的 `ole2-parser-read.ts` 和 `record-stream.ts` 读取器分析两个已保存文件，发现 PowerPoint 将两者都表示为普通 MSOSPT 75（“Picture Frame”）形状，其 `OfficeArtTertiaryFOPT` 恰好包含一个复杂属性，未文档化的 ID 为 `0x3A9`，原始字节为 `A9 C3`，即设置了 `fComplex` 和 `fBlipId`。它承载原始 ZIP/OPC“迷你包”，包含真实的 `[Content_Types].xml` / `_rels` 结构，以及未文档化但确实存在的内容类型：`application/vnd.ms-office.DrsInk+xml`、`application/inkml+xml`、`application/vnd.ms-office.DrsE2oDoc+xml`、`application/vnd.ms-office.DrsDownRev+xml`。墨迹包的 `drs/inkxml.xml` 是 `p:contentPart`，与源文件的 `p14:contentPart` 逐字节相同，另有逐字节相同的 `drs/ink/ink1.xml`。SmartArt 的 `drs/e2oDoc.xml` 是 `p:E2oFrame`，即重命名的 `p:graphicFrame` / `dgm:relIds`，再加上核心引擎已能无损往返的全部五个图形部件，完全自包含。这修正了之前认为文档级 `RoundTripCustomTableStyles12Atom`（`0x428C`）参与其中的假设；它实际只保存与两项功能都无关的通用 `tableStyles.xml` 往返内容。墨迹和 SmartArt 使用相同的 `0x3A9` 属性 ID。
 
@@ -183,7 +183,7 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 
 `.pptx` 包含 PowerPoint 自身预计算的绘图部件时，会使用该精确布局，并像 PowerPoint 一样按原始偏移放置，已通过实时 COM 验证。否则由 DiagramML 解释器重建，支持全部十种 `dgm:alg` 类型、`constrLst` / `ruleLst`（包括由 `dgm:choose` 控制的条目）、相对约束和 `presLayoutVars`。
 
-解释器依据包含 229 个样例的图库测量，这些样例覆盖 `Application.SmartArtLayouts` 报告的全部 176 种内置布局，均由 PowerPoint 自身通过 COM 创建。测试位于 `packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`，需设置 `SMARTART_GALLERY_GATE=1` 才会运行，在全部通过之前默认跳过。它把解释器自身的输出（`computeSmartArtElementsWithoutCache`，从不读取缓存）与样例中缓存的 `dsp:drawing` 按节点文本逐个形状比较。
+解释器依据包含 229 个样例的图库测量，这些样例覆盖 `Application.SmartArtLayouts` 报告的全部 176 种内置布局，均由 PowerPoint 自身通过 COM 创建。测试位于 `ooxml-core/src/pptx/__tests__/integration/smartart-gallery-ground-truth.test.ts`，需设置 `SMARTART_GALLERY_GATE=1` 才会运行，在全部通过之前默认跳过。它把解释器自身的输出（`computeSmartArtElementsWithoutCache`，从不读取缓存）与样例中缓存的 `dsp:drawing` 按节点文本逐个形状比较。
 
 2026-09-24 实测结果（逐样例数据见 `smartart-gallery/baseline.json`）：
 

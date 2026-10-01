@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const core = join(root, 'packages/core');
+// The engine lives in the unpublished sibling @christophervr/ooxml-core (a `file:` dependency of
+// the core package): pack it too and point the consumer's resolution at that tarball.
+const ooxmlCore = resolve(root, '../ooxml-core');
 const consumer = await mkdtemp(join(tmpdir(), 'pptx-core-consumer-'));
 const npmCli =
 	process.platform === 'win32'
@@ -34,20 +37,56 @@ function npm(args, cwd, capture = false) {
 const packed = JSON.parse(
 	npm(['pack', '--ignore-scripts', '--json', '--pack-destination', consumer], core, true),
 )[0];
-assert(packed.files.some((file) => file.path === 'dist/index.mjs'));
-assert(packed.files.some((file) => file.path === 'dist/index.js'));
-for (const file of packed.files.filter((entry) =>
-	/\.(?:m?js|d\.ts|d\.cts|d\.mts)$/.test(entry.path),
-)) {
-	const source = await readFile(join(core, file.path), 'utf8');
+const packedEngine = JSON.parse(
+	npm(['pack', '--ignore-scripts', '--json', '--pack-destination', consumer], ooxmlCore, true),
+)[0];
+for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/index']) {
 	assert(
-		!/(?:from\s*|import\s*\(|require\s*\()\s*['"]@christophervr\/ole2(?:\/|['"])/.test(source),
-		`${file.path} leaks a development-only ole2 import`,
+		packed.files.some((file) => file.path === `dist/${entry}.mjs`),
+		`missing dist/${entry}.mjs`,
 	);
+	assert(
+		packed.files.some((file) => file.path === `dist/${entry}.js`),
+		`missing dist/${entry}.js`,
+	);
+	assert(
+		packed.files.some((file) => file.path === `dist/${entry}.d.ts`),
+		`missing dist/${entry}.d.ts`,
+	);
+}
+for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/index']) {
+	assert(
+		packedEngine.files.some((file) => file.path === `dist/pptx/${entry}.mjs`),
+		`ooxml-core is missing dist/pptx/${entry}.mjs`,
+	);
+	assert(
+		packedEngine.files.some((file) => file.path === `dist/pptx/${entry}.cjs`),
+		`ooxml-core is missing dist/pptx/${entry}.cjs`,
+	);
+}
+for (const [directory, listing] of [
+	[core, packed],
+	[ooxmlCore, packedEngine],
+]) {
+	for (const file of listing.files.filter((entry) =>
+		/\.(?:c?m?js|d\.ts|d\.cts|d\.mts)$/.test(entry.path),
+	)) {
+		const source = await readFile(join(directory, file.path), 'utf8');
+		assert(
+			!/(?:from\s*|import\s*\(|require\s*\()\s*['"]@christophervr\/ole2(?:\/|['"])/.test(source),
+			`${file.path} leaks a development-only ole2 import`,
+		);
+	}
 }
 await writeFile(
 	join(consumer, 'package.json'),
-	JSON.stringify({ name: 'pptx-packed-regression', private: true, type: 'module' }),
+	JSON.stringify({
+		name: 'pptx-packed-regression',
+		private: true,
+		type: 'module',
+		// The core package depends on ooxml-core by `file:` path; resolve that to its tarball.
+		overrides: { '@christophervr/ooxml-core': `file:${join(consumer, packedEngine.filename)}` },
+	}),
 );
 npm(
 	[

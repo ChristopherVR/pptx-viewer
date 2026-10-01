@@ -36,7 +36,7 @@ Three exported tables cover the ECMA-376 preset catalogue from different angles:
 
 ## Resolving geometry for a shape
 
-The highest-level path: evaluate the element's preset against its box and adjustments, and get SVG path data plus the text rectangle back. Signatures verified against `packages/core/src/core/geometry/`:
+The highest-level path: evaluate the element's preset against its box and adjustments, and get SVG path data plus the text rectangle back. Signatures verified against `ooxml-core/src/pptx/core/geometry/`:
 
 ```ts
 import { evaluatePresetShape, getAdjustmentAwareShapeClipPath } from 'pptx-viewer-core';

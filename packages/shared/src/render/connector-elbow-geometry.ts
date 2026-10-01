@@ -149,7 +149,7 @@ function curveTo(ctrl: RouterPoint, end: RouterPoint): string {
  * each insert one extra breakpoint per interior corner (halfway along the
  * secondary axis) so the curve visibly bends near the corner instead of
  * overshooting it, mirroring the multi-segment cubic construction
- * `packages/core/src/core/geometry/connector-geometry.ts` uses for
+ * `ooxml-core/src/pptx/core/geometry/connector-geometry.ts` uses for
  * `curvedConnector4`/`curvedConnector5`.
  */
 export function curvedElbowPathD(

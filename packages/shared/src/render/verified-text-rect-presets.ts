@@ -44,7 +44,7 @@
  * timidity: consuming an unverified preset would move text on common shapes to
  * measurably WRONG places, which is worse than the (also wrong) full box they
  * use otherwise. The remaining entries belong to whoever owns
- * `packages/core/src/core/geometry`; as each is corrected against the same
+ * `ooxml-core/src/pptx/core/geometry`; as each is corrected against the same
  * measurement it can simply be added here.
  *
  * Lower-cased raw preset names, deliberately NOT `getShapeType`: that
