@@ -1,5 +1,8 @@
+import { RIBBON_VIEW_ICON_PATHS } from './ribbon-view-icons';
+
 /** Trusted, shared SVG paths. No host-supplied markup is inserted into the icon. */
 export const RIBBON_ICON_PATHS: Readonly<Record<string, string>> = {
+	...RIBBON_VIEW_ICON_PATHS,
 	cursor: 'M3 2l13 9-6 1-3 5Z',
 	highlighter: 'M11 2l6 6-7 7-6-6ZM4 9l-2 7h7M2 18h10',
 	spline: 'M2 16C4 4 8 2 10 6s0 8 3 7 4-5 5-8',

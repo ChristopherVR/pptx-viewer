@@ -251,3 +251,22 @@ ink pointer capture, live stroke previews, freeform shape creation, erasing,
 selection, undo/history and serialization. The shared view preserves focused
 controls across updates, isolates instances and uses the common theme tokens,
 forced colors and 44px coarse-pointer targets.
+
+## View ribbon
+
+`pptx-ui-ribbon-view.state` is a controlled `RibbonViewState`: editability,
+the Rulers/Grid/Guides/Snap to Grid/Snap to Shape/template flags, optional
+Selection Pane and Eyedropper active/availability, `zoomAvailable` and a
+translation callback. The light-DOM view renders the five View groups with the
+public customization ids; Handout Master, Notes Master, Zoom and Macros are
+disabled placeholders. Both guide buttons live inside one
+`view.show.addGuide` wrapper.
+
+The composed `view-request` event carries a `RibbonViewIntent`: `command`
+(normal, slideSorter, outline, readingView, slideMaster, selectionPane,
+eyedropper, zoomToFit), `option` (with the requested boolean) or `guide` (h or
+v). Edit-only commands (slideMaster, eyedropper, templateEditing) are rejected
+while read-only. Setting state emits no intent and checkbox rows are restored to
+the controlled value after each request. Native hosts retain persisted
+viewer options, view switching, the browser EyeDropper, template editing and
+history. Focus is preserved across updates and instances are isolated.

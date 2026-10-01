@@ -7,6 +7,7 @@ import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
 import { definePptxRibbonSection } from './ribbon-section';
 import { definePptxRibbonToggle } from './ribbon-toggle';
+import { definePptxRibbonView } from './ribbon-view';
 import { definePptxSearchField } from './search-field';
 import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
@@ -17,6 +18,7 @@ export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-ed
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
 export type { PptxUiRibbonDrawElement, RibbonDrawRequestEvent } from './ribbon-draw';
+export type { PptxUiRibbonViewElement, RibbonViewRequestEvent } from './ribbon-view';
 export type { PptxUiRibbonSectionElement } from './ribbon-section';
 export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
 export type { GalleryTranslate } from './ribbon-gallery-view';
@@ -39,6 +41,7 @@ const controls = [
 	['pptx-ui-slide-show-options', definePptxSlideShowOptions],
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-draw', definePptxRibbonDraw],
+	['pptx-ui-ribbon-view', definePptxRibbonView],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
 	['pptx-ui-ribbon-section', definePptxRibbonSection],
 	['pptx-ui-ribbon-gallery', definePptxRibbonGallery],

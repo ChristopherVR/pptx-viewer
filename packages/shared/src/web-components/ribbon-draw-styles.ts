@@ -1,3 +1,5 @@
+import { attachScopedRibbonStyles } from './ribbon-scoped-styles';
+
 const RIBBON_DRAW_STYLES = `
 :host { display:inline-flex; align-items:center; color:var(--pptx-foreground,#f8fafc); font:inherit; }
 .tools,.settings,label { display:inline-flex; align-items:center; gap:6px; }
@@ -37,26 +39,6 @@ select { height:28px; padding:2px 4px; }
 }
 `;
 
-/** Light DOM keeps customization selectors effective; scope the common view CSS. */
 export function attachRibbonDrawStyles(doc: Document): void {
-	if (doc.getElementById('pptx-ui-draw-styles')) {
-		return;
-	}
-	const style = doc.createElement('style');
-	style.id = 'pptx-ui-draw-styles';
-	style.textContent = RIBBON_DRAW_STYLES.replace(/([^{}]+)\{/gu, (rule, selectors: string) => {
-		if (selectors.trim().startsWith('@')) {
-			return rule;
-		}
-		return `${selectors
-			.split(',')
-			.map((selector) => {
-				const trimmed = selector.trim();
-				return trimmed.startsWith(':host')
-					? trimmed.replace(':host', 'pptx-ui-ribbon-draw')
-					: `pptx-ui-ribbon-draw ${trimmed}`;
-			})
-			.join(',')} {`;
-	});
-	doc.head.append(style);
+	attachScopedRibbonStyles(doc, 'pptx-ui-draw-styles', 'pptx-ui-ribbon-draw', RIBBON_DRAW_STYLES);
 }
