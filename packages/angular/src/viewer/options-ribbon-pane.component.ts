@@ -107,11 +107,6 @@ export function isRibbonTabTicked(options: ViewerOptions, tabId: ToolbarTabId): 
 				opacity: 0.6;
 				cursor: not-allowed;
 			}
-			.pptx-ng-options-ribbon-tab input {
-				width: 15px;
-				height: 15px;
-				accent-color: var(--pptx-primary);
-			}
 			.pptx-ng-options-btn {
 				padding: 5px 12px;
 				border: 1px solid var(--pptx-border);

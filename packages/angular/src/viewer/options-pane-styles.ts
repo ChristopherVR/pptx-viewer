@@ -52,10 +52,7 @@ export const OPTIONS_PANE_STYLES = `
 		cursor: help;
 	}
 	.pptx-ng-options-check {
-		width: 15px;
-		height: 15px;
 		flex-shrink: 0;
-		accent-color: var(--pptx-primary);
 	}
 	.pptx-ng-options-select,
 	.pptx-ng-options-text,
