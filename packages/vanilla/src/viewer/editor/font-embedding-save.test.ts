@@ -35,7 +35,7 @@ const FONT_PART = `fonts/{${FONT_GUID}}.fntdata`;
  * arbitrary bytes would never reach `PptxData.embeddedFonts` at all.
  *
  * The GUID-to-key conversion reverses the 16 bytes (see
- * `core/src/core/utils/font-deobfuscation.ts`'s `guidToKey`), matching real
+ * `ooxml-core/src/pptx/core/utils/font-deobfuscation.ts`'s `guidToKey`), matching real
  * PowerPoint-embedded fonts and docx4j's reference implementation; without
  * the reversal this fixture obfuscates against a key core will not
  * de-obfuscate back to a valid sfnt header.

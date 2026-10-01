@@ -58,6 +58,8 @@ Sibling directories cover `export/`, `i18n/`, `loader/`, `theme/`, and the opt-i
 
 The core package is entirely framework-agnostic. It runs in any JavaScript environment: browser, Node.js, Web Worker, or serverless function. Its public entry point is `PptxHandler`.
 
+> **Where the code lives.** The engine is the `pptx` area of the shared, private `@christophervr/ooxml-core` repository (`src/pptx/`, subpaths `/pptx`, `/pptx/converter`, `/pptx/cli`, `/pptx/signature-node`); this repository only keeps the UI. `pptx-viewer-core` is a thin package that re-exports those subpaths with an unchanged public API, so every path below that starts with `ooxml-core/src/pptx/` refers to that repository. The engine still uses its own `fast-xml-parser` object model and is compiled with relaxed TypeScript flags; unifying its XML model with the shared `xml` area and tightening the flags are the next steps of the migration. Colour primitives, preset-shape geometry and EMU constants are shared with the other Office areas (`color`, `geometry`, `units`).
+
 ### The facade and the mixin-composed runtime
 
 The engine is built as three layers of decreasing surface area:
@@ -68,9 +70,9 @@ PptxHandler                    static factories (create / createBlank)
        └─ IPptxHandlerRuntime  the actual engine, assembled from ~98 mixin modules
 ```
 
-- **`PptxHandler`** (`packages/core/src/core/PptxHandler.ts`) adds the static `create()` / `createBlank()` builder entry points.
+- **`PptxHandler`** (`ooxml-core/src/pptx/core/PptxHandler.ts`) adds the static `create()` / `createBlank()` builder entry points.
 - **`PptxHandlerCore`** delegates all heavy parsing, serialization, and XML manipulation to an injected `IPptxHandlerRuntime`. The runtime is replaceable via constructor dependencies (`runtime` or `runtimeFactory`), which is how tests and alternate hosts swap implementations.
-- **`PptxHandlerRuntime`** is not one class in one file. It is composed from roughly **98 focused modules** in `packages/core/src/core/core/runtime/`, each named `PptxHandlerRuntime<Concern>.ts` and each handling exactly one concern: `PptxHandlerRuntimeChartParsing.ts`, `PptxHandlerRuntimeThemeLoading.ts`, `PptxHandlerRuntimeSaveElementWriter.ts`, `PptxHandlerRuntimeSmartArtParsing.ts`, and so on.
+- **`PptxHandlerRuntime`** is not one class in one file. It is composed from roughly **98 focused modules** in `ooxml-core/src/pptx/core/core/runtime/`, each named `PptxHandlerRuntime<Concern>.ts` and each handling exactly one concern: `PptxHandlerRuntimeChartParsing.ts`, `PptxHandlerRuntimeThemeLoading.ts`, `PptxHandlerRuntimeSaveElementWriter.ts`, `PptxHandlerRuntimeSmartArtParsing.ts`, and so on.
 
 Each module declares a class that extends the class exported by the previous module, forming a linear inheritance chain that layers capability on capability:
 
@@ -165,7 +167,7 @@ The chain is implemented by dedicated runtime mixins: `PptxHandlerRuntimeThemeLo
 
 ### Geometry engine
 
-`packages/core/src/core/geometry/` (42 modules) turns DrawingML geometry into renderable paths:
+`ooxml-core/src/pptx/core/geometry/` (plus the shared `ooxml-core/src/geometry/` preset tables) turns DrawingML geometry into renderable paths:
 
 - **Preset shapes**: definitions for the ECMA-376 preset shape catalogue, grouped by family (`preset-shape-definitions-arrows.ts`, `-flowchart.ts`, `-action-buttons.ts`, `-callouts`, ...), each expressed with the spec's guide formulas.
 - **Guide formula evaluation** (`guide-formula-eval.ts` and friends): implements the ECMA-376 formula language (`*/`, `+-`, `pin`, `at2`, `cos`, ...) so shape geometry responds correctly to adjustment values, the yellow diamond handles you can drag in PowerPoint.
@@ -175,7 +177,7 @@ The chain is implemented by dedicated runtime mixins: `PptxHandlerRuntimeThemeLo
 
 ### Converter
 
-`packages/core/src/converter/` implements PPTX to Markdown conversion with a registry pattern: each element type has a processor (`shape-element-processor`, `table-element-processor`, `ole-element-processor`, ...) registered against its `type` discriminant, and `PptxMarkdownConverter` dispatches per element. The same directory houses the SVG exporter and the OMML to LaTeX converter used for equations.
+`ooxml-core/src/pptx/converter/` implements PPTX to Markdown conversion with a registry pattern: each element type has a processor (`shape-element-processor`, `table-element-processor`, `ole-element-processor`, ...) registered against its `type` discriminant, and `PptxMarkdownConverter` dispatches per element. The same directory houses the SVG exporter and the OMML to LaTeX converter used for equations.
 
 ## Key design decisions
 

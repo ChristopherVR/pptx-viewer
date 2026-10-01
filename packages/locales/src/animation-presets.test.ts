@@ -21,7 +21,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { translationsDe, translationsEs, translationsFr, translationsZhCN } from '.';
-import { ALL_ANIMATION_PRESETS } from '../../core/src/core/utils/animation-preset-catalog';
+import { ALL_ANIMATION_PRESETS } from '../../core/src';
 import { translationsEn } from '../../shared/src/i18n';
 import {
 	ANIMATION_PRESET_VALUES,

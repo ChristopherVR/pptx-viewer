@@ -1,7 +1,7 @@
 /**
  * Work out which CI legs a pull request actually needs.
  *
- * The full matrix is 12 unit-test legs plus 5 Playwright legs, and e2e is the
+ * The full matrix is 11 unit-test legs plus 5 Playwright legs, and e2e is the
  * long pole (a dev server plus a browser per framework). Running all of it for
  * a one-line change to a single binding wastes most of a run, so a PR is scoped
  * to the packages its changed paths can reach.
@@ -28,7 +28,6 @@ import { readFileSync, writeFileSync } from 'node:fs';
 /** Unit-test legs, keyed as in ci.yml's test matrix. */
 export const TEST_LEGS = {
 	core: ['core'],
-	'core-crypto': ['core'],
 	shared: ['shared'],
 	locales: ['locales'],
 	react: ['react'],

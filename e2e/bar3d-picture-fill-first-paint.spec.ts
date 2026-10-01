@@ -8,7 +8,7 @@
  * fallback point/series colour before repainting once the decode resolved -
  * a first-render flash, and permanently wrong in a DOM-less render path.
  *
- * `packages/core/src/core/utils/image-first-pixel*.ts` now decodes PNG/GIF/
+ * `ooxml-core/src/pptx/core/utils/image-first-pixel*.ts` now decodes PNG/GIF/
  * BMP/baseline-JPEG synchronously, and
  * `chart-bar3d-face-picture-sample.ts`'s `resolveBarFacePicturePixelColor`
  * tries that FIRST. This spec's fixture

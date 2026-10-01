@@ -68,9 +68,9 @@ PptxHandler                    static factories (create / createBlank)
        └─ IPptxHandlerRuntime  the actual engine, assembled from ~98 mixin modules
 ```
 
-- **`PptxHandler`**（`packages/core/src/core/PptxHandler.ts`）添加静态的 `create()` 和 `createBlank()` 构建器入口。
+- **`PptxHandler`**（`ooxml-core/src/pptx/core/PptxHandler.ts`）添加静态的 `create()` 和 `createBlank()` 构建器入口。
 - **`PptxHandlerCore`** 将解析、序列化和 XML 操作委托给注入的 `IPptxHandlerRuntime`。可以通过构造函数依赖 `runtime` 或 `runtimeFactory` 替换运行时，供测试和其他宿主环境切换实现。
-- **`PptxHandlerRuntime`** 并非集中在一个文件中的单个类，而是由 `packages/core/src/core/core/runtime/` 下约 **98 个职责单一的模块**组合而成。每个模块以 `PptxHandlerRuntime<Concern>.ts` 命名，例如 `PptxHandlerRuntimeChartParsing.ts`、`PptxHandlerRuntimeThemeLoading.ts`、`PptxHandlerRuntimeSaveElementWriter.ts` 和 `PptxHandlerRuntimeSmartArtParsing.ts`。
+- **`PptxHandlerRuntime`** 并非集中在一个文件中的单个类，而是由 `ooxml-core/src/pptx/core/core/runtime/` 下约 **98 个职责单一的模块**组合而成。每个模块以 `PptxHandlerRuntime<Concern>.ts` 命名，例如 `PptxHandlerRuntimeChartParsing.ts`、`PptxHandlerRuntimeThemeLoading.ts`、`PptxHandlerRuntimeSaveElementWriter.ts` 和 `PptxHandlerRuntimeSmartArtParsing.ts`。
 
 每个模块声明一个类，继承前一个模块导出的类，形成逐层叠加能力的线性继承链：
 
@@ -165,7 +165,7 @@ Element  ->  Placeholder  ->  Layout  ->  Master  ->  Theme
 
 ### 几何引擎 {#geometry-engine}
 
-`packages/core/src/core/geometry/` 中的 42 个模块将 DrawingML 几何转换为可渲染路径：
+`ooxml-core/src/pptx/core/geometry/` （以及共享的 `ooxml-core/src/geometry/` 预设形状表）将 DrawingML 几何转换为可渲染路径：
 
 - **预设形状**：按类别组织 ECMA-376 预设形状，例如 `preset-shape-definitions-arrows.ts`、`-flowchart.ts`、`-action-buttons.ts` 和 `-callouts`，并使用规范中的辅助公式描述。
 - **辅助公式计算**（`guide-formula-eval.ts` 等）：实现 ECMA-376 公式语言（`*/`、`+-`、`pin`、`at2`、`cos` 等），使形状几何能够正确响应调整值，也就是 PowerPoint 中可拖动的黄色菱形控点。
@@ -175,7 +175,7 @@ Element  ->  Placeholder  ->  Layout  ->  Master  ->  Theme
 
 ### 转换器 {#converter}
 
-`packages/core/src/converter/` 通过注册表模式实现 PPTX 到 Markdown 的转换。每种元素类型的处理器（例如 `shape-element-processor`、`table-element-processor`、`ole-element-processor`）按 `type` 注册，再由 `PptxMarkdownConverter` 逐元素分派。同一目录还包含 SVG 导出器，以及公式使用的 OMML 到 LaTeX 转换器。
+`ooxml-core/src/pptx/converter/` 通过注册表模式实现 PPTX 到 Markdown 的转换。每种元素类型的处理器（例如 `shape-element-processor`、`table-element-processor`、`ole-element-processor`）按 `type` 注册，再由 `PptxMarkdownConverter` 逐元素分派。同一目录还包含 SVG 导出器，以及公式使用的 OMML 到 LaTeX 转换器。
 
 ## 关键设计选择 {#key-design-decisions}
 

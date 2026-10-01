@@ -38,7 +38,7 @@ export interface CompatibilityWarningToast {
 /**
  * Every `PptxCompatibilityWarning.code` core's compatibility reporter and
  * save-path modules currently emit (grepped across
- * `packages/core/src/core/services/PptxCompatibilityService.ts`,
+ * `ooxml-core/src/pptx/core/services/PptxCompatibilityService.ts`,
  * `compatibility-alternate-content.ts`, and every `reportWarning(...)` call
  * site), mapped to its i18n key. A code not in this table falls back to
  * {@link GENERIC_MESSAGE_KEY} with the raw code as a `{{code}}` param, so a

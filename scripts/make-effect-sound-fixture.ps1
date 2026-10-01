@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Regenerate packages/core/src/__tests__/fixtures/effect-sound-builtin.pptx:
+  Regenerate ../ooxml-core/src/pptx/__tests__/fixtures/effect-sound-builtin.pptx:
   a real-PowerPoint-authored deck carrying a built-in EFFECT sound (Chime) and
   a built-in TRANSITION sound (Applause), with Microsoft's own WAV bytes
   replaced by a tiny synthesised placeholder before the fixture is committed.
@@ -46,7 +46,7 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $outDir = Join-Path $env:TEMP 'pptx-effect-sound-fixture'
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 $rawFile = Join-Path $outDir 'raw.pptx'
-$fixtureFile = Join-Path $repoRoot 'packages/core/src/__tests__/fixtures/effect-sound-builtin.pptx'
+$fixtureFile = Join-Path $repoRoot '../ooxml-core/src/pptx/__tests__/fixtures/effect-sound-builtin.pptx'
 
 $media = 'C:\Program Files\Microsoft Office\root\Office16\Media'
 $chime = Join-Path $media 'CHIMES.WAV'

@@ -13,7 +13,7 @@ describe('the open allow-list', () => {
 	/**
 	 * The whole point of this module: legacy binary `.ppt` really loads (core
 	 * converts the OLE compound file through the pptx pipeline, proved by
-	 * `packages/core/src/__tests__/integration/ppt-import.test.ts`), so every
+	 * `ooxml-core/src/pptx/__tests__/integration/ppt-import.test.ts`), so every
 	 * surface that filters by extension has to let it through. A picker or a
 	 * drop target that rejects it makes a working loader unreachable.
 	 */

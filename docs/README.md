@@ -19,18 +19,18 @@ then return to the root and run `bun run docs:dev`. Output goes to
 
 ## Where to update content
 
-| Content                           | Location                                                              | Check against                                                             |
-| --------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Installation and package overview | Root and package `README.md` files                                    | Package manifests, exports, peer dependencies, build configuration        |
-| Developer concepts                | `guide/`                                                              | Core types, shared implementation, demo configuration                     |
-| Headless API                      | `core/`                                                               | `packages/core/src/index.ts`, public classes, builder and converter types |
-| Binding API                       | `react/`, `vue/`, `angular/`, `svelte/`, `vanilla/`                   | Each binding's exported props, handles, callbacks, and defaults           |
-| End-user workflows                | `user/`                                                               | Shared commands and the five bindings' actual UI wiring                   |
-| Translations                      | `fr/`, `es/`, `de/`, `zh/`                                            | Corresponding English page and current implementation                     |
-| Homepage text and examples        | `.vitepress/theme/landing/copy/` and `code/samples.ts`                | The same public APIs as the getting-started guides                        |
-| Navigation                        | `.vitepress/config.ts`                                                | Existing pages and section names                                          |
-| OpenXML inventory                 | `architecture/openxml-conformance.md`                                 | Schema data, parsing/saving code, and conformance tests                   |
-| Animation research                | `../packages/shared/src/render/animation-ppt-formula-ground-truth.md` | Formula evaluator, playback integration, and regression tests             |
+| Content                           | Location                                                              | Check against                                                               |
+| --------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Installation and package overview | Root and package `README.md` files                                    | Package manifests, exports, peer dependencies, build configuration          |
+| Developer concepts                | `guide/`                                                              | Core types, shared implementation, demo configuration                       |
+| Headless API                      | `core/`                                                               | `ooxml-core/src/pptx/index.ts`, public classes, builder and converter types |
+| Binding API                       | `react/`, `vue/`, `angular/`, `svelte/`, `vanilla/`                   | Each binding's exported props, handles, callbacks, and defaults             |
+| End-user workflows                | `user/`                                                               | Shared commands and the five bindings' actual UI wiring                     |
+| Translations                      | `fr/`, `es/`, `de/`, `zh/`                                            | Corresponding English page and current implementation                       |
+| Homepage text and examples        | `.vitepress/theme/landing/copy/` and `code/samples.ts`                | The same public APIs as the getting-started guides                          |
+| Navigation                        | `.vitepress/config.ts`                                                | Existing pages and section names                                            |
+| OpenXML inventory                 | `architecture/openxml-conformance.md`                                 | Schema data, parsing/saving code, and conformance tests                     |
+| Animation research                | `../packages/shared/src/render/animation-ppt-formula-ground-truth.md` | Formula evaluator, playback integration, and regression tests               |
 
 French, Spanish, and German guides cover a subset of the English site.
 Simplified Chinese (`zh/`) covers the landing page, developer and user guides,

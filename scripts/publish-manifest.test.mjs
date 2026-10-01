@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
 	ALL_DEP_FIELDS,
+	assertNoFileRanges,
 	isWorkspaceRange,
 	readWorkspacePackages,
 	resolveWorkspaceRange,
@@ -115,6 +116,16 @@ test('a workspace package without a version is rejected', () => {
 				new Map([['no-version', { private: false }]]),
 			),
 		/has no version/u,
+	);
+});
+
+test('a runtime file: link to an unpublished sibling is rejected at publish time', () => {
+	assert.throws(
+		() => assertNoFileRanges({ name: 'x', dependencies: { y: 'file:../../../y' } }),
+		/development-only link/u,
+	);
+	assert.doesNotThrow(() =>
+		assertNoFileRanges({ name: 'x', devDependencies: { y: 'file:../../../y' } }),
 	);
 });
 

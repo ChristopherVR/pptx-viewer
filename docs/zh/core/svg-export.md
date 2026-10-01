@@ -13,7 +13,7 @@ description: 使用无需浏览器 DOM 的 SvgExporter 将幻灯片导出为独�
 
 ## API {#api}
 
-`SvgExporter` 包含两个静态方法，对应 `packages/core/src/converter/SvgExporter.ts`：
+`SvgExporter` 包含两个静态方法，对应 `ooxml-core/src/pptx/converter/SvgExporter.ts`：
 
 ```ts
 class SvgExporter {

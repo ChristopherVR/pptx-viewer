@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Generate packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-assistants.pptx
+  Generate ../ooxml-core/src/pptx/__tests__/fixtures/corpus/smartart-orgchart-assistants.pptx
   via PowerPoint COM: three "Organization Chart" diagrams whose manager has
   1, 3 and 4 assistants above its three reports.
 
@@ -11,7 +11,7 @@
   nudge forces PowerPoint to recompute the cached drawing before saving.
 #>
 param(
-  [string]$OutPath = "$PSScriptRoot\..\packages\core\src\__tests__\fixtures\corpus\smartart-orgchart-assistants.pptx"
+  [string]$OutPath = "$PSScriptRoot\..\..\ooxml-core\src\pptx\__tests__\fixtures\corpus\smartart-orgchart-assistants.pptx"
 )
 $ErrorActionPreference = 'Stop'
 $app = New-Object -ComObject PowerPoint.Application

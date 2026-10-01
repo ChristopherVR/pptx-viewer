@@ -22,7 +22,7 @@
  * (generate-chart-stacked-line-markers-fixture.ts) reproduces the construct
  * with synthetic data (the source deck is personal content unrelated to this
  * repo). All three were root-caused and fixed in `packages/shared/src/render`
- * and `packages/core/src/core/utils`, consumed identically by every binding,
+ * and `ooxml-core/src/pptx/core/utils`, consumed identically by every binding,
  * so this spec runs unmodified across all five framework demos.
  */
 import { resolve } from 'node:path';

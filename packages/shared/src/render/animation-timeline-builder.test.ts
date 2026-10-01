@@ -136,7 +136,7 @@ describe('buildTimeline', () => {
 	// -------------------------------------------------------------------
 	// ppt_x/ppt_y/ppt_w/ppt_h formula ground truth (real PowerPoint COM
 	// output, see pptx-viewer-shared's animation-ppt-formula-ground-truth.md
-	// and packages/core/src/__tests__/fixtures/animation-ppt-formula-ground-truth.pptx)
+	// and ooxml-core/src/pptx/__tests__/fixtures/animation-ppt-formula-ground-truth.pptx)
 	// -------------------------------------------------------------------
 
 	it('grow and turn: falls back to the preset when ppt_x mixes with ppt_w (real geometry needed)', () => {

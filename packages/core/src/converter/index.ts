@@ -1,12 +1,2 @@
-export { PptxMarkdownConverter } from './PptxMarkdownConverter';
-export type { PptxConverterOptions } from './PptxMarkdownConverter';
-export { SlideProcessor } from './SlideProcessor';
-export type { SlideProcessorOptions } from './SlideProcessor';
-export { SlideMetadataRenderer } from './SlideMetadataRenderer';
-export { DocumentConverter } from './base';
-export { normalizePath, getDirectory, deriveOutputPath } from './base';
-export { MediaContext, dataUrlToMediaBytes, generateMediaFilename } from './media-context';
-export { SvgExporter } from './SvgExporter';
-export type { SvgExportOptions } from './SvgExporter';
-export * from './json';
-export type { FileSystemAdapter, ConversionOptions, ConversionResult } from './types';
+// Thin entry point: the implementation lives in the pptx area of @christophervr/ooxml-core.
+export * from '@christophervr/ooxml-core/pptx/converter';

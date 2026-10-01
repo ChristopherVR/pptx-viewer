@@ -111,6 +111,24 @@ export function assertNoWorkspaceRanges(manifest, label = manifest.name ?? 'mani
 }
 
 /**
+ * Throw if a runtime dependency is a development-only `file:` link, as `pptx-viewer-core` has to
+ * the unpublished sibling `@christophervr/ooxml-core`. Publish that package and replace the
+ * range with a registry range first. Applied when writing the manifest that actually ships.
+ */
+export function assertNoFileRanges(manifest, label = manifest.name ?? 'manifest') {
+	for (const field of RUNTIME_DEP_FIELDS) {
+		for (const [dep, range] of Object.entries(manifest[field] ?? {})) {
+			if (typeof range === 'string' && range.startsWith('file:')) {
+				throw new Error(
+					`[publish-manifest] ${label}: ${field}["${dep}"] is "${range}", a development-only link to a ` +
+						'sibling checkout; publish the dependency and replace the range before publishing',
+				);
+			}
+		}
+	}
+}
+
+/**
  * Produce the publishable form of `manifest`. Pure: the input is not mutated.
  *
  * @param {object} manifest        the package.json as read from disk
@@ -174,6 +192,7 @@ export function toPublishManifest(manifest, workspacePackages, overrides = {}) {
 export function writePublishManifest(manifestPath, overrides = {}, packagesDir = undefined) {
 	const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 	const resolved = toPublishManifest(manifest, readWorkspacePackages(packagesDir), overrides);
+	assertNoFileRanges(resolved);
 	writeFileSync(manifestPath, `${JSON.stringify(resolved, null, '\t')}\n`);
 	return resolved;
 }

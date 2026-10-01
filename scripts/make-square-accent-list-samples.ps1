@@ -30,7 +30,7 @@
   own two rows, are replaced in place, not duplicated).
 #>
 param(
-  [string]$OutDir = "$PSScriptRoot\..\packages\core\src\__tests__\fixtures\smartart-gallery"
+  [string]$OutDir = "$PSScriptRoot\..\..\ooxml-core\src\pptx\__tests__\fixtures\smartart-gallery"
 )
 
 $ErrorActionPreference = 'Stop'
