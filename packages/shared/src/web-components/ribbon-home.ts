@@ -6,6 +6,8 @@ import { createRibbonHomeView } from './ribbon-home-view';
 export type RibbonHomeRequestEvent = CustomEvent<RibbonHomeIntent>;
 export interface PptxUiRibbonHomeElement extends HTMLElement {
 	state: RibbonHomeViewState;
+	/** Wrapper (or button) of a control id, where a host mounts or anchors its native popover. */
+	anchor(id: string): HTMLElement | undefined;
 }
 declare global {
 	interface HTMLElementTagNameMap {
@@ -13,6 +15,12 @@ declare global {
 		'pptx-ui-ribbon-home-font': PptxUiRibbonHomeElement;
 		'pptx-ui-ribbon-home-paragraph': PptxUiRibbonHomeElement;
 		'pptx-ui-ribbon-home-editing': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-slides': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-drawing': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-arrange-align': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-arrange-flip': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-arrange-order': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-arrange-edit': PptxUiRibbonHomeElement;
 	}
 }
 
@@ -34,6 +42,9 @@ export function definePptxRibbonHome(
 				);
 			}
 		});
+		anchor(id: string): HTMLElement | undefined {
+			return this.view.anchor(id);
+		}
 		get state() {
 			return this.model;
 		}
@@ -63,3 +74,15 @@ export const definePptxRibbonHomeParagraph = (registry: CustomElementRegistry) =
 	definePptxRibbonHome(registry, 'paragraph');
 export const definePptxRibbonHomeEditing = (registry: CustomElementRegistry) =>
 	definePptxRibbonHome(registry, 'editing');
+export const definePptxRibbonHomeSlides = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'slides');
+export const definePptxRibbonHomeDrawing = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'drawing');
+export const definePptxRibbonHomeArrangeAlign = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'arrange-align');
+export const definePptxRibbonHomeArrangeFlip = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'arrange-flip');
+export const definePptxRibbonHomeArrangeOrder = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'arrange-order');
+export const definePptxRibbonHomeArrangeEdit = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'arrange-edit');

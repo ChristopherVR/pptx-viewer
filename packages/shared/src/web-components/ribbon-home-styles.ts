@@ -5,6 +5,12 @@ export const RIBBON_HOME_TAGS = [
 	'pptx-ui-ribbon-home-font',
 	'pptx-ui-ribbon-home-paragraph',
 	'pptx-ui-ribbon-home-editing',
+	'pptx-ui-ribbon-home-slides',
+	'pptx-ui-ribbon-home-drawing',
+	'pptx-ui-ribbon-home-arrange-align',
+	'pptx-ui-ribbon-home-arrange-flip',
+	'pptx-ui-ribbon-home-arrange-order',
+	'pptx-ui-ribbon-home-arrange-edit',
 ] as const;
 
 const RIBBON_HOME_STYLES = `
@@ -12,6 +18,17 @@ const RIBBON_HOME_STYLES = `
 .home { display:contents; }
 .group { display:flex; flex-direction:column; align-items:center; gap:2px; }
 .row { display:flex; align-items:center; gap:4px; }
+.wrap { display:inline-flex; align-items:center; gap:4px; }
+.free { display:inline-flex; align-items:center; gap:4px; }
+.slot { position:relative; display:inline-flex; align-items:center; }
+.slot[hidden] { display:none !important; }
+.free button, .slot > button:only-child { border-radius:4px; background:var(--pptx-muted,#2a2a3d); gap:6px; white-space:nowrap; }
+.free button[data-tone=danger] { background:color-mix(in srgb,#b91c1c 80%,transparent); }
+.free button[data-tone=danger]:hover:not(:disabled) { background:#dc2626; }
+.slot > button[data-pptx-chrome=split-main] { border-radius:4px 0 0 4px; background:var(--pptx-muted,#2a2a3d); gap:6px; white-space:nowrap; }
+.slot > button[data-pptx-chrome=split-caret] { min-width:20px; padding:0 4px; border-radius:0 4px 4px 0; border-left:1px solid color-mix(in srgb,var(--pptx-border,#475569) 40%,transparent); background:var(--pptx-muted,#2a2a3d); align-self:stretch; height:auto; }
+.slot > button[data-pptx-chrome=split-caret] svg { width:12px; height:12px; }
+.text { white-space:nowrap; }
 .caption { color:var(--pptx-muted-foreground,#94a3b8); font-size:9px; line-height:9px; text-align:center; }
 .cluster { display:inline-flex; align-items:center; border-radius:3px; overflow:hidden; background:var(--pptx-muted,#2a2a3d); }
 button { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:28px; padding:6px 10px; border:0; border-radius:0; background:transparent; color:var(--pptx-foreground,#f8fafc); font:inherit; font-size:12px; cursor:pointer; }

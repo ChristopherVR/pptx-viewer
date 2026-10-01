@@ -1,125 +1,6 @@
-import type { RibbonControlId, RibbonGroupId } from './customization/ribbon-control-ids';
+import type { RibbonHomeViewState } from './ribbon-home-spec';
 
-/** Home group families that share one framework-neutral view. */
-export type RibbonHomeFamily = 'clipboard' | 'font' | 'paragraph' | 'editing';
-
-export interface RibbonHomeControlSpec {
-	readonly id: RibbonControlId;
-	readonly labelKey: string;
-	readonly fallback: string;
-	/** Framework-neutral test hook preserved from the migrated markup. */
-	readonly testId?: string;
-}
-
-export interface RibbonHomeFamilySpec {
-	/** Present when the element renders the whole group (wrapper and caption). */
-	readonly group?: { id: RibbonGroupId; captionKey: string; fallback: string };
-	/** Each cluster is one joined strip of buttons. */
-	readonly clusters: readonly (readonly RibbonHomeControlSpec[])[];
-}
-
-export interface RibbonHomeControlState {
-	disabled?: boolean;
-	/** Omit for ordinary commands; a boolean reflects `aria-pressed`. */
-	pressed?: boolean;
-	hidden?: boolean;
-}
-
-export interface RibbonHomeViewState {
-	/** Missing entries are enabled, unpressed and visible. */
-	controls: Readonly<Partial<Record<RibbonControlId, RibbonHomeControlState>>>;
-	translate?: (key: string) => string;
-}
-
-export interface RibbonHomeIntent {
-	id: RibbonControlId;
-}
-
-const control = (
-	id: RibbonControlId,
-	labelKey: string,
-	fallback: string,
-	testId?: string,
-): RibbonHomeControlSpec => ({ id, labelKey, fallback, testId });
-
-export const RIBBON_HOME_FAMILIES: Readonly<Record<RibbonHomeFamily, RibbonHomeFamilySpec>> = {
-	clipboard: {
-		group: { id: 'home.clipboard', captionKey: 'pptx.ribbon.clipboard', fallback: 'Clipboard' },
-		clusters: [
-			[
-				control('home.clipboard.paste', 'pptx.arrange.paste', 'Paste'),
-				control('home.clipboard.cut', 'pptx.arrange.cut', 'Cut'),
-				control('home.clipboard.copy', 'pptx.arrange.copy', 'Copy'),
-				control(
-					'home.clipboard.formatPainter',
-					'pptx.arrange.formatPainter',
-					'Format Painter',
-					'format-painter-toggle',
-				),
-			],
-		],
-	},
-	font: {
-		clusters: [
-			[
-				control('home.font.bold', 'pptx.textPanel.bold', 'Bold'),
-				control('home.font.italic', 'pptx.textPanel.italic', 'Italic'),
-				control('home.font.underline', 'pptx.textPanel.underline', 'Underline'),
-				control('home.font.strikethrough', 'pptx.textPanel.strikethrough', 'Strikethrough'),
-			],
-			[control('home.font.shadow', 'pptx.textEffects.shadow', 'Text Shadow')],
-			[
-				control('home.font.increaseFontSize', 'pptx.text.increaseFontSize', 'Increase Font Size'),
-				control('home.font.decreaseFontSize', 'pptx.text.decreaseFontSize', 'Decrease Font Size'),
-				control('home.font.clearFormatting', 'pptx.text.clearFormatting', 'Clear Formatting'),
-			],
-		],
-	},
-	paragraph: {
-		clusters: [
-			[
-				control('home.paragraph.decreaseIndent', 'pptx.text.decreaseIndent', 'Decrease Indent'),
-				control('home.paragraph.increaseIndent', 'pptx.text.increaseIndent', 'Increase Indent'),
-			],
-			[
-				control('home.paragraph.alignLeft', 'pptx.ribbon.alignLeft', 'Align Left'),
-				control('home.paragraph.alignCenter', 'pptx.ribbon.alignCenter', 'Center'),
-				control('home.paragraph.alignRight', 'pptx.ribbon.alignRight', 'Align Right'),
-				control('home.paragraph.justify', 'pptx.ribbon.justify', 'Justify'),
-			],
-		],
-	},
-	editing: {
-		clusters: [
-			[
-				control('home.editing.find', 'pptx.editing.find', 'Find'),
-				control('home.editing.replace', 'pptx.ribbon.replace', 'Replace'),
-			],
-		],
-	},
-};
-
-export function homeFamilyControls(family: RibbonHomeFamily): readonly RibbonHomeControlSpec[] {
-	return RIBBON_HOME_FAMILIES[family].clusters.flat();
-}
-
-export function homeLabel(state: RibbonHomeViewState, key: string, fallback: string): string {
-	const value = state.translate?.(key);
-	return value && value !== key ? value : fallback;
-}
-
-/** Reject unknown ids and disabled or hidden controls, however the intent arrived. */
-export function canRequestHome(
-	family: RibbonHomeFamily,
-	state: RibbonHomeViewState,
-	intent: RibbonHomeIntent,
-): boolean {
-	if (!homeFamilyControls(family).some((spec) => spec.id === intent.id)) {
-		return false;
-	}
-	const current = state.controls[intent.id];
-	return !current?.disabled && !current?.hidden;
-}
+export * from './ribbon-home-spec';
 
 export interface ClipboardHomeInput {
 	editable: boolean;
@@ -235,4 +116,114 @@ export function editingHomeControls(
 ): RibbonHomeViewState['controls'] {
 	const state = { pressed: input.findOpen };
 	return { 'home.editing.find': { ...state }, 'home.editing.replace': { ...state } };
+}
+
+export interface SlidesHomeInput {
+	editable: boolean;
+	/** The deck offers at least one layout to choose from. */
+	hasLayouts: boolean;
+	hasSlides: boolean;
+	/** False hides Slide Templates for hosts that cannot insert a template. */
+	showTemplates: boolean;
+	/** New Slide inserts the first layout, so some hosts disable it without layouts. */
+	newSlideNeedsLayout: boolean;
+	/** Reset and Section need an existing slide in hosts that cannot add one to an empty deck. */
+	resetNeedsSlide: boolean;
+	/** Native popovers currently open, mirrored as `aria-expanded`. */
+	layoutOpen?: boolean;
+	newSlideOpen?: boolean;
+}
+
+/** Slides group gating; the host still opens the layout popovers and runs every edit. */
+export function slidesHomeControls(input: SlidesHomeInput): RibbonHomeViewState['controls'] {
+	const locked = !input.editable;
+	const noSlide = input.resetNeedsSlide && !input.hasSlides;
+	return {
+		'home.slides.newSlide': {
+			disabled: locked || (input.newSlideNeedsLayout && !input.hasLayouts),
+		},
+		'home.slides.newSlide#caret': {
+			disabled: locked,
+			hidden: !input.hasLayouts,
+			expanded: Boolean(input.newSlideOpen),
+		},
+		'home.slides.slideTemplates': { disabled: locked, hidden: !input.showTemplates },
+		'home.slides.layout': {
+			disabled: locked || !input.hasLayouts,
+			expanded: Boolean(input.layoutOpen),
+		},
+		'home.slides.reset': { disabled: locked || noSlide },
+		'home.slides.section': { disabled: locked || noSlide },
+	};
+}
+
+export interface DrawingHomeInput {
+	editable: boolean;
+	hasSelection: boolean;
+	/** Native popovers currently open, mirrored as `aria-expanded`. */
+	open?: Partial<Record<'shapes' | 'arrange' | 'fill' | 'outline', boolean>>;
+}
+
+/** Shapes inserts, so it needs only edit rights; the other triggers act on the selection. */
+export function drawingHomeControls(input: DrawingHomeInput): RibbonHomeViewState['controls'] {
+	const noTarget = !input.editable || !input.hasSelection;
+	const open = input.open ?? {};
+	return {
+		'home.drawing.shapes': { disabled: !input.editable, expanded: Boolean(open.shapes) },
+		'home.drawing.arrange': { disabled: noTarget, expanded: Boolean(open.arrange) },
+		'home.drawing.shapeFill': { disabled: noTarget, expanded: Boolean(open.fill) },
+		'home.drawing.shapeOutline': { disabled: noTarget, expanded: Boolean(open.outline) },
+	};
+}
+
+export interface ArrangeHomeInput {
+	editable: boolean;
+	hasSelection: boolean;
+	/** The selection holds enough elements to distribute (host-specific threshold). */
+	canDistribute: boolean;
+}
+
+/** Arrange, flip, order, duplicate and delete act on a selection the user may edit. */
+export function arrangeHomeControls(input: ArrangeHomeInput): RibbonHomeViewState['controls'] {
+	const disabled = !input.editable || !input.hasSelection;
+	const distribute = { disabled: !input.editable || !input.canDistribute };
+	const controls: Record<string, { disabled: boolean }> = {
+		'home.arrange.flipHorizontal': { disabled },
+		'home.arrange.flipVertical': { disabled },
+		'home.arrange.sendBackward': { disabled },
+		'home.arrange.bringForward': { disabled },
+		'home.arrange.sendToBack': { disabled },
+		'home.arrange.bringToFront': { disabled },
+		'home.arrange.duplicate': { disabled },
+		'home.arrange.delete': { disabled },
+		'home.arrange.align#distribute-horizontal': distribute,
+		'home.arrange.align#distribute-vertical': distribute,
+	};
+	for (const edge of ['left', 'centerH', 'right', 'top', 'middle', 'bottom']) {
+		controls[`home.arrange.align#${edge}`] = { disabled };
+	}
+	return controls;
+}
+
+/** Decode an Align strip intent: an alignment edge, or a distribute axis. */
+export function arrangeAlignAction(
+	part: string | undefined,
+):
+	| { kind: 'align'; edge: 'left' | 'centerH' | 'right' | 'top' | 'middle' | 'bottom' }
+	| { kind: 'distribute'; axis: 'horizontal' | 'vertical' }
+	| undefined {
+	if (part === 'distribute-horizontal') {
+		return { kind: 'distribute', axis: 'horizontal' };
+	}
+	if (part === 'distribute-vertical') {
+		return { kind: 'distribute', axis: 'vertical' };
+	}
+	return part === 'left' ||
+		part === 'centerH' ||
+		part === 'right' ||
+		part === 'top' ||
+		part === 'middle' ||
+		part === 'bottom'
+		? { kind: 'align', edge: part }
+		: undefined;
 }

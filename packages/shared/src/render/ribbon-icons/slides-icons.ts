@@ -1,6 +1,17 @@
 import type { RibbonIconArtwork } from './types';
 
 export const SLIDES_ICONS: Record<string, RibbonIconArtwork> = {
+	'home.slides.caret': {
+		attrs: {
+			stroke: 'currentColor',
+			fill: 'none',
+			'stroke-width': '2',
+			viewBox: '0 0 24 24',
+			'stroke-linecap': 'round',
+			'stroke-linejoin': 'round',
+		},
+		children: [{ tag: 'path', attrs: { d: 'm6 9 6 6 6-6' } }],
+	},
 	'home.slides.newSlide': {
 		attrs: {
 			stroke: 'currentColor',

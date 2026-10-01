@@ -5,6 +5,7 @@ import {
 	canRequestHome,
 	clipboardHomeControls,
 	editingHomeControls,
+	homeControlKey,
 	homeFamilyControls,
 	paragraphHomeAction,
 	paragraphHomeAlign,
@@ -14,7 +15,9 @@ import {
 describe('home family specs', () => {
 	it('lists every control id once with a label and icon-ready id', () => {
 		const ids = Object.keys(RIBBON_HOME_FAMILIES).flatMap((family) =>
-			homeFamilyControls(family as keyof typeof RIBBON_HOME_FAMILIES).map((spec) => spec.id),
+			homeFamilyControls(family as keyof typeof RIBBON_HOME_FAMILIES).map((spec) =>
+				homeControlKey(spec),
+			),
 		);
 		expect(new Set(ids).size).toBe(ids.length);
 		expect(ids).toContain('home.paragraph.justify');
