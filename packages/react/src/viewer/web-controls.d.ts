@@ -24,6 +24,7 @@ declare module 'react' {
 			'pptx-ui-slide-show-options': WebControlProps;
 			'pptx-ui-ribbon-command': WebControlProps;
 			'pptx-ui-ribbon-draw': WebControlProps;
+			'pptx-ui-ribbon-insert': WebControlProps;
 			'pptx-ui-ribbon-view': WebControlProps;
 			'pptx-ui-ribbon-group': WebControlProps;
 			'pptx-ui-ribbon-section': WebControlProps;

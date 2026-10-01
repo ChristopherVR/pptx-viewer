@@ -270,3 +270,34 @@ while read-only. Setting state emits no intent and checkbox rows are restored to
 the controlled value after each request. Native hosts retain persisted
 viewer options, view switching, the browser EyeDropper, template editing and
 history. Focus is preserved across updates and instances are isolated.
+
+## Insert ribbon
+
+`pptx-ui-ribbon-insert.state` is a controlled `RibbonInsertState`: editability,
+`hasSelection` (Link tracks the selection, not editability), the staged
+`shapeType` and `chartKind`, the armed and visible Freeform tools, availability
+flags (`chartAvailable`, `fieldAvailable`, `headerFooterAvailable`) and a
+translation callback. The light-DOM view renders the seven Insert groups
+(tables, images, illustrations, links, text, symbols, media) with the public
+customization ids, in PowerPoint's group order. The Shape and Chart pickers are
+a native select beside an insert button; Action and Field are click/keyboard
+menus (Arrow keys, Escape and outside press dismiss; Escape returns focus to the
+opener) that replace the former hover-only popups. Header & Footer is a compact
+command in the text group without a catalogue id, so it cannot be customized
+away by id (unchanged). `focusControl(id)` returns focus after a native dialog.
+
+The composed `insert-request` event carries a `RibbonInsertIntent`: `command`
+(textBox, table, image, media, smartArt, equation, link, headerFooter),
+`shapeType`/`shape` (stage / insert), `chartType`/`chart`, `freeform` (a tool or
+`null` to disarm), `actionButton` or `field` (slidenum, datetime, header,
+footer). Intents are validated against the shared catalogues and rejected while
+read-only (Link only needs a selection). Setting state emits no intent and
+select values are restored to the controlled value after each request.
+
+Native hosts retain every document mutation and its undo history, the file
+pickers and FileReader/image-probe plumbing, the SmartArt gallery, equation
+editor, hyperlink and Header & Footer dialogs, and the Date/Time format picker
+(React, Vue and Angular open it for the `datetime` field; Svelte and Vanilla
+insert the current date directly, as before). Freeform arming and the canvas
+drawing overlay stay native. Focus is preserved across updates and instances are
+isolated.

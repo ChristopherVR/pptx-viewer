@@ -838,54 +838,9 @@ describe('toolbar - Insert tab', () => {
 		...overrides,
 	});
 
-	it('renders Text, Shape, Image, Media, Table buttons', () => {
+	it('renders the shared Insert placeholder before browser hydration', () => {
 		const html = render(React.createElement(InsertSection, createInsertProps()));
-		expect(html).toContain('title="Add text box"');
-		expect(html).toContain('title="Add shape"');
-		expect(html).toContain('title="Insert image"');
-		expect(html).toContain('title="Insert audio or video"');
-		expect(html).toContain('title="Insert table"');
-	});
-
-	it('renders SmartArt and Equation buttons', () => {
-		const html = render(React.createElement(InsertSection, createInsertProps()));
-		expect(html).toContain('title="Insert SmartArt"');
-		expect(html).toContain('title="Insert Equation"');
-	});
-
-	it('renders Action button', () => {
-		const html = render(React.createElement(InsertSection, createInsertProps()));
-		expect(html).toContain('title="Insert action button"');
-		expect(html).toContain('>Action');
-	});
-
-	it('renders Field button when onInsertField is provided', () => {
-		const html = render(
-			React.createElement(InsertSection, createInsertProps({ onInsertField: vi.fn<() => void>() })),
-		);
-		expect(html).toContain('title="Insert Field"');
-	});
-
-	it('does not render Field button when onInsertField is undefined', () => {
-		const html = render(
-			React.createElement(InsertSection, createInsertProps({ onInsertField: undefined })),
-		);
-		expect(html).not.toContain('title="Insert Field"');
-	});
-
-	it('renders Header & Footer when a host callback is provided', () => {
-		const html = render(
-			React.createElement(
-				InsertSection,
-				createInsertProps({ onOpenHeaderFooter: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('Header &amp; Footer');
-	});
-
-	it('buttons are disabled when canEdit is false', () => {
-		const html = render(React.createElement(InsertSection, createInsertProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Add text box"/u);
+		expect(html).toContain('pptx-ui-ribbon-insert');
 	});
 });
 
@@ -1616,8 +1571,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'insert' })),
 		);
-		expect(html).toContain('SmartArt');
-		expect(html).toContain('Equation');
+		expect(html).toContain('pptx-ui-ribbon-insert');
 	});
 
 	it('renders DrawSection content when toolbarSection is draw', () => {

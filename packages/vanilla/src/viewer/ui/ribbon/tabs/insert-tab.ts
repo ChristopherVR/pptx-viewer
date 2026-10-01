@@ -1,17 +1,15 @@
-import type { FreeformToolKind } from 'pptx-viewer-shared';
+import { DEFAULT_INSERT_CHART_KIND, registerPptxWebControls } from 'pptx-viewer-shared';
+import type {
+	FreeformToolKind,
+	InsertChartKind,
+	RibbonInsertRequestEvent,
+	RibbonInsertState,
+	ShapePresetType,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
-import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
-import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonInsertHandlers } from '../ribbon-types';
-import { createActionButtonDropdown } from './insert/action-button-group';
-import { createChartControl } from './insert/chart-group';
-import { createFieldDropdown } from './insert/field-group';
-import { createFreeformToolButtons } from './insert/freeform-tool-buttons';
-import { createHyperlinkButton } from './insert/hyperlink-button';
-import { createShapeControl } from './insert/shape-group';
-import { createSmartArtControl } from './insert/smartart-group';
+import { createSmartArtDialog } from './insert/smartart-dialog';
 
 export interface InsertTab {
 	el: HTMLElement;
@@ -23,14 +21,13 @@ export interface InsertTab {
 }
 
 /**
- * The Insert ribbon tab: text box, shape, image, media, table, chart,
- * SmartArt, equation, action button, field, hyperlink and Header & Footer, in
- * React's order. Every insertion routes through `RibbonInsertHandlers` (backed
- * by `EditActions`, so it's undoable and selects the new element), except
- * Equation, which opens the modal equation editor dialog (`equation-panel.ts`;
- * LaTeX has no single-click default, unlike every other insert kind here),
- * Hyperlink, which opens the link editor for the current selection, and
- * Header & Footer, which opens the viewer's own dialog.
+ * The Insert ribbon tab: a thin adapter over the shared `pptx-ui-ribbon-insert`,
+ * which owns the groups, icons, labels, shape/chart pickers, Freeform tools and the
+ * Action / Field menus. Every insertion routes through `RibbonInsertHandlers`
+ * (backed by `EditActions`, so it's undoable and selects the new element), except
+ * Equation, which opens the modal equation editor dialog, Hyperlink, which opens the
+ * link editor for the current selection, Header & Footer, which opens the viewer's
+ * own dialog, and SmartArt, whose gallery dialog stays native to this binding.
  */
 export function createInsertTab(
 	doc: Document,
@@ -40,117 +37,100 @@ export function createInsertTab(
 	onOpenHeaderFooter: () => void,
 	onOpenHyperlink: () => void,
 ): InsertTab {
-	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
-	el.classList.add('pptxv-ribbon-insert-content');
-
-	const textBox = makeButton(doc, {
-		label: t('pptx.ribbon.textBox'),
-		icon: 'text-box',
-		onClick: () => handlers.insert('text'),
-	});
-	const shape = createShapeControl(doc, t, (shapeType) => handlers.insert('shape', shapeType));
-	const freeformTools = createFreeformToolButtons(
-		doc,
-		t,
-		handlers.armFreeformTool ? (handlers.visibleDrawingTools?.() ?? []) : [],
-		(tool) => handlers.armFreeformTool?.(tool),
-	);
-	const image = makeButton(doc, {
-		label: t('pptx.ribbon.image'),
-		icon: 'image',
-		onClick: () => void handlers.insertImage(),
-	});
-	const media = makeButton(doc, {
-		label: t('pptx.ribbon.media'),
-		icon: 'video',
-		onClick: () => void handlers.insertMedia(),
-	});
-	media.btn.title = t('pptx.ribbon.insertMedia');
-	const table = makeButton(doc, {
-		label: t('pptx.ribbon.table'),
-		icon: 'table',
-		onClick: () => handlers.insert('table'),
-	});
-	const chart = createChartControl(doc, t, (chartKind) => handlers.insertChart(chartKind));
-	const smartArt = createSmartArtControl(doc, t, (layout, defaultItems) =>
+	registerPptxWebControls();
+	// The pane keeps the ribbon's shared row layout (scrolling when narrow).
+	const el = doc.createElement('div');
+	el.className = 'pptxv-ribbon-tab-content';
+	const shared = doc.createElement('pptx-ui-ribbon-insert');
+	el.append(shared);
+	const smartArt = createSmartArtDialog(doc, t, (layout, defaultItems) =>
 		handlers.insertSmartArt(layout, defaultItems),
 	);
-	const equation = makeButton(doc, {
-		label: t('pptx.ribbon.equation'),
-		icon: 'equation',
-		onClick: onToggleEquationPanel,
+	let state: RibbonInsertState = {
+		editable: true,
+		hasSelection: false,
+		shapeType: 'rect',
+		chartKind: DEFAULT_INSERT_CHART_KIND,
+		activeFreeformTool: null,
+		freeformTools: handlers.armFreeformTool ? (handlers.visibleDrawingTools?.() ?? []) : [],
+		translate: t,
+	};
+	const sync = () => {
+		shared.state = state;
+	};
+	shared.addEventListener('insert-request', (event) => {
+		const intent = (event as RibbonInsertRequestEvent).detail;
+		switch (intent.kind) {
+			case 'command':
+				switch (intent.value) {
+					case 'textBox':
+						handlers.insert('text');
+						break;
+					case 'table':
+						handlers.insert('table');
+						break;
+					case 'image':
+						void handlers.insertImage();
+						break;
+					case 'media':
+						void handlers.insertMedia();
+						break;
+					case 'smartArt':
+						smartArt.open(el.closest<HTMLElement>('.pptxv') ?? doc.body, () =>
+							shared.focusControl('insert.illustrations.smartArt'),
+						);
+						break;
+					case 'equation':
+						onToggleEquationPanel();
+						break;
+					case 'link':
+						onOpenHyperlink();
+						break;
+					case 'headerFooter':
+						onOpenHeaderFooter();
+				}
+				break;
+			case 'shapeType':
+				state = { ...state, shapeType: intent.value };
+				sync();
+				break;
+			case 'shape':
+				handlers.insert('shape', intent.value as ShapePresetType);
+				break;
+			case 'chartType':
+				state = { ...state, chartKind: intent.value };
+				sync();
+				break;
+			case 'chart':
+				handlers.insertChart(intent.value as InsertChartKind);
+				break;
+			case 'freeform':
+				handlers.armFreeformTool?.(intent.value as FreeformToolKind | null);
+				break;
+			case 'actionButton':
+				handlers.insertActionButton(intent.value);
+				break;
+			case 'field':
+				handlers.insertField(intent.value);
+		}
 	});
-	equation.btn.title = t('pptx.insert.insertEquation');
-	const actionButtonDropdown = createActionButtonDropdown(doc, t, (shapeType) =>
-		handlers.insertActionButton(shapeType),
-	);
-	const fieldDropdown = createFieldDropdown(doc, t, (fieldType) => handlers.insertField(fieldType));
-	const hyperlink = createHyperlinkButton(doc, t, onOpenHyperlink);
-	const headerFooter = makeButton(doc, {
-		label: t('pptx.headerFooter.title'),
-		icon: 'field',
-		textLabel: t('pptx.headerFooter.title'),
-		onClick: onOpenHeaderFooter,
-	});
-
-	tagRibbonControl(textBox.btn, 'insert.text.textBox');
-	tagRibbonControl(shape.el, 'insert.illustrations.shapes');
-	tagRibbonControl(image.btn, 'insert.images.pictures');
-	tagRibbonControl(media.btn, 'insert.media.media');
-	tagRibbonControl(table.btn, 'insert.tables.table');
-	tagRibbonControl(chart.el, 'insert.illustrations.chart');
-	tagRibbonControl(smartArt.el, 'insert.illustrations.smartArt');
-	tagRibbonControl(equation.btn, 'insert.symbols.equation');
-	tagRibbonControl(actionButtonDropdown.el, 'insert.links.action');
-	tagRibbonControl(fieldDropdown.el, 'insert.text.field');
-	tagRibbonControl(hyperlink.btn, 'insert.links.link');
-	// React's order interleaves PowerPoint's groups (Text Box before Shapes,
-	// Field after Action), so a group can own more than one `display: contents`
-	// run; the shared stylesheet hides every element carrying the group id.
-	el.append(
-		wrapRibbonGroup(doc, 'insert.text', textBox.btn),
-		wrapRibbonGroup(doc, 'insert.illustrations', shape.el, ...freeformTools.buttons),
-		wrapRibbonGroup(doc, 'insert.images', image.btn),
-		wrapRibbonGroup(doc, 'insert.media', media.btn),
-		wrapRibbonGroup(doc, 'insert.tables', table.btn),
-		wrapRibbonGroup(doc, 'insert.illustrations', chart.el, smartArt.el),
-		wrapRibbonGroup(doc, 'insert.symbols', equation.btn),
-		wrapRibbonGroup(doc, 'insert.links', actionButtonDropdown.el),
-		wrapRibbonGroup(doc, 'insert.text', fieldDropdown.el),
-		wrapRibbonGroup(doc, 'insert.links', hyperlink.btn),
-		wrapRibbonGroup(doc, 'insert.text', headerFooter.btn),
-	);
-
-	const gated: Array<{ setDisabled(disabled: boolean): void }> = [
-		textBox,
-		shape,
-		freeformTools,
-		image,
-		media,
-		table,
-		chart,
-		smartArt,
-		equation,
-		actionButtonDropdown,
-		fieldDropdown,
-		headerFooter,
-	];
-
+	sync();
 	return {
 		el,
 		setEditable(editable) {
-			// Hyperlink is deliberately absent from `gated`: it tracks the
-			// selection, not editability, so an editable deck with nothing
-			// selected must still leave it unavailable.
-			for (const control of gated) {
-				control.setDisabled(!editable);
+			state = { ...state, editable };
+			if (!editable) {
+				smartArt.close();
 			}
+			sync();
 		},
 		setHasSelection(hasSelection) {
-			hyperlink.setDisabled(!hasSelection);
+			state = { ...state, hasSelection };
+			sync();
 		},
 		setFreeformTool(tool) {
-			freeformTools.setActive(tool);
+			state = { ...state, activeFreeformTool: tool };
+			sync();
 		},
 	};
 }

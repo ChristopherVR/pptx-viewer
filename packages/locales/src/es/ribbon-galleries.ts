@@ -43,4 +43,11 @@ export const translations: Record<string, string> = {
 	'pptx.gallery.shapeStyles.semitransparentFill': 'Relleno semitransparente - {{color}}',
 	'pptx.gallery.shapeStyles.solidFill': 'Relleno sólido - {{color}}',
 	'pptx.gallery.shapeStyles.gradientFill': 'Relleno degradado - {{color}}',
+	'pptx.insert.groupTables': 'Tablas',
+	'pptx.insert.groupImages': 'Imágenes',
+	'pptx.insert.groupIllustrations': 'Ilustraciones',
+	'pptx.insert.groupLinks': 'Vínculos',
+	'pptx.insert.groupText': 'Texto',
+	'pptx.insert.groupSymbols': 'Símbolos',
+	'pptx.insert.groupMedia': 'Multimedia',
 };

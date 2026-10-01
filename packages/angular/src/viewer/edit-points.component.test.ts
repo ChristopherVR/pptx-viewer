@@ -13,6 +13,7 @@ import { ElementRef, Injector, runInInjectionContext, signal } from '@angular/co
 import type { InputSignal, OutputEmitterRef, Provider, StaticProvider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, ShapePptxElement } from 'pptx-viewer-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -23,8 +24,9 @@ import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { EditorStateService } from './editor-state.service';
 import { FreeformToolOverlayComponent } from './freeform-tool-overlay.component';
 import { OutlineAuthoringService } from './outline-authoring.service';
-import { RibbonFreeformToolsComponent } from './ribbon-freeform-tools.component';
+import { RibbonInsertSectionComponent } from './ribbon-insert-section.component';
 import { ViewerCustomizationService } from './viewer-customization.service';
+import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerOptionsService } from './viewer-options.service';
 
@@ -199,19 +201,28 @@ describe('freeform drawing tools', () => {
 				useFactory: () => new OutlineAuthoringService(),
 				deps: [],
 			},
+			{ provide: EditorStateService, useValue: { hasSelection: () => false } },
+			{ provide: TranslateService, useValue: { instant: (key: string) => key } },
+			{ provide: ViewerDialogsService, useValue: {} },
 		]);
 		const outline = injector.get(OutlineAuthoringService);
 		outline.editPointsElementId.set('r1');
-		const buttons = runInInjectionContext(injector, () => new RibbonFreeformToolsComponent());
-		const internals = buttons as unknown as {
-			tools: () => FreeformToolKind[];
-			toggle: (tool: FreeformToolKind) => void;
+		const section = runInInjectionContext(injector, () => new RibbonInsertSectionComponent());
+		const internals = section as unknown as {
+			view: () => {
+				freeformTools: FreeformToolKind[];
+				activeFreeformTool: FreeformToolKind | null;
+			};
+			request: (event: Event) => void;
 		};
-		expect(internals.tools()).toStrictEqual(['freeformShape', 'curve']);
-		internals.toggle('curve');
+		const toggle = (value: FreeformToolKind | null) =>
+			internals.request(new CustomEvent('insert-request', { detail: { kind: 'freeform', value } }));
+		expect(internals.view().freeformTools).toStrictEqual(['freeformShape', 'curve']);
+		toggle('curve');
 		expect(outline.activeFreeformTool()).toBe('curve');
+		expect(internals.view().activeFreeformTool).toBe('curve');
 		expect(outline.editPointsElementId()).toBeNull();
-		internals.toggle('curve');
+		toggle(null);
 		expect(outline.activeFreeformTool()).toBeNull();
 	});
 

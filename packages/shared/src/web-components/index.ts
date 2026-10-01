@@ -5,6 +5,7 @@ import { definePptxRibbonCommand } from './ribbon-command';
 import { definePptxRibbonDraw } from './ribbon-draw';
 import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
+import { definePptxRibbonInsert } from './ribbon-insert';
 import { definePptxRibbonSection } from './ribbon-section';
 import { definePptxRibbonToggle } from './ribbon-toggle';
 import { definePptxRibbonView } from './ribbon-view';
@@ -18,6 +19,7 @@ export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-ed
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
 export type { PptxUiRibbonDrawElement, RibbonDrawRequestEvent } from './ribbon-draw';
+export type { PptxUiRibbonInsertElement, RibbonInsertRequestEvent } from './ribbon-insert';
 export type { PptxUiRibbonViewElement, RibbonViewRequestEvent } from './ribbon-view';
 export type { PptxUiRibbonSectionElement } from './ribbon-section';
 export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
@@ -41,6 +43,7 @@ const controls = [
 	['pptx-ui-slide-show-options', definePptxSlideShowOptions],
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-draw', definePptxRibbonDraw],
+	['pptx-ui-ribbon-insert', definePptxRibbonInsert],
 	['pptx-ui-ribbon-view', definePptxRibbonView],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
 	['pptx-ui-ribbon-section', definePptxRibbonSection],
