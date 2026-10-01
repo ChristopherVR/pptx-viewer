@@ -1,6 +1,11 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
 import type { RibbonGalleryPlacement, ShapePresetType } from 'pptx-viewer-shared';
-import { FIXED_TAB_GALLERIES, RIBBON_SHAPE_SWATCHES, SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+import {
+	FIXED_TAB_GALLERIES,
+	RIBBON_SHAPE_SWATCHES,
+	SHAPE_PRESET_DEFS,
+	drawingHomeControls,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -9,7 +14,8 @@ import { makeSwatchPicker } from '../../swatch-picker';
 import type { RibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGallery } from '../gallery/ribbon-gallery';
-import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
+import { tagRibbonGroup } from '../ribbon-tagging';
+import { createSharedHomeStrip } from './shared-strip';
 
 export interface DrawingGroupHandlers {
 	insertShape(shapeType: ShapePresetType): void;
@@ -75,10 +81,29 @@ export function createDrawingGroup(
 	label.textContent = t('pptx.ribbon.groupDrawing');
 	el.appendChild(label);
 
+	let last = { editable: false, hasSelection: false };
+	const open = { shapes: false, arrange: false, fill: false, outline: false };
+	const sync = () => strip.set(drawingHomeControls({ ...last, open }));
+	const external = (
+		id:
+			| 'home.drawing.shapes'
+			| 'home.drawing.arrange'
+			| 'home.drawing.shapeFill'
+			| 'home.drawing.shapeOutline',
+		key: keyof typeof open,
+	) => ({
+		anchor: () => strip.el.anchor(id),
+		onOpenChange: (next: boolean) => {
+			open[key] = next;
+			sync();
+		},
+	});
+
 	const shapes = makeDropdown<ShapePresetType>(doc, {
 		triggerLabel: t('pptx.drawing.shapes'),
 		triggerText: t('pptx.drawing.shapes'),
 		icon: 'shapes',
+		external: external('home.drawing.shapes', 'shapes'),
 		items: SHAPE_PRESET_DEFS.slice(0, TOP_SHAPE_COUNT).map((preset) => ({
 			label: t(preset.i18nKey),
 			value: preset.type,
@@ -91,6 +116,7 @@ export function createDrawingGroup(
 		triggerLabel: t('pptx.ribbon.arrange'),
 		triggerText: t('pptx.ribbon.arrange'),
 		icon: 'layers',
+		external: external('home.drawing.arrange', 'arrange'),
 		items: [
 			{ label: t('pptx.contextMenu.bringForward'), value: handlers.bringForward },
 			{ label: t('pptx.contextMenu.sendBackward'), value: handlers.sendBackward },
@@ -111,6 +137,7 @@ export function createDrawingGroup(
 		icon: 'square',
 		swatches: RIBBON_SHAPE_SWATCHES,
 		fallback: '#ffffff',
+		external: external('home.drawing.shapeFill', 'fill'),
 		onSelect: (hex) => handlers.setShapeFill(hex),
 		onSelectTheme: (commit) => handlers.setShapeFill(commit.hex, commit.ref),
 	});
@@ -119,6 +146,7 @@ export function createDrawingGroup(
 		icon: 'pen',
 		swatches: RIBBON_SHAPE_SWATCHES,
 		fallback: '#000000',
+		external: external('home.drawing.shapeOutline', 'outline'),
 		onSelect: (hex) => handlers.setShapeStroke(hex),
 		onSelectTheme: (commit) => handlers.setShapeStroke(commit.hex, commit.ref),
 	});
@@ -143,12 +171,21 @@ export function createDrawingGroup(
 		galleryHub,
 	);
 
-	tagRibbonControl(shapes.el, 'home.drawing.shapes');
-	tagRibbonControl(arrange.el, 'home.drawing.arrange');
-	tagRibbonControl(fill.el, 'home.drawing.shapeFill');
-	tagRibbonControl(outline.el, 'home.drawing.shapeOutline');
-	row.dataset.pptxChrome = 'drawing-controls';
-	row.append(shapes.el, arrange.el, fill.el, outline.el, quickStyles.el, effects.el);
+	const menus = {
+		'home.drawing.shapes': shapes,
+		'home.drawing.arrange': arrange,
+		'home.drawing.shapeFill': fill,
+		'home.drawing.shapeOutline': outline,
+	} as const;
+	const strip = createSharedHomeStrip(doc, t, 'drawing', ({ id }) => {
+		// Another menu closes itself on the pointerdown that precedes this click.
+		menus[id as keyof typeof menus]?.toggle();
+	});
+	for (const [id, menu] of Object.entries(menus)) {
+		strip.el.anchor(id)?.append(menu.el);
+	}
+	sync();
+	row.append(strip.el, quickStyles.el, effects.el);
 
 	return {
 		el,
@@ -162,11 +199,13 @@ export function createDrawingGroup(
 			strokeColor,
 			strokeColorRef,
 		}) {
-			shapes.setDisabled(!editable);
+			last = { editable, hasSelection };
 			const canMut = editable && hasSelection;
+			shapes.setDisabled(!editable);
 			arrange.setDisabled(!canMut);
 			fill.setDisabled(!canMut);
 			outline.setDisabled(!canMut);
+			sync();
 			fill.setRecentColors(recentColors ?? []);
 			outline.setRecentColors(recentColors ?? []);
 			fill.setThemeColorMap(themeColorMap);

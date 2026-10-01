@@ -41,6 +41,7 @@ export function createLayoutMenu(
 	doc: Document,
 	ariaLabel: string,
 	onPick: (layout: LayoutOption) => void,
+	onOpenChange?: (open: boolean) => void,
 ): LayoutMenu {
 	const el = createEl(doc, 'div', 'pptxv-primary-menu pptxv-layout-menu');
 	// Shared cross-binding hook the framework-neutral e2e specs select on.
@@ -53,6 +54,7 @@ export function createLayoutMenu(
 	const setOpen = (next: boolean): void => {
 		open = next;
 		el.hidden = !next;
+		onOpenChange?.(next);
 	};
 
 	doc.addEventListener('pointerdown', (event) => {

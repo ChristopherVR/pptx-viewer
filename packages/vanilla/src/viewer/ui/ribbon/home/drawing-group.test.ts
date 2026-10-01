@@ -45,11 +45,10 @@ function control(group: ReturnType<typeof createDrawingGroup>, label: string): H
 	return match;
 }
 
-/** The Fill/Outline picker's own popup menu, scoped so a query cannot cross
- * into the other picker's (also-present, just hidden) DOM. */
+/** The Fill/Outline picker's own popup menu, mounted inside its shared trigger's wrapper. */
 function menuFor(group: ReturnType<typeof createDrawingGroup>, label: string): HTMLElement {
 	return control(group, label)
-		.closest('.pptxv-swatch-picker')!
+		.closest('[data-ribbon-control]')!
 		.querySelector('.pptxv-swatch-menu')!;
 }
 
@@ -93,13 +92,29 @@ describe('createDrawingGroup', () => {
 		const actions = handlers();
 		const group = createDrawingGroup(document, t, actions);
 		group.update({ editable: true, hasSelection: true });
-		const arrangeMenu = group.el.querySelectorAll('.pptxv-dropdown')[1];
+		const arrangeMenu = group.el.querySelector('[data-ribbon-control="home.drawing.arrange"]')!;
 		const items = [...arrangeMenu.querySelectorAll<HTMLButtonElement>('.pptxv-dropdown-item')];
 		const byLabel = (label: string) => items.find((item) => item.textContent === label);
 		byLabel(t('pptx.ribbon.group'))?.click();
 		byLabel(t('pptx.ribbon.ungroup'))?.click();
 		expect(actions.groupSelected).toHaveBeenCalledOnce();
 		expect(actions.ungroupSelected).toHaveBeenCalledOnce();
+	});
+
+	it('opens a native menu from the shared trigger and reflects it as expanded', () => {
+		const t = createTranslator();
+		const group = createDrawingGroup(document, t, handlers());
+		group.update({ editable: true, hasSelection: true });
+		const wrapper = group.el.querySelector('[data-ribbon-control="home.drawing.shapes"]')!;
+		const menu = wrapper.querySelector<HTMLElement>('.pptxv-dropdown-menu')!;
+		const trigger = control(group, t('pptx.drawing.shapes'));
+		expect(menu.hidden).toBeTruthy();
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		trigger.click();
+		expect(menu.hidden).toBeFalsy();
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		trigger.click();
+		expect(menu.hidden).toBeTruthy();
 	});
 
 	it('no longer renders the disabled Shape Effects placeholder', () => {
