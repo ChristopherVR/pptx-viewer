@@ -20,6 +20,7 @@ import type {
 	PptxSlide,
 	TextStyle,
 } from 'pptx-viewer-core';
+import { parentSelection, slideSpaceElement } from 'pptx-viewer-shared';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { computed, inject, useTemplateRef } from 'vue';
 
@@ -101,6 +102,16 @@ const selectionElements = computed(() => {
 	return editing
 		? props.selectedElements.filter((el) => el.id !== editing)
 		: props.selectedElements;
+});
+/**
+ * Selecting inside a group (shared `group-drill`): the group a selected member
+ * belongs to gets a dashed frame, like PowerPoint's entered-group box.
+ */
+const enteredGroup = computed(() => {
+	const elements = props.activeSlide?.elements;
+	const id = props.selectedElementIds.length === 1 ? props.selectedElementIds[0] : undefined;
+	const parentId = elements && id ? parentSelection(elements, id) : null;
+	return elements && parentId ? slideSpaceElement(elements, parentId) : null;
 });
 /** Picture crop mode: replaces the selection chrome with the crop overlay. */
 const crop = inject(MergeCropKey, undefined);
@@ -199,6 +210,19 @@ defineExpose({
 	     caret placement in the editor beneath it is unaffected, and the
 	     editing-only layer keeps inward handles above the editor. Normal
 	     connector endpoint precedence remains unchanged. -->
+	<div
+		v-if="canEdit && !presenting && enteredGroup"
+		data-pptx-entered-group
+		aria-hidden="true"
+		class="pptx-vue-entered-group"
+		:style="{
+			left: `${enteredGroup.x}px`,
+			top: `${enteredGroup.y}px`,
+			width: `${enteredGroup.width}px`,
+			height: `${enteredGroup.height}px`,
+		}"
+	/>
+
 	<SelectionOverlay
 		ref="selectionOverlay"
 		:elements="selectionElements"
@@ -295,3 +319,15 @@ defineExpose({
 		:active-slide-index="activeSlideIndex"
 	/>
 </template>
+
+<style scoped>
+.pptx-vue-entered-group {
+	position: absolute;
+	box-sizing: border-box;
+	pointer-events: none;
+	/* Under the selection chrome (55), over the slide content. */
+	z-index: 54;
+	outline: 1px dashed var(--pptx-selection-outline-color, var(--pptx-vue-selection-color, #3b82f6));
+	opacity: 0.7;
+}
+</style>

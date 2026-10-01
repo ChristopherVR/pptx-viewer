@@ -249,7 +249,7 @@
 			onstagepointermove={controller.onStagePointerMove}
 			onstagedblclick={controller.onStageDblClick}
 			onstagecontextmenu={presenting ? onPresentationContextMenu : controller.onStageContextMenu}
-			onstageclick={presenting ? onAdvance : undefined}
+			onstageclick={presenting ? onAdvance : controller.onStageClick}
 			{aiPickMode}
 			{aiActive}
 			{onaipickelement}

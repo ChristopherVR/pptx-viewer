@@ -8,9 +8,10 @@ import {
 	createInlineListSeed,
 	initializeInlineListDom,
 	getInlineEditorSelection,
-	placeCaretAtEnd,
+	placeCaretAt,
 	readEditableText,
 	restoreEditorKeyboardFocus,
+	takePendingCaretPoint,
 } from 'pptx-viewer-shared';
 import type {
 	InlineListController,
@@ -264,10 +265,11 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	if (!closed) {
 		surface.focus();
 	}
-	// Caret at the END of the seeded text so typing appends (the contract the
-	// other bindings follow; focus alone leaves the caret at the start).
+	// The caret goes where the click that opened the editor landed (PowerPoint;
+	// the stage records it with shared `setPendingCaretPoint`), else at the END of
+	// the seeded text so typing appends (focus alone leaves it at the start).
 	if (!closed) {
-		placeCaretAtEnd(textContainer);
+		placeCaretAt(textContainer, takePendingCaretPoint());
 	}
 
 	return {

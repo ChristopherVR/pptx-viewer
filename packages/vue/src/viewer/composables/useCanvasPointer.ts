@@ -13,7 +13,17 @@
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { canInteractWithElement, resolveTopLevelElementId } from 'pptx-viewer-shared';
+import {
+	canInteractWithElement,
+	drillSelectionForClick,
+	drillSelectionForDoubleClick,
+	findElementPath,
+	isEnterableGroup,
+	memberChainAtPoint,
+	parentSelection,
+	resolveTopLevelElementId,
+	setPendingCaretPoint,
+} from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import { isElementIdInteractive } from './template-editing';
@@ -45,6 +55,14 @@ export interface UseCanvasPointerOptions {
 	addAiPick: (slideIndex: number, elementId: string) => void;
 	startElementDrag: (id: string, event: PointerEvent, wasSelected: boolean) => void;
 	beginMarquee: (event: PointerEvent) => void;
+	/**
+	 * The active slide's top-level elements, for selecting inside a group
+	 * (shared `group-drill`): with a group selected, a press selects the member
+	 * under the pointer. Omitted, a group always selects as one.
+	 */
+	slideElements?: () => readonly PptxElement[] | undefined;
+	/** The slide's authored size, to map a client point into slide space. */
+	canvasSize?: () => { width: number; height: number };
 }
 
 export interface UseCanvasPointerResult {
@@ -59,7 +77,10 @@ export interface UseCanvasPointerResult {
 	onCanvasDoubleClick: (event: MouseEvent) => void;
 	/** Click-to-select via event delegation (elements render `data-element-id`). */
 	onCanvasPointerDown: (event: PointerEvent) => void;
-	/** Escape: cancel a pending edit, then disarm the painter, then clear the selection. */
+	/**
+	 * Escape: cancel a pending edit, then disarm the painter, then step a member
+	 * selected inside a group out to its group, then clear the selection.
+	 */
 	onEscape: () => void;
 }
 
@@ -86,6 +107,64 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 		return canInteractWithElement(options.findActiveElement(hitId), 'select') ? hitId : undefined;
 	}
 
+	/**
+	 * The slide-space point under a pointer event. The stage is scaled by a CSS
+	 * transform, so its rendered width over its authored width is the true
+	 * factor (the same measure `useMarqueeSelection` uses).
+	 */
+	function slidePoint(event: MouseEvent): { x: number; y: number } | null {
+		const target = event.target instanceof Element ? event.target : null;
+		const stage = target?.closest<HTMLElement>('[aria-roledescription="slide"]');
+		const rect = stage?.getBoundingClientRect();
+		const size = options.canvasSize?.();
+		if (!rect || !size || rect.width <= 0) {
+			return null;
+		}
+		const scale = rect.width / Math.max(size.width, 1);
+		return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
+	}
+
+	/** The ids under the pointer inside the group `topId`, innermost first; null when it can't be entered. */
+	function drillChain(topId: string, event: MouseEvent): string[] | null {
+		const elements = options.slideElements?.();
+		const top = elements?.find((el) => el.id === topId);
+		if (!elements || !top || !isEnterableGroup(top)) {
+			return null;
+		}
+		const point = slidePoint(event);
+		return point ? memberChainAtPoint(elements, topId, point) : null;
+	}
+
+	/** A drilled-to member, or the top-level id when the member may not be selected. */
+	function selectableOr(memberId: string | null, topId: string): string {
+		if (!memberId || memberId === topId) {
+			return topId;
+		}
+		return canInteractWithElement(options.findActiveElement(memberId), 'select') ? memberId : topId;
+	}
+
+	/**
+	 * What a press on the top-level element `topId` selects, PowerPoint-style: a
+	 * group first, then -- once it's selected -- the member under the pointer; a
+	 * press on another member of the entered group moves to that member.
+	 */
+	function resolvePressTarget(topId: string, event: PointerEvent): string {
+		const chain = drillChain(topId, event);
+		const elements = options.slideElements?.();
+		if (!chain || !elements) {
+			return topId;
+		}
+		const ids = options.selectedElementIds.value;
+		const selectedPath = ids.length === 1 ? findElementPath(elements, ids[0]) : null;
+		return selectableOr(drillSelectionForClick(chain, selectedPath), topId);
+	}
+
+	/** A double-click on a group goes straight to the innermost member under the pointer. */
+	function resolveDoubleClickTarget(topId: string, event: MouseEvent): string {
+		const chain = drillChain(topId, event);
+		return selectableOr(chain ? drillSelectionForDoubleClick(chain) : null, topId);
+	}
+
 	function requestElementEdit(id: string): void {
 		const el = options.findActiveElement(id);
 		if (el && options.openEquationEditorForElement(el)) {
@@ -96,6 +175,21 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 
 	function onCanvasDoubleClick(event: MouseEvent): void {
 		const target = event.target instanceof Element ? event.target : null;
+		// A double-click on a group edits the member under the pointer directly,
+		// without ungrouping (PowerPoint does the same).
+		const topId = options.canEdit()
+			? interactiveIdFor(resolveTopLevelElementId(target))
+			: undefined;
+		const memberId = topId ? resolveDoubleClickTarget(topId, event) : undefined;
+		if (topId && memberId && memberId !== topId) {
+			if (options.inlineEditingElementId.value === memberId) {
+				return;
+			}
+			options.selectElement(memberId, false);
+			// Caret at the END, as for any double-click (typing appends).
+			requestElementEdit(memberId);
+			return;
+		}
 		const id = target?.closest<HTMLElement>('[data-element-id]')?.dataset.elementId;
 		if (!id) {
 			return;
@@ -117,6 +211,15 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 		}
 		if (options.formatPainterActive.value) {
 			options.cancelFormatPainter();
+			return;
+		}
+		// A member selected inside a group steps back out to its group first
+		// (shared `parentSelection`); a top-level selection clears.
+		const elements = options.slideElements?.();
+		const ids = options.selectedElementIds.value;
+		const parent = elements && ids.length === 1 ? parentSelection(elements, ids[0]) : null;
+		if (parent) {
+			options.selectElement(parent, false);
 			return;
 		}
 		options.clearSelection();
@@ -188,7 +291,14 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 
 		if (last && isSameTarget) {
 			lastCanvasTap = null;
-			return handleDoubleTap(event, resolvedId ?? last.id);
+			const tapId = resolvedId ?? last.id;
+			const memberId = resolveDoubleClickTarget(tapId, event);
+			if (memberId !== tapId) {
+				options.selectElement(memberId, false);
+				requestElementEdit(memberId);
+				return true;
+			}
+			return handleDoubleTap(event, tapId);
 		}
 		if (resolvedId) {
 			lastCanvasTap = { id: resolvedId, time: now, x: event.clientX, y: event.clientY };
@@ -225,7 +335,7 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 		// turns on edit-template mode, and an `a:spLocks/@noSelect` shape is locked
 		// for everybody; a click on either behaves like an empty-canvas click (no
 		// select / drag / inline-edit).
-		const id = interactiveIdFor(hitId);
+		const topId = interactiveIdFor(hitId);
 
 		// AI pick mode: the next canvas element click(s) become picks for the
 		// assistant (multi-pick, deduped) instead of a normal selection/drag. Resolve
@@ -245,9 +355,15 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 		// the cell input itself (the input stops its own pointerdown), the
 		// TableRenderer's document-level pointerdown listener handles blur/commit.
 		// (See TableRenderer.vue: docListener.)
-		if (event.pointerType !== 'mouse' && trackTap(event, id)) {
+		if (event.pointerType !== 'mouse' && trackTap(event, topId)) {
 			return;
 		}
+
+		const additive = event.shiftKey || event.ctrlKey || event.metaKey;
+		// Selecting inside a group (shared `group-drill`): the first press selects
+		// the group, the next the member under the pointer. A modifier press keeps
+		// toggling top-level elements.
+		const id = topId && !additive ? resolvePressTarget(topId, event) : topId;
 
 		// While inline-editing, a tap elsewhere (another element or empty canvas)
 		// commits the pending edit first (the typed text must be kept).
@@ -263,12 +379,15 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 			options.cancelFormatPainter();
 			return;
 		}
-		const additive = event.shiftKey || event.ctrlKey || event.metaKey;
 		if (id) {
 			const ids = options.selectedElementIds.value;
 			const wasSelected = !additive && ids.length === 1 && ids[0] === id;
 			if (!wasSelected) {
 				options.selectElement(id, additive);
+			} else {
+				// A release without a drag opens the inline editor: its caret goes
+				// where this press landed (PowerPoint), not after the last word.
+				setPendingCaretPoint(event);
 			}
 			// Drive move (drag) + inline-edit entry from the element itself. A tap
 			// without drag on an already-selected element enters inline edit.

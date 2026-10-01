@@ -120,6 +120,15 @@ describe('noRotation', () => {
 
 const component = readFileSync(join(__dirname, 'slide-canvas.component.ts'), 'utf8');
 
+/** The slice of the canvas `canTextEdit` reads: its element lookup (group members included). */
+function canvasOver(elements: PptxElement[]): SlideCanvasComponent {
+	return {
+		allElements: () => elements,
+		lookupElements: () => elements,
+		elementById: SlideCanvasComponent.prototype['elementById'],
+	} as unknown as SlideCanvasComponent;
+}
+
 describe('slide-canvas pointer gates', () => {
 	it('refuses to arm a move drag on a noMove element', () => {
 		expect(component).toContain(`if (!canInteractWithElement(el, 'move')) {`);
@@ -127,9 +136,7 @@ describe('slide-canvas pointer gates', () => {
 
 	it('gates inline text editing on noTextEdit', () => {
 		expect(component).toContain('this.canTextEdit(id)');
-		const canvas = {
-			allElements: () => [shape('free'), shape('locked', { noTextEdit: true })],
-		} as unknown as SlideCanvasComponent;
+		const canvas = canvasOver([shape('free'), shape('locked', { noTextEdit: true })]);
 		expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'free')).toBeTruthy();
 		expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'locked')).toBeFalsy();
 	});
@@ -137,9 +144,7 @@ describe('slide-canvas pointer gates', () => {
 	it.each(['smartArt', 'chart', 'table', 'image', 'group'] as const)(
 		'does not open the generic text editor for %s or a missing element',
 		(type) => {
-			const canvas = {
-				allElements: () => [{ ...shape('non-text'), type } as PptxElement],
-			} as unknown as SlideCanvasComponent;
+			const canvas = canvasOver([{ ...shape('non-text'), type } as PptxElement]);
 			expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'non-text')).toBeFalsy();
 			expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'missing')).toBeFalsy();
 		},

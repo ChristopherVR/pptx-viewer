@@ -22,6 +22,12 @@ export interface EditorKeyboardDeps {
 	getKeyboardCustomization?(): ResolvedKeyboardCustomization | undefined;
 	getSelectedId(): string | null;
 	deselect(): void;
+	/**
+	 * Escape on a member selected inside a group: select its parent group
+	 * instead (shared `parentSelection`). True when it did, so the selection is
+	 * not cleared. Omitted, Escape always clears.
+	 */
+	selectParent?(): boolean;
 	deleteSelected(): void;
 	duplicateSelected(): void;
 	copySelected(): void;
@@ -99,8 +105,9 @@ export function createEditorKeydownHandler(
 		switch (action) {
 			case 'escape':
 				// Unwind the transient chrome one layer at a time: format painter,
-				// then the cheat sheet, then the selection itself.
-				if (deps.cancelFormatPainter() || deps.closeShortcuts()) {
+				// then the cheat sheet, then a member steps out to its group, then
+				// the selection itself.
+				if (deps.cancelFormatPainter() || deps.closeShortcuts() || deps.selectParent?.()) {
 					return;
 				}
 				deps.deselect();

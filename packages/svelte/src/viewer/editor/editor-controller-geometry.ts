@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { selectionBounds } from 'pptx-viewer-shared';
+import { selectionBounds, slideSpaceElement } from 'pptx-viewer-shared';
 import type { InteractionBox, SnapSibling } from 'pptx-viewer-shared';
 
 import type { OverlayBox } from './types';
@@ -8,7 +8,10 @@ export function elementInteractionBox(
 	elements: readonly PptxElement[],
 	id: string,
 ): InteractionBox | undefined {
-	const element = elements.find((candidate) => candidate.id === id);
+	// A group member (selected by drilling into its group) drags and resizes in
+	// slide space, like the chrome that draws it (shared `slideSpaceElement`).
+	const element =
+		elements.find((candidate) => candidate.id === id) ?? slideSpaceElement(elements, id);
 	return element ? elementOverlayBox(element) : undefined;
 }
 

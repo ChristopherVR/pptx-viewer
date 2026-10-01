@@ -65,6 +65,7 @@ import {
 	shouldClearAutosaveCacheOnClose,
 	shouldConfirmExternalHyperlink,
 	shouldDiscardAutosaveOnSuccessfulSave,
+	slideSpaceElement,
 	THEME_CATALOG,
 	writeStoredViewerPrefs,
 	subtitleSettingsFromOptions,
@@ -946,8 +947,10 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 	getActiveSlide = (): PptxSlide | undefined => this.getSlide(this.getCurrentSlide());
 	getElements = (index = this.getCurrentSlide()): readonly PptxElement[] =>
 		this.getSlide(index)?.elements ?? [];
+	// A group member too (selected by clicking into its group), in slide space
+	// like the editor shows it.
 	getElementById = (id: string, index = this.getCurrentSlide()): PptxElement | undefined =>
-		this.getElements(index).find((element) => element.id === id);
+		slideSpaceElement(this.getElements(index), id) ?? undefined;
 	updateElements = async (
 		updates: readonly ElementUpdate[],
 		options?: ElementUpdateOptions,

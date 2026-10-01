@@ -19,10 +19,11 @@ import {
 	initializeInlineListDom,
 	inlineListBodyText,
 	mapInlineTextFormatKey,
-	placeCaretAtEnd,
+	placeCaretAt,
 	readEditableText,
 	readListActivationSelection,
 	restoreInlineListBodySelection,
+	takePendingCaretPoint,
 } from 'pptx-viewer-shared';
 import type {
 	CollaborationInlineEditor,
@@ -151,8 +152,9 @@ function initializeEditor(selection?: { start: number; end: number }): void {
 		node.innerText = seedText();
 	}
 	node.focus();
-	// Place the caret at the end of the seeded text (shared contract helper).
-	placeCaretAtEnd(node);
+	// The caret goes where the click that opened the editor landed (PowerPoint),
+	// else at the end of the seeded text (shared contract helpers).
+	placeCaretAt(node, takePendingCaretPoint());
 	if (seed && selection) {
 		restoreInlineListBodySelection(seed, node, selection);
 	}

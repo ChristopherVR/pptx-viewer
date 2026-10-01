@@ -224,6 +224,31 @@ describe('viewerKeyboardService: the shortcut cheat sheet', () => {
 		expect(h.editor.clearSelection).toHaveBeenCalledOnce();
 	});
 
+	it('steps a selected group member up to its group before clearing (group drill)', () => {
+		const member = textElement('a');
+		const group = {
+			id: 'cards',
+			type: 'group',
+			x: 200,
+			y: 100,
+			width: 100,
+			height: 50,
+			children: [member],
+		} as unknown as PptxElement;
+		const h = harness({ selectedIds: ['a'] });
+		h.editor.slides.set([
+			{ id: 's0', elements: [] },
+			{ id: 's1', elements: [] },
+			{ id: 's2', elements: [group] },
+		] as unknown as PptxSlide[]);
+		h.press('Escape');
+		expect(h.editor.select).toHaveBeenCalledWith(['cards']);
+		expect(h.editor.clearSelection).not.toHaveBeenCalled();
+		h.editor.selectedIds.set(['cards']);
+		h.press('Escape');
+		expect(h.editor.clearSelection).toHaveBeenCalledOnce();
+	});
+
 	it('lets an armed format painter consume Escape first, leaving the panel open', () => {
 		const h = harness({ painterActive: true });
 		h.showShortcuts.set(true);

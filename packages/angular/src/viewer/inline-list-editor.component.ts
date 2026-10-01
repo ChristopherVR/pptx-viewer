@@ -9,8 +9,9 @@ import {
 	initializeInlineListDom,
 	inlineListBodyText,
 	mapInlineTextFormatKey,
-	placeCaretAtEnd,
+	placeCaretAt,
 	restoreInlineListBodySelection,
+	takePendingCaretPoint,
 } from '../internal/shared';
 import type {
 	CollaborationInlineEditor,
@@ -146,7 +147,9 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 		}
 		this.listSession.emit({ controller: this.controller, active: true });
 		root.focus();
-		placeCaretAtEnd(root);
+		// The caret goes where the click that opened the editor landed
+		// (PowerPoint), else at the end (shared inline-caret helpers).
+		placeCaretAt(root, takePendingCaretPoint());
 		const selection = this.activationSelection();
 		if (selection) {
 			restoreInlineListBodySelection(seed, root, selection);

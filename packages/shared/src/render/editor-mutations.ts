@@ -1,6 +1,8 @@
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { cloneElement, cloneSlide, duplicateElement } from 'pptx-viewer-core';
 
+import { updateElementInTree } from './group-drill';
+
 /**
  * Pure, immutable slide-array mutations for the editor.
  *
@@ -45,7 +47,12 @@ export function mapSlideElements(
 	);
 }
 
-/** Shallow-merge `updates` into the element with `elementId` (cloned first). */
+/**
+ * Shallow-merge `updates` into the element with `elementId` (cloned first). A
+ * group member (selected by drilling into its group) is found in the tree and
+ * its slide-space geometry written back into the group's space
+ * ({@link updateElementInTree}).
+ */
 export function updateElement(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
@@ -53,9 +60,11 @@ export function updateElement(
 	updates: Partial<PptxElement>,
 ): PptxSlide[] {
 	return mapSlideElements(slides, slideIndex, (elements) =>
-		elements.map((el) =>
-			el.id === elementId ? ({ ...cloneElement(el), ...updates } as PptxElement) : el,
-		),
+		elements.some((el) => el.id === elementId)
+			? elements.map((el) =>
+					el.id === elementId ? ({ ...cloneElement(el), ...updates } as PptxElement) : el,
+				)
+			: updateElementInTree(elements, elementId, updates),
 	);
 }
 

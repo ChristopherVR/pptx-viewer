@@ -1,4 +1,11 @@
-import { motionPathFor, setMotionPath, shouldShowElementHandles } from 'pptx-viewer-shared';
+import {
+	isGroupMember,
+	motionPathFor,
+	parentSelection,
+	setMotionPath,
+	shouldShowElementHandles,
+	slideSpaceElement,
+} from 'pptx-viewer-shared';
 import { useCallback, useMemo, useRef } from 'react';
 
 import type { ShapeAdjustmentHandleDescriptor } from '../types';
@@ -38,6 +45,11 @@ import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 const EMPTY_ADJUSTMENT_HANDLES: ShapeAdjustmentHandleDescriptor[] = [];
 
 export type { SlideCanvasProps } from './canvas/canvas-types';
+
+/** An id inside a quoted CSS attribute selector. */
+function cssAttr(id: string): string {
+	return id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
 
 export function SlideCanvas(props: SlideCanvasProps) {
 	const latest = useRef(props);
@@ -229,6 +241,30 @@ function SlideCanvasContent({
 	/* ── Motion path overlay ───────────────────────────────────────── */
 	// The path lives on the SLIDE's animation entry for the selected element, so
 	// the overlay only needs the id to find it and a commit callback to edit it.
+	// Selecting inside a group (shared `group-drill`): the entered group gets a
+	// dashed frame, and a member being text-edited is drawn once more in slide
+	// space, where the regular inline editor can run, over its hidden static copy.
+	const slideElements = activeSlide?.elements;
+	const enteredGroup = useMemo(() => {
+		if (!slideElements || !selectedElement) {
+			return null;
+		}
+		const parentId = parentSelection(slideElements, selectedElement.id);
+		return parentId ? slideSpaceElement(slideElements, parentId) : null;
+	}, [slideElements, selectedElement]);
+	const editingMember = useMemo(() => {
+		if (
+			!slideElements ||
+			!inlineEditingElementId ||
+			!isGroupMember(slideElements, inlineEditingElementId)
+		) {
+			return null;
+		}
+		const member = slideSpaceElement(slideElements, inlineEditingElementId);
+		const parentId = parentSelection(slideElements, inlineEditingElementId);
+		return member && parentId ? { member, parentId } : null;
+	}, [slideElements, inlineEditingElementId]);
+
 	const selectedMotionPath = selectedElement
 		? motionPathFor(activeSlide?.animations ?? [], selectedElement.id)
 		: undefined;
@@ -452,6 +488,59 @@ function SlideCanvasContent({
 							tableStyleContext={tableStyleContext}
 						/>
 					))}
+
+					{enteredGroup && (
+						<div
+							data-pptx-entered-group
+							aria-hidden
+							className='absolute pointer-events-none outline outline-1 outline-dashed outline-blue-500/70'
+							style={{
+								left: enteredGroup.x,
+								top: enteredGroup.y,
+								width: enteredGroup.width,
+								height: enteredGroup.height,
+								zIndex: templateElements.length + (activeSlide?.elements.length ?? 0) + 1,
+							}}
+						/>
+					)}
+
+					{editingMember && (
+						<>
+							<style>{`[data-element-id="${cssAttr(editingMember.parentId)}"] [data-element-id="${cssAttr(editingMember.member.id)}"]{visibility:hidden}`}</style>
+							<ElementRenderer
+								key={`group-member-edit-${editingMember.member.id}`}
+								element={editingMember.member}
+								activeSlide={activeSlide}
+								isSelected
+								isInlineEditing
+								inlineEditingText={inlineEditingText}
+								canInteract={isEditableCanvas}
+								spellCheckEnabled={spellCheckEnabled}
+								mediaDataUrls={mediaDataUrls}
+								selectionColorClass='blue-500'
+								showHoverBorder={false}
+								zIndex={templateElements.length + (activeSlide?.elements.length ?? 0) + 2}
+								imageAltText='Slide element'
+								showResizeHandles={false}
+								renderInk
+								renderGroups
+								adjustmentHandles={EMPTY_ADJUSTMENT_HANDLES}
+								onResizePointerDown={stableResizePointerDown}
+								onAdjustmentPointerDown={stableAdjustmentPointerDown}
+								onRotate={stableRotate}
+								onInlineEditChange={stableInlineEditChange}
+								onInlineEditCommit={stableInlineEditCommit}
+								onInlineEditCancel={stableInlineEditCancel}
+								onUpdateSmartArtElement={stableUpdateSmartArtElement}
+								onFormatText={stableFormatText}
+								onHyperlinkClick={onHyperlinkClick}
+								allSlides={allSlides}
+								sourceSlideIndex={sourceSlideIndex}
+								fieldContext={fieldContext}
+								tableStyleContext={tableStyleContext}
+							/>
+						</>
+					)}
 
 					{/* Resize/rotate/adjustment handles for the single selected
 					    element, unclipped: see `SelectionHandleOverlay` for why they

@@ -13,6 +13,7 @@ import {
 	commitElementUpdateBatch,
 	clampZoomScale,
 	prepareElementForInsertion,
+	slideSpaceElement,
 } from 'pptx-viewer-shared';
 import type { ViewerCustomizationApi, ViewerMode } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
@@ -157,8 +158,12 @@ export function useViewerApi(options: UseViewerApiOptions): ViewerApiHandle {
 		},
 		// -- Element access --
 		getElements: (slideIndex?: number) => slideAt(slideIndex)?.elements ?? [],
-		getElementById: (elementId: string, slideIndex?: number) =>
-			slideAt(slideIndex)?.elements.find((e) => e.id === elementId),
+		// A group member too (selected by drilling into its group), in slide space
+		// like the editor shows it (shared `slideSpaceElement`).
+		getElementById: (elementId: string, slideIndex?: number) => {
+			const slide = slideAt(slideIndex);
+			return slide ? (slideSpaceElement(slide.elements, elementId) ?? undefined) : undefined;
+		},
 		// -- Element manipulation --
 		addElement: (element: PptxElement) => {
 			const prepared = prepareElementForInsertion(element, {

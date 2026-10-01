@@ -26,7 +26,18 @@
 				}
 			: null,
 	);
+	/** The group the selection has drilled into (shared `group-drill`), framed dashed. */
+	const enteredGroup = $derived(controller.enteredGroup);
 </script>
+
+{#if enteredGroup}
+	<div
+		class="pptx-svelte-entered-group"
+		data-pptx-entered-group
+		aria-hidden="true"
+		style={`left:${enteredGroup.x * scale}px;top:${enteredGroup.y * scale}px;width:${enteredGroup.width * scale}px;height:${enteredGroup.height * scale}px`}
+	></div>
+{/if}
 
 <SelectionOverlay
 	box={controller.overlayBox}
@@ -75,3 +86,16 @@
 	/>
 	{/key}
 {/if}
+
+<style>
+	/* The entered group's frame: under the member's selection chrome, never
+	   in the way of a click (the layer is unscaled, so the box is in px). */
+	.pptx-svelte-entered-group {
+		position: absolute;
+		box-sizing: border-box;
+		border: 1px dashed var(--pptx-ring, #6366f1);
+		opacity: 0.7;
+		pointer-events: none;
+		z-index: 57;
+	}
+</style>

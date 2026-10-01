@@ -28,6 +28,7 @@ import {
 	buildInlineTextCommitPatch,
 	overlayInlineTextSnapshot,
 	publishLiveInlineText,
+	slideSpaceElement,
 } from '../internal/shared';
 import type { InlineListController, InlineTextEditSnapshot } from '../internal/shared';
 import { CollaborationService } from './collaboration.service';
@@ -151,13 +152,17 @@ export class ViewerCanvasEditingService {
 	}
 
 	/**
-	 * Find an element by id on the active slide or, when editTemplateMode has
-	 * it inline-editable, in the separate inherited-template layer (layout-
-	 * / master- prefixed ids never appear in `activeSlide().elements`).
+	 * Find an element by id on the active slide (a group member included) or,
+	 * when editTemplateMode has it inline-editable, in the separate inherited-
+	 * template layer (layout- / master- prefixed ids never appear in
+	 * `activeSlide().elements`).
 	 */
 	private findElement(host: CanvasEditingHost, id: string): PptxElement | undefined {
+		// A group member (selected by drilling into its group) is found in the
+		// tree, in slide space (shared `group-drill`).
+		const slideElements = host.activeSlide()?.elements;
 		return (
-			host.activeSlide()?.elements.find((el) => el.id === id) ??
+			(slideElements ? slideSpaceElement(slideElements, id) : null) ??
 			host.activeTemplateElements().find((el) => el.id === id)
 		);
 	}
