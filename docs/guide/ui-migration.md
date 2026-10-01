@@ -231,7 +231,7 @@ screenshots are `<binding>-insert.png` in the baseline and after directories.
 
 ## Home
 
-Home (#373) is delivered in group families, one commit each, so the large tab
+Home (#373) is delivered in group families, so the large tab
 stays reviewable. PR #359 had already moved the Home icon artwork
 (`RIBBON_CONTROL_ICONS`), the catalogue ids and the editor-chrome layout CSS
 into shared code; the markup, gating and callbacks of every group were still
@@ -267,11 +267,30 @@ persistence and native popup. Public customization ids are unchanged.
   panel; Svelte mirrors an open panel as pressed). The Select menu and Select All
   stay native.
 
-Boundary: Slides, Drawing and Arrange are not migrated in this change. They are
-labelled split buttons, galleries, dialogs and colour pickers anchored natively
-by each binding, with different labels, order and gating per binding, so
-sharing them would change behaviour. They remain open under #373 as the next
-Home batches (see the shared README for the detail); the issue is not complete.
+- Slides: the whole `home.slides` group as `pptx-ui-ribbon-home-slides` (split
+  New Slide, Slide Templates, Layout, Reset, Section). The layout menus and the
+  template dialog stay native and anchor to the shared wrappers.
+- Drawing: the Shapes, Arrange, Shape Fill and Shape Outline triggers
+  (`pptx-ui-ribbon-home-drawing`); their menus and colour popovers stay native.
+  Quick Styles and Shape Effects were already shared galleries.
+- Arrange: Align and Distribute, Flip, z-order and Duplicate/Delete as four
+  strips (`pptx-ui-ribbon-home-arrange-*`).
+
+Behaviour changes to know: popover triggers now carry `aria-haspopup` and
+`aria-expanded`; Angular's layout, Fill and Outline popovers open on click
+instead of hover; Angular Arrange and Svelte Fill/Outline/z-order now follow
+read-only mode; the Fill/Outline colour bar under the icon is gone in the
+bindings that had it; a customization of `home.arrange.align` also hides
+Distribute (Angular already did, Vanilla and Svelte now do). Hosts keep their
+own empty-deck and layout rules for New Slide/Reset/Section through
+`slidesHomeControls` flags.
+
+Still native: the layout galleries, Shapes/Arrange menus, colour popovers and the
+template dialog (popovers that read deck data and run each binding's undo), the
+second Format Painter, Group/Ungroup, Merge Shapes, Crop and outline width in
+Arrange, and in Font/Paragraph the family and size selects, character spacing,
+change case, colour pickers, Bullets/Numbering galleries, line spacing, text
+direction, columns and the Select menu. See the shared README for the detail.
 
 `e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
 real copy/paste/cut with undo and redo, the Format Painter, customization,
