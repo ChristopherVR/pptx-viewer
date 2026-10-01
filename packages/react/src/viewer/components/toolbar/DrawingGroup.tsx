@@ -1,27 +1,27 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import { FIXED_TAB_GALLERIES, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
 import {
-	LuLayers,
-	LuPaintBucket,
-	LuPalette,
-	LuPenLine,
-	LuShapes,
-	LuSparkles,
-} from 'react-icons/lu';
+	FIXED_TAB_GALLERIES,
+	drawingHomeControls,
+	shapeFillChange,
+	shapeOutlineChange,
+} from 'pptx-viewer-shared';
+import type { PptxUiRibbonHomeElement } from 'pptx-viewer-shared';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import { LuPalette, LuSparkles } from 'react-icons/lu';
 
 import { SHAPE_PRESETS } from '../../constants';
 import type { SupportedShapeType } from '../../types-core';
 import { cn } from '../../utils';
 import { useRecentColors } from '../inspector/RecentColorsContext';
-import { controlAttr, groupAttr } from './PowerPointRibbonControls';
+import { groupAttr } from './PowerPointRibbonControls';
 import { RibbonGallery } from './RibbonGallery';
 import { RibbonMenu } from './RibbonMenu';
 import { ShapeColorPopover } from './ShapeColorPopover';
-import { ic, pill, sep } from './toolbar-constants';
-import { useRibbonDropdown } from './useRibbonDropdown';
+import { ic, sep } from './toolbar-constants';
+import { useHomeAnchor, useHomePopover, WebHomeControls } from './WebHomeControls';
 
 export interface DrawingGroupProps {
 	canEdit: boolean;
@@ -53,31 +53,71 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 		p.selectedElement && hasShapeProperties(p.selectedElement)
 			? p.selectedElement.shapeStyle
 			: undefined;
-	const shapes = useRibbonDropdown();
-	const arrange = useRibbonDropdown();
-	const fill = useRibbonDropdown();
-	const outline = useRibbonDropdown();
+	const elementRef = useRef<PptxUiRibbonHomeElement | null>(null);
+	const shapes = useHomePopover(useHomeAnchor(elementRef, 'home.drawing.shapes'));
+	const arrange = useHomePopover(useHomeAnchor(elementRef, 'home.drawing.arrange'));
+	const fill = useHomePopover(useHomeAnchor(elementRef, 'home.drawing.shapeFill'));
+	const outline = useHomePopover(useHomeAnchor(elementRef, 'home.drawing.shapeOutline'));
 	const setShapesOpen = shapes.setOpen;
 	const setArrangeOpen = arrange.setOpen;
+	const setFillOpen = fill.setOpen;
+	const setOutlineOpen = outline.setOpen;
+	const { onMoveLayer, onMoveLayerToEdge } = p;
+
+	const controls = useMemo(
+		() =>
+			drawingHomeControls({
+				editable: p.canEdit,
+				hasSelection: Boolean(p.selectedElement),
+				open: {
+					shapes: shapes.open,
+					arrange: arrange.open,
+					fill: fill.open,
+					outline: outline.open,
+				},
+			}),
+		[p.canEdit, p.selectedElement, shapes.open, arrange.open, fill.open, outline.open],
+	);
+	const request = useCallback(
+		(id: string) => {
+			switch (id) {
+				case 'home.drawing.shapes':
+					setShapesOpen((v) => !v);
+					break;
+				case 'home.drawing.arrange':
+					setArrangeOpen((v) => !v);
+					break;
+				case 'home.drawing.shapeFill':
+					setFillOpen((v) => !v);
+					break;
+				case 'home.drawing.shapeOutline':
+					setOutlineOpen((v) => !v);
+			}
+		},
+		[setShapesOpen, setArrangeOpen, setFillOpen, setOutlineOpen],
+	);
+	const arrangeItems: Array<[string, () => void]> = [
+		['pptx.contextMenu.bringForward', () => onMoveLayer('forward')],
+		['pptx.contextMenu.sendBackward', () => onMoveLayer('backward')],
+		['pptx.contextMenu.bringToFront', () => onMoveLayerToEdge('front')],
+		['pptx.contextMenu.sendToBack', () => onMoveLayerToEdge('back')],
+	];
+	const noTarget = !p.canEdit || !p.selectedElement;
 
 	return (
 		<>
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.drawing')}>
 				<div className='flex items-center gap-1' data-pptx-chrome='drawing-controls'>
-					{/* Shapes dropdown */}
-					<div className='relative' ref={shapes.ref} {...controlAttr('home.drawing.shapes')}>
-						<button
-							type='button'
-							disabled={!p.canEdit}
-							className={pill}
-							title={t('pptx.drawing.shapes')}
-							onClick={() => setShapesOpen((v) => !v)}
-						>
-							<LuShapes className={ic} />
-							{t('pptx.drawing.shapes')}
-						</button>
-						{shapes.open && (
-							<RibbonMenu anchorRef={shapes.ref} className='flex flex-col w-52 pt-1'>
+					<WebHomeControls
+						family='drawing'
+						controls={controls}
+						onRequest={request}
+						elementRef={elementRef}
+					/>
+					{shapes.open &&
+						shapes.anchorRef.current &&
+						createPortal(
+							<RibbonMenu anchorRef={shapes.anchorRef} className='flex flex-col w-52 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{TOP_SHAPES.map((s) => (
 										<button
@@ -98,109 +138,67 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 										</button>
 									))}
 								</div>
-							</RibbonMenu>
+							</RibbonMenu>,
+							shapes.anchorRef.current,
 						)}
-					</div>
-
-					{/* Arrange dropdown */}
-					<div className='relative' ref={arrange.ref} {...controlAttr('home.drawing.arrange')}>
-						<button
-							type='button'
-							disabled={!p.canEdit || !p.selectedElement}
-							className={pill}
-							title={t('pptx.ribbon.arrange')}
-							onClick={() => setArrangeOpen((v) => !v)}
-						>
-							<LuLayers className={ic} />
-							{t('pptx.ribbon.arrange')}
-						</button>
-						{arrange.open && (
-							<RibbonMenu anchorRef={arrange.ref} className='flex flex-col w-44 pt-1'>
+					{arrange.open &&
+						arrange.anchorRef.current &&
+						createPortal(
+							<RibbonMenu anchorRef={arrange.anchorRef} className='flex flex-col w-44 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
-									<button
-										type='button'
-										className='flex items-center w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-										onClick={() => {
-											p.onMoveLayer('forward');
-											setArrangeOpen(false);
-										}}
-									>
-										{t('pptx.contextMenu.bringForward')}
-									</button>
-									<button
-										type='button'
-										className='flex items-center w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-										onClick={() => {
-											p.onMoveLayer('backward');
-											setArrangeOpen(false);
-										}}
-									>
-										{t('pptx.contextMenu.sendBackward')}
-									</button>
-									<button
-										type='button'
-										className='flex items-center w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-										onClick={() => {
-											p.onMoveLayerToEdge('front');
-											setArrangeOpen(false);
-										}}
-									>
-										{t('pptx.contextMenu.bringToFront')}
-									</button>
-									<button
-										type='button'
-										className='flex items-center w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-										onClick={() => {
-											p.onMoveLayerToEdge('back');
-											setArrangeOpen(false);
-										}}
-									>
-										{t('pptx.contextMenu.sendToBack')}
-									</button>
+									{arrangeItems.map(([key, run]) => (
+										<button
+											key={key}
+											type='button'
+											className='flex items-center w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
+											onClick={() => {
+												run();
+												setArrangeOpen(false);
+											}}
+										>
+											{t(key)}
+										</button>
+									))}
 								</div>
-							</RibbonMenu>
+							</RibbonMenu>,
+							arrange.anchorRef.current,
 						)}
-					</div>
-
-					{/* Shape Fill */}
-					<ShapeColorPopover
-						icon={<LuPaintBucket className={ic} />}
-						title={t('pptx.drawing.shapeFill')}
-						prefix='shape-fill'
-						anchorRef={fill.ref}
-						open={fill.open}
-						onToggle={() => fill.setOpen((v) => !v)}
-						controlId='home.drawing.shapeFill'
-						disabled={!p.canEdit || !p.selectedElement}
-						swatchAriaLabel='Fill colour'
-						selectedRef={selectedShapeStyle?.fillColorRef}
-						selectedHex={selectedShapeStyle?.fillColor}
-						onApply={(c, ref) => {
-							p.onUpdateElementStyle?.(shapeFillChange(c, ref));
-							pushColor(c);
-						}}
-						onClose={() => fill.setOpen(false)}
-					/>
-
-					{/* Shape Outline */}
-					<ShapeColorPopover
-						icon={<LuPenLine className={ic} />}
-						title={t('pptx.drawing.shapeOutline')}
-						prefix='shape-outline'
-						anchorRef={outline.ref}
-						open={outline.open}
-						onToggle={() => outline.setOpen((v) => !v)}
-						controlId='home.drawing.shapeOutline'
-						disabled={!p.canEdit || !p.selectedElement}
-						swatchAriaLabel='Outline colour'
-						selectedRef={selectedShapeStyle?.strokeColorRef}
-						selectedHex={selectedShapeStyle?.strokeColor}
-						onApply={(c, ref) => {
-							p.onUpdateElementStyle?.(shapeOutlineChange(c, ref));
-							pushColor(c);
-						}}
-						onClose={() => outline.setOpen(false)}
-					/>
+					{fill.open &&
+						fill.anchorRef.current &&
+						createPortal(
+							<ShapeColorPopover
+								prefix='shape-fill'
+								anchorRef={fill.anchorRef}
+								disabled={noTarget}
+								swatchAriaLabel='Fill colour'
+								selectedRef={selectedShapeStyle?.fillColorRef}
+								selectedHex={selectedShapeStyle?.fillColor}
+								onApply={(c, ref) => {
+									p.onUpdateElementStyle?.(shapeFillChange(c, ref));
+									pushColor(c);
+								}}
+								onClose={() => setFillOpen(false)}
+							/>,
+							fill.anchorRef.current,
+						)}
+					{outline.open &&
+						outline.anchorRef.current &&
+						createPortal(
+							<ShapeColorPopover
+								prefix='shape-outline'
+								anchorRef={outline.anchorRef}
+								disabled={noTarget}
+								swatchAriaLabel='Outline colour'
+								selectedRef={selectedShapeStyle?.strokeColorRef}
+								selectedHex={selectedShapeStyle?.strokeColor}
+								onApply={(c, ref) => {
+									p.onUpdateElementStyle?.(shapeOutlineChange(c, ref));
+									pushColor(c);
+								}}
+								onClose={() => setOutlineOpen(false)}
+							/>,
+							outline.anchorRef.current,
+						)}
 
 					{/* Quick Styles + Shape Effects: shared galleries (FIXED_TAB_GALLERIES) */}
 					{HOME_DRAWING_GALLERIES.map((placement) => (
