@@ -29,6 +29,7 @@ export function createRibbonHomeView(
 	const makeButton = (control: RibbonHomeControlSpec, part?: string): HTMLButtonElement => {
 		const button = doc.createElement('button');
 		button.type = 'button';
+		button.className = 'b';
 		if (control.testId) {
 			button.dataset.testid = control.testId;
 		}

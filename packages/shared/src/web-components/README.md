@@ -431,16 +431,44 @@ host can report it (Svelte does); other hosts omit it and show no pressed state.
 The Select menu and its Select All command are app-owned popovers and stay
 native.
 
-### Home groups that stay native
+### Slides, Drawing and Arrange
 
-Slides (New Slide split button, Slide Templates dialog, Layout and Reset menus,
-Section), Drawing (Shapes, Arrange, Shape Fill/Outline, Quick Styles and Shape
-Effects galleries and colour popovers) and Arrange (align/distribute/flip/order
-selects, Group/Ungroup, Merge Shapes, Crop, outline width, Duplicate, Delete and
-the second Format Painter) still live in each binding. They are built from
-labelled split buttons, galleries, anchored popovers, dialogs and colour
-pickers that each binding anchors and focuses natively, and their labels,
-ordering and gating differ between bindings in ways a shared strip cannot
-unify without a behaviour change. They are tracked as the next Home batches.
-The font family and size selectors, character spacing, change case, font and
-highlight colour pickers stay native for the same reason.
+| Family          | Element                             | Controls                                                                                      |
+| --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `slides`        | `pptx-ui-ribbon-home-slides`        | The whole `home.slides` group: split New Slide, Slide Templates, Layout, Reset, Section       |
+| `drawing`       | `pptx-ui-ribbon-home-drawing`       | The Shapes, Arrange, Shape Fill and Shape Outline triggers inside `home.drawing`              |
+| `arrange-align` | `pptx-ui-ribbon-home-arrange-align` | The `home.arrange.align` wrapper: six Align edges plus Distribute Horizontally and Vertically |
+| `arrange-flip`  | `pptx-ui-ribbon-home-arrange-flip`  | Flip Horizontal and Flip Vertical                                                             |
+| `arrange-order` | `pptx-ui-ribbon-home-arrange-order` | Send Backward, Bring Forward, Send to Back, Bring to Front                                    |
+| `arrange-edit`  | `pptx-ui-ribbon-home-arrange-edit`  | Duplicate and Delete                                                                          |
+
+The intent is now `{ id, part? }`. `part` tells apart buttons that share one
+public id: the New Slide caret (`caret`) and the Align strip (an edge such as
+`centerH`, or `distribute-horizontal`/`distribute-vertical`; decode with
+`arrangeAlignAction`). Such buttons are keyed `id#part` in `state.controls`.
+Controls with visible text use it as their accessible name and keep the longer
+phrase as the tooltip. Popover triggers (`popup`) and the New Slide split sit in
+a `div.slot[data-ribbon-control]` wrapper, as the native split buttons and menu
+hosts did, so customization hides trigger and popover together; the inner button
+carries `aria-haspopup`, and `expanded` state reflects as `aria-expanded`.
+`element.anchor(id)` returns the wrapper (or button) so the host can position or
+mount its native popover.
+
+Gating helpers: `slidesHomeControls` takes the host-specific rules that differ
+between bindings (`newSlideNeedsLayout`, `resetNeedsSlide`, `showTemplates`),
+`drawingHomeControls` (Shapes needs edit rights, the rest also a selection) and
+`arrangeHomeControls` (edit rights plus a selection; Distribute uses the host's
+own `canDistribute`).
+
+Still native, and why: the layout galleries (New Slide caret and Layout), the
+Shapes and Arrange menus, the Fill and Outline colour popovers and the Slide
+Templates dialog are anchored, focus-managed popovers that read each binding's
+deck data (layout previews, theme colours, recent colours) and run its undo
+path, so only their triggers are shared. In Drawing the Quick Styles and Shape
+Effects galleries are already the shared gallery element and the group wrapper
+sits with them. Arrange keeps its second Format Painter pill, Group/Ungroup,
+Merge Shapes, Crop and outline width (selects, spinners and menus tied to each
+binding's selection state). In Font and Paragraph the family and size
+selectors, character spacing, change case, font and highlight colour pickers,
+Bullets and Numbering (with their library galleries), line spacing, text
+direction, columns and the Select menu remain native for the same reason.
