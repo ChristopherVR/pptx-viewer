@@ -2,23 +2,25 @@
 /**
  * DrawingGroup: Drawing ribbon group with Shapes dropdown, Arrange layer
  * controls, Shape Fill/Outline colour popovers, and the Quick Styles / Shape
- * Effects galleries (built from the shared ribbon gallery descriptors).
+ * Effects galleries (built from the shared ribbon gallery descriptors). The four
+ * trigger buttons are the shared `pptx-ui-ribbon-home-drawing` strip.
  * Vue port of React's `toolbar/DrawingGroup.tsx`.
  */
 import type { PptxElement, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import { shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
+import { drawingHomeControls, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { vAnchoredPopup } from './anchored-popup';
-import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
+import { MENU_ITEM, MENU_PANEL, SEP } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
 import RibbonGallery from './RibbonGallery.vue';
-import RibbonIcon from './RibbonIcon';
 import ShapeColorPopover from './ShapeColorPopover.vue';
 import { useDropdown } from './use-dropdown';
+import { useHomeHost } from './use-home-host';
 
 interface Props {
 	canEdit: boolean;
@@ -37,7 +39,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
 	{ type: 'rect', labelKey: 'pptx.editorToolbar.shapeRectangle' },
@@ -56,6 +58,53 @@ const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
 
 const shapesMenu = useDropdown();
 const arrangeMenu = useDropdown();
+const fillMenu = useDropdown();
+const outlineMenu = useDropdown();
+const menus = { shapes: shapesMenu, arrange: arrangeMenu, fill: fillMenu, outline: outlineMenu };
+const { host, anchorOf } = useHomeHost();
+/** Wrapper holding the shared triggers and their menus: the outside-click boundary. */
+const root = ref<HTMLElement | null>(null);
+onMounted(() => {
+	for (const menu of Object.values(menus)) {
+		menu.root.value = root.value;
+	}
+});
+
+const state = computed(() => ({
+	// The locale is read so a language switch re-translates the shared labels.
+	locale: locale.value,
+	controls: drawingHomeControls({
+		editable: props.canEdit,
+		hasSelection: Boolean(props.selectedElement),
+		open: {
+			shapes: shapesMenu.open.value,
+			arrange: arrangeMenu.open.value,
+			fill: fillMenu.open.value,
+			outline: outlineMenu.open.value,
+		},
+	}),
+	translate: t,
+}));
+
+const MENU_BY_ID = {
+	'home.drawing.shapes': 'shapes',
+	'home.drawing.arrange': 'arrange',
+	'home.drawing.shapeFill': 'fill',
+	'home.drawing.shapeOutline': 'outline',
+} as const;
+
+function request(event: RibbonHomeRequestEvent): void {
+	const name = MENU_BY_ID[event.detail.id as keyof typeof MENU_BY_ID];
+	if (!name) {
+		return;
+	}
+	for (const [key, menu] of Object.entries(menus)) {
+		if (key !== name) {
+			menu.close();
+		}
+	}
+	menus[name].toggle();
+}
 
 const selectedShapeStyle = computed<ShapeStyle | undefined>(() =>
 	props.selectedElement && hasShapeProperties(props.selectedElement)
@@ -78,34 +127,24 @@ function handleArrange(action: string, edge: boolean): void {
 	arrangeMenu.close();
 }
 
-function handleFill(color: string, ref?: PptxThemeColorRef): void {
-	props.onUpdateElementStyle?.(shapeFillChange(color, ref));
+function handleFill(color: string, themeRef?: PptxThemeColorRef): void {
+	props.onUpdateElementStyle?.(shapeFillChange(color, themeRef));
 }
 
-function handleOutline(color: string, ref?: PptxThemeColorRef): void {
-	props.onUpdateElementStyle?.(shapeOutlineChange(color, ref));
+function handleOutline(color: string, themeRef?: PptxThemeColorRef): void {
+	props.onUpdateElementStyle?.(shapeOutlineChange(color, themeRef));
 }
 </script>
 
 <template>
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.drawing">
 		<div class="flex items-center gap-1" data-pptx-chrome="drawing-controls">
-			<!-- Shapes dropdown -->
-			<div :ref="shapesMenu.root" class="relative" data-ribbon-control="home.drawing.shapes">
-				<button
-					type="button"
-					:disabled="!props.canEdit"
-					:class="pill"
-					:title="t('pptx.drawing.shapes')"
-					@click="shapesMenu.toggle()"
-				>
-					<RibbonIcon name="home.drawing.shapes" :class="ic" />
-					{{ t('pptx.drawing.shapes') }}
-				</button>
+			<div ref="root" class="contents">
+				<pptx-ui-ribbon-home-drawing ref="host" :state.prop="state" @home-request="request" />
 				<div
 					v-if="shapesMenu.open.value"
 					class="z-50 flex flex-col w-52 pt-1"
-					v-anchored-popup="{ anchor: shapesMenu.root.value }"
+					v-anchored-popup="{ anchor: anchorOf('home.drawing.shapes') }"
 				>
 					<div :class="MENU_PANEL">
 						<button
@@ -119,24 +158,10 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 						</button>
 					</div>
 				</div>
-			</div>
-
-			<!-- Arrange dropdown -->
-			<div :ref="arrangeMenu.root" class="relative" data-ribbon-control="home.drawing.arrange">
-				<button
-					type="button"
-					:disabled="!props.canEdit || !props.selectedElement"
-					:class="pill"
-					:title="t('pptx.ribbon.arrange')"
-					@click="arrangeMenu.toggle()"
-				>
-					<RibbonIcon name="home.drawing.arrange" :class="ic" />
-					{{ t('pptx.ribbon.arrange') }}
-				</button>
 				<div
 					v-if="arrangeMenu.open.value"
 					class="z-50 flex flex-col w-44 pt-1"
-					v-anchored-popup="{ anchor: arrangeMenu.root.value }"
+					v-anchored-popup="{ anchor: anchorOf('home.drawing.arrange') }"
 				>
 					<div :class="MENU_PANEL">
 						<button type="button" :class="MENU_ITEM" @click="handleArrange('forward', false)">
@@ -153,29 +178,27 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 						</button>
 					</div>
 				</div>
+				<ShapeColorPopover
+					v-if="fillMenu.open.value"
+					:anchor="anchorOf('home.drawing.shapeFill')"
+					:disabled="!props.canEdit || !props.selectedElement"
+					swatch-aria-prefix="Fill colour"
+					:selected-ref="selectedShapeStyle?.fillColorRef"
+					:selected-hex="selectedShapeStyle?.fillColor"
+					@pick="handleFill"
+					@close="fillMenu.close()"
+				/>
+				<ShapeColorPopover
+					v-if="outlineMenu.open.value"
+					:anchor="anchorOf('home.drawing.shapeOutline')"
+					:disabled="!props.canEdit || !props.selectedElement"
+					swatch-aria-prefix="Outline colour"
+					:selected-ref="selectedShapeStyle?.strokeColorRef"
+					:selected-hex="selectedShapeStyle?.strokeColor"
+					@pick="handleOutline"
+					@close="outlineMenu.close()"
+				/>
 			</div>
-
-			<!-- Shape Fill / Shape Outline -->
-			<ShapeColorPopover
-				data-ribbon-control="home.drawing.shapeFill"
-				:disabled="!props.canEdit || !props.selectedElement"
-				icon-name="home.drawing.shapeFill"
-				title-key="pptx.drawing.shapeFill"
-				swatch-aria-prefix="Fill colour"
-				:selected-ref="selectedShapeStyle?.fillColorRef"
-				:selected-hex="selectedShapeStyle?.fillColor"
-				@pick="handleFill"
-			/>
-			<ShapeColorPopover
-				data-ribbon-control="home.drawing.shapeOutline"
-				:disabled="!props.canEdit || !props.selectedElement"
-				icon-name="home.drawing.shapeOutline"
-				title-key="pptx.drawing.shapeOutline"
-				swatch-aria-prefix="Outline colour"
-				:selected-ref="selectedShapeStyle?.strokeColorRef"
-				:selected-hex="selectedShapeStyle?.strokeColor"
-				@pick="handleOutline"
-			/>
 
 			<!-- Quick Styles (Shape Styles) and Shape Effects galleries (shared descriptors) -->
 			<RibbonGallery gallery="shapeStyles" control="home.drawing.quickStyles" mode="dropdown" />

@@ -155,8 +155,9 @@ describe('slidesGroup template affordance', () => {
 		expect(document.body.querySelector('[role="dialog"]')).toBeNull();
 	});
 
-	it('omits the button when no template handler is provided', () => {
+	it('hides the button when no template handler is provided', () => {
 		mount(SlidesGroup, { props: { ...base }, attachTo: document.body });
-		expect(templatesButton()).toBeUndefined();
+		// The shared strip keeps the control in the DOM but hidden.
+		expect(templatesButton()?.hidden).toBeTruthy();
 	});
 });
