@@ -50,7 +50,7 @@ do not claim that the remaining UI inventory has already migrated.
 | Planned family                               | Issue | Owner         |
 | -------------------------------------------- | ----- | ------------- |
 | Remaining Home controls                      | #373  | ChristopherVR |
-| Insert                                       | #374  | ChristopherVR |
+| Insert (delivered, see below)                | #374  | ChristopherVR |
 | Transitions                                  | #377  | ChristopherVR |
 | Animations                                   | #378  | ChristopherVR |
 | Distinct non-ribbon buttons and icon-buttons | #386  | ChristopherVR |
@@ -137,3 +137,36 @@ native ruler effects, Outline/Normal switching, template state, preference
 persistence, customization, touch targets, theme tokens and forced colors.
 Comparable screenshots are `<binding>-view.png` in the baseline and after
 directories.
+
+## Insert
+
+Insert (#374) uses one controlled shared view, `pptx-ui-ribbon-insert`, for the
+Tables, Images, Illustrations (Shapes, Freeform tools, Chart, SmartArt), Links
+(Link, Action), Text (Text Box, Field, Header & Footer), Symbols (Equation) and
+Media groups. It owns the markup, icons, labels, pickers, pressed Freeform
+state and disabled/read-only gating; hosts supply viewer state and route typed
+`insert-request` intents (command, shapeType/shape, chartType/chart, freeform,
+actionButton, field) to native handlers.
+
+Native in every binding: document mutation, undo/history and persistence, the
+image/media file pickers, the SmartArt gallery, equation editor, hyperlink and
+Header & Footer dialogs, Freeform arming and the canvas overlay, and (React,
+Vue, Angular) the Date/Time format picker. Public customization ids are
+unchanged; Header & Footer still has none.
+
+Parity gaps fixed before migrating: Angular's Insert controls were never
+disabled in a read-only deck and its Link ignored the selection state; Svelte
+and Vanilla used native selects or popups for Action and Field while React, Vue
+and Angular used hover-only popups. All five now share click and keyboard menus.
+The Shape button's glyph follows the staged preset in every binding. Svelte and
+Vanilla still insert the current date directly for the Date/Time field (no
+format picker), as before. Group order now follows PowerPoint (Text Box moved
+into the Text group) and each group has a caption (new `pptx.insert.group*` keys in
+English, German, Spanish, French and Simplified Chinese).
+
+`e2e/ribbon-insert-migration.spec.ts` covers ids, keyboard and pointer
+insertion of a text box, shape and table with undo/redo and a save/reload round
+trip, the Chart/Action/Field menus, Freeform pressed state, Link selection
+gating, the native SmartArt/Equation dialogs and image file chooser,
+customization, touch targets, theme tokens and forced colors. Comparable
+screenshots are `<binding>-insert.png` in the baseline and after directories.

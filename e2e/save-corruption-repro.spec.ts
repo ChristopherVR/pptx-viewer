@@ -79,7 +79,12 @@ async function addSmartArt(page: Page): Promise<void> {
 async function addGifImage(page: Page): Promise<void> {
 	await switchToInsertTab(page);
 	const chooserPromise = page.waitForEvent('filechooser');
-	await page.getByRole('button', { name: /image/iu }).first().click();
+	// Scoped to the ribbon: the inspector can also expose a file input named "Choose Image".
+	await page
+		.getByRole('toolbar', { name: 'Presentation toolbar' })
+		.getByRole('button', { name: /image/iu })
+		.first()
+		.click();
 	const chooser = await chooserPromise;
 	await chooser.setFiles(gifFixturePath);
 	await page.waitForTimeout(500);

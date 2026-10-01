@@ -56,3 +56,20 @@ editing remain outside the shared controlled view.
   Vanilla ribbon suites passed.
 - View neutral browser suite: 30 tests across all five bindings passed.
 - Changed-file formatting/lint and neutral test contract: passed.
+
+## Insert (#374)
+
+The five `*-insert.png` captures use the baseline deck and viewport on the
+Insert tab; the matching "before" captures are `../ribbon-baseline/<binding>-insert.png`.
+Native document insertion, file pickers, the SmartArt/equation/hyperlink/Header
+& Footer dialogs and history remain outside the shared controlled view.
+
+- Root build and typecheck: passed.
+- Shared Insert state/view: 11 tests; shared, locales, React, Vue, Svelte,
+  Angular and Vanilla unit suites: passed (counts in the commit message).
+- Insert neutral browser suite: 35 tests across all five bindings passed
+  (real text box/shape/table insertion, undo/redo, save/reload, menus,
+  Freeform pressed state, native dialogs and file chooser, customization,
+  touch targets, theme tokens, forced colors). Existing equation, media,
+  SmartArt, edit-points, save-corruption and compact-layout Insert checks passed.
+- Changed-file formatting/lint and neutral test contract: passed.
