@@ -1,20 +1,23 @@
+import { FOCUS_RING, tok } from './control-tokens';
+
 export const SEARCH_STYLES = `
 :host {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: ${tok('--pptx-space-2')};
 	box-sizing: border-box;
 	width: 100%;
-	height: 40px;
-	padding: 0 12px;
-	border: 1px solid var(--pptx-input, #374151);
-	background: var(--pptx-card, #111827);
-	color: var(--pptx-muted-foreground, #9ca3af);
+	height: ${tok('--pptx-field-height-lg')};
+	padding: 0 ${tok('--pptx-space-3')};
+	border: 1px solid ${tok('--pptx-field-border')};
+	border-radius: ${tok('--pptx-field-radius')};
+	background: ${tok('--pptx-field-bg')};
+	color: ${tok('--pptx-field-placeholder')};
 	font: inherit;
 }
-:host(:focus-within) { border-color: var(--pptx-ring, #6366f1); }
+:host(:focus-within) { border-color: ${tok('--pptx-field-border-focus')}; }
 :host([variant="titlebar"]) {
-	height: 28px;
+	height: ${tok('--pptx-field-height')};
 	gap: 7px;
 	padding-inline: 14px;
 	border-color: var(--pptx-border, #374151);
@@ -22,7 +25,7 @@ export const SEARCH_STYLES = `
 	background: var(--pptx-background, #030712);
 }
 :host([variant="titlebar"]:focus-within) {
-	border-color: var(--pptx-ring, #6366f1);
+	border-color: ${tok('--pptx-field-border-focus')};
 	color: var(--pptx-foreground, #f3f4f6);
 }
 :host([disabled]) { opacity: .5; cursor: not-allowed; }
@@ -37,7 +40,7 @@ input {
 	border: 0;
 	outline: 0;
 	background: transparent;
-	color: var(--pptx-card-foreground, #f3f4f6);
+	color: ${tok('--pptx-field-fg')};
 	font: inherit;
 	font-size: 13px;
 }
@@ -46,7 +49,7 @@ input {
 	color: var(--pptx-foreground, #f3f4f6);
 }
 input::placeholder {
-	color: var(--pptx-muted-foreground, #9ca3af);
+	color: ${tok('--pptx-field-placeholder')};
 	opacity: .8;
 }
 input::-webkit-search-cancel-button { display: none; }
@@ -57,8 +60,8 @@ input::-webkit-search-cancel-button { display: none; }
 		color: CanvasText;
 	}
 	:host(:focus-within) {
-		outline: 2px solid Highlight;
-		outline-offset: 2px;
+		${FOCUS_RING}
+		outline-color: Highlight;
 	}
 	input { color: CanvasText; }
 }

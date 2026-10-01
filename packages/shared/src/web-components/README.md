@@ -476,3 +476,13 @@ ordering and gating differ between bindings in ways a shared strip cannot
 unify without a behaviour change. They are tracked as the next Home batches.
 The font family and size selectors, character spacing, change case, font and
 highlight colour pickers stay native for the same reason.
+
+## Design tokens
+
+Search, select and checkbox read the tokens in `control-tokens.ts` (field,
+focus ring, density and checkbox groups) through `tok(name)`; the host
+stylesheet applies the same accent, size and focus ring to native checkboxes,
+radios and select borders inside viewer chrome and dialogs. See the control
+primitives section of `docs/guide/ui-migration.md` for the token table and the
+list of surfaces that keep a native `<select>`. `pptx-ui-search` also exposes
+`placeholder` as a property.

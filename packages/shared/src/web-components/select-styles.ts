@@ -1,3 +1,4 @@
+import { FOCUS_RING, tok } from './control-tokens';
 import { SELECT_RIBBON_STYLES } from './select-ribbon-styles';
 
 export const SELECT_STYLES = `
@@ -19,14 +20,14 @@ export const SELECT_STYLES = `
 button {
 	box-sizing: border-box;
 	width: 100%;
-	min-height: 28px;
+	min-height: ${tok('--pptx-field-height')};
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 10px;
-	padding: 4px 7px;
-	border: 1px solid var(--pptx-border, #3f3f52);
-	border-radius: 5px;
+	padding: ${tok('--pptx-space-1')} ${tok('--pptx-field-padding-x')};
+	border: 1px solid ${tok('--pptx-field-border')};
+	border-radius: ${tok('--pptx-field-radius')};
 	background: var(--pptx-select-control-bg, var(--pptx-background, #11111b));
 	color: inherit;
 	font: inherit;
@@ -37,12 +38,11 @@ button {
 :host(.bg-muted) button { background: var(--pptx-muted, #1f2937); }
 :host(.bg-popover) button { background: var(--pptx-popover, #111827); }
 button:focus-visible {
-	outline: 2px solid var(--pptx-ring, #6366f1);
-	outline-offset: 2px;
+	${FOCUS_RING}
 }
 button:disabled { cursor: not-allowed; }
 @media (pointer: coarse), (max-width: 767px) {
-	button { min-height: 44px; }
+	button { min-height: ${tok('--pptx-touch-target')}; }
 }
 .value {
 	overflow: hidden;
@@ -71,8 +71,8 @@ button:disabled { cursor: not-allowed; }
 	min-width: 90px;
 	max-height: min(240px, 50vh);
 	overflow: auto;
-	border: 1px solid var(--pptx-border, #3f3f52);
-	border-radius: 5px;
+	border: 1px solid ${tok('--pptx-field-border')};
+	border-radius: ${tok('--pptx-field-radius')};
 	background: var(--pptx-popover, var(--pptx-background, #11111b));
 	color: var(--pptx-popover-foreground, var(--pptx-foreground, #e2e8f0));
 	box-shadow: 0 8px 20px #0004;
@@ -97,10 +97,10 @@ button:disabled { cursor: not-allowed; }
 }
 .option:not([aria-disabled="true"]):hover,
 .option[data-active]:not([aria-selected="true"]) {
-	background: color-mix(in srgb, var(--pptx-primary, #e86a40) 20%, var(--pptx-popover, #11111b));
+	background: color-mix(in srgb, var(--pptx-primary, #6366f1) 20%, var(--pptx-popover, #11111b));
 }
 .option[aria-selected="true"] {
-	background: var(--pptx-primary, #e86a40);
+	background: var(--pptx-primary, #6366f1);
 	color: var(--pptx-primary-foreground, #fff);
 }
 .option[aria-selected="true"]:hover { filter: brightness(1.08); }
