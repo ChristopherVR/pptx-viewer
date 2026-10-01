@@ -52,12 +52,8 @@ function renderPopover(onApply: (color: string, ref?: ThemeColorPickerCommit['re
 		root.render(
 			<ThemeColorMapProvider value={OFFICE_THEME}>
 				<ShapeColorPopover
-					icon={<span />}
-					title='Shape Fill'
 					prefix='shape-fill'
 					anchorRef={anchorRef}
-					open
-					onToggle={() => {}}
 					disabled={false}
 					swatchAriaLabel='Fill colour'
 					onApply={onApply}

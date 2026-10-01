@@ -15,7 +15,7 @@ const THUMB_HEIGHT = 72;
 const MAX_PREVIEW_ELEMENTS = 100;
 
 export interface LayoutGalleryMenuProps {
-	anchorRef: React.RefObject<HTMLDivElement | null>;
+	anchorRef: React.RefObject<HTMLElement | null>;
 	layoutOptions: readonly PptxLayoutOption[];
 	/** Artwork by layout path; entries render as name-only tiles until it arrives. */
 	previews: ReadonlyMap<string, PptxLayoutPreview>;

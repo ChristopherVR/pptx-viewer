@@ -630,8 +630,8 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="New Slide"');
-		expect(html).toContain('New Slide');
+		// The shared Slides element renders the buttons; see HomeGroups.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-slides');
 	});
 
 	it('font family display shows default value', () => {
@@ -1250,14 +1250,12 @@ describe('toolbar - Arrange tab', () => {
 		...overrides,
 	});
 
-	it('renders alignment buttons', () => {
+	it('renders the shared Align, Flip, order and edit strips', () => {
 		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toContain('title="Align left"');
-		expect(html).toContain('title="Align center"');
-		expect(html).toContain('title="Align right"');
-		expect(html).toContain('title="Align top"');
-		expect(html).toContain('title="Align middle"');
-		expect(html).toContain('title="Align bottom"');
+		// The shared elements render their buttons in the browser; see ArrangeSection.test.tsx.
+		for (const family of ['align', 'flip', 'order', 'edit']) {
+			expect(html).toContain(`<pptx-ui-ribbon-home-arrange-${family}`);
+		}
 	});
 
 	it('leaves the clipboard trio to the Clipboard group', () => {
@@ -1285,41 +1283,9 @@ describe('toolbar - Arrange tab', () => {
 		expect(pair).not.toMatch(/<button[^>]*disabled=""[^>]*aria-label="Group"/u);
 	});
 
-	it('renders Flip H and Flip V buttons', () => {
-		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toContain('title="Flip horizontally"');
-		expect(html).toContain('title="Flip vertically"');
-	});
-
-	it('renders layer ordering buttons', () => {
-		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toContain('title="Send backward"');
-		expect(html).toContain('title="Bring forward"');
-		expect(html).toContain('title="Send to back"');
-		expect(html).toContain('title="Bring to front"');
-	});
-
-	it('renders Duplicate and Delete buttons', () => {
-		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toContain('title="Duplicate"');
-		expect(html).toContain('title="Delete"');
-	});
-
 	it('renders Format Painter button', () => {
 		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
 		expect(html).toContain('title="Format Painter"');
-	});
-
-	it('alignment buttons are disabled when no element is selected', () => {
-		const html = render(
-			React.createElement(ArrangeSection, createArrangeProps({ selectedElement: null })),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Align left"/u);
-	});
-
-	it('delete button has red styling', () => {
-		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toMatch(/bg-red[^"]*"[^>]*title="Delete"/u);
 	});
 });
 
@@ -1373,7 +1339,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
-		expect(html).toContain('New Slide');
+		expect(html).toContain('<pptx-ui-ribbon-home-slides');
 		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 

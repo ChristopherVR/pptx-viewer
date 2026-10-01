@@ -1,14 +1,15 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuChevronDown, LuChevronUp, LuCopy, LuPaintbrush, LuTrash2 } from 'react-icons/lu';
+import { LuPaintbrush } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import { controlAttr, groupAttr } from './PowerPointRibbonControls';
 import { ShapeArrangeExtras } from './ShapeArrangeExtras';
-import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './toolbar-constants';
+import { ic, pill } from './toolbar-constants';
+import { WebHomeControls } from './WebHomeControls';
 
 export interface ArrangeSectionProps {
 	canEdit: boolean;
@@ -35,42 +36,73 @@ export interface ArrangeSectionProps {
 	hiddenActions?: readonly ToolbarActionId[];
 }
 
+/**
+ * Home > Arrange. Align/Distribute, Flip, layer order and Duplicate/Delete are
+ * the shared `pptx-ui-ribbon-home-arrange-*` strips; the second Format Painter,
+ * Group, Ungroup, Merge Shapes, Crop and the outline width stay native.
+ */
 export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 	const { t } = useTranslation();
-	const hasSel = Boolean(p.selectedElement);
-	const canMut = hasSel && p.canEdit;
+	const {
+		onAlignElements,
+		onDistributeElements,
+		onFlip,
+		onMoveLayer,
+		onMoveLayerToEdge,
+		onDuplicate,
+		onDelete,
+	} = p;
+	const controls = useMemo(
+		() =>
+			arrangeHomeControls({
+				editable: p.canEdit,
+				hasSelection: Boolean(p.selectedElement),
+				canDistribute: p.canDistribute,
+			}),
+		[p.canEdit, p.selectedElement, p.canDistribute],
+	);
+	const requestAlign = useCallback(
+		(_id: string, part?: string) => {
+			const action = arrangeAlignAction(part);
+			if (action?.kind === 'align') {
+				onAlignElements(action.edge === 'centerH' ? 'center' : action.edge);
+			} else if (action) {
+				onDistributeElements(action.axis);
+			}
+		},
+		[onAlignElements, onDistributeElements],
+	);
+	const requestFlip = useCallback(
+		(id: string) => onFlip(id === 'home.arrange.flipHorizontal' ? 'horizontal' : 'vertical'),
+		[onFlip],
+	);
+	const requestOrder = useCallback(
+		(id: string) => {
+			switch (id) {
+				case 'home.arrange.sendBackward':
+					onMoveLayer('backward');
+					break;
+				case 'home.arrange.bringForward':
+					onMoveLayer('forward');
+					break;
+				case 'home.arrange.sendToBack':
+					onMoveLayerToEdge('back');
+					break;
+				case 'home.arrange.bringToFront':
+					onMoveLayerToEdge('front');
+			}
+		},
+		[onMoveLayer, onMoveLayerToEdge],
+	);
+	const requestEdit = useCallback(
+		(id: string) => (id === 'home.arrange.duplicate' ? onDuplicate() : onDelete()),
+		[onDuplicate, onDelete],
+	);
 
 	return (
 		<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.arrange')}>
 			<div className='flex items-center gap-1' data-pptx-chrome='arrange-controls'>
-				<div className={grp} {...controlAttr('home.arrange.align')}>
-					{ALIGN_BTNS.map((a, i, arr) => (
-						<button
-							key={a.k}
-							type='button'
-							onClick={() => p.onAlignElements(a.k)}
-							disabled={!canMut}
-							className={i < arr.length - 1 ? gB : gL}
-							title={t(ALIGNMENT_LABEL_KEYS[a.k])}
-						>
-							{a.el}
-						</button>
-					))}
-				</div>
-				<div className={grp}>
-					{DISTRIBUTE_BTNS.map((d, i, arr) => (
-						<button
-							key={d.k}
-							type='button'
-							onClick={() => p.onDistributeElements(d.k)}
-							disabled={!p.canEdit || !p.canDistribute}
-							className={i < arr.length - 1 ? gB : gL}
-							title={t(`pptx.arrange.distribute${d.k.charAt(0).toUpperCase()}${d.k.slice(1)}`)}
-						>
-							{d.el}
-						</button>
-					))}
-				</div>
+				<WebHomeControls family='arrange-align' controls={controls} onRequest={requestAlign} />
 				{p.onToggleFormatPainter && (
 					<button
 						type='button'
@@ -91,28 +123,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						{t('pptx.arrange.format')}
 					</button>
 				)}
-				<div className={grp}>
-					<button
-						type='button'
-						onClick={() => p.onFlip('horizontal')}
-						disabled={!canMut}
-						className={gB}
-						title={t('pptx.arrange.flipHorizontally')}
-						{...controlAttr('home.arrange.flipHorizontal')}
-					>
-						{t('pptx.arrange.flipH')}
-					</button>
-					<button
-						type='button'
-						onClick={() => p.onFlip('vertical')}
-						disabled={!canMut}
-						className={gL}
-						title={t('pptx.arrange.flipVertically')}
-						{...controlAttr('home.arrange.flipVertical')}
-					>
-						{t('pptx.arrange.flipV')}
-					</button>
-				</div>
+				<WebHomeControls family='arrange-flip' controls={controls} onRequest={requestFlip} />
 				<ShapeArrangeExtras
 					canEdit={p.canEdit}
 					selectedElement={p.selectedElement}
@@ -123,64 +134,8 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onUpdateElementStyle={p.onUpdateElementStyle}
 					hiddenActions={p.hiddenActions}
 				/>
-				<div className={grp} data-pptx-chrome='order-controls'>
-					<button
-						onClick={() => p.onMoveLayer('backward')}
-						disabled={!canMut}
-						className={gB}
-						title={t('pptx.arrange.sendBackward')}
-						{...controlAttr('home.arrange.sendBackward')}
-					>
-						<LuChevronDown className={ic} />
-					</button>
-					<button
-						onClick={() => p.onMoveLayer('forward')}
-						disabled={!canMut}
-						className={gB}
-						title={t('pptx.arrange.bringForward')}
-						{...controlAttr('home.arrange.bringForward')}
-					>
-						<LuChevronUp className={ic} />
-					</button>
-					<button
-						onClick={() => p.onMoveLayerToEdge('back')}
-						disabled={!canMut}
-						className={gB}
-						title={t('pptx.arrange.sendToBack')}
-						{...controlAttr('home.arrange.sendToBack')}
-					>
-						{t('pptx.arrange.back')}
-					</button>
-					<button
-						onClick={() => p.onMoveLayerToEdge('front')}
-						disabled={!canMut}
-						className={gL}
-						title={t('pptx.arrange.bringToFront')}
-						{...controlAttr('home.arrange.bringToFront')}
-					>
-						{t('pptx.arrange.front')}
-					</button>
-				</div>
-				<button
-					onClick={p.onDuplicate}
-					disabled={!canMut}
-					className={pill}
-					title={t('pptx.arrange.duplicate')}
-					{...controlAttr('home.arrange.duplicate')}
-				>
-					<LuCopy className={ic} />
-					{t('pptx.arrange.duplicate')}
-				</button>
-				<button
-					onClick={p.onDelete}
-					disabled={!canMut}
-					className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors'
-					title={t('pptx.arrange.delete')}
-					{...controlAttr('home.arrange.delete')}
-				>
-					<LuTrash2 className={ic} />
-					{t('pptx.arrange.delete')}
-				</button>
+				<WebHomeControls family='arrange-order' controls={controls} onRequest={requestOrder} />
+				<WebHomeControls family='arrange-edit' controls={controls} onRequest={requestEdit} />
 			</div>
 			<span className='text-[9px] text-muted-foreground leading-none'>
 				{t('pptx.arrange.groupLabel')}

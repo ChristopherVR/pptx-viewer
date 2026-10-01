@@ -1,22 +1,14 @@
 import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import type { SlideTemplateId } from 'pptx-viewer-shared';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-	LuChevronDown,
-	LuFolderPlus,
-	LuLayoutTemplate,
-	LuPlus,
-	LuRotateCcw,
-	LuLayoutGrid,
-} from 'react-icons/lu';
+import { slidesHomeControls } from 'pptx-viewer-shared';
+import type { PptxUiRibbonHomeElement, SlideTemplateId } from 'pptx-viewer-shared';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useLayoutPreviews } from '../../hooks/useLayoutPreviews';
-import { cn } from '../../utils';
 import { SlideTemplateGalleryDialog } from '../SlideTemplateGalleryDialog';
 import { LayoutGalleryMenu } from './LayoutGalleryMenu';
-import { controlAttr, groupAttr } from './PowerPointRibbonControls';
-import { ic, pill, sep } from './toolbar-constants';
+import { sep } from './toolbar-constants';
+import { useHomeAnchor, useHomePopover, WebHomeControls } from './WebHomeControls';
 
 export interface SlidesGroupProps {
 	canEdit: boolean;
@@ -34,174 +26,106 @@ export interface SlidesGroupProps {
 	onAddSection?: () => void;
 }
 
+/**
+ * Home > Slides: the shared `pptx-ui-ribbon-home-slides` group renders the
+ * split New Slide, Slide Templates, Layout, Reset and Section buttons. The
+ * layout galleries and the template dialog stay native and are anchored on the
+ * shared wrappers.
+ */
 export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
-	const { t } = useTranslation();
-	const [newSlideMenuOpen, setNewSlideMenuOpen] = useState(false);
-	const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+	const elementRef = useRef<PptxUiRibbonHomeElement | null>(null);
+	const newSlide = useHomePopover(useHomeAnchor(elementRef, 'home.slides.newSlide'));
+	const layout = useHomePopover(useHomeAnchor(elementRef, 'home.slides.layout'));
 	const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
-	const newSlideMenuRef = useRef<HTMLDivElement>(null);
-	const layoutMenuRef = useRef<HTMLDivElement>(null);
-	const previews = useLayoutPreviews(p.loadLayoutPreviews, newSlideMenuOpen || layoutMenuOpen);
+	const previews = useLayoutPreviews(p.loadLayoutPreviews, newSlide.open || layout.open);
+	const { layoutOptions, onInsertSlideFromLayout, onResetSlide, onAddSection } = p;
+	const { setOpen: setNewSlideOpen } = newSlide;
+	const { setOpen: setLayoutOpen } = layout;
 
-	const handleNewSlide = useCallback(() => {
-		if (p.layoutOptions.length > 0) {
-			const first = p.layoutOptions[0];
-			p.onInsertSlideFromLayout(first.path, first.name);
-		}
-	}, [p]);
-
-	useEffect(() => {
-		if (!newSlideMenuOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (newSlideMenuRef.current && !newSlideMenuRef.current.contains(e.target as Node)) {
-				setNewSlideMenuOpen(false);
+	const controls = useMemo(
+		() =>
+			slidesHomeControls({
+				editable: p.canEdit,
+				hasLayouts: layoutOptions.length > 0,
+				hasSlides: true,
+				showTemplates: Boolean(p.onInsertSlideFromTemplate),
+				newSlideNeedsLayout: true,
+				resetNeedsSlide: false,
+				newSlideOpen: newSlide.open,
+				layoutOpen: layout.open,
+			}),
+		[p.canEdit, layoutOptions.length, p.onInsertSlideFromTemplate, newSlide.open, layout.open],
+	);
+	const request = useCallback(
+		(id: string, part?: string) => {
+			switch (id) {
+				case 'home.slides.newSlide':
+					if (part === 'caret') {
+						setNewSlideOpen((v) => !v);
+					} else if (layoutOptions.length > 0) {
+						onInsertSlideFromLayout(layoutOptions[0].path, layoutOptions[0].name);
+					}
+					break;
+				case 'home.slides.slideTemplates':
+					setTemplateGalleryOpen(true);
+					break;
+				case 'home.slides.layout':
+					setLayoutOpen((v) => !v);
+					break;
+				case 'home.slides.reset':
+					onResetSlide?.();
+					break;
+				case 'home.slides.section':
+					onAddSection?.();
 			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [newSlideMenuOpen]);
-
-	useEffect(() => {
-		if (!layoutMenuOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (layoutMenuRef.current && !layoutMenuRef.current.contains(e.target as Node)) {
-				setLayoutMenuOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [layoutMenuOpen]);
+		},
+		[
+			layoutOptions,
+			onInsertSlideFromLayout,
+			onResetSlide,
+			onAddSection,
+			setNewSlideOpen,
+			setLayoutOpen,
+		],
+	);
 
 	return (
 		<>
-			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.slides')}>
-				<div className='flex items-center gap-1' data-pptx-chrome='slides-controls'>
-					{/* New Slide split button */}
-					<div
-						className='relative inline-flex items-center'
-						ref={newSlideMenuRef}
-						{...controlAttr('home.slides.newSlide')}
-						data-pptx-chrome='split-button'
-					>
-						<button
-							data-pptx-chrome='split-main'
-							type='button'
-							onClick={handleNewSlide}
-							disabled={!p.canEdit || p.layoutOptions.length === 0}
-							className={cn(
-								pill,
-								'whitespace-nowrap',
-								p.layoutOptions.length > 0 ? 'rounded-r-none' : '',
-							)}
-							title={t('pptx.home.newSlide')}
-						>
-							<LuPlus className={ic} />
-							{t('pptx.home.newSlide')}
-						</button>
-						{p.layoutOptions.length > 0 && (
-							<button
-								data-pptx-chrome='split-caret'
-								type='button'
-								disabled={!p.canEdit}
-								className='inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80'
-								title={t('pptx.home.chooseLayout')}
-								onClick={() => setNewSlideMenuOpen((v) => !v)}
-							>
-								<LuChevronDown className='w-3 h-3' />
-							</button>
-						)}
-						{newSlideMenuOpen && (
-							<LayoutGalleryMenu
-								anchorRef={newSlideMenuRef}
-								layoutOptions={p.layoutOptions}
-								previews={previews}
-								onSelect={(layout) => {
-									p.onInsertSlideFromLayout(layout.path, layout.name);
-									setNewSlideMenuOpen(false);
-								}}
-							/>
-						)}
-					</div>
-
-					{/* Slide Templates gallery button */}
-					{p.onInsertSlideFromTemplate && (
-						<button
-							type='button'
-							disabled={!p.canEdit}
-							className={pill}
-							title={t('pptx.home.slideTemplates')}
-							{...controlAttr('home.slides.slideTemplates')}
-							onClick={() => setTemplateGalleryOpen(true)}
-						>
-							<LuLayoutTemplate className={ic} />
-							{t('pptx.home.slideTemplates')}
-						</button>
-					)}
-
-					{/* Layout button */}
-					<div
-						className='relative inline-flex items-center'
-						ref={layoutMenuRef}
-						{...controlAttr('home.slides.layout')}
-					>
-						<button
-							type='button'
-							disabled={!p.canEdit || p.layoutOptions.length === 0}
-							className={pill}
-							title={t('pptx.master.layout')}
-							onClick={() => setLayoutMenuOpen((v) => !v)}
-						>
-							<LuLayoutGrid className={ic} />
-							{t('pptx.master.layout')}
-						</button>
-						{layoutMenuOpen && (
-							<LayoutGalleryMenu
-								anchorRef={layoutMenuRef}
-								layoutOptions={p.layoutOptions}
-								previews={previews}
-								currentLayoutPath={p.currentLayoutPath}
-								onSelect={(layout) => {
-									p.onApplyLayout?.(layout.path);
-									setLayoutMenuOpen(false);
-								}}
-							/>
-						)}
-					</div>
-
-					{/* Reset button */}
-					<button
-						type='button'
-						disabled={!p.canEdit}
-						className={pill}
-						title={t('pptx.sections.resetSlideTitle')}
-						{...controlAttr('home.slides.reset')}
-						onClick={p.onResetSlide}
-					>
-						<LuRotateCcw className={ic} />
-						{t('pptx.animations.reset')}
-					</button>
-
-					{/* Section button */}
-					<button
-						type='button'
-						disabled={!p.canEdit}
-						className={pill}
-						title={t('pptx.sections.addSection')}
-						{...controlAttr('home.slides.section')}
-						onClick={p.onAddSection}
-					>
-						<LuFolderPlus className={ic} />
-						{t('pptx.sections.sectionButtonLabel')}
-					</button>
-				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>
-					{t('pptx.ribbon.slides')}
-				</span>
-			</div>
+			<WebHomeControls
+				family='slides'
+				controls={controls}
+				onRequest={request}
+				elementRef={elementRef}
+			/>
+			{newSlide.open &&
+				newSlide.anchorRef.current &&
+				createPortal(
+					<LayoutGalleryMenu
+						anchorRef={newSlide.anchorRef}
+						layoutOptions={layoutOptions}
+						previews={previews}
+						onSelect={(l) => {
+							onInsertSlideFromLayout(l.path, l.name);
+							setNewSlideOpen(false);
+						}}
+					/>,
+					newSlide.anchorRef.current,
+				)}
+			{layout.open &&
+				layout.anchorRef.current &&
+				createPortal(
+					<LayoutGalleryMenu
+						anchorRef={layout.anchorRef}
+						layoutOptions={layoutOptions}
+						previews={previews}
+						currentLayoutPath={p.currentLayoutPath}
+						onSelect={(l) => {
+							p.onApplyLayout?.(l.path);
+							setLayoutOpen(false);
+						}}
+					/>,
+					layout.anchorRef.current,
+				)}
 
 			{sep}
 
