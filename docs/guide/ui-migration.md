@@ -360,3 +360,54 @@ Not migrated, and to be split into owned follow-up issues before #386 closes:
 read-only banner, paste options toolbar, dialog footers with a shared dialog
 shell, context menus, presentation toolbars, title bar and quick access, and
 compatibility toasts. This is why the issue stays open.
+
+## Control primitives and tokens (#342)
+
+The original observations (doubled search border, uneven File navigation, native
+select popups, mismatched checkbox accents) were fixed per surface in #346 to
+#349. This pass makes that result structural: one shared primitive per control
+kind, all reading one set of design tokens, with a cross-binding check that fails
+when any surface drifts.
+
+Tokens live in `packages/shared/src/web-components/control-tokens.ts` and are
+read through `tok(name)`, which emits `var(--pptx-..., <default>)`. Defaults
+resolve where they are used, so viewer-root themes still reach them. Any token
+can be overridden by the host or a theme.
+
+| Group      | Tokens                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Field      | `--pptx-field-border`, `-border-focus`, `-bg`, `-fg`, `-placeholder`, `-radius`, `-height` (28px), `-height-lg` (40px), `-padding-x` |
+| Focus ring | `--pptx-focus-ring-color`, `-width` (2px), `-offset` (2px)                                                                           |
+| Density    | `--pptx-space-1..4` (4, 8, 12, 16px), `--pptx-row-height` (28px), `--pptx-row-height-nav` (40px), `--pptx-touch-target` (44px)       |
+| Checkbox   | `--pptx-checkbox-size` (16px), `-size-touch` (22px), `-radius`, `-border`, `-bg`, `-accent` (the theme primary), `-accent-fg`        |
+
+| Kind     | Primitive          | Where native stays                                                                                                                                                                                                                                                                                      |
+| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Search   | `pptx-ui-search`   | None. Title bar (28px) and File recent files (40px) are the two variants of one field.                                                                                                                                                                                                                  |
+| Select   | `pptx-ui-select`   | Options, the Properties inspector and the ribbon use the app-owned listbox. Secondary dialogs (Print, Custom Shows, Hyperlink, Document Properties, Show Slides, Date/Time field, the animation timeline) keep a native `<select>` with the OS popup; only the closed control follows the field tokens. |
+| Checkbox | `pptx-ui-checkbox` | Native `input[type=checkbox]` and radios remain in dialogs and panels; they take the same accent, size and focus ring from the host stylesheet, scoped to viewer chrome and dialogs.                                                                                                                    |
+
+`pptx-ui-select` is a combobox/listbox with a popup placed against the trigger,
+arrow, Home, End, typeahead, Enter, Space, Escape and Tab behaviour,
+`aria-activedescendant`, 44px triggers on coarse pointers and forced-colors
+styles. Escape while its popup is open closes only the popup: modal dialogs
+(Svelte, Angular) used to close with it, which `activateModalFocus` now avoids.
+
+Drift the new checks found and fixed: Vanilla's title-bar search was 24px with
+a different background (every other binding is 28px) and, with Vanilla's File
+search, showed no placeholder because the primitive had no `placeholder`
+property; the Angular Options checkbox and the Angular, Svelte and Vanilla
+Options panes sized their checkboxes 15px instead of 16px.
+
+Evidence: `/assets/ui-migration/primitives-before/` and
+`/assets/ui-migration/primitives-after/`, named `<binding>-titlebar`,
+`-file-menu`, `-options` and `-inspector`. The unit checks are
+`control-primitives.test.ts` (token coverage, search, checkbox and select
+states) and `modal-focus.test.ts`; the browser contract is
+`e2e/ui-primitives-consistency.spec.ts`, run in all five bindings alongside the
+existing `search-field-focus`, `backstage-nav-spacing` and `web-controls` specs.
+
+Still open: converting the secondary-dialog native selects to `pptx-ui-select`
+needs per-binding adapters (about 35 sites) and is tracked with the remaining
+dialog-body work; the dialog footers, menus, toasts, banners and toolbars belong
+to #386.
