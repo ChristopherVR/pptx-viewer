@@ -31,7 +31,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { motionPathPresetIdForPath } from '../internal/shared';
 import { isSelectControl } from './control-event-targets';
-import { MOTION_PATH_COLUMNS } from './ribbon-motion-path-gallery.component';
+import { MOTION_PATH_COLUMNS } from './motion-path-columns';
 
 /** The select value standing for "this path was hand-dragged". */
 export const CUSTOM_MOTION_PATH_VALUE = 'custom';

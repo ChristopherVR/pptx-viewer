@@ -231,6 +231,7 @@ export function createRibbon(
 			selectedElementId: latestExtra.selectedElementId,
 			animations: latestExtra.animations ?? [],
 			animationTimelineAnchors: latestExtra.animationTimelineAnchors ?? [],
+			paneOpen: inspectorOpen,
 		});
 	};
 
@@ -294,6 +295,7 @@ export function createRibbon(
 		setInspectorOpen: (open) => {
 			inspectorOpen = open;
 			primary.setInspectorOpen(open);
+			syncAnimations();
 		},
 		toggleFindReplace: () => findReplace.toggle(),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),

@@ -56,3 +56,23 @@ editing remain outside the shared controlled view.
   Vanilla ribbon suites passed.
 - View neutral browser suite: 30 tests across all five bindings passed.
 - Changed-file formatting/lint and neutral test contract: passed.
+
+## Animations (#378)
+
+The five `*-animations.png` captures use the baseline deck and viewport on the
+Animations tab (no selection, so authoring controls are disabled as in the
+baseline). Native effect edits, the Animation Pane/inspector, the Svelte and
+Vanilla play-order timeline, Preview playback, history and persistence remain
+outside the shared controlled view.
+
+- Root build and typecheck (0 errors), React 18 public typecheck: passed.
+- Shared Animations state/view: nine tests; shared suite passed.
+- React 18 and React 19 full suites: 7,491 tests each; Vue 3,159; Svelte 2,025;
+  Angular 4,038; Vanilla 2,103 tests passed.
+- Animations neutral browser suite: 35 tests across all five bindings passed
+  (ids, a real gallery effect, undo, redo with save/reload and Preview on the
+  saved deck, a motion path in the saved XML, customization, touch targets,
+  focus, theme tokens and forced colors).
+- Existing animation, ribbon parity, inventory, web-control, Draw and View
+  specs: 160 tests passed.
+- Changed-file formatting/lint and neutral test contract: passed.

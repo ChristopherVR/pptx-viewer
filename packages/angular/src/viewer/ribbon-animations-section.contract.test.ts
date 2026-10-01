@@ -1,10 +1,10 @@
 /**
- * The Animations ribbon tab's Preview button used to emit `present`, which
- * `power-point-viewer.component.ts` wires (via `ribbon-content-secondary` and
- * `ribbon.component.ts`) to `presentationMode.present()`, starting the FULL
- * slide show and leaving the editor. It must instead play the selected
- * element's own effect in place, via the shared `playAnimationRibbonPreview`
- * (the same function react/vue/svelte/vanilla's ribbons call).
+ * The Animations ribbon tab's Preview command used to emit `present`, which the
+ * viewer component wires (via `ribbon-content-secondary` and `ribbon.component`)
+ * to `presentationMode.present()`, starting the FULL slide show and leaving the
+ * editor. It must instead play the selected element's own effect in place, via
+ * the shared `playAnimationRibbonPreview` (the same function the react, vue,
+ * svelte and vanilla ribbons call).
  *
  * Angular has no TestBed here (see `vitest.config.ts`), so the guard reads
  * the component source, matching the other `*.contract.test.ts` files in this
@@ -26,9 +26,15 @@ const PARENT_SOURCE = readFileSync(
 
 describe('ribbon animations section preview contract', () => {
 	it('plays the shared in-place preview, not a `present` re-emission', () => {
-		expect(SOURCE).toContain('(click)="previewAnimation()"');
-		expect(SOURCE).not.toContain('(click)="present.emit()"');
+		expect(SOURCE).toContain("intent.value === 'preview'");
+		expect(SOURCE).toContain('this.previewAnimation()');
+		expect(SOURCE).not.toContain('present.emit()');
 		expect(SOURCE).toContain('playAnimationRibbonPreview(document,');
+	});
+
+	it('is a thin adapter over the shared element', () => {
+		expect(SOURCE).toContain('<pptx-ui-ribbon-animations');
+		expect(SOURCE).not.toContain('class="pptx-rb-pill"');
 	});
 
 	it('no longer declares a `present` output (it had no other use)', () => {
