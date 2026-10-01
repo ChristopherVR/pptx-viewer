@@ -107,4 +107,17 @@ describe('shared ribbon controls', () => {
 		host.setAttribute('label', 'Start');
 		expect(host.getAttribute('aria-label')).toBe('Start');
 	});
+
+	it('flags groups whose commands are all single-line so they centre vertically', () => {
+		const measure = (height: number) => {
+			const host = document.createElement('pptx-ui-ribbon-group');
+			host.innerHTML = '<pptx-ui-ribbon-command label="Slide Size"></pptx-ui-ribbon-command>';
+			host.firstElementChild!.getBoundingClientRect = () => ({ height }) as DOMRect;
+			document.body.append(host);
+			return host.hasAttribute('data-compact-row');
+		};
+		expect(measure(26)).toBeTruthy();
+		expect(measure(58)).toBeFalsy();
+		expect(measure(0)).toBeFalsy();
+	});
 });
