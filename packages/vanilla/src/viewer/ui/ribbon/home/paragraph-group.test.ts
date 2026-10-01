@@ -204,3 +204,47 @@ function selectAllItem(root: HTMLElement, label: string): HTMLButtonElement {
 	}
 	return item;
 }
+
+describe('shared paragraph and editing strips', () => {
+	const control = (root: HTMLElement, id: string) =>
+		root.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"]`)!;
+
+	it('routes indent and alignment intents and reflects the explicit alignment', () => {
+		const handlers = paragraphHandlers();
+		const group = createParagraphGroup(document, createTranslator(), handlers);
+		const text = readTextFormatState({
+			type: 'text',
+			id: 'align-test',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 20,
+			text: 'Hello',
+			textStyle: { align: 'center' },
+		});
+		group.update({ canFormat: true, editable: true, text });
+		control(group.el, 'home.paragraph.alignRight').click();
+		control(group.el, 'home.paragraph.increaseIndent').click();
+		control(group.el, 'home.paragraph.decreaseIndent').click();
+		expect(handlers.setTextAlign).toHaveBeenCalledExactlyOnceWith('right');
+		expect(handlers.increaseIndent).toHaveBeenCalledOnce();
+		expect(handlers.decreaseIndent).toHaveBeenCalledOnce();
+		expect(control(group.el, 'home.paragraph.alignCenter').getAttribute('aria-pressed')).toBe(
+			'true',
+		);
+		group.update({ canFormat: true, editable: false, text });
+		control(group.el, 'home.paragraph.alignLeft').click();
+		expect(handlers.setTextAlign).toHaveBeenCalledOnce();
+	});
+
+	it('opens the find panel from both Find and Replace', () => {
+		const toggleFindReplace = vi.fn();
+		const group = createEditingGroup(document, createTranslator(), {
+			toggleFindReplace,
+			selectAll: vi.fn(),
+		});
+		control(group.el, 'home.editing.find').click();
+		control(group.el, 'home.editing.replace').click();
+		expect(toggleFindReplace).toHaveBeenCalledTimes(2);
+	});
+});

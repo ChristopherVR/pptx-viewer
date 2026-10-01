@@ -113,7 +113,11 @@ function collectProblems(): Array<{ name: string; message: string }> {
 	// Second axis: even a freshly built core stays invisible to the Angular demo
 	// until vite re-optimises, because that demo pre-bundles core.
 	const prebundle = mtimeOf(join(repoRoot, ANGULAR_CORE_PREBUNDLE));
-	const coreDist = mtimeOf(join(repoRoot, 'packages/core/dist/index.mjs'));
+	// The engine is built in the sibling ooxml-core checkout; core's own dist only forwards to it.
+	const coreDist = Math.max(
+		mtimeOf(join(repoRoot, 'packages/core/dist/index.mjs')),
+		mtimeOf(join(repoRoot, '../ooxml-core/dist/pptx/index.mjs')),
+	);
 	if (prebundle > 0 && coreDist > prebundle) {
 		problems.push({
 			name: 'angular-prebundle',

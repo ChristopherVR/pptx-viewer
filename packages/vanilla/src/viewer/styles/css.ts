@@ -132,8 +132,8 @@ const CHROME_CSS = `
  * runs out of width), keeps every button's ink inside its own bounding rect, so
  * a coordinate click always reaches the control it looks like it is over. This
  * is authoritative on purpose; the specialisations that give a text button its
- * own metrics (.pptxv-btn-pill, .pptxv-animation-preset,
- * .pptxv-motion-path-preset, .pptxv-theme-gallery,
+ * own metrics (.pptxv-btn-pill,
+ * .pptxv-theme-gallery,
  * .pptxv-presentation-touch-controls) are declared later in the sheet at equal
  * specificity and keep winning. */
 .pptxv-btn.pptxv-btn-text {
@@ -479,6 +479,18 @@ const CHROME_CSS = `
 	border: 1px solid var(--pptx-ring);
 	pointer-events: none;
 	transform-origin: center;
+}
+/* The group a selected member sits in (selecting inside a group): a quiet
+   dashed frame, like PowerPoint's, that never takes the pointer. */
+.pptxv-group-frame {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px dashed var(--pptx-ring);
+	opacity: 0.7;
+	pointer-events: none;
+}
+.pptxv-group-frame[hidden] {
+	display: none;
 }
 .pptxv-sel-handle {
 	--pptx-handle-hit-inset: 0px;

@@ -13,7 +13,7 @@ This is the headless, dependency-free way to get a vector rendering of each slid
 
 ## API
 
-`SvgExporter` is a class with two static methods (verified against `packages/core/src/converter/SvgExporter.ts`):
+`SvgExporter` is a class with two static methods (verified against `ooxml-core/src/pptx/converter/SvgExporter.ts`):
 
 ```ts
 class SvgExporter {

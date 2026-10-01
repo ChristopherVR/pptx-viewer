@@ -200,7 +200,11 @@ test.describe('transitions tab writes to the deck', () => {
 		await duration.fill('5');
 		await duration.blur();
 
-		await page.getByRole('button', { name: 'Preview', exact: true }).first().click();
+		// Scoped to the ribbon: the inspector's transition card has its own Preview.
+		await page
+			.locator('pptx-ui-ribbon-transitions')
+			.getByRole('button', { name: 'Preview', exact: true })
+			.click();
 
 		// The one hook all five bindings publish while a preview is playing. A
 		// Preview button wired to nothing (Vanilla), or one that quietly

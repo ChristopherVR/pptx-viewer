@@ -43,76 +43,11 @@
 		/>
 	</span>
 </div>
-<!-- Indent: outdent + indent -->
-<div class="pptx-rb-grp" data-pptx-chrome="control-cluster">
-	<button
-		type="button"
-		class="pptx-rb-gb"
-		[disabled]="!isText()"
-		[title]="'pptx.notes.outdent' | translate"
-		(click)="changeIndent(-24)"
-		data-ribbon-control="home.paragraph.decreaseIndent"
-	>
-		<svg pptxRibbonIcon="home.paragraph.decreaseIndent"></svg>
-	</button>
-	<button
-		type="button"
-		class="pptx-rb-gl"
-		[disabled]="!isText()"
-		[title]="'pptx.notes.indent' | translate"
-		(click)="changeIndent(24)"
-		data-ribbon-control="home.paragraph.increaseIndent"
-	>
-		<svg pptxRibbonIcon="home.paragraph.increaseIndent"></svg>
-	</button>
-</div>
-<!-- Alignment -->
-<div class="pptx-rb-grp" data-pptx-chrome="control-cluster">
-	<button
-		type="button"
-		class="pptx-rb-gb"
-		[disabled]="!isText()"
-		[ngClass]="curStyle()?.align === 'left' ? 'bg-accent' : ''"
-		[title]="'pptx.ribbon.alignLeft' | translate"
-		(click)="setAlign('left')"
-		data-ribbon-control="home.paragraph.alignLeft"
-	>
-		<svg pptxRibbonIcon="home.paragraph.alignLeft"></svg>
-	</button>
-	<button
-		type="button"
-		class="pptx-rb-gb"
-		[disabled]="!isText()"
-		[ngClass]="curStyle()?.align === 'center' ? 'bg-accent' : ''"
-		[title]="'pptx.ribbon.alignCenter' | translate"
-		(click)="setAlign('center')"
-		data-ribbon-control="home.paragraph.alignCenter"
-	>
-		<svg pptxRibbonIcon="home.paragraph.alignCenter"></svg>
-	</button>
-	<button
-		type="button"
-		class="pptx-rb-gb"
-		[disabled]="!isText()"
-		[ngClass]="curStyle()?.align === 'right' ? 'bg-accent' : ''"
-		[title]="'pptx.ribbon.alignRight' | translate"
-		(click)="setAlign('right')"
-		data-ribbon-control="home.paragraph.alignRight"
-	>
-		<svg pptxRibbonIcon="home.paragraph.alignRight"></svg>
-	</button>
-	<button
-		type="button"
-		class="pptx-rb-gl"
-		[disabled]="!isText()"
-		[ngClass]="curStyle()?.align === 'justify' ? 'bg-accent' : ''"
-		[title]="'pptx.ribbon.justify' | translate"
-		(click)="setAlign('justify')"
-		data-ribbon-control="home.paragraph.justify"
-	>
-		<svg pptxRibbonIcon="home.paragraph.justify"></svg>
-	</button>
-</div>
+<!-- Indent and alignment: the shared Paragraph strip -->
+<pptx-ui-ribbon-home-paragraph
+	[state]="paragraphView()"
+	(home-request)="paragraphRequest($event)"
+/>
 <!-- Line Spacing -->
 <pptx-ui-select
 	variant="ribbon-icon"

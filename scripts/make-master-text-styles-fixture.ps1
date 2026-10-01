@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Author `packages/core/src/__tests__/fixtures/master-text-styles.pptx`
+  Author `../ooxml-core/src/pptx/__tests__/fixtures/master-text-styles.pptx`
   through real PowerPoint over COM: a deck whose own slide master overrides
   the title style (54pt bold Georgia, red, centred) and the body style
   (level 1: 26pt italic Verdana, blue; level 2: 21pt Verdana), with one
@@ -21,7 +21,7 @@
   Windows + PowerPoint only. Never quits a running PowerPoint.
 #>
 param(
-  [string]$OutDir = (Join-Path $PSScriptRoot '..\packages\core\src\__tests__\fixtures')
+  [string]$OutDir = (Join-Path $PSScriptRoot '..\..\ooxml-core\src\pptx\__tests__\fixtures')
 )
 $ErrorActionPreference = 'Stop'
 $app = New-Object -ComObject PowerPoint.Application

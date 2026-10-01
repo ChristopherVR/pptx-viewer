@@ -86,7 +86,7 @@ describe('tiltChannelsFromVectors', () => {
 
 	it('derives angle from the vector direction and magnitude normalised to this series own peak', () => {
 		// Mirrors the InkML OTx/OTy fixture in
-		// packages/core/src/core/utils/inkml-content-part.test.ts.
+		// ooxml-core/src/pptx/core/utils/inkml-content-part.test.ts.
 		const result = tiltChannelsFromVectors([10, 0, 0], [0, 20, 0]);
 		expect(result).toBeDefined();
 		expect(result?.angles[0]).toBeCloseTo(0, 5);

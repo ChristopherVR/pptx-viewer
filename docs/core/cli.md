@@ -5,7 +5,7 @@ description: The pptx command-line tool from pptx-viewer-core - info, export-svg
 
 # CLI
 
-`pptx-viewer-core` ships a `pptx` binary (declared in the package's `bin` field, entry `packages/core/src/cli/index.ts`) for common PPTX operations from the terminal - no code required. Each command is a thin wrapper around the engine, so behaviour matches the programmatic API exactly.
+`pptx-viewer-core` ships a `pptx` binary (declared in the package's `bin` field, entry `ooxml-core/src/pptx/cli/index.ts`) for common PPTX operations from the terminal - no code required. Each command is a thin wrapper around the engine, so behaviour matches the programmatic API exactly.
 
 ## Install / run
 
@@ -40,7 +40,7 @@ The binary is named `pptx`, but the npm _package_ is `pptx-viewer-core` - `npx p
 | `create -o <out>`                     | Create a blank presentation.           |
 | `diff <a> <b>`                        | Compare two presentations.             |
 
-All commands and flags below are verified against the CLI source (`packages/core/src/cli/index.ts` and `commands.ts`).
+All commands and flags below are verified against the CLI source (`ooxml-core/src/pptx/cli/index.ts` and `commands.ts`).
 
 ### `info`
 

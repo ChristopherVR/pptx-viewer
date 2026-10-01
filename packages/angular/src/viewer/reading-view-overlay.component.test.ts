@@ -130,10 +130,7 @@ describe('view tab Reading View control', () => {
 	 * nothing at all.
 	 */
 	it('is enabled rather than an inert placeholder', () => {
-		expect(VIEW_SECTION).toContain('(click)="openReadingView.emit()"');
-		expect(VIEW_SECTION).not.toMatch(
-			/<button[^>]*disabled[^>]*>\s*\{\{ 'pptx\.view\.readingView' \| translate \}\}/u,
-		);
+		expect(VIEW_SECTION).toContain('readingView: this.openReadingView');
 	});
 });
 

@@ -130,7 +130,11 @@ try {
 	mkdirSync(consumer);
 	writeFileSync(
 		join(consumer, 'package.json'),
-		JSON.stringify({ name: 'pptx-binding-packed-consumer', private: true, type: 'module' }),
+		JSON.stringify({
+			name: 'pptx-binding-packed-consumer',
+			private: true,
+			type: 'module',
+		}),
 	);
 	npm(
 		[

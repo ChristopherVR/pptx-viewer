@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const core = join(root, 'packages/core');
+// The engine is the published @christophervr/ooxml-core, installed from the registry; its own
+// package smoke test covers the engine tarball.
 const consumer = await mkdtemp(join(tmpdir(), 'pptx-core-consumer-'));
 const npmCli =
 	process.platform === 'win32'
@@ -34,20 +36,38 @@ function npm(args, cwd, capture = false) {
 const packed = JSON.parse(
 	npm(['pack', '--ignore-scripts', '--json', '--pack-destination', consumer], core, true),
 )[0];
-assert(packed.files.some((file) => file.path === 'dist/index.mjs'));
-assert(packed.files.some((file) => file.path === 'dist/index.js'));
-for (const file of packed.files.filter((entry) =>
-	/\.(?:m?js|d\.ts|d\.cts|d\.mts)$/.test(entry.path),
-)) {
-	const source = await readFile(join(core, file.path), 'utf8');
+for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/index']) {
 	assert(
-		!/(?:from\s*|import\s*\(|require\s*\()\s*['"]@christophervr\/ole2(?:\/|['"])/.test(source),
-		`${file.path} leaks a development-only ole2 import`,
+		packed.files.some((file) => file.path === `dist/${entry}.mjs`),
+		`missing dist/${entry}.mjs`,
 	);
+	assert(
+		packed.files.some((file) => file.path === `dist/${entry}.js`),
+		`missing dist/${entry}.js`,
+	);
+	assert(
+		packed.files.some((file) => file.path === `dist/${entry}.d.ts`),
+		`missing dist/${entry}.d.ts`,
+	);
+}
+for (const [directory, listing] of [[core, packed]]) {
+	for (const file of listing.files.filter((entry) =>
+		/\.(?:c?m?js|d\.ts|d\.cts|d\.mts)$/.test(entry.path),
+	)) {
+		const source = await readFile(join(directory, file.path), 'utf8');
+		assert(
+			!/(?:from\s*|import\s*\(|require\s*\()\s*['"]@christophervr\/ole2(?:\/|['"])/.test(source),
+			`${file.path} leaks a development-only ole2 import`,
+		);
+	}
 }
 await writeFile(
 	join(consumer, 'package.json'),
-	JSON.stringify({ name: 'pptx-packed-regression', private: true, type: 'module' }),
+	JSON.stringify({
+		name: 'pptx-packed-regression',
+		private: true,
+		type: 'module',
+	}),
 );
 npm(
 	[

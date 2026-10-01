@@ -1,11 +1,22 @@
 import { definePptxCheckbox } from './checkbox';
 import { HOST_STYLES } from './host-styles';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
+import { definePptxRibbonAnimations } from './ribbon-animations';
 import { definePptxRibbonCommand } from './ribbon-command';
+import { definePptxRibbonDraw } from './ribbon-draw';
 import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
+import {
+	definePptxRibbonHomeClipboard,
+	definePptxRibbonHomeEditing,
+	definePptxRibbonHomeFont,
+	definePptxRibbonHomeParagraph,
+} from './ribbon-home';
+import { definePptxRibbonInsert } from './ribbon-insert';
 import { definePptxRibbonSection } from './ribbon-section';
 import { definePptxRibbonToggle } from './ribbon-toggle';
+import { definePptxRibbonTransitions } from './ribbon-transitions';
+import { definePptxRibbonView } from './ribbon-view';
 import { definePptxSearchField } from './search-field';
 import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
@@ -15,6 +26,18 @@ import { definePptxThemeEditor } from './theme-editor';
 export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-editor';
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
+export type {
+	PptxUiRibbonAnimationsElement,
+	RibbonAnimationsRequestEvent,
+} from './ribbon-animations';
+export type { PptxUiRibbonDrawElement, RibbonDrawRequestEvent } from './ribbon-draw';
+export type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from './ribbon-home';
+export type {
+	PptxUiRibbonTransitionsElement,
+	RibbonTransitionsRequestEvent,
+} from './ribbon-transitions';
+export type { PptxUiRibbonInsertElement, RibbonInsertRequestEvent } from './ribbon-insert';
+export type { PptxUiRibbonViewElement, RibbonViewRequestEvent } from './ribbon-view';
 export type { PptxUiRibbonSectionElement } from './ribbon-section';
 export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
 export type { GalleryTranslate } from './ribbon-gallery-view';
@@ -36,6 +59,15 @@ const controls = [
 	['pptx-ui-select', definePptxSelect],
 	['pptx-ui-slide-show-options', definePptxSlideShowOptions],
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
+	['pptx-ui-ribbon-animations', definePptxRibbonAnimations],
+	['pptx-ui-ribbon-draw', definePptxRibbonDraw],
+	['pptx-ui-ribbon-insert', definePptxRibbonInsert],
+	['pptx-ui-ribbon-home-clipboard', definePptxRibbonHomeClipboard],
+	['pptx-ui-ribbon-home-font', definePptxRibbonHomeFont],
+	['pptx-ui-ribbon-home-paragraph', definePptxRibbonHomeParagraph],
+	['pptx-ui-ribbon-home-editing', definePptxRibbonHomeEditing],
+	['pptx-ui-ribbon-view', definePptxRibbonView],
+	['pptx-ui-ribbon-transitions', definePptxRibbonTransitions],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
 	['pptx-ui-ribbon-section', definePptxRibbonSection],
 	['pptx-ui-ribbon-gallery', definePptxRibbonGallery],

@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, ShapePptxElement } from 'pptx-viewer-core';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
 
@@ -9,7 +10,9 @@ import {
 } from '../composables/useOutlineAuthoring';
 import FreeformToolOverlay from './FreeformToolOverlay.vue';
 import OutlineAuthoringLayer from './OutlineAuthoringLayer.vue';
-import FreeformToolButtons from './ribbon/FreeformToolButtons.vue';
+import InsertSection from './ribbon/InsertSection.vue';
+
+registerPptxWebControls();
 
 async function click(svg: ReturnType<ReturnType<typeof mount>['get']>, x: number, y: number) {
 	await svg.trigger('pointerdown', { clientX: x, clientY: y, button: 0, pointerId: 1 });
@@ -67,7 +70,21 @@ describe('freeform tool buttons and the outline-authoring layer', () => {
 		const Host = defineComponent({
 			setup: () => () =>
 				h('div', [
-					h(FreeformToolButtons, { canEdit: true }),
+					h(InsertSection, {
+						canEdit: true,
+						hasSelection: false,
+						onOpenHyperlinkDialog: vi.fn(),
+						newShapeType: 'rect',
+						onSetNewShapeType: vi.fn(),
+						onAddTextBox: vi.fn(),
+						onAddShape: vi.fn(),
+						onAddTable: vi.fn(),
+						onAddSmartArt: vi.fn(),
+						onAddEquation: vi.fn(),
+						onAddActionButton: vi.fn(),
+						onOpenImagePicker: vi.fn(),
+						onOpenMediaPicker: vi.fn(),
+					}),
 					h(OutlineAuthoringLayer, {
 						activeSlide: undefined,
 						canvasSize: { width: 960, height: 540 },
@@ -83,7 +100,10 @@ describe('freeform tool buttons and the outline-authoring layer', () => {
 		expect(wrapper.find('[data-pptx-drawing-tool="freeformShape"]').exists()).toBeTruthy();
 		await button.trigger('click');
 		expect(store.activeFreeformTool.value).toBe('curve');
-		expect(button.attributes('aria-pressed')).toBe('true');
+		await wrapper.vm.$nextTick();
+		expect(button.element.shadowRoot?.querySelector('button')?.getAttribute('aria-pressed')).toBe(
+			'true',
+		);
 		const svg = wrapper.get('[data-pptx-freeform-tool-overlay="curve"]');
 		await click(svg, 10, 10);
 		await click(svg, 100, 60);

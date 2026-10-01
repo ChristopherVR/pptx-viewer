@@ -113,6 +113,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 			}
 			@case ('draw') {
 				<pptx-ribbon-draw-section
+					[canEdit]="canEdit()"
 					[activeTool]="activeTool()"
 					[drawingColor]="drawingColor()"
 					[drawingWidth]="drawingWidth()"
@@ -133,6 +134,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 			}
 			@case ('transitions') {
 				<pptx-ribbon-transitions-section
+					[canEdit]="canEdit()"
 					[slideIndex]="slideIndex()"
 					(toggleInspector)="toggleInspector.emit()"
 				/>
@@ -142,7 +144,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 					[canEdit]="canEdit()"
-					(toggleInspector)="toggleInspector.emit()"
+					[inspectorOpen]="inspectorOpen()"
 					(openAnimationPanel)="openAnimationPanel.emit()"
 				/>
 			}
@@ -183,6 +185,8 @@ export class RibbonContentSecondaryComponent {
 	readonly slideCount = input<number>(0);
 	readonly canEdit = input<boolean>(false);
 	readonly selectedElement = input<PptxElement | null>(null);
+	/** Whether the inspector is open (the Animation Pane command's pressed state). */
+	readonly inspectorOpen = input<boolean>(false);
 	readonly showGrid = input<boolean>(false);
 	readonly showRulers = input<boolean>(false);
 	readonly showGuides = input<boolean>(false);

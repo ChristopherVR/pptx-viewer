@@ -168,7 +168,7 @@ describe('createRibbon', () => {
 		const panes = ribbon.el.querySelectorAll<HTMLElement>('.pptxv-ribbon-tab-content');
 		const visible = Array.from(panes).filter((p) => !p.hidden);
 		expect(visible).toHaveLength(1);
-		expect(visible[0].querySelector('.pptxv-select-button')).toBeTruthy();
+		expect(visible[0].querySelector('pptx-ui-ribbon-insert')).toBeTruthy();
 	});
 
 	it('dispatches the supported Slide Show actions', () => {
@@ -416,7 +416,7 @@ describe('createRibbon', () => {
 				(btn) => btn.textContent,
 			);
 			expect(tabLabels).not.toContain(t('pptx.ribbon.tab.insert'));
-			expect(ribbon.el.querySelector('.pptxv-ribbon-insert-content')).toBeNull();
+			expect(ribbon.el.querySelector('pptx-ui-ribbon-insert')).toBeNull();
 		});
 
 		it('falls back to the first visible tab (File) when the default (Home) tab is hidden', () => {
@@ -460,10 +460,12 @@ describe('createRibbon', () => {
 				(button) => button.textContent === t('pptx.ribbon.tab.view'),
 			);
 			tabs[viewTabIndex].click();
-			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.view.zoomToFit')}"]`)).toBeNull();
-			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.slideSorter.zoom')}"]`)).toBeNull();
+			expect(ribbon.el.querySelector(`[data-ribbon-control="view.zoom.fitToWindow"]`)).toBeNull();
+			expect(ribbon.el.querySelector(`[data-ribbon-control="view.zoom.zoom"]`)).toBeNull();
 			// An unrelated View action stays, proving the hide is scoped to that id.
-			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.view.normal')}"]`)).not.toBeNull();
+			expect(
+				ribbon.el.querySelector(`[data-ribbon-control="view.presentationViews.normal"]`),
+			).not.toBeNull();
 		});
 	});
 });

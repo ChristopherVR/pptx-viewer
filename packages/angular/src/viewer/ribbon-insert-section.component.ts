@@ -1,39 +1,40 @@
 /**
- * ribbon-insert-section.component.ts: the Insert ribbon tab (Text box / shape
- * picker / image / media group, Table / SmartArt / Chart / Equation group, and the
- * Action + Field controls via {@link RibbonInsertFieldsComponent}). Split out of
- * {@link RibbonComponent}; behaviour and markup are unchanged.
+ * ribbon-insert-section.component.ts: the Insert ribbon tab, split out of
+ * {@link RibbonComponent}. A thin adapter for the shared `pptx-ui-ribbon-insert`:
+ * the shared element owns groups, icons, labels, pickers and pressed/disabled state;
+ * this component supplies viewer state and routes typed intents to the native
+ * handlers.
  *
- * The chart-type and shape-type dropdowns are owned by the parent ribbon (so a
- * selection survives a tab switch) and passed in via `newChartType` /
- * `newShapeType`; changes emit `chartTypeChange` / `shapeTypeChange`. The shape
- * picker offers the whole shared preset catalogue rather than a fixed
- * rect/ellipse/line trio, matching React's Insert tab. Everything else inserts
- * straight through the shared {@link EditorStateService}.
+ * Document mutation stays native: inserts go straight through the shared
+ * {@link EditorStateService}; the file dialog / FileReader / image-probe plumbing
+ * lives in `ribbon-insert-file-picker.ts`; Action buttons, Fields and the Date/Time
+ * modal live in {@link RibbonInsertFieldsComponent}; SmartArt, Equation and Hyperlink
+ * open the viewer's own dialogs through outputs, and Header & Footer through
+ * {@link ViewerDialogsService}.
  *
- * The Links group is {@link RibbonHyperlinkButtonComponent}, and the file
- * dialog / FileReader / image-probe plumbing behind Image and Media lives in
- * `ribbon-insert-file-picker.ts`: both are out of this file so it stays inside
- * the repo's 300-LOC budget.
+ * The chart-type and shape-type selections are owned by the parent ribbon (so they
+ * survive a tab switch) and passed in via `newChartType` / `newShapeType`; changes
+ * emit `chartTypeChange` / `shapeTypeChange`.
  */
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import {
-	LucideDatabase,
-	LucideImage,
-	LucideLayers,
-	LucideSquare,
-	LucideVideo,
-} from '@lucide/angular';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+	viewChild,
+} from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import {
-	classifyMediaType,
-	DEFAULT_INSERT_CHART_KIND,
-	INSERT_CHART_TYPES,
-	SHAPE_PRESET_DEFS,
+import { classifyMediaType, DEFAULT_INSERT_CHART_KIND } from '../internal/shared';
+import type {
+	FreeformToolKind,
+	InsertChartKind,
+	RibbonInsertRequestEvent,
+	ShapePresetType,
 } from '../internal/shared';
-import type { InsertChartKind, ShapePresetType } from '../internal/shared';
 import {
 	newChartElement,
 	newPresetShapeElement,
@@ -41,186 +42,35 @@ import {
 	newTextElement,
 } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
-import { HeaderFooterRibbonButtonComponent } from './header-footer-ribbon-button.component';
-import { RibbonFreeformToolsComponent } from './ribbon-freeform-tools.component';
-import { RibbonHyperlinkButtonComponent } from './ribbon-hyperlink-button.component';
+import { OutlineAuthoringService } from './outline-authoring.service';
 import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
 import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-picker';
-import { RibbonInsertGlyphComponent } from './ribbon-insert-glyph.component';
+import { visibleFreeformTools } from './ribbon-insert-freeform';
+import { injectResolvedCustomization } from './viewer-customization.service';
+import { ViewerDialogsService } from './viewer-dialogs.service';
 
 @Component({
 	selector: 'pptx-ribbon-insert-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [
-		TranslatePipe,
-		RibbonInsertFieldsComponent,
-		LucideSquare,
-		LucideImage,
-		LucideVideo,
-		LucideDatabase,
-		LucideLayers,
-		HeaderFooterRibbonButtonComponent,
-		RibbonHyperlinkButtonComponent,
-		RibbonFreeformToolsComponent,
-		RibbonInsertGlyphComponent,
-	],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	imports: [RibbonInsertFieldsComponent],
 	template: `
-		<!-- Shapes group -->
-		<div class="pptx-rb-grp">
-			<span class="contents" data-ribbon-group="insert.text">
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					data-ribbon-control="insert.text.textBox"
-					(click)="insertText()"
-					[title]="'pptx.ribbon.textBox' | translate"
-				>
-					{{ 'pptx.ribbon.textBox' | translate }}
-				</button>
-			</span>
-			<span
-				class="contents"
-				data-ribbon-group="insert.illustrations"
-				data-ribbon-control="insert.illustrations.shapes"
-			>
-				<select
-					class="pptx-rb-select rounded-none border-y-0 border-l-0"
-					[title]="'pptx.insert.shapeType' | translate"
-					[value]="newShapeType()"
-					(change)="setShapeType($event)"
-				>
-					@for (sp of shapePresets; track sp.type) {
-						<option [value]="sp.type" [selected]="sp.type === newShapeType()">
-							{{ sp.i18nKey | translate }}
-						</option>
-					}
-				</select>
-				<button
-					type="button"
-					class="pptx-rb-gb gap-1.5"
-					(click)="insertShape()"
-					[title]="'pptx.insert.addShape' | translate"
-				>
-					<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.insert.shape' | translate }}
-				</button>
-				<pptx-ribbon-freeform-tools />
-			</span>
-			<span
-				class="contents"
-				data-ribbon-group="insert.images"
-				data-ribbon-control="insert.images.pictures"
-			>
-				<button
-					type="button"
-					class="pptx-rb-gb gap-1.5"
-					(click)="insertImage()"
-					[title]="'pptx.ribbon.insertImage' | translate"
-				>
-					<svg lucideImage class="h-4 w-4"></svg> {{ 'pptx.ribbon.image' | translate }}
-				</button>
-			</span>
-			<span
-				class="contents"
-				data-ribbon-group="insert.media"
-				data-ribbon-control="insert.media.media"
-			>
-				<button
-					type="button"
-					class="pptx-rb-gl gap-1.5"
-					(click)="insertMedia()"
-					[title]="'pptx.ribbon.insertMedia' | translate"
-				>
-					<svg lucideVideo class="h-4 w-4"></svg> {{ 'pptx.ribbon.media' | translate }}
-				</button>
-			</span>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Data / diagram group -->
-		<div class="pptx-rb-grp">
-			<span
-				class="contents"
-				data-ribbon-group="insert.tables"
-				data-ribbon-control="insert.tables.table"
-			>
-				<button
-					type="button"
-					class="pptx-rb-gb gap-1.5"
-					(click)="insertTable()"
-					[title]="'pptx.ribbon.insertTable' | translate"
-				>
-					<svg lucideDatabase class="h-4 w-4"></svg> {{ 'pptx.ribbon.table' | translate }}
-				</button>
-			</span>
-			<span class="contents" data-ribbon-group="insert.illustrations">
-				<button
-					data-ribbon-control="insert.illustrations.smartArt"
-					type="button"
-					class="pptx-rb-gb gap-1.5"
-					(click)="openSmartArtDialog.emit()"
-					[title]="'pptx.ribbon.insertSmartArt' | translate"
-				>
-					<svg lucideLayers class="h-4 w-4"></svg> {{ 'pptx.ribbon.smartArt' | translate }}
-				</button>
-				<span class="contents" data-ribbon-control="insert.illustrations.chart">
-					<select
-						class="pptx-rb-gl"
-						[title]="'pptx.ribbon.chartType' | translate"
-						[value]="newChartType()"
-						(change)="setChartType($event)"
-					>
-						@for (ct of chartTypes; track ct.id) {
-							<option [value]="ct.id" [selected]="ct.id === newChartType()">
-								{{ ct.labelKey | translate }}
-							</option>
-						}
-					</select>
-					<button
-						type="button"
-						class="pptx-rb-gb gap-1.5"
-						(click)="insertChart()"
-						[title]="'pptx.ribbon.insertChart' | translate"
-					>
-						<pptx-ribbon-insert-glyph name="chart" />
-						{{ 'pptx.ribbon.chart' | translate }}
-					</button>
-				</span>
-			</span>
-			<span
-				class="contents"
-				data-ribbon-group="insert.symbols"
-				data-ribbon-control="insert.symbols.equation"
-			>
-				<button
-					type="button"
-					class="pptx-rb-gl gap-1.5"
-					(click)="openEquationDialog.emit()"
-					[title]="'pptx.ribbon.insertEquation' | translate"
-				>
-					<pptx-ribbon-insert-glyph name="equation" />
-					{{ 'pptx.ribbon.equation' | translate }}
-				</button>
-			</span>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Links -->
-		<pptx-ribbon-hyperlink-button
-			data-ribbon-group="insert.links"
-			data-ribbon-control="insert.links.link"
-			(openHyperlink)="openHyperlink.emit()"
-		/>
-		<span class="pptx-rb-sep"></span>
-		<!-- Action button + Field dropdowns -->
+		<pptx-ui-ribbon-insert [state]="view()" (insert-request)="request($event)" />
 		<pptx-ribbon-insert-fields [slideIndex]="slideIndex()" />
-		<pptx-header-footer-ribbon-button />
 	`,
 })
 export class RibbonInsertSectionComponent {
 	private readonly editor = inject(EditorStateService);
 	private readonly translate = inject(TranslateService);
+	private readonly dialogs = inject(ViewerDialogsService);
+	private readonly outline = inject(OutlineAuthoringService, { optional: true });
+	private readonly customization = injectResolvedCustomization();
+	private readonly fields = viewChild(RibbonInsertFieldsComponent);
 
 	readonly slideIndex = input<number>(0);
+	readonly canEdit = input<boolean>(false);
 	/** The insert-chart dropdown entry ('column' is vertical, 'bar' horizontal). */
 	readonly newChartType = input<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 	readonly newShapeType = input<ShapePresetType>('rect');
@@ -232,38 +82,72 @@ export class RibbonInsertSectionComponent {
 	readonly chartTypeChange = output<InsertChartKind>();
 	readonly shapeTypeChange = output<ShapePresetType>();
 
-	/** Chart types offered in the Insert tab dropdown (shared source of truth). */
-	protected readonly chartTypes = INSERT_CHART_TYPES;
-	/** Geometries offered by the Insert tab's shape picker (shared catalogue). */
-	protected readonly shapePresets = SHAPE_PRESET_DEFS;
+	protected view() {
+		return {
+			editable: this.canEdit(),
+			hasSelection: this.editor.hasSelection(),
+			shapeType: this.newShapeType(),
+			chartKind: this.newChartType(),
+			activeFreeformTool: this.outline?.activeFreeformTool() ?? null,
+			freeformTools: visibleFreeformTools(this.outline, this.customization()),
+			translate: (key: string) => this.translate.instant(key),
+		};
+	}
 
-	protected insertText(): void {
-		this.editor.addElement(this.slideIndex(), newTextElement());
-	}
-	protected setShapeType(event: Event): void {
-		this.shapeTypeChange.emit((event.target as HTMLSelectElement).value as ShapePresetType);
-	}
-	/** Insert the geometry currently chosen in the shape-type dropdown. */
-	protected insertShape(): void {
-		this.editor.addElement(this.slideIndex(), newPresetShapeElement(this.newShapeType()));
-	}
-	protected insertTable(): void {
-		this.editor.addElement(this.slideIndex(), newTableElement());
-	}
-	protected setChartType(event: Event): void {
-		this.chartTypeChange.emit((event.target as HTMLSelectElement).value as InsertChartKind);
-	}
-	protected insertChart(): void {
-		this.editor.addElement(this.slideIndex(), newChartElement(this.newChartType()));
+	protected request(event: Event): void {
+		const intent = (event as RibbonInsertRequestEvent).detail;
+		switch (intent.kind) {
+			case 'command': {
+				const commands = {
+					textBox: () => this.editor.addElement(this.slideIndex(), newTextElement()),
+					table: () => this.editor.addElement(this.slideIndex(), newTableElement()),
+					image: () => this.insertImage(),
+					media: () => this.insertMedia(),
+					smartArt: () => this.openSmartArtDialog.emit(),
+					equation: () => this.openEquationDialog.emit(),
+					link: () => this.openHyperlink.emit(),
+					headerFooter: () => this.dialogs.showHeaderFooter.set(true),
+				};
+				commands[intent.value]();
+				break;
+			}
+			case 'shapeType':
+				this.shapeTypeChange.emit(intent.value as ShapePresetType);
+				break;
+			case 'shape':
+				this.editor.addElement(
+					this.slideIndex(),
+					newPresetShapeElement(intent.value as ShapePresetType),
+				);
+				break;
+			case 'chartType':
+				this.chartTypeChange.emit(intent.value as InsertChartKind);
+				break;
+			case 'chart':
+				this.editor.addElement(this.slideIndex(), newChartElement(intent.value as InsertChartKind));
+				break;
+			case 'freeform':
+				this.outline?.armFreeformTool(intent.value as FreeformToolKind | null);
+				break;
+			case 'actionButton':
+				this.fields()?.addActionButton(intent.value);
+				break;
+			case 'field':
+				if (intent.value === 'datetime') {
+					this.fields()?.openDatePicker();
+				} else {
+					this.fields()?.insertField(intent.value);
+				}
+		}
 	}
 
 	/** Pick an image file and add it as an inline image element (data-URL backed). */
-	protected insertImage(): void {
+	private insertImage(): void {
 		pickFile('image/*', (file) => void this.addImageFile(file));
 	}
 
 	/** Pick an audio/video file and add it as a media element (data-URL backed). */
-	protected insertMedia(): void {
+	private insertMedia(): void {
 		pickFile('video/*,audio/*', (file) => void this.addMediaFile(file));
 	}
 

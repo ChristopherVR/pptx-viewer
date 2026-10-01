@@ -33,6 +33,7 @@ import {
 	mapSlideShowStartKey,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { escapeSelectionTarget } from './group-drill-canvas';
 import { PictureCropService } from './picture-crop.service';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerCustomizationService } from './viewer-customization.service';
@@ -307,8 +308,9 @@ export class ViewerKeyboardService {
 	/**
 	 * Escape unwinds the transient chrome one layer at a time: an armed format
 	 * painter first (it is modal over the pointer), then the shortcut cheat
-	 * sheet, then the selection itself (as in React, Svelte and Vanilla, so the
-	 * selection's contextual ribbon tabs go away too). Before this the branch
+	 * sheet, then a selected group member steps up to its group, then the
+	 * selection itself (as in React, Svelte and Vanilla, so the selection's
+	 * contextual ribbon tabs go away too). Before this the branch
 	 * stopped after the painter, so the panel "?" had just opened stayed on
 	 * screen with no key that could dismiss it.
 	 */
@@ -319,6 +321,14 @@ export class ViewerKeyboardService {
 		}
 		if (this.dialogs.showShortcuts()) {
 			this.dialogs.showShortcuts.set(false);
+			return;
+		}
+		// A member selected inside a group steps back out to its group first
+		// (shared `parentSelection`); a top-level selection clears.
+		const slide = this.editor.slides()[this.host?.activeSlideIndex() ?? -1];
+		const parent = escapeSelectionTarget(slide?.elements, this.editor.selectedIds());
+		if (parent) {
+			this.editor.select([parent]);
 			return;
 		}
 		this.editor.clearSelection();

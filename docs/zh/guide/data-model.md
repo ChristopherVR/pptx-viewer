@@ -76,7 +76,7 @@ interface PptxSlide {
 
 ## 元素基类与组合接口 {#the-element-base-and-mixins}
 
-所有元素类型均继承 `PptxElementBase`，该接口定义于 `packages/core/src/core/types/element-base.ts`，包含标识、几何属性和往返保存所需的数据：
+所有元素类型均继承 `PptxElementBase`，该接口定义于 `ooxml-core/src/pptx/core/types/element-base.ts`，包含标识、几何属性和往返保存所需的数据：
 
 ```ts
 interface PptxElementBase {
@@ -124,7 +124,7 @@ interface ImagePptxElement
 
 ## `PptxElement` 联合类型 {#the-pptxelement-union}
 
-`slide.elements` 是由 `PptxElement` 可辨识联合类型组成的数组，共 **16 种类型**，定义于 `packages/core/src/core/types/elements.ts`。通过 `type` 字段缩小类型范围后，再访问该类型特有的属性。
+`slide.elements` 是由 `PptxElement` 可辨识联合类型组成的数组，共 **16 种类型**，定义于 `ooxml-core/src/pptx/core/types/elements.ts`。通过 `type` 字段缩小类型范围后，再访问该类型特有的属性。
 
 | `type` 字符串   | 接口                     | 说明                                                                     |
 | --------------- | ------------------------ | ------------------------------------------------------------------------ |
@@ -167,7 +167,7 @@ type PptxImageLikeElement = ImagePptxElement | PicturePptxElement;
 
 ## 类型守卫 {#type-guards}
 
-`packages/core/src/core/types/type-guards.ts` 导出运行时类型守卫，无需手动编写 `element.type === ...` 判断：
+`ooxml-core/src/pptx/core/types/type-guards.ts` 导出运行时类型守卫，无需手动编写 `element.type === ...` 判断：
 
 | 守卫                     | 缩小后的类型                                   |
 | ------------------------ | ---------------------------------------------- |

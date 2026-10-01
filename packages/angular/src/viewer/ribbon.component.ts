@@ -145,6 +145,7 @@ import { injectResolvedCustomization } from './viewer-customization.service';
 					[slideCount]="slideCount()"
 					[canEdit]="canEdit()"
 					[selectedElement]="selectedElement()"
+					[inspectorOpen]="inspectorOpen()"
 					[showGrid]="showGrid()"
 					[showRulers]="showRulers()"
 					[showGuides]="showGuides()"

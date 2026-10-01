@@ -56,70 +56,59 @@ async function waitFor(predicate: () => boolean, timeoutMs = 2000): Promise<void
 	}
 }
 
-function named(tab: { el: HTMLElement }, label: string): HTMLElement[] {
-	return [...tab.el.querySelectorAll<HTMLElement>('button, input, select')].filter(
-		(node) => node.getAttribute('aria-label') === label,
-	);
+function mount(handlers = makeHandlers(), onToggleInspector = vi.fn<() => void>()) {
+	const t = createTranslator();
+	const tab = createTransitionsTab(document, t, handlers, onToggleInspector);
+	const q = <E extends HTMLElement>(selector: string) => tab.el.querySelector<E>(selector)!;
+	const command = (id: string) =>
+		tab.el.querySelector(`[data-ribbon-control="${id}"]`)!.shadowRoot!.querySelector('button')!;
+	const preset = (type: string) =>
+		[...tab.el.querySelectorAll<HTMLButtonElement>('.preset')].find(
+			(button) => button.textContent === t(`pptx.ribbon.transition.${type}`),
+		)!;
+	const checkbox = (id: string) =>
+		q<HTMLInputElement>(`[data-ribbon-control="transitions.timing.${id}"] input[type=checkbox]`);
+	return { t, tab, handlers, q, command, preset, checkbox, onToggleInspector };
 }
 
 describe('createTransitionsTab', () => {
-	it('offers Preview, Sound, Apply to All and the Inspector toggle', () => {
-		const t = createTranslator();
-		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
-		expect(named(tab, t('pptx.ribbon.preview'))).toHaveLength(1);
-		expect(named(tab, t('pptx.ribbon.sound'))).toHaveLength(1);
-		expect(named(tab, t('pptx.headerFooter.applyToAll'))).toHaveLength(1);
-		expect(named(tab, t('pptx.ribbon.inspector'))).toHaveLength(1);
+	it('is the shared Transitions view with every public control id', () => {
+		const { tab, q } = mount();
+		expect(tab.el.tagName.toLowerCase()).toBe('pptx-ui-ribbon-transitions');
+		for (const id of ['preview.preview', 'timing.sound', 'timing.duration', 'timing.applyToAll']) {
+			expect(tab.el.querySelectorAll(`[data-ribbon-control="transitions.${id}"]`)).toHaveLength(1);
+		}
+		expect(q('[data-ribbon-control="transitions.transitionToThisSlide.gallery"]')).toBeTruthy();
+		expect(tab.el.querySelectorAll('.preset')).toHaveLength(9);
 	});
 
 	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
-		const t = createTranslator();
-		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
-		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+		const { q } = mount();
+		const select = q<HTMLSelectElement>('select');
 		expect(select.disabled).toBeFalsy();
 		expect([...select.options].map((o) => o.value)).toStrictEqual(['none', ...STOCK_IDS, 'other']);
 	});
 
-	it('offers the Advance Slide group, with both After controls React renders', () => {
-		const t = createTranslator();
-		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
-		expect(named(tab, t('pptx.ribbon.onMouseClick'))).toHaveLength(1);
-		expect(named(tab, t('pptx.ribbon.afterDuration'))).toHaveLength(1);
-		expect(named(tab, t('pptx.ribbon.advanceAfterSeconds'))).toHaveLength(1);
-	});
-
-	it('names the After checkbox and its duration box apart, as the other four bindings do', () => {
-		const t = createTranslator();
-		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
+	it('names the After checkbox and its duration box apart', () => {
+		const { q, checkbox } = mount();
 		// Both controls live under one `<label>`, which names only its FIRST
-		// labelable descendant, so each carries its own aria-label. This binding
-		// used to give the seconds box the checkbox's name, which published the
-		// ribbon as offering "After:" twice and never offering "Advance after
-		// specified duration" at all (caught by e2e/ribbon-control-inventory).
-		const afterCheckbox = named(tab, t('pptx.ribbon.afterDuration'))[0] as HTMLInputElement;
-		const afterSeconds = named(tab, t('pptx.ribbon.advanceAfterSeconds'))[0] as HTMLInputElement;
-		expect(afterCheckbox?.type).toBe('checkbox');
-		expect(afterSeconds?.type).toBe('text');
-		expect(afterSeconds.title).toBe(t('pptx.ribbon.advanceAfterSeconds'));
+		// labelable descendant, so each carries its own aria-label.
+		expect(checkbox('advanceAfter').getAttribute('aria-label')).toBe('After:');
+		const seconds = q<HTMLInputElement>('input[type=text]');
+		expect(seconds.getAttribute('aria-label')).toBe('Advance after specified duration');
+		expect(seconds.title).toBe('Advance after specified duration');
+		expect(checkbox('advanceOnClick').getAttribute('aria-label')).toBe('On Mouse Click');
 	});
 
 	it('opens the inspector from the Inspector button', () => {
-		const t = createTranslator();
-		const onToggleInspector = vi.fn();
-		const tab = createTransitionsTab(document, t, makeHandlers(), onToggleInspector);
-		(named(tab, t('pptx.ribbon.inspector'))[0] as HTMLButtonElement).click();
+		const { q, onToggleInspector } = mount();
+		q('.inspector').shadowRoot!.querySelector('button')!.click();
 		expect(onToggleInspector).toHaveBeenCalledOnce();
 	});
 
 	it('commits the picked preset the moment the gallery is clicked', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		tab.el
-			.querySelector<HTMLButtonElement>(
-				`.pptxv-transition-gallery button[aria-label="${t('pptx.ribbon.transition.fade')}"]`,
-			)
-			?.click();
+		const { handlers, preset } = mount();
+		preset('fade').click();
 		expect(handlers.applyDraft).toHaveBeenCalledWith(
 			expect.objectContaining({ type: 'fade', durationSec: 0.7 }),
 			false,
@@ -127,29 +116,26 @@ describe('createTransitionsTab', () => {
 	});
 
 	it('commits the duration on its own, without waiting for another preset click', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const duration = named(tab, t('pptx.ribbon.duration'))[0] as HTMLInputElement;
+		const { handlers, q } = mount();
+		const duration = q<HTMLInputElement>('input[type=number]');
 		duration.value = '1.5';
-		duration.dispatchEvent(new Event('change'));
+		duration.dispatchEvent(new Event('input'));
 		expect(handlers.applyDraft).toHaveBeenCalledWith(
 			expect.objectContaining({ durationSec: 1.5 }),
 			false,
 		);
 	});
 
-	it('commits an Advance After time as soon as the box is filled in', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const afterCheckbox = named(tab, t('pptx.ribbon.afterDuration'))[0] as HTMLInputElement;
-		const afterSeconds = named(tab, t('pptx.ribbon.advanceAfterSeconds'))[0] as HTMLInputElement;
-		afterCheckbox.checked = true;
-		afterCheckbox.dispatchEvent(new Event('change'));
-		afterSeconds.value = '00:03.00';
-		afterSeconds.dispatchEvent(new Event('change'));
-
+	it('commits an Advance After time on change, once After is ticked', () => {
+		const { handlers, q, checkbox } = mount();
+		const after = checkbox('advanceAfter');
+		after.checked = true;
+		after.dispatchEvent(new Event('change'));
+		// The draft source is the deck: the host re-seeds after the commit.
+		handlers.setDraft({ ...EMPTY_RIBBON_TRANSITION_DRAFT, advanceAfter: true });
+		const seconds = q<HTMLInputElement>('input[type=text]');
+		seconds.value = '00:03.00';
+		seconds.dispatchEvent(new Event('change'));
 		expect(handlers.applyDraft).toHaveBeenLastCalledWith(
 			expect.objectContaining({ advanceAfter: true, advanceAfterText: '00:03.00' }),
 			false,
@@ -157,10 +143,8 @@ describe('createTransitionsTab', () => {
 	});
 
 	it('commits the Advance on Mouse Click toggle on its own', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const onClick = named(tab, t('pptx.ribbon.onMouseClick'))[0] as HTMLInputElement;
+		const { handlers, checkbox } = mount();
+		const onClick = checkbox('advanceOnClick');
 		onClick.checked = false;
 		onClick.dispatchEvent(new Event('change'));
 		expect(handlers.applyDraft).toHaveBeenCalledWith(
@@ -169,36 +153,26 @@ describe('createTransitionsTab', () => {
 		);
 	});
 
-	it('apply to All is a BUTTON that commits to every slide at once', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const applyToAll = named(tab, t('pptx.headerFooter.applyToAll'))[0];
-		// PowerPoint's control is a button, not the arming checkbox this binding
-		// used to render (which made a picked preset reach one slide or all of
-		// them depending on a toggle no other binding had).
-		expect(applyToAll.tagName).toBe('BUTTON');
-
-		tab.el.querySelector<HTMLButtonElement>('.pptxv-transition-gallery button')?.click();
+	it('apply to All is a command that commits to every slide at once', () => {
+		const { handlers, preset, command } = mount();
+		preset('wipe').click();
 		expect(handlers.applyDraft).toHaveBeenLastCalledWith(expect.anything(), false);
-
-		(applyToAll as HTMLButtonElement).click();
+		command('transitions.timing.applyToAll').click();
 		expect(handlers.applyDraft).toHaveBeenLastCalledWith(expect.anything(), true);
 	});
 
 	it('preview replays the transition on the stage instead of doing nothing', () => {
-		const t = createTranslator();
 		const handlers = makeHandlers({
 			...EMPTY_RIBBON_TRANSITION_DRAFT,
 			type: 'push',
 			durationSec: 0.8,
 		});
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const { command } = mount(handlers);
 		const stage = document.createElement('div');
 		stage.setAttribute('aria-roledescription', 'slide');
 		document.body.appendChild(stage);
 
-		(named(tab, t('pptx.ribbon.preview'))[0] as HTMLButtonElement).click();
+		command('transitions.preview.preview').click();
 
 		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('push');
 		// A preview must never write to the deck.
@@ -207,9 +181,7 @@ describe('createTransitionsTab', () => {
 	});
 
 	it('re-seeds every control from the active slide on sync', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const { handlers, tab, q, checkbox, preset } = mount();
 		handlers.setDraft({
 			type: 'wipe',
 			durationSec: 2,
@@ -218,57 +190,34 @@ describe('createTransitionsTab', () => {
 			advanceAfterText: '00:05.00',
 		});
 		tab.sync();
-
-		const duration = named(tab, t('pptx.ribbon.duration'))[0] as HTMLInputElement;
-		const afterCheckbox = named(tab, t('pptx.ribbon.afterDuration'))[0] as HTMLInputElement;
-		const afterSeconds = named(tab, t('pptx.ribbon.advanceAfterSeconds'))[0] as HTMLInputElement;
-		expect(duration.value).toBe('2');
-		expect(afterCheckbox.checked).toBeTruthy();
-		expect(afterSeconds.value).toBe('00:05.00');
-		expect((named(tab, t('pptx.ribbon.onMouseClick'))[0] as HTMLInputElement).checked).toBeFalsy();
-		const wipe = tab.el.querySelector<HTMLButtonElement>(
-			`.pptxv-transition-gallery button[aria-label="${t('pptx.ribbon.transition.wipe')}"]`,
-		);
-		expect(wipe?.classList.contains('is-active')).toBeTruthy();
+		expect(q<HTMLInputElement>('input[type=number]').value).toBe('2');
+		expect(checkbox('advanceAfter').checked).toBeTruthy();
+		expect(q<HTMLInputElement>('input[type=text]').value).toBe('00:05.00');
+		expect(checkbox('advanceOnClick').checked).toBeFalsy();
+		expect(preset('wipe').getAttribute('aria-pressed')).toBe('true');
 		// Reading the deck must never write back to it.
 		expect(handlers.applyDraft).not.toHaveBeenCalled();
 	});
 
-	it('setEditable gates the gallery and the advance controls together', () => {
-		const t = createTranslator();
-		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
+	it('setEditable gates the gallery, advance controls and Sound select together', () => {
+		const { tab, q, checkbox, preset, handlers } = mount();
 		tab.setEditable(false);
-		const preset = tab.el.querySelector<HTMLButtonElement>('.pptxv-transition-gallery button');
-		expect(preset?.disabled).toBeTruthy();
-		expect(
-			(named(tab, t('pptx.ribbon.onMouseClick'))[0] as HTMLInputElement).disabled,
-		).toBeTruthy();
-
+		expect(preset('fade').disabled).toBeTruthy();
+		expect(checkbox('advanceOnClick').disabled).toBeTruthy();
+		expect(q<HTMLSelectElement>('select').disabled).toBeTruthy();
+		preset('fade').click();
+		expect(handlers.applyDraft).not.toHaveBeenCalled();
 		tab.setEditable(true);
-		expect(preset?.disabled).toBeFalsy();
-		expect((named(tab, t('pptx.ribbon.onMouseClick'))[0] as HTMLInputElement).disabled).toBeFalsy();
-	});
-
-	it('setEditable gates the Sound select too', () => {
-		const t = createTranslator();
-		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
-		tab.setEditable(false);
-		expect((named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement).disabled).toBeTruthy();
-		tab.setEditable(true);
-		expect((named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement).disabled).toBeFalsy();
+		expect(preset('fade').disabled).toBeFalsy();
+		expect(checkbox('advanceOnClick').disabled).toBeFalsy();
+		expect(q<HTMLSelectElement>('select').disabled).toBeFalsy();
 	});
 });
 
 describe('createTransitionsTab > Sound picker', () => {
-	function soundFileInput(tab: { el: HTMLElement }): HTMLInputElement {
-		return tab.el.querySelector('input[type="file"]') as HTMLInputElement;
-	}
-
 	it('leads with the current file name once the slide carries a non-stock sound', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav' });
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+		const { q } = mount(makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav' }));
+		const select = q<HTMLSelectElement>('select');
 		expect([...select.options].map((o) => o.value)).toStrictEqual([
 			'current',
 			'none',
@@ -278,63 +227,47 @@ describe('createTransitionsTab > Sound picker', () => {
 		expect(select.value).toBe('current');
 	});
 
-	it('picks a stock sound directly, with no file dialog, and enables the preview button', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
-
+	it('picks a stock sound directly, with no file dialog', async () => {
+		const { handlers, q } = mount();
+		const select = q<HTMLSelectElement>('select');
 		select.value = 'chime';
 		select.dispatchEvent(new Event('change'));
+		await waitFor(() => handlers.applyChange.mock.calls.length > 0);
 
 		expect(handlers.applyChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundName: 'CHIMES.WAV', soundFileName: 'CHIMES.WAV' }),
 		);
 		const call = handlers.applyChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
 		expect(call.soundData).toMatch(/^data:audio\/wav;base64,/);
-
-		const previewButton = named(tab, t('pptx.animation.sound.preview'))[0] as HTMLButtonElement;
-		expect(previewButton).toBeTruthy();
 	});
 
-	it('clears the sound when "None" is chosen', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers(undefined, {
-			type: 'fade',
-			soundFileName: 'chime.wav',
-			soundRId: 'rId2',
-		});
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
-
+	it('clears the sound when "None" is chosen', async () => {
+		const { handlers, q } = mount(
+			makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' }),
+		);
+		const select = q<HTMLSelectElement>('select');
 		select.value = 'none';
 		select.dispatchEvent(new Event('change'));
-
+		await waitFor(() => handlers.applyChange.mock.calls.length > 0);
 		expect(handlers.applyChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundRId: undefined, soundFileName: undefined }),
 		);
 	});
 
 	it('opens the file picker instead of committing when "Other Sound..." is chosen', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
-		const input = soundFileInput(tab);
-		const clickSpy = vi.spyOn(input, 'click');
-
+		const { handlers, q } = mount();
+		const clickSpy = vi.spyOn(q<HTMLInputElement>('input[type=file]'), 'click');
+		const select = q<HTMLSelectElement>('select');
 		select.value = 'other';
 		select.dispatchEvent(new Event('change'));
-
 		expect(clickSpy).toHaveBeenCalledOnce();
 		expect(handlers.applyChange).not.toHaveBeenCalled();
+		expect(select.value).toBe('none');
 	});
 
 	it('commits the picked file as pending sound data', async () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const input = soundFileInput(tab);
+		const { handlers, q } = mount();
+		const input = q<HTMLInputElement>('input[type=file]');
 		const file = new File(['fake wav bytes'], 'applause.wav', { type: 'audio/wav' });
 		Object.defineProperty(input, 'files', { value: [file], configurable: true });
 
@@ -356,14 +289,9 @@ describe('createTransitionsTab > Sound picker', () => {
 	});
 
 	it('repaints the Sound select on sync even when the ribbon draft is unchanged', () => {
-		const t = createTranslator();
-		const handlers = makeHandlers();
-		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const { handlers, tab, q } = mount();
 		handlers.setTransition({ type: 'none', soundFileName: 'chime.wav' });
-
 		tab.sync();
-
-		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
-		expect(select.value).toBe('current');
+		expect(q<HTMLSelectElement>('select').value).toBe('current');
 	});
 });

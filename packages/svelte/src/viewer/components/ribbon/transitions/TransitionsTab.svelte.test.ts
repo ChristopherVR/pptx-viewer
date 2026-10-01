@@ -1,10 +1,16 @@
-import { EFFECT_SOUND_CATALOGUE, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
+import {
+	EFFECT_SOUND_CATALOGUE,
+	registerPptxWebControls,
+	TRANSITION_PREVIEW_ATTR,
+} from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import { ChromeUiState } from '../../../state/chrome-ui.svelte';
 import TransitionsTab from './TransitionsTab.svelte';
+
+registerPptxWebControls();
 
 const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
 
@@ -71,8 +77,17 @@ function label(target: HTMLElement, caption: string): HTMLLabelElement | undefin
 }
 
 function button(target: HTMLElement, caption: string): HTMLButtonElement | undefined {
-	return [...target.querySelectorAll<HTMLButtonElement>('button')].find(
+	const plain = [...target.querySelectorAll<HTMLButtonElement>('button')].find(
 		(node) => node.textContent?.trim() === caption,
+	);
+	if (plain) {
+		return plain;
+	}
+	// Shared commands render their button in their own shadow root.
+	return (
+		[...target.querySelectorAll('pptx-ui-ribbon-command')]
+			.find((node) => node.getAttribute('label') === caption)
+			?.shadowRoot?.querySelector('button') ?? undefined
 	);
 }
 
@@ -195,13 +210,14 @@ describe('transitionsTab', () => {
 		]);
 	});
 
-	it('picks a stock sound directly, with no file dialog, and enables the preview button', () => {
+	it('picks a stock sound directly, with no file dialog, and enables the preview button', async () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
 		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
 
 		select.value = 'chime';
 		fire(select, 'change');
+		await waitFor(() => editor.slides[0]?.transition?.soundData !== undefined);
 
 		expect(editor.slides[0]?.transition).toMatchObject({
 			soundName: 'CHIMES.WAV',
@@ -254,7 +270,7 @@ describe('transitionsTab', () => {
 		expect(select?.value).toBe('current');
 	});
 
-	it('clears the sound when "None" is chosen', () => {
+	it('clears the sound when "None" is chosen', async () => {
 		const editor = makeEditor();
 		editor.slides = [
 			{
@@ -267,6 +283,7 @@ describe('transitionsTab', () => {
 
 		select.value = 'none';
 		fire(select, 'change');
+		await waitFor(() => editor.slides[0]?.transition?.soundFileName === undefined);
 
 		expect(editor.slides[0]?.transition).toMatchObject({
 			type: 'fade',
@@ -315,11 +332,23 @@ describe('transitionsTab', () => {
 		chromeUi.inspectorOpen = false;
 		const target = mountTab(makeEditor(), chromeUi);
 
-		[...target.querySelectorAll<HTMLButtonElement>('button')]
-			.find((candidate) => candidate.textContent?.trim() === 'Inspector')
-			?.click();
+		button(target, 'Inspector')?.click();
 		flushSync();
 
 		expect(chromeUi.inspectorOpen).toBeTruthy();
+	});
+
+	it('reflects the open inspector as pressed state and gates edits when read-only', () => {
+		const chromeUi = new ChromeUiState();
+		chromeUi.inspectorOpen = true;
+		const editor = makeEditor();
+		editor.editable = false;
+		const target = mountTab(editor, chromeUi);
+
+		expect(target.querySelector('.inspector')?.getAttribute('pressed')).toBe('true');
+		button(target, 'Fade')?.click();
+		button(target, 'Apply to All')?.click();
+		flushSync();
+		expect(editor.slides[0]?.transition).toBeUndefined();
 	});
 });

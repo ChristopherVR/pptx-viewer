@@ -57,6 +57,11 @@ export interface SelectionOverlay {
 	mount(host: HTMLElement): void;
 	/** Position the selection box (element px + stage scale), or hide it. */
 	setBox(box: OverlayBox | null, scale: number): void;
+	/**
+	 * The dashed frame of the group the selection sits inside (a member selected
+	 * by clicking into its group, shared `group-drill`), or hide it with null.
+	 */
+	setGroupFrame(box: OverlayBox | null, scale: number): void;
 	/** Show/hide the resize handles and rotate knob per the selection's locks. */
 	setHandleVisibility(visibility: SelectionHandleVisibility): void;
 	/**
@@ -81,6 +86,13 @@ export function createSelectionOverlay(
 
 	// The box itself never intercepts pointers (CSS `pointer-events: none`);
 	// drag-to-move is driven from the underlying element so clicks reach it.
+	// The entered group's dashed frame, drawn under the member's selection box.
+	const groupFrame = createEl(doc, 'div', 'pptxv-group-frame');
+	groupFrame.dataset.pptxEnteredGroup = '';
+	groupFrame.setAttribute('aria-hidden', 'true');
+	groupFrame.hidden = true;
+	root.appendChild(groupFrame);
+
 	const box = createEl(doc, 'div', 'pptxv-sel-box');
 	box.style.borderColor = getSelectionOutlineColor('var(--pptx-ring)');
 	box.hidden = true;
@@ -200,6 +212,17 @@ export function createSelectionOverlay(
 			// on mobile, where React's has shrunk below 1px.
 			box.style.borderWidth = `${scale}px`;
 			box.style.transform = nextBox.rotation ? `rotate(${nextBox.rotation}deg)` : 'none';
+		},
+		setGroupFrame(frame, scale) {
+			if (!frame) {
+				groupFrame.hidden = true;
+				return;
+			}
+			groupFrame.hidden = false;
+			groupFrame.style.left = `${frame.x * scale}px`;
+			groupFrame.style.top = `${frame.y * scale}px`;
+			groupFrame.style.width = `${frame.width * scale}px`;
+			groupFrame.style.height = `${frame.height * scale}px`;
 		},
 		setHandleVisibility({ resizable, rotatable }) {
 			for (const handle of resizeHandles) {

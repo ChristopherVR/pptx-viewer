@@ -10,6 +10,7 @@ import {
 	clampZoomScale,
 	createCustomizationController,
 	prepareElementForInsertion,
+	slideSpaceElement,
 } from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
@@ -446,7 +447,9 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			getElementById(elementId: string, slideIndex?: number) {
 				const idx = slideIndex ?? activeSlideIndex;
 				const s = slides[idx];
-				return s?.elements.find((e) => e.id === elementId);
+				// A group member too (selected by drilling into its group), in slide
+				// space like the editor shows it.
+				return s ? (slideSpaceElement(s.elements, elementId) ?? undefined) : undefined;
 			},
 			// -- Element manipulation --
 			addElement(element: PptxElement) {

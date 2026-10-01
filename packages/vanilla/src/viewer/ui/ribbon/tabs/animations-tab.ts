@@ -1,5 +1,6 @@
 import type {
 	PptxAnimationDirection,
+	PptxAnimationPreset,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
 	PptxAnimationTimelineAnchor,
@@ -7,29 +8,25 @@ import type {
 	PptxAnimationTrigger,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
+import type { RibbonAnimationsRequestEvent, RibbonAnimationsViewState } from 'pptx-viewer-shared';
 import {
 	buildAnimationTimelineRows,
 	directionValuesFor,
 	effectiveDirection,
 	effectiveTimingCurve,
+	registerPptxWebControls,
 } from 'pptx-viewer-shared';
 
 import { playAnimationPreview } from '../../../animation';
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
-import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
-import { createAnimationPresetGallery } from './animation-preset-gallery';
 import {
 	animationRow,
 	nativeAnimationRow,
 	optionSelect,
 	timingField,
 } from './animation-timeline-controls';
-import { createAdvancedAnimationGroup } from './animations-advanced';
-import { createTimingGroup } from './animations-timing';
-import { createMotionPathGallery } from './motion-path-gallery';
 
 export interface AnimationsTabState {
 	editable: boolean;
@@ -37,6 +34,8 @@ export interface AnimationsTabState {
 	hasSelection: boolean;
 	selectedElementId?: string;
 	animations: readonly PptxElementAnimation[];
+	/** Whether the inspector is open (the Animation Pane command's pressed state). */
+	paneOpen?: boolean;
 	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
 	animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
 }
@@ -70,68 +69,41 @@ export function createAnimationsTab(
 	>,
 	onOpenAnimationPanel: () => void,
 ): AnimationsTab {
+	registerPptxWebControls();
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
+	const shell = doc.createElement('pptx-ui-ribbon-animations');
+	el.appendChild(shell);
 
 	let selectedAnimation: PptxElementAnimation | undefined;
-
-	/**
-	 * Preview the selected element's effect on the canvas.
-	 *
-	 * This used to be a hand-rolled `element.animate()` fade, which showed the
-	 * wrong thing for every effect and nothing at all for a motion path (the one
-	 * effect whose whole point is the travel). It now plays the SAME shared
-	 * descriptor the inspector's Preview button does, motion path included.
-	 */
-	const playPreview = (): void => {
-		playAnimationPreview(doc, selectedAnimation);
+	let view: RibbonAnimationsViewState = {
+		editable: false,
+		hasSelection: false,
+		translate: t,
 	};
-
-	const preview = makeButton(doc, {
-		label: t('pptx.animations.preview'),
-		icon: 'play',
-		textLabel: t('pptx.animations.preview'),
-		onClick: playPreview,
+	const syncShell = (): void => {
+		shell.state = view;
+	};
+	/**
+	 * Preview the selected element's effect on the canvas through the SAME shared
+	 * descriptor the inspector's Preview button plays, motion path included.
+	 */
+	shell.addEventListener('animations-request', (event) => {
+		const intent = (event as RibbonAnimationsRequestEvent).detail;
+		if (intent.kind === 'add') {
+			if (intent.group === 'motionPath') {
+				handlers.applyMotionPath(intent.preset);
+			} else {
+				handlers.addAnimation(intent.group, intent.preset as PptxAnimationPreset);
+			}
+		} else if (intent.value === 'preview') {
+			playAnimationPreview(doc, selectedAnimation);
+		} else if (intent.value === 'remove') {
+			handlers.removeAnimation();
+		} else {
+			onOpenAnimationPanel();
+		}
 	});
-	preview.btn.title = t('pptx.animations.previewTooltip');
-	const previewGroup = tagRibbonGroup(createEl(doc, 'div', 'pptxv-rgroup'), 'animations.preview');
-	tagRibbonControl(preview.btn, 'animations.preview.preview');
-	const previewRow = createEl(doc, 'div', 'pptxv-rgroup-row');
-	previewRow.appendChild(preview.btn);
-	const previewLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
-	previewLabel.textContent = t('pptx.animations.preview');
-	previewGroup.append(previewRow, previewLabel);
-	el.appendChild(previewGroup);
-
-	const galleryGroup = tagRibbonGroup(createEl(doc, 'div', 'pptxv-rgroup'), 'animations.animation');
-	const galleryLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
-	galleryLabel.textContent = t('pptx.animations.animation');
-	const gallery = createAnimationPresetGallery(doc, t, (group, preset) =>
-		handlers.addAnimation(group, preset),
-	);
-	tagRibbonControl(gallery.el, 'animations.animation.gallery');
-	galleryGroup.append(gallery.el, galleryLabel);
-	el.appendChild(galleryGroup);
-
-	// Motion paths get their own group: a path coexists with an entrance /
-	// emphasis / exit preset on the same entry rather than replacing one.
-	const motionGroup = tagRibbonGroup(createEl(doc, 'div', 'pptxv-rgroup'), 'animations.motionPath');
-	const motionLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
-	motionLabel.textContent = t('pptx.animation.motionPath');
-	const motionGallery = createMotionPathGallery(doc, t, (presetId) =>
-		handlers.applyMotionPath(presetId),
-	);
-	tagRibbonControl(motionGallery.el, 'animations.motionPath.gallery');
-	motionGroup.append(motionGallery.el, motionLabel);
-	el.appendChild(motionGroup);
-
-	const advanced = createAdvancedAnimationGroup(doc, t, {
-		addAnimation: handlers.addAnimation,
-		applyMotionPath: handlers.applyMotionPath,
-		removeAnimation: handlers.removeAnimation,
-		openAnimationPanel: onOpenAnimationPanel,
-	});
-	el.appendChild(advanced.el);
-	el.appendChild(createTimingGroup(doc, t).el);
+	syncShell();
 
 	const timeline = createEl(doc, 'div', 'pptxv-animation-timeline');
 	const timelineLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -232,12 +204,16 @@ export function createAnimationsTab(
 
 	return {
 		el,
-		update({ editable, hasSelection, selectedElementId, animations, animationTimelineAnchors }) {
-			const disabled = !editable || !hasSelection;
-			gallery.setDisabled(disabled);
-			motionGallery.setDisabled(disabled);
-			preview.setDisabled(disabled);
-			advanced.setDisabled(disabled);
+		update({
+			editable,
+			hasSelection,
+			selectedElementId,
+			animations,
+			animationTimelineAnchors,
+			paneOpen,
+		}) {
+			view = { ...view, editable, hasSelection, paneOpen };
+			syncShell();
 			const ordered = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 			selectedAnimation = ordered.find(({ elementId }) => elementId === selectedElementId);
 			// Merges the editor's own animations with the deck's read-only native

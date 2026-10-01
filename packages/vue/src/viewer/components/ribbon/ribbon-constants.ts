@@ -1,11 +1,9 @@
 import {
 	AlignCenter,
 	AlignHorizontalSpaceAround,
-	AlignJustify,
 	AlignLeft,
 	AlignRight,
 	AlignVerticalSpaceAround,
-	Bold,
 	Check,
 	ChevronDown,
 	ChevronUp,
@@ -16,19 +14,12 @@ import {
 	FileText,
 	Image,
 	Info,
-	Italic,
 	Lock,
-	Minus,
-	MoveRight,
-	Pencil,
 	Play,
 	Printer,
 	Search,
 	ShieldAlert,
-	Spline,
-	Strikethrough,
 	Type,
-	Underline,
 	Video,
 } from 'lucide-vue-next';
 /**
@@ -40,7 +31,7 @@ import {
  */
 import type { Component } from 'vue';
 
-import type { DrawingTool, ViewerMode } from './ribbon-types';
+import type { ViewerMode } from './ribbon-types';
 
 /* Style tokens: touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8).
  * Tailwind 4 has no built-in `touch:` variant, so `max-md:` is used as a proxy
@@ -86,34 +77,6 @@ export const DISTRIBUTE_BTNS: Array<{ k: string; icon: Component }> = [
 	{ k: 'vertical', icon: AlignVerticalSpaceAround },
 ];
 
-export const DRAW_TOOLS: Array<{
-	id: DrawingTool;
-	icon: Component;
-	labelKey: string;
-	ac?: string;
-}> = [
-	{
-		id: 'select',
-		icon: MoveRight,
-		labelKey: 'pptx.ribbon.tool.select',
-		ac: 'bg-primary text-white',
-	},
-	{ id: 'pen', icon: Pencil, labelKey: 'pptx.ribbon.tool.pen', ac: 'bg-primary text-white' },
-	{
-		id: 'highlighter',
-		icon: Type,
-		labelKey: 'pptx.ribbon.tool.highlighter',
-		ac: 'bg-yellow-600 text-white',
-	},
-	{ id: 'eraser', icon: Minus, labelKey: 'pptx.ribbon.tool.eraser', ac: 'bg-red-600 text-white' },
-	{
-		id: 'freeform',
-		icon: Spline,
-		labelKey: 'pptx.ribbon.tool.freeform',
-		ac: 'bg-primary text-white',
-	},
-];
-
 /** Overflow / File menu entries (`---*` keys render as separators). */
 export const OV: Array<{ labelKey: string; icon: Component | null; k: string }> = [
 	{ k: 'png', labelKey: 'pptx.ribbon.exportPng', icon: Download },
@@ -137,36 +100,6 @@ export const OV: Array<{ labelKey: string; icon: Component | null; k: string }> 
 	{ k: 'passwordProtection', labelKey: 'pptx.security.protectPresentation', icon: Lock },
 	{ k: 'fontEmbedding', labelKey: 'pptx.ribbon.embedFonts', icon: Type },
 	{ k: 'digitalSignatures', labelKey: 'pptx.viewer.digitalSignatures', icon: ShieldAlert },
-];
-
-/** Character formatting toggles (Bold/Italic/Underline/Strikethrough). */
-export const FMT: Array<{ id: string; icon: Component; labelKey: string }> = [
-	{ id: 'bold', icon: Bold, labelKey: 'pptx.textPanel.bold' },
-	{ id: 'italic', icon: Italic, labelKey: 'pptx.textPanel.italic' },
-	{ id: 'underline', icon: Underline, labelKey: 'pptx.textPanel.underline' },
-	{ id: 'strikethrough', icon: Strikethrough, labelKey: 'pptx.textPanel.strikethrough' },
-];
-
-/** Paragraph alignment toggles. */
-export const ATXT: Array<{ id: string; icon: Component; labelKey: string }> = [
-	{ id: 'left', icon: AlignLeft, labelKey: 'pptx.ribbon.alignLeft' },
-	{ id: 'center', icon: AlignCenter, labelKey: 'pptx.ribbon.alignCenter' },
-	{ id: 'right', icon: AlignRight, labelKey: 'pptx.ribbon.alignRight' },
-	{ id: 'justify', icon: AlignJustify, labelKey: 'pptx.ribbon.justify' },
-];
-
-/**
- * Start-mode options of the Animations tab's Timing group.
- *
- * The preset gallery that used to live beside this table now sources its
- * effects from `pptx-viewer-shared` (see `AnimationPresetGallery.vue`), so a
- * preset added to the catalogue reaches every binding without a per-binding
- * table to forget to update.
- */
-export const ANIMATION_START_MODES = [
-	'pptx.animations.onClick',
-	'pptx.animations.withPrevious',
-	'pptx.animations.afterPrevious',
 ];
 
 /**

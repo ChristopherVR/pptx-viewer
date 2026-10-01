@@ -111,13 +111,13 @@ the drift.
 
 ### Decision table
 
-| Change                                           | Where the logic lives | Bindings to touch       | Tests required                                  |
-| ------------------------------------------------ | --------------------- | ----------------------- | ----------------------------------------------- |
-| New UI feature (control, dialog, panel, gesture) | `pptx-viewer-shared`  | **All five**            | Unit per binding + shared unit + e2e spec       |
-| UI fix reproducible in >1 binding                | `pptx-viewer-shared`  | **All affected**        | Regression test per affected binding (+ e2e)    |
-| UI fix genuinely specific to one framework       | That binding          | Just that one           | Regression test in that binding; PR says why    |
-| Parsing / serialization / geometry               | `pptx-viewer-core`    | None (bindings inherit) | Unit in `packages/core`, round-trip if on save  |
-| Docs, README, examples                           | n/a                   | n/a                     | Documentation build and relevant example checks |
+| Change                                           | Where the logic lives | Bindings to touch       | Tests required                                          |
+| ------------------------------------------------ | --------------------- | ----------------------- | ------------------------------------------------------- |
+| New UI feature (control, dialog, panel, gesture) | `pptx-viewer-shared`  | **All five**            | Unit per binding + shared unit + e2e spec               |
+| UI fix reproducible in >1 binding                | `pptx-viewer-shared`  | **All affected**        | Regression test per affected binding (+ e2e)            |
+| UI fix genuinely specific to one framework       | That binding          | Just that one           | Regression test in that binding; PR says why            |
+| Parsing / serialization / geometry               | `pptx-viewer-core`    | None (bindings inherit) | Unit in `ooxml-core` (pptx area), round-trip if on save |
+| Docs, README, examples                           | n/a                   | n/a                     | Documentation build and relevant example checks         |
 
 "Genuinely specific to one framework" means something like Angular change
 detection, Svelte 5 runes, or a React `useEffect` ordering issue. A wrong

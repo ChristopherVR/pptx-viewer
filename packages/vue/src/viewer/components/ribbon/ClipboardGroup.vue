@@ -1,16 +1,15 @@
 <script setup lang="ts">
 /**
- * ClipboardGroup: the Home tab's Clipboard group (Paste, Cut, Copy, Format
- * Painter) with the brief copied / cut feedback flash. Split out of
- * `HomeSection.vue` to keep that file short.
+ * ClipboardGroup: the Home tab's Clipboard group. Markup, icons, gating and
+ * styles come from the shared `pptx-ui-ribbon-home-clipboard` element; this
+ * adapter only maps its one `home-request` intent onto the existing handlers.
  */
-import { ref } from 'vue';
+import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
+import { clipboardHomeControls } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../../utils';
-import { gB, gL, grp, ic } from './ribbon-constants';
 import type { ElementClipboardPayload } from './ribbon-types';
-import RibbonIcon from './RibbonIcon';
 
 interface Props {
 	canEdit: boolean;
@@ -28,79 +27,35 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-const copiedFeedback = ref(false);
-const cutFeedback = ref(false);
+const state = computed(() => ({
+	controls: clipboardHomeControls({
+		editable: props.canEdit,
+		hasSelection: props.hasSelection,
+		hasClipboard: Boolean(props.clipboardPayload),
+		formatPainterActive: Boolean(props.formatPainterActive),
+		canFormatPaint: props.canActivateFormatPainter !== false,
+		showFormatPainter: Boolean(props.onToggleFormatPainter),
+	}),
+	translate: t,
+}));
 
-function handleCut(): void {
-	props.onCut();
-	cutFeedback.value = true;
-	setTimeout(() => {
-		cutFeedback.value = false;
-	}, 600);
-}
-
-function handleCopy(): void {
-	props.onCopy();
-	copiedFeedback.value = true;
-	setTimeout(() => {
-		copiedFeedback.value = false;
-	}, 600);
+function request(event: RibbonHomeRequestEvent): void {
+	switch (event.detail.id) {
+		case 'home.clipboard.paste':
+			props.onPaste();
+			break;
+		case 'home.clipboard.cut':
+			props.onCut();
+			break;
+		case 'home.clipboard.copy':
+			props.onCopy();
+			break;
+		case 'home.clipboard.formatPainter':
+			props.onToggleFormatPainter?.();
+	}
 }
 </script>
 
 <template>
-	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.clipboard">
-		<div :class="grp">
-			<button
-				type="button"
-				data-ribbon-control="home.clipboard.paste"
-				:disabled="!props.clipboardPayload || !props.canEdit"
-				:class="gB"
-				:title="t('pptx.arrange.paste')"
-				@click="props.onPaste()"
-			>
-				<RibbonIcon name="home.clipboard.paste" :class="ic" />
-			</button>
-			<button
-				type="button"
-				data-ribbon-control="home.clipboard.cut"
-				:disabled="!props.canEdit || !hasSelection"
-				:class="cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')"
-				:title="t('pptx.arrange.cut')"
-				@click="handleCut()"
-			>
-				<RibbonIcon name="home.clipboard.cut" :class="ic" />
-			</button>
-			<button
-				type="button"
-				data-ribbon-control="home.clipboard.copy"
-				:disabled="!hasSelection"
-				:class="cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')"
-				:title="t('pptx.arrange.copy')"
-				@click="handleCopy()"
-			>
-				<RibbonIcon name="home.clipboard.copy" :class="ic" />
-			</button>
-			<button
-				v-if="props.onToggleFormatPainter"
-				type="button"
-				:disabled="
-					!props.canEdit || (props.canActivateFormatPainter === false && !props.formatPainterActive)
-				"
-				data-testid="format-painter-toggle"
-				data-ribbon-control="home.clipboard.formatPainter"
-				:data-active="props.formatPainterActive ? 'true' : 'false'"
-				:class="
-					cn(gL, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
-				"
-				:title="t('pptx.arrange.formatPainter')"
-				@click="props.onToggleFormatPainter()"
-			>
-				<RibbonIcon name="home.clipboard.formatPainter" :class="ic" />
-			</button>
-		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.ribbon.clipboard')
-		}}</span>
-	</div>
+	<pptx-ui-ribbon-home-clipboard :state.prop="state" @home-request="request" />
 </template>

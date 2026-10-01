@@ -622,6 +622,7 @@ unit test fails if an id is missing here.
 | `draw.tools.select`                               | Select                              |
 | `draw.tools.pen`                                  | Pen                                 |
 | `draw.tools.highlighter`                          | Highlighter                         |
+| `draw.tools.freeform`                             | Freeform                            |
 | `draw.tools.eraser`                               | Eraser                              |
 | `draw.tools.penColor`                             | Pen colour                          |
 | `draw.tools.penWidth`                             | Pen width                           |
@@ -675,6 +676,7 @@ unit test fails if an id is missing here.
 | `review.proofing.thesaurus`                       | Thesaurus                           |
 | `review.accessibility.check`                      | Check Accessibility                 |
 | `review.language.translate`                       | Translate                           |
+| `review.language.language`                        | Language                            |
 | `review.comments.newComment`                      | New Comment                         |
 | `review.comments.delete`                          | Delete                              |
 | `review.comments.previous`                        | Previous                            |

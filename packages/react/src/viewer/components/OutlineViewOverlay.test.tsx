@@ -10,12 +10,16 @@
  * a past parity wave, never the shared maths.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { OUTLINE_LEVEL_ATTR, OUTLINE_ROW_ATTR, OUTLINE_VIEW_ATTR } from 'pptx-viewer-shared';
+import {
+	OUTLINE_LEVEL_ATTR,
+	OUTLINE_ROW_ATTR,
+	OUTLINE_VIEW_ATTR,
+	registerPptxWebControls,
+} from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // oxlint-disable-next-line prefer-ending-with-an-expect
@@ -101,11 +105,24 @@ function viewProps(overrides: Partial<ViewSectionProps> = {}): ViewSectionProps 
 	};
 }
 
+registerPptxWebControls();
+
+/** Mounts the View section and returns the shadow-root button of one shared View control. */
+function viewButton(props: ViewSectionProps, id: string): HTMLButtonElement {
+	const container = document.createElement('div');
+	document.body.appendChild(container);
+	const root = createRoot(container);
+	act(() => root.render(<ViewSection {...props} />));
+	return container
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+}
+
 describe('view tab Outline View control', () => {
 	it('renders enabled, next to the other presentation views', () => {
-		const html = renderToStaticMarkup(<ViewSection {...viewProps()} />);
-		expect(html).toContain('Outline View');
-		expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*Outline View/u);
+		const button = viewButton(viewProps(), 'view.presentationViews.outline');
+		expect(button.textContent).toContain('Outline View');
+		expect(button.disabled).toBeFalsy();
 	});
 });
 

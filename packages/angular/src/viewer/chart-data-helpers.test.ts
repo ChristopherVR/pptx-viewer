@@ -391,7 +391,8 @@ describe('advanced chart formatting wrappers', () => {
 			'#123456',
 		);
 		const cleared = setDataPointFill(set, 0, 1, null);
-		expect(cleared.chartData?.series[0].dataPoints).toBeUndefined();
+		// An empty list (not `undefined`) tells the save path the overrides were cleared.
+		expect(cleared.chartData?.series[0].dataPoints).toStrictEqual([]);
 	});
 
 	it('setDataPointMarker seeds and merges a per-point marker override', () => {
@@ -421,7 +422,8 @@ describe('advanced chart formatting wrappers', () => {
 
 		const cleared = setDataPointMarker(el, 0, 1, null);
 
-		expect(cleared.chartData?.series[0].dataPoints).toBeUndefined();
+		// An empty list (not `undefined`) tells the save path the overrides were cleared.
+		expect(cleared.chartData?.series[0].dataPoints).toStrictEqual([]);
 	});
 
 	it('setDataPointMarker leaves a point fill in place when only the marker is cleared', () => {

@@ -36,7 +36,7 @@ PowerPoint 形状并非以路径存储，而是由形状**预设**和调整控�
 
 ## 解析形状的几何信息 {#resolving-geometry-for-a-shape}
 
-最高层的用法是：根据元素边界框和调整值求值其预设，取得 SVG 路径数据和文本矩形。以下签名已对照 `packages/core/src/core/geometry/` 验证：
+最高层的用法是：根据元素边界框和调整值求值其预设，取得 SVG 路径数据和文本矩形。以下签名已对照 `ooxml-core/src/pptx/core/geometry/` 验证：
 
 ```ts
 import { evaluatePresetShape, getAdjustmentAwareShapeClipPath } from 'pptx-viewer-core';

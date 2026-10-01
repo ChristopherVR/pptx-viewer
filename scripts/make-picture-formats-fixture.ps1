@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Author `packages/core/src/__tests__/fixtures/picture-formats.pptx` through
+  Author `../ooxml-core/src/pptx/__tests__/fixtures/picture-formats.pptx` through
   real PowerPoint over COM: one slide holding a BMP, GIF, TIFF, EMF, WMF and
   SVG picture, each inserted with `Shapes.AddPicture`, plus PowerPoint's own
   97-2003 SaveAs of the same deck (`picture-formats.powerpoint.ppt`) as the
@@ -19,7 +19,7 @@
   Windows + PowerPoint only. Never quits a running PowerPoint.
 #>
 param(
-  [string]$OutDir = (Join-Path $PSScriptRoot '..\packages\core\src\__tests__\fixtures')
+  [string]$OutDir = (Join-Path $PSScriptRoot '..\..\ooxml-core\src\pptx\__tests__\fixtures')
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing

@@ -231,3 +231,216 @@ has the public ID `review.language.language`; Hide Ink belongs to `review.ink`.
 Native adapters retain settings, comparison, spell-check preferences, comment
 mutation/history and accessibility panels. The Angular-only duplicate Link
 command is removed from Review; its native output remains compatible.
+
+## Draw tools
+
+`pptx-ui-ribbon-draw.state` is a controlled `RibbonDrawViewState`: tool, color,
+width, editability, recent colors and a translation callback. The light-DOM
+view keeps customization IDs effective, including the new additive
+`draw.tools.freeform` ID. It owns all tool icons, pressed/disabled state,
+standard/recent/custom color choices, width presets and the continuous slider.
+The 16px preset previously available only in Vanilla is reachable in every
+binding. Escape and outside pointer dismissal close the color popup; Escape
+returns focus to its opener. Disconnect removes document/window listeners.
+
+The composed `draw-request` event carries a `RibbonDrawIntent` discriminated
+by `kind`: `tool`, `width` or `color`. A color intent marks whether the pick is
+committed. Hosts apply live color previews immediately and record recent colors
+only for committed picks. Setting state emits no intent. Native hosts retain
+ink pointer capture, live stroke previews, freeform shape creation, erasing,
+selection, undo/history and serialization. The shared view preserves focused
+controls across updates, isolates instances and uses the common theme tokens,
+forced colors and 44px coarse-pointer targets.
+
+## View ribbon
+
+`pptx-ui-ribbon-view.state` is a controlled `RibbonViewState`: editability,
+the Rulers/Grid/Guides/Snap to Grid/Snap to Shape/template flags, optional
+Selection Pane and Eyedropper active/availability, `zoomAvailable` and a
+translation callback. The light-DOM view renders the five View groups with the
+public customization ids; Handout Master, Notes Master, Zoom and Macros are
+disabled placeholders. Both guide buttons live inside one
+`view.show.addGuide` wrapper.
+
+The composed `view-request` event carries a `RibbonViewIntent`: `command`
+(normal, slideSorter, outline, readingView, slideMaster, selectionPane,
+eyedropper, zoomToFit), `option` (with the requested boolean) or `guide` (h or
+v). Edit-only commands (slideMaster, eyedropper, templateEditing) are rejected
+while read-only. Setting state emits no intent and checkbox rows are restored to
+the controlled value after each request. Native hosts retain persisted
+viewer options, view switching, the browser EyeDropper, template editing and
+history. Focus is preserved across updates and instances are isolated.
+
+## Transitions ribbon
+
+`pptx-ui-ribbon-transitions.state` is a controlled `RibbonTransitionsViewState`:
+the `RibbonTransitionDraft` read from the active slide (`readRibbonTransitionDraft`),
+that slide's raw `transition` (only used to list and select Sound entries),
+editability, the Inspector pane's open state and a translation callback that
+may take interpolation params (the preset title uses `{{name}}`). The light-DOM
+view renders the Preview, Transition to This Slide and Timing groups with the
+public customization ids (`transitions.preview.preview`,
+`transitions.transitionToThisSlide.gallery`, `transitions.timing.sound`,
+`duration`, `applyToAll`, `advanceOnClick`, `advanceAfter`); the Inspector
+toggle is an id-less command after the groups, as before. It owns the nine
+preset buttons (`aria-pressed` reflects the draft), the number and text
+fields, the checkbox rows, the Sound select with its preview button and the
+hidden audio file input. Presets are 28px tall, 44px on coarse pointers or
+narrow viewports.
+
+The composed `transitions-request` event carries a `RibbonTransitionsIntent`:
+`preview`, `preset`, `duration` (seconds, clamped 0 to 20), `advanceOnClick`,
+`advanceAfter`, `advanceAfterText`, `applyToAll`, `sound` (None or a stock
+catalogue id), `soundFile` (a picked `File`), `soundPreview` and `inspector`.
+Shared helpers turn intents into native work: `ribbonTransitionsDraftPatch`
+(commit through `ribbonTransitionUpdates`), `ribbonTransitionsSoundChange`
+(None, stock or file bytes as a `Partial<PptxSlideTransition>`) and
+`ribbonTransitionStockSoundUrl`. All edit intents are rejected while
+read-only; Preview, Inspector and sound preview are not edits. Choosing
+"Other Sound..." opens the owned file input and restores the select.
+
+Duration commits per `input` event; the After time commits on `change`
+(blur or Enter) so half-typed `mm:ss.hh` text never becomes a history step.
+Focused fields are not overwritten while typing, and a blur snaps a field back
+to the model. Hosts keep slide mutation, history, persistence, the transition
+preview replay (`playSlideTransitionPreview`, which needs the stage), audio
+playback and the inspector pane. The Effect Options catalogue id has no
+control in any binding yet, so none is rendered. Known boundary: the Vanilla
+host does not track inspector open state, so its Inspector command is never
+pressed, and Angular does not pass it either.
+
+## Animations ribbon
+
+`pptx-ui-ribbon-animations.state` is a controlled `RibbonAnimationsViewState`:
+`editable`, `hasSelection`, optional `paneOpen` (the Animation Pane's pressed
+state), optional `previewActive` (a transient Preview highlight, for hosts that
+track one) and a translation callback. The light-DOM view renders the five
+Animations groups (Preview, Animation, Motion Paths, Advanced Animation and
+Timing) with the public customization ids, including the entrance/emphasis/exit
+preset gallery and the five-family motion-path gallery. Every effect is a real
+button; the galleries scroll instead of growing so the ribbon stays one row.
+Exit Effects now carries `animations.advancedAnimation.addAnimation` in every
+binding (it was untagged in React, Svelte and Vanilla); Path Animation has no
+customization id in any binding.
+
+The composed `animations-request` event carries a `RibbonAnimationsIntent`:
+`add` (`group` is `entrance`, `emphasis`, `exit` or `motionPath`; `preset` is a
+preset name, or a motion-path catalogue id for `motionPath`) or `command`
+(`preview`, `effectOptions`, `animationPane`, `trigger`, `remove`). Intents are
+rejected while read-only or without a selection, except the Animation Pane,
+which stays reachable. Setting state emits no intent.
+
+Native hosts retain every effect edit (adding, removing and ordering effects,
+triggers, timing, direction, repeat), the play-order timeline and drag
+reordering (Svelte and Vanilla), the Animation Pane/inspector lifecycle,
+Preview playback, history and persistence. The Timing group's Start and
+Duration fields and Animation Painter remain disabled placeholders in every
+binding; per-effect timing is authored in the Animation Panel (and, in Svelte
+and Vanilla, the timeline row), not from these fields. Effect Options and
+Trigger open the Animation Panel in React, Vue, Svelte and Angular; Vanilla's
+panel command is the inspector toggle.
+
+## Insert ribbon
+
+`pptx-ui-ribbon-insert.state` is a controlled `RibbonInsertState`: editability,
+`hasSelection` (Link tracks the selection, not editability), the staged
+`shapeType` and `chartKind`, the armed and visible Freeform tools, availability
+flags (`chartAvailable`, `fieldAvailable`, `headerFooterAvailable`) and a
+translation callback. The light-DOM view renders the seven Insert groups
+(tables, images, illustrations, links, text, symbols, media) with the public
+customization ids, in PowerPoint's group order. The Shape and Chart pickers are
+a native select beside an insert button; Action and Field are click/keyboard
+menus (Arrow keys, Escape and outside press dismiss; Escape returns focus to the
+opener) that replace the former hover-only popups. Header & Footer is a compact
+command in the text group without a catalogue id, so it cannot be customized
+away by id (unchanged). `focusControl(id)` returns focus after a native dialog.
+
+The composed `insert-request` event carries a `RibbonInsertIntent`: `command`
+(textBox, table, image, media, smartArt, equation, link, headerFooter),
+`shapeType`/`shape` (stage / insert), `chartType`/`chart`, `freeform` (a tool or
+`null` to disarm), `actionButton` or `field` (slidenum, datetime, header,
+footer). Intents are validated against the shared catalogues and rejected while
+read-only (Link only needs a selection). Setting state emits no intent and
+select values are restored to the controlled value after each request.
+
+Native hosts retain every document mutation and its undo history, the file
+pickers and FileReader/image-probe plumbing, the SmartArt gallery, equation
+editor, hyperlink and Header & Footer dialogs, and the Date/Time format picker
+(React, Vue and Angular open it for the `datetime` field; Svelte and Vanilla
+insert the current date directly, as before). Freeform arming and the canvas
+drawing overlay stay native. Focus is preserved across updates and instances are
+isolated.
+
+## Home ribbon
+
+Home (#373) migrates in group families. Each family is a light-DOM element
+`pptx-ui-ribbon-home-<family>` built from one declarative spec
+(`RIBBON_HOME_FAMILIES`) in shared render code, so ids, labels, order and icons
+cannot drift between bindings. Hosts assign `state`
+(`RibbonHomeViewState`: a `controls` map of `{ disabled, pressed, hidden }` per
+control id, plus an optional translator) and listen for the composed
+`home-request` event whose `detail` is `{ id: RibbonControlId }`. Setting state
+emits nothing; unknown, disabled and hidden ids are rejected. Controls are real
+`<button data-ribbon-control>` elements, so public customization hides them
+through the viewer's existing scoped styles. Pointer press keeps the slide text
+selection (the mousedown default is prevented) and Space/Enter stay out of the
+viewer's slide shortcuts. `pressed` is reflected as `aria-pressed` only when the
+host supplies it. Targets grow to 44px on coarse pointers and narrow widths,
+and forced colors outline the pressed state.
+
+| Family      | Element                         | Controls                                                                                                                                       |
+| ----------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clipboard` | `pptx-ui-ribbon-home-clipboard` | The whole `home.clipboard` group: Paste, Cut, Copy, Format Painter                                                                             |
+| `font`      | `pptx-ui-ribbon-home-font`      | The character strip inside `home.font`: Bold, Italic, Underline, Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear Formatting |
+| `paragraph` | `pptx-ui-ribbon-home-paragraph` | The indent and alignment strips inside `home.paragraph`: Decrease and Increase Indent, Align Left, Center, Align Right, Justify                |
+| `editing`   | `pptx-ui-ribbon-home-editing`   | The Find and Replace strip inside `home.editing`                                                                                               |
+
+`clipboardHomeControls` fixes the gating once: Paste needs edit rights and a
+clipboard, Cut needs edit rights and a selection, Copy needs only a selection,
+and the Format Painter needs edit rights plus a formattable selection but stays
+enabled while armed so it can be cancelled. Hosts without a Format Painter hide
+it with `hidden`. The painter button keeps `data-testid="format-painter-toggle"`
+and mirrors its armed state in `data-active`. Native hosts retain every
+clipboard action, history and persistence. The former React and Vue green
+"copied/cut" flash was cosmetic, existed in two of five bindings, and is not
+carried over.
+
+`fontHomeControls` disables the whole strip unless a text selection is editable
+and reflects `aria-pressed` for the four decorations and Text Shadow. Native
+hosts keep how each edit is made: React reads the run-level tri-state at click
+time, Angular and Svelte patch the element's text style, and Vanilla uses the
+format mutations. The font family and size pickers, character spacing, change
+case and the colour pickers are native or app-owned popovers and stay outside
+the strip. Bindings still differ on the size ladder (React and Vue add 2pt,
+Angular steps through the preset list), which is an existing editing difference
+this change does not unify. The old React Font buttons stayed live for
+non-text selections; they now disable like the other four bindings.
+
+`paragraphHomeAction` decodes the indent and alignment ids (the shared
+24-model-pixel indent step, or an alignment) and `paragraphHomeAlign` narrows a
+stored alignment to the four values the strip can show; alignment is reflected
+as `aria-pressed` only when the host can read an explicit alignment. The Bullets
+and Numbering toggles keep their library galleries, and line spacing, text
+direction and columns stay native selects, so they sit outside the strip.
+Svelte keeps its own indent step (`adjustIndentPatch` by one level) because the
+shared indent id only tells it which direction to go.
+
+Find and Replace both open the host's find panel (the host owns that panel).
+`editingHomeControls({ findOpen })` mirrors an open panel on both buttons when a
+host can report it (Svelte does); other hosts omit it and show no pressed state.
+The Select menu and its Select All command are app-owned popovers and stay
+native.
+
+### Home groups that stay native
+
+Slides (New Slide split button, Slide Templates dialog, Layout and Reset menus,
+Section), Drawing (Shapes, Arrange, Shape Fill/Outline, Quick Styles and Shape
+Effects galleries and colour popovers) and Arrange (align/distribute/flip/order
+selects, Group/Ungroup, Merge Shapes, Crop, outline width, Duplicate, Delete and
+the second Format Painter) still live in each binding. They are built from
+labelled split buttons, galleries, anchored popovers, dialogs and colour
+pickers that each binding anchors and focuses natively, and their labels,
+ordering and gating differ between bindings in ways a shared strip cannot
+unify without a behaviour change. They are tracked as the next Home batches.
+The font family and size selectors, character spacing, change case, font and
+highlight colour pickers stay native for the same reason.

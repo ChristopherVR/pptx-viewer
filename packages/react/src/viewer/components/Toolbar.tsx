@@ -256,6 +256,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 
 					{sDrw && (
 						<DrawSection
+							canEdit={p.canEdit}
 							activeTool={p.activeTool}
 							drawingColor={p.drawingColor}
 							drawingWidth={p.drawingWidth}

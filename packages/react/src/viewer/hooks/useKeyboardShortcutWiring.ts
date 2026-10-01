@@ -7,6 +7,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import {
 	cycleSelectableElement,
+	parentSelection,
 	stepFontSizePt,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
@@ -137,7 +138,17 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 			} else if (state.tableEditorState) {
 				state.setTableEditorState(null);
 			} else {
-				ops.clearSelection();
+				// A member selected inside a group steps back out to its group first
+				// (shared `parentSelection`); a top-level selection clears.
+				const parent =
+					activeSlide && state.selectedElementId
+						? parentSelection(activeSlide.elements, state.selectedElementId)
+						: null;
+				if (parent) {
+					ops.applySelection(parent);
+				} else {
+					ops.clearSelection();
+				}
 			}
 		},
 		onNudge: (dx: number, dy: number) => {

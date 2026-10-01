@@ -96,11 +96,6 @@ export const RIBBON_CSS = `
 .pptxv-theme-gallery-host > .pptxv-deck-theme-editor { display: block; width: 300px; max-height: 70vh; overflow-y: auto; padding: 0; }
 .pptxv-theme-swatch-preview { display: block; width: 20px; height: 20px; flex: none; border: 1px solid var(--pptx-border); border-radius: 4px; }
 .pptxv-shortcut-help { align-self: center; padding: 5px 8px; color: var(--pptx-muted-foreground); font-size: 11px; }
-.pptxv-ribbon-insert-content {
-	flex-wrap: nowrap;
-	overflow-x: auto;
-	overflow-y: hidden;
-}
 .pptxv-rgroup {
 	display: flex;
 	flex: none;
@@ -135,40 +130,6 @@ export const RIBBON_CSS = `
    caption beside it. */
 .pptxv-arrange-extras { display: inline-flex; align-items: center; gap: 2px; }
 .pptxv-arrange-extras .pptxv-arrange-stroke { width: 52px; text-align: center; }
-
-/* ── Transitions > Advance Slide ────────────────────────────────────────
-   The group shipped with no rules at all, so its caption and both rows ran
-   together as inline text ("On Mouse ClickAfter:00:00.00") and the duration
-   box stretched to whatever width the row left it. React lays it out as a
-   caption over two checkbox rows, with a 64px centred time box. */
-.pptxv-transition-advance {
-	display: inline-flex;
-	flex: none;
-	flex-direction: column;
-	gap: 3px;
-	font-size: 12px;
-	color: var(--pptx-muted-foreground);
-}
-.pptxv-transition-advance-row {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	white-space: nowrap;
-	cursor: pointer;
-}
-.pptxv-transition-advance-seconds {
-	width: 64px;
-	padding: 1px 4px;
-	border: 1px solid var(--pptx-border);
-	border-radius: var(--pptx-radius);
-	background: var(--pptx-muted);
-	color: var(--pptx-foreground);
-	font: inherit;
-	font-size: 11px;
-	text-align: center;
-}
-.pptxv-transition-advance-seconds:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
-.pptxv-transition-advance-seconds:disabled { opacity: 0.5; }
 
 /* ── Home > Slides split button (New Slide + layout caret) ──────────────*/
 .pptxv-slides-split { position: relative; display: inline-flex; align-items: stretch; }
@@ -245,20 +206,6 @@ export const RIBBON_CSS = `
 	white-space: nowrap;
 	text-align: center;
 }
-
-/* ── Select + commit picker (Insert > Shape / Chart) ──────────────────── */
-.pptxv-select-button { display: inline-flex; align-items: center; gap: 0; }
-.pptxv-select-button-select {
-	max-width: 132px;
-	padding: 5px 4px 5px 6px;
-	border: 1px solid var(--pptx-border);
-	border-right: none;
-	border-radius: var(--pptx-radius) 0 0 var(--pptx-radius);
-	background: var(--pptx-muted);
-	color: var(--pptx-foreground);
-	font-size: 11px;
-}
-.pptxv-select-button-commit { border-radius: 0 var(--pptx-radius) var(--pptx-radius) 0; }
 
 /* ── Dropdown popover (font/size/spacing/case/line-spacing) ─────────────*/
 .pptxv-dropdown { position: relative; display: inline-flex; }

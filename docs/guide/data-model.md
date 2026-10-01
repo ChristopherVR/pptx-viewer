@@ -76,7 +76,7 @@ A slide resolves its unspecified styling through its layout and master - see [Sl
 
 ## The element base and mixins
 
-Every element variant extends `PptxElementBase` (defined in `packages/core/src/core/types/element-base.ts`), which carries identity, geometry, and round-trip data:
+Every element variant extends `PptxElementBase` (defined in `ooxml-core/src/pptx/core/types/element-base.ts`), which carries identity, geometry, and round-trip data:
 
 ```ts
 interface PptxElementBase {
@@ -124,7 +124,7 @@ interface ImagePptxElement
 
 ## The `PptxElement` union
 
-`slide.elements` is an array of the `PptxElement` discriminated union: **16 variants**, defined in `packages/core/src/core/types/elements.ts`. Narrow on the `type` field to access variant-specific properties.
+`slide.elements` is an array of the `PptxElement` discriminated union: **16 variants**, defined in `ooxml-core/src/pptx/core/types/elements.ts`. Narrow on the `type` field to access variant-specific properties.
 
 | `type` string   | Interface                | Description                                                                            |
 | --------------- | ------------------------ | -------------------------------------------------------------------------------------- |
@@ -167,7 +167,7 @@ type PptxImageLikeElement = ImagePptxElement | PicturePptxElement;
 
 ## Type guards
 
-`packages/core/src/core/types/type-guards.ts` exports runtime guards so you can narrow without writing `element.type === ...` comparisons by hand:
+`ooxml-core/src/pptx/core/types/type-guards.ts` exports runtime guards so you can narrow without writing `element.type === ...` comparisons by hand:
 
 | Guard                    | Narrows to                                            |
 | ------------------------ | ----------------------------------------------------- |

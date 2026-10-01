@@ -1,4 +1,5 @@
 import type { PptxElement, ShapePptxElement } from 'pptx-viewer-core';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -10,6 +11,8 @@ import { EditorController } from '../editor/editor-controller.svelte';
 import { EditorState } from '../editor/editor-state.svelte';
 import OutlineAuthoringLayer from './OutlineAuthoringLayer.svelte';
 import InsertTab from './ribbon/insert/InsertTab.svelte';
+
+registerPptxWebControls();
 
 /**
  * Edit Points and the Freeform: Shape / Curve tools in the Svelte binding:
@@ -181,11 +184,10 @@ describe('freeform drawing tools', () => {
 	it('arm from the Insert tab and insert a custom shape on double-click', () => {
 		const editor = makeEditor([]);
 		const tab = mountInto(InsertTab, { editor, canvasSize: CANVAS });
-		const button = tab.querySelector(
-			'[data-pptx-drawing-tool="freeformShape"]',
-		) as HTMLButtonElement;
+		const host = tab.querySelector('[data-pptx-drawing-tool="freeformShape"]') as HTMLElement;
+		const button = host.shadowRoot!.querySelector('button')!;
 		expect(tab.querySelector('[data-pptx-drawing-tool="curve"]')).toBeTruthy();
-		button.click();
+		host.click();
 		flushSync();
 		expect(editor.outlineOps.freeformTool).toBe('freeformShape');
 		expect(button.getAttribute('aria-pressed')).toBe('true');

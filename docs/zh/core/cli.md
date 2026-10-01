@@ -5,7 +5,7 @@ description: 使用 pptx-viewer-core 的 pptx 命令执行 info、export-svg、e
 
 # 命令行工具 {#cli}
 
-`pptx-viewer-core` 在 `bin` 字段声明 `pptx` 可执行文件，入口为 `packages/core/src/cli/index.ts`。它将常见 PPTX 操作封装为终端命令，无需编写代码。各命令是引擎的薄封装，行为与编程 API 一致。
+`pptx-viewer-core` 在 `bin` 字段声明 `pptx` 可执行文件，入口为 `ooxml-core/src/pptx/cli/index.ts`。它将常见 PPTX 操作封装为终端命令，无需编写代码。各命令是引擎的薄封装，行为与编程 API 一致。
 
 ## 安装与运行 {#install-run}
 
@@ -40,7 +40,7 @@ bunx pptx-viewer-core info deck.pptx
 | `create -o <out>`                     | 创建空白文稿。             |
 | `diff <a> <b>`                        | 比较两份文稿。             |
 
-以下命令与选项对应 `packages/core/src/cli/index.ts` 和 `commands.ts`。
+以下命令与选项对应 `ooxml-core/src/pptx/cli/index.ts` 和 `commands.ts`。
 
 ### `info` {#info}
 

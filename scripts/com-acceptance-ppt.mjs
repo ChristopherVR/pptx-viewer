@@ -15,7 +15,7 @@
  * "Current User" stream's CFB sector count, which real PowerPoint never
  * needs to handle because its own smallest output always carries a full
  * embedded theme (12+ layouts, fonts) that dwarfs the threshold on its own.
- * See `packages/core/src/core/ppt/writer/document-stream-layout.ts`'s
+ * See `../ooxml-core/src/pptx/core/ppt/writer/document-stream-layout.ts`'s
  * `ensureMinimumDocumentStreamSize` for the fix. Nothing in this project's
  * unit suite could have caught it: it needs a REAL PowerPoint install.
  *
@@ -45,7 +45,7 @@
  *
  * It is deliberately NOT part of `bun run test`: it needs a local
  * PowerPoint install and drives a real application. Run it after any change
- * to `packages/core/src/core/ppt/writer/`, and always before claiming a
+ * to `../ooxml-core/src/pptx/core/ppt/writer/`, and always before claiming a
  * `.ppt`-open regression is fixed.
  */
 import { spawnSync } from 'node:child_process';
@@ -61,7 +61,7 @@ const REPO = path.resolve(HERE, '..');
 
 if (!process.versions.bun) {
 	console.error(
-		'com-acceptance-ppt.mjs runs under bun only: it imports packages/core/src as\n' +
+		'com-acceptance-ppt.mjs runs under bun only: it imports ../ooxml-core/src/pptx as\n' +
 			"TypeScript source, whose extensionless/directory imports node's ESM\n" +
 			'resolver cannot follow. Run:\n\n    bun scripts/com-acceptance-ppt.mjs\n',
 	);
@@ -70,7 +70,7 @@ if (!process.versions.bun) {
 
 const importFrom = (...segments) => import(pathToFileURL(path.join(REPO, ...segments)).href);
 
-const { PptxHandler } = await importFrom('packages/core/src/index.ts');
+const { PptxHandler } = await importFrom('../ooxml-core/src/pptx/index.ts');
 
 /**
  * Build a minimal from-scratch deck purely through the SDK's own public
@@ -351,7 +351,7 @@ if (hyperlinkExit === 2) {
  * ever used `addShape`), and an OLE embed (MsoShapeType 7 =
  * msoEmbeddedOLEObject, `OLEFormat.ProgID` = `"Package"`) proves the whole
  * `ExOleEmbedContainer`/`ExOleObjStg`/`fOleShape` chain. See
- * `packages/core/src/core/ppt/writer/ole-writer.ts`'s doc comment for what
+ * `../ooxml-core/src/pptx/core/ppt/writer/ole-writer.ts`'s doc comment for what
  * each of the three fixes downstream of the ground-truth fixture were.
  */
 async function runOleCase() {
@@ -441,7 +441,7 @@ if (oleExit === 2) {
  * and asserts the re-exported `ppt/media/*` part is byte-identical to the
  * WAV this test embedded: proof PowerPoint's own importer read the
  * `SoundDataBlob` this writer's exporter never emits on its own (see
- * `packages/core/src/core/ppt/writer/media-writer.ts`'s module doc).
+ * `../ooxml-core/src/pptx/core/ppt/writer/media-writer.ts`'s module doc).
  */
 function buildTestWav() {
 	const sampleRate = 8000;

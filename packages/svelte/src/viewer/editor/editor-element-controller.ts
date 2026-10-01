@@ -5,6 +5,7 @@ import {
 	cloneElementForPaste,
 	inlineListBodyText,
 	updateSlideNotes,
+	updateElementInTree,
 	updateTextSegmentStyle,
 } from 'pptx-viewer-shared';
 
@@ -33,12 +34,24 @@ export class EditorElementController {
 		this.#lastNudgeAt = 0;
 	}
 
+	/**
+	 * The active elements with `patch` merged into `id`. A top-level element is
+	 * patched in place; a group member (selected by drilling into its group,
+	 * shared `group-drill`) is found in the tree and its slide-space geometry
+	 * written back into the group's space (shared `updateElementInTree`).
+	 */
+	#patched(id: string, patch: Partial<PptxElement>): PptxElement[] {
+		const elements = this.#editor.activeElements;
+		if (elements.some((element) => element.id === id)) {
+			return elements.map((element) =>
+				element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
+			);
+		}
+		return updateElementInTree(elements, id, patch);
+	}
+
 	patchGeometry(id: string, box: ElementBoxPatch): void {
-		this.#editor.replaceActiveElements(
-			this.#editor.activeElements.map((element) =>
-				element.id === id ? ({ ...element, ...box } as PptxElement) : element,
-			),
-		);
+		this.#editor.replaceActiveElements(this.#patched(id, box as Partial<PptxElement>));
 	}
 
 	deleteSelected(): void {
@@ -68,18 +81,11 @@ export class EditorElementController {
 	}
 
 	applyElementPatch(id: string, patch: Partial<PptxElement>): void {
-		if (
-			!this.#editor.editable ||
-			!this.#editor.activeElements.some((element) => element.id === id)
-		) {
+		if (!this.#editor.editable || !this.#editor.elementById(id)) {
 			return;
 		}
 		this.#editor.pushHistory();
-		this.#editor.replaceActiveElements(
-			this.#editor.activeElements.map((element) =>
-				element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
-			),
-		);
+		this.#editor.replaceActiveElements(this.#patched(id, patch));
 		this.#editor.commitChange();
 	}
 
@@ -193,7 +199,8 @@ export class EditorElementController {
 		rawText: string,
 		snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot,
 	): void {
-		const target = this.#editor.activeElements.find((element) => element.id === id);
+		// A group member resolves in slide space; its update goes back into the group.
+		const target = this.#editor.elementById(id);
 		if (!target) {
 			return;
 		}
@@ -213,24 +220,19 @@ export class EditorElementController {
 		// resize above (both read `autoFitMode`, only one mode is ever set).
 		const shrink = resolveInlineTextNormAutofitShrink(target, editorEl);
 		this.#editor.replaceActiveElements(
-			this.#editor.activeElements.map((element) =>
-				element.id === id
-					? ({
-							...element,
-							...remapInlineText(target, text, snapshot),
-							...(newHeight !== undefined ? { height: newHeight } : {}),
-							...(shrink !== 'unchanged'
-								? {
-										textStyle: {
-											...(target as { textStyle?: TextStyle }).textStyle,
-											autoFitFontScale: shrink.fontScale,
-											autoFitLineSpacingReduction: shrink.lnSpcReduction,
-										},
-									}
-								: {}),
-						} as PptxElement)
-					: element,
-			),
+			this.#patched(id, {
+				...remapInlineText(target, text, snapshot),
+				...(newHeight !== undefined ? { height: newHeight } : {}),
+				...(shrink !== 'unchanged'
+					? {
+							textStyle: {
+								...(target as { textStyle?: TextStyle }).textStyle,
+								autoFitFontScale: shrink.fontScale,
+								autoFitLineSpacingReduction: shrink.lnSpcReduction,
+							},
+						}
+					: {}),
+			} as Partial<PptxElement>),
 		);
 		this.#editor.commitChange();
 	}

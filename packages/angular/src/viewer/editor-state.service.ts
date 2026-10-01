@@ -27,6 +27,7 @@ import {
 	isTemplateElementId,
 	makeCloneId,
 	rerouteConnectorsForMovedElements,
+	slideSpaceElement,
 	templateSchemeFromTheme,
 } from '../internal/shared';
 import type { PasteSpecialFormat, SlideTemplateId } from '../internal/shared';
@@ -492,10 +493,12 @@ export class EditorStateService {
 		if (!target) {
 			return;
 		}
-		const source = isTemplateElementId(id) ? this.templatesForSlide(target.id) : target.elements;
-		const current = source.find((el) => el.id === id) as
-			| { shapeAdjustments?: Record<string, number> }
-			| undefined;
+		// A group member (selected by drilling into its group) is found in the tree.
+		const current = (
+			isTemplateElementId(id)
+				? this.templatesForSlide(target.id).find((el) => el.id === id)
+				: (slideSpaceElement(target.elements, id) ?? undefined)
+		) as { shapeAdjustments?: Record<string, number> } | undefined;
 		if (!current) {
 			return;
 		}

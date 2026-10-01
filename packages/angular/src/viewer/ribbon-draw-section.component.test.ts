@@ -10,7 +10,7 @@
  */
 import { Injector, runInInjectionContext, signal } from '@angular/core';
 import type { InputSignal } from '@angular/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { RecentColorsService } from './recent-colors.service';
 import { RibbonDrawSectionComponent } from './ribbon-draw-section.component';
@@ -40,6 +40,21 @@ function colorEvent(value: string): Event {
 }
 
 describe('ribbonDrawSectionComponent pen colour (wave-4 B6)', () => {
+	it('routes shared tool/width intents and rejects read-only requests', () => {
+		const section = createSection([]);
+		const emit = vi.spyOn(section.drawToolChange, 'emit');
+		Object.assign(section, { canEdit: signal(true) });
+		section['request'](
+			new CustomEvent('draw-request', { detail: { kind: 'tool', value: 'freeform' } }),
+		);
+		section['request'](new CustomEvent('draw-request', { detail: { kind: 'width', value: 16 } }));
+		expect(emit).toHaveBeenNthCalledWith(1, { tool: 'freeform', color: '#000000', width: 3 });
+		expect(emit).toHaveBeenNthCalledWith(2, { tool: 'pen', color: '#000000', width: 16 });
+		Object.assign(section, { canEdit: signal(false) });
+		section['request'](new CustomEvent('draw-request', { detail: { kind: 'tool', value: 'pen' } }));
+		expect(emit).toHaveBeenCalledTimes(2);
+	});
+
 	it('does not push on the live-preview input event', () => {
 		const pushed: string[] = [];
 		const section = createSection(pushed);

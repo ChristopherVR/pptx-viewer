@@ -116,7 +116,7 @@ test('Save As .ppt embeds real audio bytes for a loaded media element', async ({
 	// shape, not an SDK-authored one (see `PptxHandlerRuntimeSaveLegacyPpt.ts`'s
 	// `resolveAudioMediaBytes`). `pptx-viewer-core`'s public API does not parse
 	// `SoundCollection` back into a `media` element yet (see
-	// `packages/core/src/core/ppt/writer/media-writer.ts`'s module doc and
+	// `ooxml-core/src/pptx/core/ppt/writer/media-writer.ts`'s module doc and
 	// `docs/guide/limitations.md`), so this proves what the public API CAN
 	// prove: the save succeeds, produces a real CFB file, and that file
 	// reloads with the same slide/shape count, in every binding.

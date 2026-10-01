@@ -118,6 +118,7 @@ export const RIBBON_CATALOG_CORE_TABS = {
 				select: 'Select',
 				pen: 'Pen',
 				highlighter: 'Highlighter',
+				freeform: 'Freeform',
 				eraser: 'Eraser',
 				penColor: 'Pen colour',
 				penWidth: 'Pen width',

@@ -9,7 +9,7 @@
  * carries.
  */
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import { EFFECT_SOUND_CATALOGUE } from 'pptx-viewer-shared';
+import { EFFECT_SOUND_CATALOGUE, registerPptxWebControls } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -20,6 +20,8 @@ vi.mock(import('react-i18next'), () => ({
 }));
 
 const { TransitionsSection } = await import('./TransitionsSection');
+
+registerPptxWebControls();
 
 let container: HTMLDivElement;
 let root: Root;
@@ -55,9 +57,7 @@ function renderTab(
 }
 
 function soundSelect(): HTMLSelectElement {
-	const select = container.querySelector<HTMLSelectElement>(
-		'select[aria-label="pptx.ribbon.sound"]',
-	);
+	const select = container.querySelector<HTMLSelectElement>('select[aria-label="Sound:"]');
 	if (!select) {
 		throw new Error('no Sound select rendered');
 	}
@@ -115,7 +115,7 @@ describe('transitions > Sound picker', () => {
 		]);
 	});
 
-	it('picks a stock sound directly, with no file dialog, and shows a working preview button', () => {
+	it('picks a stock sound directly, with no file dialog, and shows a working preview button', async () => {
 		const onTransitionChange = vi.fn();
 		renderTab({ type: 'fade' }, onTransitionChange);
 
@@ -124,6 +124,7 @@ describe('transitions > Sound picker', () => {
 			select.value = 'chime';
 			select.dispatchEvent(new Event('change', { bubbles: true }));
 		});
+		await waitFor(() => onTransitionChange.mock.calls.length > 0);
 
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundName: 'CHIMES.WAV', soundFileName: 'CHIMES.WAV' }),
@@ -132,12 +133,12 @@ describe('transitions > Sound picker', () => {
 		expect(call.soundData).toMatch(/^data:audio\/wav;base64,/);
 
 		const previewButton = container.querySelector<HTMLButtonElement>(
-			'button[aria-label="pptx.animation.sound.preview"]',
+			'button[aria-label="Preview sound"]',
 		);
 		expect(previewButton).toBeTruthy();
 	});
 
-	it('clears the sound when "None" is chosen', () => {
+	it('clears the sound when "None" is chosen', async () => {
 		const onTransitionChange = vi.fn();
 		renderTab({ type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' }, onTransitionChange);
 
@@ -146,6 +147,7 @@ describe('transitions > Sound picker', () => {
 			select.value = 'none';
 			select.dispatchEvent(new Event('change', { bubbles: true }));
 		});
+		await waitFor(() => onTransitionChange.mock.calls.length > 0);
 
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundRId: undefined, soundFileName: undefined }),

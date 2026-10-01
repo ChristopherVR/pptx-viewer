@@ -224,6 +224,8 @@ test.describe('cross-binding text layout', () => {
 		const editor = page.locator('[data-inline-editor]');
 		await editor.waitFor();
 
+		// The caret opens where the double-click landed (as in PowerPoint); append at the end.
+		await editor.press('Control+End');
 		await insertInlineParagraph(editor);
 		await page.keyboard.type(appendedText);
 		const stageBox = (await slideStage(page).boundingBox())!;

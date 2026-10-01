@@ -4,7 +4,6 @@ import {
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
 	MOTION_PATH_PRESETS,
-	motionPathPresetLabelKey,
 } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +21,7 @@ function handlers() {
 	};
 }
 
+/** A timeline control (light DOM), found by its explicit accessible name. */
 function control(tab: { el: HTMLElement }, label: string): HTMLElement {
 	const match = [...tab.el.querySelectorAll<HTMLElement>('button, input, select')].find(
 		(node) => node.getAttribute('aria-label') === label,
@@ -32,22 +32,37 @@ function control(tab: { el: HTMLElement }, label: string): HTMLElement {
 	return match;
 }
 
+/** A shared ribbon command: a host with a customization id and a shadow-root button. */
+function command(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
+	return tab.el
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+}
+
+function presetButtons(tab: { el: HTMLElement }, gallery: string): HTMLButtonElement[] {
+	return [
+		...tab.el.querySelectorAll<HTMLButtonElement>(`[data-ribbon-control="${gallery}"] button`),
+	];
+}
+
+function preset(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
+	return tab.el.querySelector<HTMLButtonElement>(`[data-animation-preset="${id}"]`)!;
+}
+
 const selected = { editable: true, hasSelection: true, animations: [] };
 
 describe('createAnimationsTab', () => {
 	it('offers Preview and the whole shared preset catalogue, each preset once', () => {
 		const t = createTranslator();
 		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
-		expect(control(tab, t('pptx.animations.preview'))).toBeTruthy();
+		expect(command(tab, 'animations.preview.preview')).toBeTruthy();
 
 		const presets = [...ENTRANCE_PRESET_VALUES, ...EMPHASIS_PRESET_VALUES, ...EXIT_PRESET_VALUES];
-		const buttons = [
-			...tab.el.querySelectorAll<HTMLButtonElement>('.pptxv-animation-gallery button'),
-		];
+		const buttons = presetButtons(tab, 'animations.animation.gallery');
 		expect(buttons).toHaveLength(presets.length);
-		const names = buttons.map((button) => button.getAttribute('aria-label'));
-		for (const preset of presets) {
-			const label = t(`pptx.animation.preset.${preset}`);
+		const names = buttons.map((button) => button.title);
+		for (const value of presets) {
+			const label = t(`pptx.animation.preset.${value}`);
 			expect(names.filter((name) => name === label)).toHaveLength(1);
 		}
 	});
@@ -55,9 +70,9 @@ describe('createAnimationsTab', () => {
 	it('captions the three buckets without turning them into commands', () => {
 		const t = createTranslator();
 		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
-		const captions = [...tab.el.querySelectorAll('.pptxv-animation-gallery-caption')].map(
-			(node) => node.textContent,
-		);
+		const captions = [
+			...tab.el.querySelectorAll('[data-ribbon-control="animations.animation.gallery"] .caption'),
+		].map((node) => node.textContent);
 		expect(captions).toStrictEqual([
 			t('pptx.animation.entrance'),
 			t('pptx.animation.emphasis'),
@@ -73,12 +88,11 @@ describe('createAnimationsTab', () => {
 	});
 
 	it('adds the preset its gallery button names', () => {
-		const t = createTranslator();
 		const actions = handlers();
-		const tab = createAnimationsTab(document, t, actions, vi.fn());
+		const tab = createAnimationsTab(document, createTranslator(), actions, vi.fn());
 		tab.update(selected);
-		(control(tab, t('pptx.animation.preset.growTurnIn')) as HTMLButtonElement).click();
-		(control(tab, t('pptx.animation.preset.teeter')) as HTMLButtonElement).click();
+		preset(tab, 'growTurnIn').click();
+		preset(tab, 'teeter').click();
 		expect(actions.addAnimation).toHaveBeenNthCalledWith(1, 'entrance', 'growTurnIn');
 		expect(actions.addAnimation).toHaveBeenNthCalledWith(2, 'emphasis', 'teeter');
 	});
@@ -86,31 +100,33 @@ describe('createAnimationsTab', () => {
 	it('offers the Advanced Animation and Timing controls', () => {
 		const t = createTranslator();
 		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
-		for (const label of [
-			t('pptx.animations.exitEffects'),
-			t('pptx.animations.pathAnimation'),
-			t('pptx.animations.effectOptions'),
-			t('pptx.animations.animationPanel'),
-			t('pptx.animations.trigger'),
-			t('pptx.animations.painter'),
-			t('pptx.animations.remove'),
-			t('pptx.animations.duration'),
+		for (const id of [
+			'animations.advancedAnimation.addAnimation',
+			'animations.animation.effectOptions',
+			'animations.advancedAnimation.animationPane',
+			'animations.advancedAnimation.trigger',
+			'animations.advancedAnimation.animationPainter',
+			'animations.advancedAnimation.remove',
 		]) {
-			expect(control(tab, label)).toBeTruthy();
+			expect(command(tab, id)).toBeTruthy();
 		}
+		const duration = tab.el.querySelector('[data-ribbon-control="animations.timing.duration"]');
+		expect(duration?.getAttribute('aria-label')).toBe(t('pptx.animations.duration'));
 		// The Start select is named by its associated <label>, not an aria-label.
-		expect(tab.el.querySelector('label[for^="pptx-animation-start"]')?.textContent).toBe(
+		expect(tab.el.querySelector('label[for^="pptx-animations-start"]')?.textContent).toBe(
 			t('pptx.animations.start'),
 		);
 	});
 
 	it('applies the presets its Exit Effects and Path Animation shortcuts name', () => {
-		const t = createTranslator();
 		const actions = handlers();
-		const tab = createAnimationsTab(document, t, actions, vi.fn());
+		const tab = createAnimationsTab(document, createTranslator(), actions, vi.fn());
 		tab.update(selected);
-		(control(tab, t('pptx.animations.exitEffects')) as HTMLButtonElement).click();
-		(control(tab, t('pptx.animations.pathAnimation')) as HTMLButtonElement).click();
+		command(tab, 'animations.advancedAnimation.addAnimation').click();
+		tab.el
+			.querySelectorAll('pptx-ui-ribbon-command')[2]
+			.shadowRoot!.querySelector('button')!
+			.click();
 		expect(actions.addAnimation).toHaveBeenNthCalledWith(1, 'exit', 'fadeOut');
 		// Path Animation must apply a PATH; it used to apply a Fly In entrance.
 		expect(actions.applyMotionPath).toHaveBeenCalledWith(DEFAULT_MOTION_PATH_PRESET_ID);
@@ -118,59 +134,63 @@ describe('createAnimationsTab', () => {
 	});
 
 	it('opens the animation panel from Effect Options, Animation Panel and Trigger', () => {
-		const t = createTranslator();
 		const onOpenAnimationPanel = vi.fn();
-		const tab = createAnimationsTab(document, t, handlers(), onOpenAnimationPanel);
+		const tab = createAnimationsTab(document, createTranslator(), handlers(), onOpenAnimationPanel);
 		tab.update(selected);
-		for (const label of [
-			t('pptx.animations.effectOptions'),
-			t('pptx.animations.animationPanel'),
-			t('pptx.animations.trigger'),
+		for (const id of [
+			'animations.animation.effectOptions',
+			'animations.advancedAnimation.animationPane',
+			'animations.advancedAnimation.trigger',
 		]) {
-			(control(tab, label) as HTMLButtonElement).click();
+			command(tab, id).click();
 		}
 		expect(onOpenAnimationPanel).toHaveBeenCalledTimes(3);
 	});
 
-	it('leaves the unimplemented placeholders disabled even with a selection', () => {
-		const t = createTranslator();
-		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
-		tab.update(selected);
-		expect((control(tab, t('pptx.animations.painter')) as HTMLButtonElement).disabled).toBeTruthy();
-		expect((control(tab, t('pptx.animations.duration')) as HTMLInputElement).disabled).toBeTruthy();
+	it('reflects the inspector as the pressed Animation Pane and routes Remove', () => {
+		const actions = handlers();
+		const tab = createAnimationsTab(document, createTranslator(), actions, vi.fn());
+		tab.update({ ...selected, paneOpen: true });
+		const pane = command(tab, 'animations.advancedAnimation.animationPane');
+		expect(pane.getAttribute('aria-pressed')).toBe('true');
+		command(tab, 'animations.advancedAnimation.remove').click();
+		expect(actions.removeAnimation).toHaveBeenCalledOnce();
+		tab.update({ ...selected, paneOpen: false });
+		expect(pane.getAttribute('aria-pressed')).toBe('false');
 	});
 
-	it('needs a selected element before an effect can be applied', () => {
-		const t = createTranslator();
-		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
+	it('leaves the unimplemented placeholders disabled even with a selection', () => {
+		const tab = createAnimationsTab(document, createTranslator(), handlers(), vi.fn());
+		tab.update(selected);
+		expect(command(tab, 'animations.advancedAnimation.animationPainter').disabled).toBeTruthy();
+		const duration = tab.el.querySelector<HTMLInputElement>(
+			'[data-ribbon-control="animations.timing.duration"]',
+		);
+		expect(duration?.disabled).toBeTruthy();
+	});
+
+	it('needs a selected element and edit permission before an effect can be applied', () => {
+		const tab = createAnimationsTab(document, createTranslator(), handlers(), vi.fn());
 		tab.update({ editable: true, hasSelection: false, animations: [] });
-		const first = tab.el.querySelector<HTMLButtonElement>('.pptxv-animation-gallery button');
-		expect(first?.disabled).toBeTruthy();
-		expect(
-			tab.el.querySelector<HTMLButtonElement>('.pptxv-motion-path-gallery button')?.disabled,
-		).toBeTruthy();
-		expect((control(tab, t('pptx.animations.remove')) as HTMLButtonElement).disabled).toBeTruthy();
+		expect(presetButtons(tab, 'animations.animation.gallery')[0].disabled).toBeTruthy();
+		expect(presetButtons(tab, 'animations.motionPath.gallery')[0].disabled).toBeTruthy();
+		expect(command(tab, 'animations.advancedAnimation.remove').disabled).toBeTruthy();
+		tab.update({ editable: false, hasSelection: true, animations: [] });
+		expect(presetButtons(tab, 'animations.animation.gallery')[0].disabled).toBeTruthy();
 	});
 
 	it('gives Motion Paths its own captioned ribbon group beside the presets', () => {
 		const t = createTranslator();
 		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
-		const gallery = tab.el.querySelector('.pptxv-motion-path-gallery');
+		const gallery = tab.el.querySelector('[data-ribbon-control="animations.motionPath.gallery"]');
 		expect(gallery?.getAttribute('aria-label')).toBe(t('pptx.animations.motionPathGalleryAria'));
-		expect(gallery?.parentElement?.querySelector('.pptxv-rgroup-label')?.textContent).toBe(
+		expect(gallery?.closest('pptx-ui-ribbon-group')?.getAttribute('label')).toBe(
 			t('pptx.animation.motionPath'),
 		);
 		// Every catalogue path is reachable, exactly once, as a real button.
-		const buttons = [
-			...tab.el.querySelectorAll<HTMLButtonElement>('.pptxv-motion-path-gallery button'),
-		];
-		expect(buttons).toHaveLength(MOTION_PATH_PRESETS.length);
-		const names = buttons.map((button) => button.getAttribute('aria-label'));
-		for (const preset of MOTION_PATH_PRESETS) {
-			expect(names.filter((name) => name === t(motionPathPresetLabelKey(preset.id)))).toHaveLength(
-				1,
-			);
-		}
+		expect(presetButtons(tab, 'animations.motionPath.gallery')).toHaveLength(
+			MOTION_PATH_PRESETS.length,
+		);
 	});
 
 	it('renders a read-only native-anchor row interleaved with editor rows, and it accepts a drop', () => {
@@ -230,16 +250,10 @@ describe('createAnimationsTab', () => {
 	});
 
 	it('applies the motion path its gallery button names', () => {
-		const t = createTranslator();
 		const actions = handlers();
-		const tab = createAnimationsTab(document, t, actions, vi.fn());
+		const tab = createAnimationsTab(document, createTranslator(), actions, vi.fn());
 		tab.update(selected);
-		const button = [
-			...tab.el.querySelectorAll<HTMLButtonElement>('.pptxv-motion-path-gallery button'),
-		].find(
-			(node) => node.getAttribute('aria-label') === t('pptx.animation.motionPath.preset.arcUp'),
-		);
-		button?.click();
+		preset(tab, 'arcUp').click();
 		expect(actions.applyMotionPath).toHaveBeenCalledWith('arcUp');
 	});
 });

@@ -299,11 +299,13 @@ test.describe('slide master tab parity', () => {
 		// Inline text editing. `[data-inline-editor]` is the cross-binding marker
 		// for the editing surface (see `INLINE_EDITOR_SELECTOR` in shared); a bare
 		// `[contenteditable]` also matches the hidden speaker-notes box.
-		// The editors put the caret at the END of the existing text rather than
-		// selecting it, so the marker is APPENDED and matched as a substring.
+		// The editors do not select the existing text; the caret opens where the double-click
+		// landed (as in PowerPoint), so move it to the END and APPEND the marker, matched as a
+		// substring.
 		await shape.dblclick();
 		const editor = page.locator('[data-inline-editor]');
 		await editor.waitFor();
+		await editor.press('Control+End');
 		await page.keyboard.type(RETITLED_MASTER_TEXT);
 		// Commit by blurring; Escape cancels. Re-clicking the already-selected
 		// Slides tab is the one neutral blur target every binding renders.

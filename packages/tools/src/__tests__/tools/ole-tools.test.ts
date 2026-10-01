@@ -43,24 +43,11 @@ async function makeDocxDataUrl(): Promise<string> {
 
 /**
  * Real Word 97-2003 `.doc` authored via Word COM (see
- * `ole-document-doc-editor.test.ts` in `pptx-viewer-core` for provenance and
+ * `ole-document-doc-editor.test.ts` in ooxml-core's pptx area (a copy of this fixture lives there) for provenance and
  * the real-Word round-trip this fixture was verified against).
  */
 function makeDocDataUrl(): string {
-	const bytes = readFileSync(
-		path.join(
-			__dirname,
-			'..',
-			'..',
-			'..',
-			'..',
-			'core',
-			'src',
-			'__tests__',
-			'fixtures',
-			'ole-word-97.doc',
-		),
-	);
+	const bytes = readFileSync(path.join(__dirname, '..', 'fixtures', 'ole-word-97.doc'));
 	return oleBytesToDataUrl(new Uint8Array(bytes), 'application/msword');
 }
 

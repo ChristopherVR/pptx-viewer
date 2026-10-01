@@ -7,7 +7,7 @@ effects applied via `Slide.TimeLine.MainSequence.AddEffect` (Grow And Turn,
 Bounce, Boomerang, Credits, Float, Sling, Stretch, Swish, Pinwheel, Spiral),
 saved as `.pptx`, and the resulting `ppt/slides/slide1.xml` was inspected
 directly. The produced file is kept as
-`packages/core/src/__tests__/fixtures/animation-ppt-formula-ground-truth.pptx`.
+`ooxml-core/src/pptx/__tests__/fixtures/animation-ppt-formula-ground-truth.pptx`.
 
 ## The central question: absolute or delta, centre or top-left?
 

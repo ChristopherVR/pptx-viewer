@@ -19,369 +19,233 @@ function makeHandlers(over: Partial<RibbonInsertHandlers> = {}): RibbonInsertHan
 	};
 }
 
+function make(over: Partial<RibbonInsertHandlers> = {}, spies: Record<string, () => void> = {}) {
+	const tab = createInsertTab(
+		document,
+		createTranslator(),
+		makeHandlers(over),
+		spies.equation ?? vi.fn(),
+		spies.headerFooter ?? vi.fn(),
+		spies.hyperlink ?? vi.fn(),
+	);
+	document.body.append(tab.el);
+	return tab;
+}
+function control(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
+	return tab.el
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+}
+function pick(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
+	return tab.el.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] .pick`)!;
+}
+function dialog(): HTMLElement | null {
+	return document.querySelector<HTMLElement>('[role="dialog"][aria-label="Insert SmartArt"]');
+}
+function dialogButton(name: string): HTMLButtonElement | undefined {
+	return Array.from(dialog()?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
+		(button) => button.textContent === name,
+	);
+}
+
 describe('createInsertTab', () => {
 	afterEach(() => document.body.replaceChildren());
 
 	it('offers the Freeform: Shape and Curve tools and arms / disarms them', () => {
-		const t = createTranslator();
 		const armFreeformTool = vi.fn();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({
-				armFreeformTool,
-				visibleDrawingTools: () => ['freeformShape', 'curve'],
-			}),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		const freeform = tab.el.querySelector<HTMLButtonElement>(
-			'[data-pptx-drawing-tool="freeformShape"]',
-		);
-		const curve = tab.el.querySelector<HTMLButtonElement>('[data-pptx-drawing-tool="curve"]');
-		expect(freeform?.getAttribute('aria-label')).toBe('Freeform: Shape');
-		expect(curve?.getAttribute('aria-pressed')).toBe('false');
-		curve?.click();
+		const tab = make({ armFreeformTool, visibleDrawingTools: () => ['freeformShape', 'curve'] });
+		const freeform = tab.el.querySelector<HTMLElement>('[data-pptx-drawing-tool="freeformShape"]')!;
+		const curve = tab.el.querySelector<HTMLElement>('[data-pptx-drawing-tool="curve"]')!;
+		const inner = curve.shadowRoot!.querySelector('button')!;
+		expect(freeform.getAttribute('label')).toBe('Freeform: Shape');
+		expect(inner.getAttribute('aria-pressed')).toBe('false');
+		curve.click();
 		expect(armFreeformTool).toHaveBeenLastCalledWith('curve');
 		tab.setFreeformTool('curve');
-		expect(curve?.getAttribute('aria-pressed')).toBe('true');
-		curve?.click();
+		expect(inner.getAttribute('aria-pressed')).toBe('true');
+		curve.click();
 		expect(armFreeformTool).toHaveBeenLastCalledWith(null);
 	});
 
 	it('leaves the drawing tools out when the host hides them', () => {
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ armFreeformTool: vi.fn(), visibleDrawingTools: () => ['curve'] }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		expect(tab.el.querySelector('[data-pptx-drawing-tool="freeformShape"]')).toBeNull();
-		expect(tab.el.querySelector('[data-pptx-drawing-tool="curve"]')).not.toBeNull();
+		const tab = make({ armFreeformTool: vi.fn(), visibleDrawingTools: () => ['curve'] });
+		expect(
+			tab.el.querySelector<HTMLElement>('[data-pptx-drawing-tool="freeformShape"]')!.hidden,
+		).toBeTruthy();
+		expect(
+			tab.el.querySelector<HTMLElement>('[data-pptx-drawing-tool="curve"]')!.hidden,
+		).toBeFalsy();
+		const none = make();
+		expect(none.el.querySelector<HTMLElement>('.stack')!.hidden).toBeTruthy();
 	});
 
-	it('renders the React-aligned insert commands and a single SmartArt trigger', () => {
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), vi.fn(), vi.fn());
-		// Top-level order: text, shape picker (+ drawing tools), image, media,
-		// table, chart + SmartArt, equation, action dropdown, field dropdown,
-		// hyperlink, header, each run in its catalogue group's
-		// `display: contents` wrapper.
-		expect(tab.el.children).toHaveLength(11);
-		expect(tab.el.querySelectorAll('[data-ribbon-group="insert.text"]')).toHaveLength(3);
-		expect(tab.el.querySelectorAll('[aria-label="SmartArt"]')).toHaveLength(1);
-		expect(tab.el.querySelector('.pptxv-smartart-grid')).toBeNull();
-		// The shape and chart pickers are select + commit pairs, like React's.
-		const selects = tab.el.querySelectorAll<HTMLSelectElement>('.pptxv-select-button-select');
+	it('renders the shared Insert element with every public group and control id', () => {
+		const tab = make();
+		expect(tab.el.querySelector('pptx-ui-ribbon-insert')).not.toBeNull();
+		for (const id of [
+			'insert.tables',
+			'insert.images',
+			'insert.illustrations',
+			'insert.links',
+			'insert.text',
+			'insert.symbols',
+			'insert.media',
+		]) {
+			expect(tab.el.querySelectorAll(`[data-ribbon-group="${id}"]`)).toHaveLength(1);
+		}
+		const selects = tab.el.querySelectorAll<HTMLSelectElement>('select');
 		expect(selects).toHaveLength(2);
 		expect(selects[0].options).toHaveLength(SHAPE_PRESET_DEFS.length);
 		expect(selects[1].options).toHaveLength(INSERT_CHART_TYPES.length);
-		// Only the action-button and field pickers stay popover dropdowns.
-		expect(tab.el.querySelectorAll('.pptxv-dropdown-trigger')).toHaveLength(2);
-		for (const name of [
-			'Text Box',
-			'Shape type',
-			'Shape',
-			'Table',
-			'Image',
-			'Media',
-			'Chart type',
-			'Chart',
-			'SmartArt',
-			'Equation',
-			'Action',
-			'Field',
-			'Hyperlink',
-			'Header & Footer',
-		]) {
-			expect(tab.el.querySelector(`[aria-label="${name}"]`)).not.toBeNull();
-		}
+		expect(tab.el.querySelectorAll('.trigger')).toHaveLength(2);
 	});
 
 	it('opens the hyperlink editor and needs a selection to be usable', () => {
-		const onOpenHyperlink = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), vi.fn(), onOpenHyperlink);
-		const link = tab.el.querySelector<HTMLButtonElement>('[aria-label="Hyperlink"]');
+		const hyperlink = vi.fn();
+		const tab = make({}, { hyperlink });
+		const link = control(tab, 'insert.links.link');
 		// A link always attaches to something, so an empty selection is enough to
 		// rule the command out even on an editable deck.
-		expect(link?.disabled).toBeTruthy();
+		expect(link.disabled).toBeTruthy();
 		tab.setEditable(true);
-		expect(link?.disabled).toBeTruthy();
-
+		expect(link.disabled).toBeTruthy();
 		tab.setHasSelection(true);
-		expect(link?.disabled).toBeFalsy();
-		link?.click();
-		expect(onOpenHyperlink).toHaveBeenCalledOnce();
-
+		expect(link.disabled).toBeFalsy();
+		link.click();
+		expect(hyperlink).toHaveBeenCalledOnce();
 		tab.setHasSelection(false);
-		expect(link?.disabled).toBeTruthy();
+		expect(link.disabled).toBeTruthy();
 	});
 
 	it('dispatches insert("text") / insert("table") for the fixed buttons', () => {
 		const insert = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers({ insert }), vi.fn(), vi.fn(), vi.fn());
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Text Box"]')?.click();
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Table"]')?.click();
+		const tab = make({ insert });
+		control(tab, 'insert.text.textBox').click();
+		control(tab, 'insert.tables.table').click();
 		expect(insert).toHaveBeenCalledWith('text');
 		expect(insert).toHaveBeenCalledWith('table');
 	});
 
 	it('inserts the shape type parked in the picker select', () => {
 		const insert = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers({ insert }), vi.fn(), vi.fn(), vi.fn());
-		const select = tab.el.querySelector<HTMLSelectElement>('.pptxv-select-button-select');
-		if (!select) {
-			throw new Error('no shape type select');
-		}
-		select.value = '2';
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Shape"]')?.click();
+		const tab = make({ insert });
+		const select = tab.el.querySelector<HTMLSelectElement>('select')!;
+		select.value = SHAPE_PRESET_DEFS[2].type;
+		select.dispatchEvent(new Event('change'));
+		pick(tab, 'insert.illustrations.shapes').click();
 		expect(insert).toHaveBeenCalledWith('shape', SHAPE_PRESET_DEFS[2].type);
 	});
 
-	it('calls insertImage() for the image button', () => {
+	it('calls insertImage() and insertMedia() for their buttons', () => {
 		const insertImage = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertImage }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Image"]')?.click();
-		expect(insertImage).toHaveBeenCalledOnce();
-	});
-
-	it('calls insertMedia() for the media button', () => {
 		const insertMedia = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertMedia }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Media"]')?.click();
+		const tab = make({ insertImage, insertMedia });
+		control(tab, 'insert.images.pictures').click();
+		control(tab, 'insert.media.media').click();
+		expect(insertImage).toHaveBeenCalledOnce();
 		expect(insertMedia).toHaveBeenCalledOnce();
 	});
 
-	it('inserts the chart kind parked in the picker select', () => {
+	it('inserts the chart kind parked in the picker select, including Bar and Pareto', () => {
 		const insertChart = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertChart }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		// The dropdown carries the entry id, not the raw chart family: Column and
-		// Bar are two entries over the same 'bar' type and must stay distinct.
-		const selects = tab.el.querySelectorAll<HTMLSelectElement>('.pptxv-select-button-select');
-		const chartSelect = selects[1];
-		expect([...chartSelect.options].map((option) => option.textContent)).toStrictEqual(
-			INSERT_CHART_TYPES.map((ct) => t(ct.labelKey)),
-		);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Chart"]')?.click();
-		expect(insertChart).toHaveBeenCalledWith(INSERT_CHART_TYPES[0].id);
-
-		insertChart.mockClear();
-		const barIndex = INSERT_CHART_TYPES.findIndex((ct) => ct.id === 'bar');
-		chartSelect.value = String(barIndex);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Chart"]')?.click();
-		expect(insertChart).toHaveBeenCalledWith('bar');
+		const tab = make({ insertChart });
+		const chartSelect = tab.el.querySelectorAll<HTMLSelectElement>('select')[1];
+		pick(tab, 'insert.illustrations.chart').click();
+		expect(insertChart).toHaveBeenLastCalledWith(INSERT_CHART_TYPES[0].id);
+		// The dropdown carries the entry id: Column and Bar share the 'bar' family.
+		for (const id of ['bar', 'pareto']) {
+			chartSelect.value = id;
+			chartSelect.dispatchEvent(new Event('change'));
+			pick(tab, 'insert.illustrations.chart').click();
+			expect(insertChart).toHaveBeenLastCalledWith(id);
+		}
 	});
 
-	it('offers Pareto as a directly clickable entry (docs/guide/limitations.md ChartEx row)', () => {
-		const insertChart = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertChart }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		const selects = tab.el.querySelectorAll<HTMLSelectElement>('.pptxv-select-button-select');
-		const chartSelect = selects[1];
-		const paretoIndex = INSERT_CHART_TYPES.findIndex((ct) => ct.id === 'pareto');
-		expect(paretoIndex).toBeGreaterThanOrEqual(0);
-
-		chartSelect.value = String(paretoIndex);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Chart"]')?.click();
-		expect(insertChart).toHaveBeenCalledWith('pareto');
-	});
-
-	it('opens the Header & Footer dialog', () => {
-		const onOpenHeaderFooter = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), onOpenHeaderFooter, vi.fn());
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Header & Footer"]')?.click();
-		expect(onOpenHeaderFooter).toHaveBeenCalledOnce();
-	});
-
-	it('calls onToggleEquationPanel for the equation button', () => {
-		const onToggleEquationPanel = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers(),
-			onToggleEquationPanel,
-			vi.fn(),
-			vi.fn(),
-		);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="Equation"]')?.click();
-		expect(onToggleEquationPanel).toHaveBeenCalledOnce();
+	it('opens the Header & Footer dialog and the equation panel', () => {
+		const headerFooter = vi.fn();
+		const equation = vi.fn();
+		const tab = make({}, { headerFooter, equation });
+		const header = [...tab.el.querySelectorAll<HTMLElement>('pptx-ui-ribbon-command')].find(
+			(el) => !el.dataset.ribbonControl && !el.dataset.pptxDrawingTool,
+		)!;
+		header.shadowRoot!.querySelector('button')!.click();
+		control(tab, 'insert.symbols.equation').click();
+		expect(headerFooter).toHaveBeenCalledOnce();
+		expect(equation).toHaveBeenCalledOnce();
 	});
 
 	it('opens an accessible SmartArt dialog and confirms the selected layout', () => {
 		const insertSmartArt = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertSmartArt }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="SmartArt"]')?.click();
-
-		const dialog = document.querySelector<HTMLElement>(
-			'[role="dialog"][aria-label="Insert SmartArt"]',
-		);
-		expect(dialog).not.toBeNull();
-		expect(dialog?.parentElement?.hidden).toBeFalsy();
-		expect(dialog?.querySelector('[role="listbox"][aria-label="SmartArt layouts"]')).not.toBeNull();
-		const option = dialog?.querySelector<HTMLButtonElement>('[role="option"]');
-		const insertButton = Array.from(
-			dialog?.querySelectorAll<HTMLButtonElement>('button') ?? [],
-		).find((button) => button.textContent === 'Insert');
-		expect(option?.getAttribute('aria-selected')).toBe('false');
+		const tab = make({ insertSmartArt });
+		control(tab, 'insert.illustrations.smartArt').click();
+		const panel = dialog();
+		expect(panel).not.toBeNull();
+		expect(panel?.parentElement?.hidden).toBeFalsy();
+		expect(panel?.querySelector('[role="listbox"][aria-label="SmartArt layouts"]')).not.toBeNull();
+		const option = panel?.querySelector<HTMLButtonElement>('[role="option"]');
+		const insertButton = dialogButton('Insert');
 		expect(insertButton?.disabled).toBeTruthy();
-
 		option?.click();
 		expect(option?.getAttribute('aria-selected')).toBe('true');
-		expect(insertButton?.disabled).toBeFalsy();
 		insertButton?.click();
 		expect(insertSmartArt).toHaveBeenCalledWith(PRESETS[0].layout, PRESETS[0].defaultItems);
-		expect(dialog?.parentElement?.hidden).toBeTruthy();
+		expect(panel?.parentElement?.hidden).toBeTruthy();
 	});
 
 	it('filters SmartArt layouts by category and resets selection', () => {
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), vi.fn(), vi.fn());
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="SmartArt"]')?.click();
-		const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-		const firstOption = dialog?.querySelector<HTMLButtonElement>('[role="option"]');
-		firstOption?.click();
-
+		const tab = make();
+		control(tab, 'insert.illustrations.smartArt').click();
+		dialog()?.querySelector<HTMLButtonElement>('[role="option"]')?.click();
 		const category = CATEGORIES[1];
-		const categoryButton = Array.from(
-			dialog?.querySelectorAll<HTMLButtonElement>('.pptxv-smartart-category') ?? [],
-		).find((button) => button.dataset.category === category.id);
-		categoryButton?.click();
-
+		Array.from(dialog()?.querySelectorAll<HTMLButtonElement>('.pptxv-smartart-category') ?? [])
+			.find((button) => button.dataset.category === category.id)
+			?.click();
 		const expected = PRESETS.filter((preset) => preset.category === category.id);
-		const options = dialog?.querySelectorAll<HTMLElement>('[role="option"]') ?? [];
+		const options = dialog()?.querySelectorAll<HTMLElement>('[role="option"]') ?? [];
 		expect(options).toHaveLength(expected.length);
 		expect(
 			Array.from(options).every((option) => option.getAttribute('aria-selected') === 'false'),
 		).toBeTruthy();
-		const insertButton = Array.from(
-			dialog?.querySelectorAll<HTMLButtonElement>('button') ?? [],
-		).find((button) => button.textContent === 'Insert');
-		expect(insertButton?.disabled).toBeTruthy();
+		expect(dialogButton('Insert')?.disabled).toBeTruthy();
 	});
 
-	it('cancels SmartArt insertion without calling the handler', () => {
+	it('cancels SmartArt insertion and returns focus to the SmartArt control', () => {
 		const insertSmartArt = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertSmartArt }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		tab.el.querySelector<HTMLButtonElement>('[aria-label="SmartArt"]')?.click();
-		const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-		dialog?.querySelector<HTMLButtonElement>('[role="option"]')?.click();
-		const cancelButton = Array.from(
-			dialog?.querySelectorAll<HTMLButtonElement>('button') ?? [],
-		).find((button) => button.textContent === 'Cancel');
-		cancelButton?.click();
-
+		const tab = make({ insertSmartArt });
+		const smartArt = control(tab, 'insert.illustrations.smartArt');
+		smartArt.click();
+		const panel = dialog();
+		panel?.querySelector<HTMLButtonElement>('[role="option"]')?.click();
+		dialogButton('Cancel')?.click();
 		expect(insertSmartArt).not.toHaveBeenCalled();
-		expect(dialog?.parentElement?.hidden).toBeTruthy();
+		expect(panel?.parentElement?.hidden).toBeTruthy();
+		expect(tab.el.querySelector('[data-ribbon-control="insert.illustrations.smartArt"]')).toBe(
+			document.activeElement,
+		);
 	});
 
-	it('dispatches insertActionButton(type) from the action-button dropdown', () => {
+	it('dispatches insertActionButton(type) and insertField(type) from the shared menus', () => {
 		const insertActionButton = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertActionButton }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		const item = tab.el
-			.querySelectorAll('.pptxv-dropdown')[0]
-			.querySelector<HTMLButtonElement>('.pptxv-dropdown-item');
-		expect(item).not.toBeNull();
-		item?.click();
-		expect(insertActionButton).toHaveBeenCalledOnce();
-	});
-
-	it('dispatches insertField(type) from the field dropdown', () => {
 		const insertField = vi.fn();
-		const t = createTranslator();
-		const tab = createInsertTab(
-			document,
-			t,
-			makeHandlers({ insertField }),
-			vi.fn(),
-			vi.fn(),
-			vi.fn(),
-		);
-		const dropdowns = tab.el.querySelectorAll('.pptxv-dropdown');
-		const fieldDropdown = dropdowns[dropdowns.length - 1];
-		const item = fieldDropdown.querySelector<HTMLButtonElement>('.pptxv-dropdown-item');
-		item?.click();
-		expect(insertField).toHaveBeenCalledOnce();
+		const tab = make({ insertActionButton, insertField });
+		for (const id of ['insert.links.action', 'insert.text.field']) {
+			tab.el.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] .trigger`)!.click();
+			tab.el
+				.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] [role=menuitem]`)!
+				.click();
+		}
+		expect(insertActionButton).toHaveBeenCalledOnce();
+		expect(insertField).toHaveBeenCalledWith('slidenum');
 	});
 
-	it('setEditable disables/enables every button (dropdown triggers gate their menu items)', () => {
-		const t = createTranslator();
-		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), vi.fn(), vi.fn());
-		// Dropdown menu items aren't individually disabled: a disabled trigger
-		// can't be opened, so its items are unreachable (see dropdown.ts).
-		// Hyperlink is excluded too: it tracks the selection, not editability.
-		const gatedButtons = tab.el.querySelectorAll<HTMLButtonElement>(
-			'button:not(.pptxv-dropdown-item):not([aria-label="Hyperlink"])',
-		);
-		expect(gatedButtons.length).toBeGreaterThan(0);
-
+	it('setEditable disables/enables every editing control but not Link', () => {
+		const tab = make();
+		const editing = ['insert.text.textBox', 'insert.tables.table', 'insert.media.media'];
 		tab.setEditable(false);
-		expect(Array.from(gatedButtons).every((b) => b.disabled)).toBeTruthy();
-
+		expect(editing.every((id) => control(tab, id).disabled)).toBeTruthy();
+		expect(tab.el.querySelector<HTMLSelectElement>('select')!.disabled).toBeTruthy();
+		expect(tab.el.querySelector<HTMLButtonElement>('.trigger')!.disabled).toBeTruthy();
 		tab.setEditable(true);
-		expect(Array.from(gatedButtons).every((b) => !b.disabled)).toBeTruthy();
+		expect(editing.every((id) => !control(tab, id).disabled)).toBeTruthy();
 	});
 });

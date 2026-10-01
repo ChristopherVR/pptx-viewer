@@ -1317,6 +1317,7 @@ export * from './css-escape';
 // Pointer-to-element hit-test: a click on a grouped child selects the GROUP
 // (PowerPoint's rule), with the innermost id kept available for drill-in.
 export * from './element-hit-test';
+export * from './group-drill';
 export * from './modal-focus';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
@@ -1734,3 +1735,9 @@ export * from './editor-chrome';
 
 export * from './ribbon-icons';
 export * from './theme-editor-model';
+export * from './ribbon-animations-state';
+export * from './ribbon-draw-state';
+export * from './ribbon-insert-state';
+export * from './ribbon-home-state';
+export * from './ribbon-view-state';
+export * from './ribbon-transitions-state';

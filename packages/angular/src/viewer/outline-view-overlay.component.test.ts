@@ -142,10 +142,7 @@ const VIEW_SECTION = readFileSync(
 
 describe('view tab Outline View control', () => {
 	it('is a live command next to the other presentation views', () => {
-		expect(VIEW_SECTION).toContain('(click)="openOutlineView.emit()"');
-		expect(VIEW_SECTION).not.toMatch(
-			/<button[^>]*disabled[^>]*>\s*\{\{ 'pptx\.view\.outlineView' \| translate \}\}/u,
-		);
+		expect(VIEW_SECTION).toContain('outline: this.openOutlineView');
 	});
 });
 

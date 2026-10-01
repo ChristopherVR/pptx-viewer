@@ -147,9 +147,7 @@ pptx-ribbon-draw-section,
 pptx-ribbon-design-section,
 pptx-ribbon-transitions-section,
 pptx-ribbon-animations-section,
-pptx-ribbon-animation-gallery,
 pptx-ribbon-shape-extras,
-pptx-ribbon-hyperlink-button,
 pptx-ribbon-paragraph-controls,
 pptx-ribbon-insert-fields,
 pptx-ribbon-contextual-section,
@@ -394,6 +392,15 @@ pptx-slide-canvas {
 	background: rgba(79, 134, 255, 0.08);
 	pointer-events: none;
 	z-index: 10000;
+}
+
+/* The group a selected member sits in (selecting inside a group, shared group-drill). */
+.pptx-ng-entered-group {
+	position: absolute;
+	box-sizing: border-box;
+	outline: 1px dashed var(--pptx-selection-outline-color, #4f86ff);
+	pointer-events: none;
+	z-index: 9999;
 }
 
 .pptx-ng-handle {

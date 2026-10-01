@@ -595,13 +595,11 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Paste"');
-		expect(html).toContain('title="Cut"');
-		expect(html).toContain('title="Copy"');
-		expect(html).toContain('title="Format Painter"');
+		// The shared element renders its buttons in the browser; see ClipboardGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
-	it('renders Clipboard group label', () => {
+	it('renders the shared Clipboard group host', () => {
 		const html = render(
 			React.createElement(HomeSection, {
 				canEdit: true,
@@ -615,7 +613,7 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('Clipboard');
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
 	it('renders New Slide button', () => {
@@ -700,23 +698,6 @@ describe('toolbar - Home tab', () => {
 			'value="48.1"',
 		);
 		expect(html).not.toContain('64.133333');
-	});
-
-	it('paste is disabled when no clipboard payload', () => {
-		const html = render(
-			React.createElement(HomeSection, {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Paste"/u);
 	});
 
 	it('font group label is present', () => {
@@ -838,54 +819,9 @@ describe('toolbar - Insert tab', () => {
 		...overrides,
 	});
 
-	it('renders Text, Shape, Image, Media, Table buttons', () => {
+	it('renders the shared Insert placeholder before browser hydration', () => {
 		const html = render(React.createElement(InsertSection, createInsertProps()));
-		expect(html).toContain('title="Add text box"');
-		expect(html).toContain('title="Add shape"');
-		expect(html).toContain('title="Insert image"');
-		expect(html).toContain('title="Insert audio or video"');
-		expect(html).toContain('title="Insert table"');
-	});
-
-	it('renders SmartArt and Equation buttons', () => {
-		const html = render(React.createElement(InsertSection, createInsertProps()));
-		expect(html).toContain('title="Insert SmartArt"');
-		expect(html).toContain('title="Insert Equation"');
-	});
-
-	it('renders Action button', () => {
-		const html = render(React.createElement(InsertSection, createInsertProps()));
-		expect(html).toContain('title="Insert action button"');
-		expect(html).toContain('>Action');
-	});
-
-	it('renders Field button when onInsertField is provided', () => {
-		const html = render(
-			React.createElement(InsertSection, createInsertProps({ onInsertField: vi.fn<() => void>() })),
-		);
-		expect(html).toContain('title="Insert Field"');
-	});
-
-	it('does not render Field button when onInsertField is undefined', () => {
-		const html = render(
-			React.createElement(InsertSection, createInsertProps({ onInsertField: undefined })),
-		);
-		expect(html).not.toContain('title="Insert Field"');
-	});
-
-	it('renders Header & Footer when a host callback is provided', () => {
-		const html = render(
-			React.createElement(
-				InsertSection,
-				createInsertProps({ onOpenHeaderFooter: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('Header &amp; Footer');
-	});
-
-	it('buttons are disabled when canEdit is false', () => {
-		const html = render(React.createElement(InsertSection, createInsertProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Add text box"/u);
+		expect(html).toContain('pptx-ui-ribbon-insert');
 	});
 });
 
@@ -894,82 +830,18 @@ describe('toolbar - Insert tab', () => {
 // ===========================================================================
 
 describe('toolbar - Draw tab', () => {
-	it('renders five drawing tool buttons (Select, Pen, Highlighter, Eraser, Freeform)', () => {
+	it('renders the shared Draw placeholder before browser hydration', () => {
 		const html = render(
 			React.createElement(DrawSection, {
 				activeTool: 'select',
 				drawingColor: '#000000',
 				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
+				onSetActiveTool: vi.fn(),
+				onSetDrawingColor: vi.fn(),
+				onSetDrawingWidth: vi.fn(),
 			}),
 		);
-		expect(html).toContain('title="Select"');
-		expect(html).toContain('title="Pen"');
-		expect(html).toContain('title="Highlighter"');
-		expect(html).toContain('title="Eraser"');
-		expect(html).toContain('title="Freeform"');
-	});
-
-	it('active tool has highlight styling', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'pen',
-				drawingColor: '#000000',
-				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		// The pen button should have bg-accent class since pen is active
-		expect(html).toMatch(/bg-accent[^"]*"[^>]*title="Pen"/u);
-	});
-
-	it('renders color picker input', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'select',
-				drawingColor: '#ff0000',
-				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('type="color"');
-		expect(html).toContain('value="#ff0000"');
-	});
-
-	it('renders width range control', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'select',
-				drawingColor: '#000000',
-				drawingWidth: 5,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('type="range"');
-		expect(html).toContain('value="5"');
-	});
-
-	it('renders Colour and Width labels', () => {
-		const html = render(
-			React.createElement(DrawSection, {
-				activeTool: 'select',
-				drawingColor: '#000000',
-				drawingWidth: 2,
-				onSetActiveTool: vi.fn<() => void>(),
-				onSetDrawingColor: vi.fn<() => void>(),
-				onSetDrawingWidth: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('Colour');
-		expect(html).toContain('Width');
+		expect(html).toContain('pptx-ui-ribbon-draw');
 	});
 });
 
@@ -1070,74 +942,14 @@ describe('toolbar - Design tab', () => {
 // ===========================================================================
 
 describe('toolbar - Transitions tab', () => {
-	it('renders Preview button', () => {
+	it('renders the shared Transitions placeholder before browser hydration', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Preview transition"');
-		expect(html).toContain('>Preview</button>');
-	});
-
-	it('renders transition presets (None, Fade, Push, Wipe, etc.)', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		const presets = ['None', 'Fade', 'Push', 'Wipe', 'Split', 'Reveal', 'Cut', 'Cover', 'Uncover'];
-		for (const preset of presets) {
-			expect(html, `Preset "${preset}" should be rendered`).toContain(`>${preset}</button>`);
-		}
-		expect(presets).toHaveLength(9);
-	});
-
-	it('renders Duration input', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('Duration:');
-		expect(html).toContain('title="Transition duration in seconds"');
-	});
-
-	it('renders Apply to All button', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Apply transition to all slides"');
-		expect(html).toContain('Apply to All');
-	});
-
-	it('renders Inspector button', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Open Inspector for full transition options"');
-		expect(html).toContain('>Inspector</button>');
-	});
-
-	it('inspector button has active styling when pane is open', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: true,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(
-			/bg-primary[^"]*"[^>]*title="Open Inspector for full transition options"/u,
-		);
+		expect(html).toContain('pptx-ui-ribbon-transitions');
 	});
 });
 
@@ -1146,7 +958,7 @@ describe('toolbar - Transitions tab', () => {
 // ===========================================================================
 
 describe('toolbar - Animations tab', () => {
-	it('renders Preview button', () => {
+	it('renders the shared Animations placeholder before browser hydration', () => {
 		const html = render(
 			React.createElement(AnimationsSection, {
 				canEdit: true,
@@ -1155,94 +967,7 @@ describe('toolbar - Animations tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Preview animation on selected element"');
-		expect(html).toContain('>Preview</span>');
-	});
-
-	it('renders the whole shared preset catalogue, not a six-effect sample', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		// One button per preset in `pptx-viewer-shared`'s catalogue: the gallery
-		// used to hard-code six, hiding twenty-one applicable effects.
-		expect(html).toContain('>Entrance<');
-		expect(html).toContain('>Emphasis<');
-		expect(html).toContain('>Exit<');
-		for (const label of ['Appear', 'Grow &amp; Turn', 'Bold Flash', 'Shrink Out', 'Disappear']) {
-			expect(html).toContain(`title="${label}"`);
-		}
-	});
-
-	it('renders Remove button', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Remove animation from selected element"');
-		expect(html).toContain('>Remove</span>');
-	});
-
-	it('renders Animation Panel button', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Open Animation Panel in Inspector"');
-		expect(html).toContain('Animation Panel');
-	});
-
-	it('buttons are disabled when no element is selected', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/title="Preview animation on selected element"[^>]*disabled/u);
-		expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="Appear"/u);
-		expect(html).toMatch(/title="Remove animation from selected element"[^>]*disabled/u);
-	});
-
-	it('animation Panel button shows active state when inspector is open', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: true,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('bg-primary/15');
-		expect(html).toContain('title="Open Animation Panel in Inspector"');
-	});
-
-	it('animation presets list includes Entrance, Emphasis, and Exit groups', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('Entrance');
-		expect(html).toContain('Emphasis');
-		expect(html).toContain('Exit');
+		expect(html).toContain('pptx-ui-ribbon-animations');
 	});
 });
 
@@ -1337,145 +1062,29 @@ describe('toolbar - Review tab', () => {
 // ===========================================================================
 
 describe('toolbar - View tab', () => {
-	const createViewProps = (overrides = {}) => ({
-		canEdit: true,
-		editTemplateMode: false,
-		onSetEditTemplateMode: vi.fn<() => void>(),
-		spellCheckEnabled: false,
-		onSetSpellCheckEnabled: vi.fn<() => void>(),
-		showGrid: false,
-		showRulers: false,
-		showGuides: false,
-		snapToGrid: false,
-		snapToShape: false,
-		onSetShowGrid: vi.fn<() => void>(),
-		onSetShowRulers: vi.fn<() => void>(),
-		onSetShowGuides: vi.fn<() => void>(),
-		onSetSnapToGrid: vi.fn<() => void>(),
-		onSetSnapToShape: vi.fn<() => void>(),
-		onAddGuide: vi.fn<() => void>(),
-		onEnterMasterView: vi.fn<() => void>(),
-		isSelectionPaneOpen: false,
-		onToggleSelectionPane: vi.fn<() => void>(),
-		eyedropperActive: false,
-		onToggleEyedropper: vi.fn<() => void>(),
-		onToggleSlideSorter: vi.fn<() => void>(),
-		onZoomToFit: vi.fn<() => void>(),
-		...overrides,
-	});
-
-	it('renders Presentation Views group (Normal, Slide Sorter, Reading View)', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('title="Normal view"');
-		expect(html).toContain('title="Slide Sorter view"');
-		expect(html).toContain('title="Reading View"');
-		expect(html).toContain('Presentation Views');
-	});
-
-	it('renders Master Views group (Slide Master)', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('title="Edit slide masters and layouts"');
-		expect(html).toContain('Slide Master');
-		expect(html).toContain('Master Views');
-	});
-
-	it('renders Grid button', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Grid<');
-	});
-
-	it('renders Rulers button', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Rulers<');
-	});
-
-	it('renders Snap controls', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Snap to grid<');
-		expect(html).toContain('>Snap to Shape<');
-	});
-
-	it('leaves Snap to Shape usable and gives Guides the guide overlay', () => {
-		// The pair used to be inverted: Guides drove shape snapping while
-		// Snap to Shape was a permanently disabled placeholder, so the visible
-		// label described a feature that lived on a different control.
-		const onSetSnapToShape = vi.fn<(enabled: boolean) => void>();
+	it('provides a shared view host during server rendering', () => {
 		const html = render(
-			React.createElement(ViewSection, createViewProps({ snapToShape: true, onSetSnapToShape })),
+			React.createElement(ViewSection, {
+				canEdit: true,
+				editTemplateMode: false,
+				onSetEditTemplateMode: vi.fn<() => void>(),
+				spellCheckEnabled: false,
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				showGrid: false,
+				showRulers: false,
+				showGuides: false,
+				snapToGrid: false,
+				snapToShape: false,
+				onSetShowGrid: vi.fn<() => void>(),
+				onSetShowRulers: vi.fn<() => void>(),
+				onSetShowGuides: vi.fn<() => void>(),
+				onSetSnapToGrid: vi.fn<() => void>(),
+				onSetSnapToShape: vi.fn<() => void>(),
+				onAddGuide: vi.fn<() => void>(),
+				onEnterMasterView: vi.fn<() => void>(),
+			}),
 		);
-		expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*title="Snap to Shape"/u);
-		expect(html).toMatch(/title="Toggle center guide lines"/u);
-	});
-
-	it('renders guide buttons', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('title="Add horizontal guide"');
-		expect(html).toContain('title="Add vertical guide"');
-	});
-
-	it('grid button has active styling when showGrid is true', () => {
-		const html = render(React.createElement(ViewSection, createViewProps({ showGrid: true })));
-		expect(html).toContain('bg-primary/15');
-		expect(html).toContain('title="Toggle grid"');
-	});
-
-	it('renders Selection pane button', () => {
-		const html = render(
-			React.createElement(
-				ViewSection,
-				createViewProps({ onToggleSelectionPane: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('title="Selection Pane"');
-		expect(html).toContain('Selection');
-	});
-
-	it('renders Eyedropper button', () => {
-		const html = render(
-			React.createElement(
-				ViewSection,
-				createViewProps({ onToggleEyedropper: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('Eyedropper');
-	});
-
-	it('renders Zoom to Fit button', () => {
-		const html = render(
-			React.createElement(ViewSection, createViewProps({ onZoomToFit: vi.fn<() => void>() })),
-		);
-		expect(html).toContain('Zoom to Fit');
-	});
-
-	it('slide Master is disabled when canEdit is false', () => {
-		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Edit slide masters and layouts"/u);
-	});
-
-	// The template-mode toggle's accessible name is the e2e/UX contract shared
-	// with every other binding: it must read "Templates Off" while the mode is
-	// off and "Templates On" while it is on (e2e/template-editing.spec.ts
-	// queries the button by exactly that name). A static "Template Editing"
-	// label regressed the whole template-editing e2e flow for React once.
-	it('template-mode toggle reads "Templates Off" when the mode is off', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Templates Off<');
-		expect(html).not.toContain('>Templates On<');
-		expect(html).toContain('title="Toggle template/master element editing"');
-	});
-
-	it('template-mode toggle reads "Templates On" with active styling when on', () => {
-		const html = render(
-			React.createElement(ViewSection, createViewProps({ editTemplateMode: true })),
-		);
-		expect(html).toContain('>Templates On<');
-		expect(html).not.toContain('>Templates Off<');
-		expect(html).toMatch(/title="Toggle template\/master element editing"[^>]*bg-primary\/15/u);
-	});
-
-	it('template-mode toggle is disabled when canEdit is false', () => {
-		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Toggle template\/master element editing"/u);
+		expect(html).toContain('pptx-ui-ribbon-view');
 	});
 });
 
@@ -1727,10 +1336,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Italic"');
-		expect(html).toContain('title="Underline"');
-		expect(html).toContain('title="Strikethrough"');
+		// The shared element renders its buttons in the browser; see FontFormatGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	it('renders text alignment buttons', () => {
@@ -1741,10 +1348,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Align left"');
-		expect(html).toContain('title="Align center"');
-		expect(html).toContain('title="Align right"');
-		expect(html).toContain('title="Justify"');
+		// The shared element renders its buttons in the browser; see ParagraphGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-paragraph');
 	});
 
 	it('renders Font color button', () => {
@@ -1756,17 +1361,6 @@ describe('toolbar - Text tab', () => {
 			}),
 		);
 		expect(html).toContain('title="Font Color"');
-	});
-
-	it('formatting buttons are disabled when no element is selected', () => {
-		const html = render(
-			React.createElement(TextSection, {
-				canEdit: true,
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Bold"/u);
 	});
 });
 
@@ -1780,7 +1374,7 @@ describe('toolbar - section content rendering', () => {
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
 		expect(html).toContain('New Slide');
-		expect(html).toContain('Clipboard');
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
 	it('renders FileSection content when toolbarSection is file', () => {
@@ -1796,16 +1390,14 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'insert' })),
 		);
-		expect(html).toContain('SmartArt');
-		expect(html).toContain('Equation');
+		expect(html).toContain('pptx-ui-ribbon-insert');
 	});
 
 	it('renders DrawSection content when toolbarSection is draw', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'draw' })),
 		);
-		expect(html).toContain('Colour');
-		expect(html).toContain('type="range"');
+		expect(html).toContain('pptx-ui-ribbon-draw');
 	});
 
 	it('renders DesignSection content when toolbarSection is design', () => {
@@ -1820,16 +1412,14 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'transitions' })),
 		);
-		expect(html).toContain('>Preview</button>');
-		expect(html).toContain('Apply to All');
+		expect(html).toContain('pptx-ui-ribbon-transitions');
 	});
 
 	it('renders AnimationsSection content when toolbarSection is animations', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'animations' })),
 		);
-		expect(html).toContain('Add Animation');
-		expect(html).toContain('Animation Panel');
+		expect(html).toContain('pptx-ui-ribbon-animations');
 	});
 
 	it('renders SlideShowSection when toolbarSection is slideShow', () => {
@@ -1851,24 +1441,21 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'view' })),
 		);
-		expect(html).toContain('Normal');
-		expect(html).toContain('Slide Master');
+		expect(html).toContain('pptx-ui-ribbon-view');
 	});
 
 	it('home section also renders TextSection content (B/I/U/S)', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Italic"');
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	it('text section renders TextSection content', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'text' })),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Underline"');
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	// Narrow-viewport rendering moved to <MobileToolbar /> (see Toolbar.tsx

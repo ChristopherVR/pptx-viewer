@@ -42,4 +42,11 @@ export const translations: Record<string, string> = {
 	'pptx.gallery.shapeStyles.semitransparentFill': '半透明填充 - {{color}}',
 	'pptx.gallery.shapeStyles.solidFill': '纯色填充 - {{color}}',
 	'pptx.gallery.shapeStyles.gradientFill': '渐变填充 - {{color}}',
+	'pptx.insert.groupTables': '表格',
+	'pptx.insert.groupImages': '图像',
+	'pptx.insert.groupIllustrations': '插图',
+	'pptx.insert.groupLinks': '链接',
+	'pptx.insert.groupText': '文本',
+	'pptx.insert.groupSymbols': '符号',
+	'pptx.insert.groupMedia': '媒体',
 };

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Author `packages/core/src/__tests__/fixtures/encrypted-powerpoint.ppt`
+  Author `../ooxml-core/src/pptx/__tests__/fixtures/encrypted-powerpoint.ppt`
   through real PowerPoint over COM: a two-slide deck with a title, a
   two-paragraph body, a filled rectangle and a small PNG, saved as PowerPoint 97-2003
   (`SaveAs` format 1) with `Presentation.Password = 'pptx-viewer'`.
@@ -18,7 +18,7 @@
   Windows + PowerPoint only. Never quits a running PowerPoint.
 #>
 param(
-  [string]$OutDir = (Join-Path $PSScriptRoot '..\packages\core\src\__tests__\fixtures')
+  [string]$OutDir = (Join-Path $PSScriptRoot '..\..\ooxml-core\src\pptx\__tests__\fixtures')
 )
 $ErrorActionPreference = 'Stop'
 $app = New-Object -ComObject PowerPoint.Application

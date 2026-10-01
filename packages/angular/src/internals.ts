@@ -104,7 +104,6 @@ export * from './viewer/table-renderer-helpers';
 // `RibbonComponent` itself is a curated export (see `viewer/index.ts` /
 // `pptx-angular-viewer`'s package root); the sub-sections below are internal
 // building blocks it composes for its own template.
-export * from './viewer/ribbon-animation-gallery.component';
 export { RibbonAnimationsSectionComponent } from './viewer/ribbon-animations-section.component';
 export { RibbonArrangeSectionComponent } from './viewer/ribbon-arrange-section.component';
 export { RibbonColorPopoverComponent } from './viewer/ribbon-color-popover.component';
@@ -115,9 +114,8 @@ export { RibbonEditingSectionComponent } from './viewer/ribbon-editing-section.c
 export { RibbonFileSectionComponent } from './viewer/ribbon-file-section.component';
 export { RibbonFontControlsComponent } from './viewer/ribbon-font-controls.component';
 export { RibbonHomeSectionComponent } from './viewer/ribbon-home-section.component';
-export { RibbonHyperlinkButtonComponent } from './viewer/ribbon-hyperlink-button.component';
 export * from './viewer/ribbon-insert-file-picker';
-export * from './viewer/ribbon-motion-path-gallery.component';
+export * from './viewer/motion-path-columns';
 export { RibbonInsertFieldsComponent } from './viewer/ribbon-insert-fields.component';
 export { RibbonInsertSectionComponent } from './viewer/ribbon-insert-section.component';
 export { RibbonParagraphControlsComponent } from './viewer/ribbon-paragraph-controls.component';

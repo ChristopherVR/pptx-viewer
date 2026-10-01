@@ -5,7 +5,7 @@
  * plain `rect` (which has no such override), on the specific edges that
  * shape's own `<a:rect>` actually moves?
  *
- * `packages/core/src/core/geometry/preset-text-rect-*.ts` (and the older
+ * `ooxml-core/src/pptx/core/geometry/preset-text-rect-*.ts` (and the older
  * hand-derived `preset-text-rect-table.ts`) compute the per-preset inset. Not
  * every edge moves for every shape - this spec was written by first assuming
  * "left AND top" for all six, and that assumption was WRONG for two of them
