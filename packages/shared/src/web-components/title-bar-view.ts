@@ -51,16 +51,18 @@ export function createTitleBarView(doc: Document, emit: TitleBarEmit) {
 	logo.setAttribute('aria-hidden', 'true');
 	const autosave = el('span', 'autosave');
 	const autosaveLabel = el('span', 'label');
-	const toggle = el('button', 'switch');
-	toggle.type = 'button';
-	toggle.setAttribute('role', 'switch');
-	toggle.append(el('span', 'knob'));
+	// The shared switch primitive; the host owns the state, so a change is a request.
+	const toggle = el('pptx-ui-switch' as 'span', 'switch') as unknown as HTMLElement & {
+		checked: boolean;
+		disabled: boolean;
+	};
+	let autosaveEnabled = false;
 	const autosaveState = el('span', 'label');
 	autosave.append(autosaveLabel, toggle, autosaveState);
-	toggle.addEventListener('click', () => {
-		if (!toggle.disabled) {
-			emit('toggle-autosave', null);
-		}
+	toggle.addEventListener('change', () => {
+		emit('toggle-autosave', null);
+		// Stay controlled: show the host's state, not the switch's optimistic flip.
+		toggle.checked = autosaveEnabled;
 	});
 
 	const sepAutosave = sep();
@@ -166,7 +168,8 @@ export function createTitleBarView(doc: Document, emit: TitleBarEmit) {
 			);
 			const available = state.autosave.toggleAvailable !== false;
 			toggle.disabled = !available;
-			toggle.setAttribute('aria-checked', String(state.autosave.enabled));
+			autosaveEnabled = state.autosave.enabled;
+			toggle.checked = autosaveEnabled;
 			toggle.setAttribute('aria-label', t('pptx.titleBar.toggleAutoSave'));
 			toggle.title = available
 				? t('pptx.titleBar.toggleAutoSave')

@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ShowOptionsFieldset } from './ShowOptionsFieldset';
 import { ShowSlidesFieldset } from './ShowSlidesFieldset';
+import { WebRadio } from './WebControls';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -105,8 +106,7 @@ export function SetUpSlideShowDialog({
 								] as const
 							).map(([value, label]) => (
 								<label key={value} className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='radio'
+									<WebRadio
 										name='showType'
 										value={value}
 										checked={showType === value}
@@ -137,8 +137,7 @@ export function SetUpSlideShowDialog({
 								{t('pptx.slideShow.advanceSlides')}
 							</legend>
 							<label className='flex items-center gap-2 cursor-pointer'>
-								<input
-									type='radio'
+								<WebRadio
 									name='advanceMode'
 									value='manual'
 									checked={draft.advanceMode === 'manual'}
@@ -148,8 +147,7 @@ export function SetUpSlideShowDialog({
 								<span>{t('pptx.slideShow.manually')}</span>
 							</label>
 							<label className='flex items-center gap-2 cursor-pointer'>
-								<input
-									type='radio'
+								<WebRadio
 									name='advanceMode'
 									value='useTimings'
 									checked={(draft.advanceMode ?? 'useTimings') === 'useTimings'}

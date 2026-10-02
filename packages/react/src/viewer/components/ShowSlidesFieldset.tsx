@@ -8,7 +8,7 @@ import type { PptxPresentationProperties, PptxCustomShow } from 'pptx-viewer-cor
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { WebSelect } from './WebControls';
+import { WebSelect, WebRadio } from './WebControls';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -43,8 +43,7 @@ export function ShowSlidesFieldset({
 
 			{/* All */}
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='radio'
+				<WebRadio
 					name='showSlides'
 					value='all'
 					checked={showSlidesMode === 'all'}
@@ -56,8 +55,7 @@ export function ShowSlidesFieldset({
 
 			{/* Range */}
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='radio'
+				<WebRadio
 					name='showSlides'
 					value='range'
 					checked={showSlidesMode === 'range'}
@@ -114,8 +112,7 @@ export function ShowSlidesFieldset({
 			{customShows.length > 0 && (
 				<>
 					<label className='flex items-center gap-2 cursor-pointer'>
-						<input
-							type='radio'
+						<WebRadio
 							name='showSlides'
 							value='customShow'
 							checked={showSlidesMode === 'customShow'}

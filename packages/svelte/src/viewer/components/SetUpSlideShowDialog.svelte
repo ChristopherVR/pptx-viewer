@@ -23,18 +23,18 @@
 		<div class="body">
 			<fieldset><legend>{t('pptx.slideShow.showType')}</legend>
 				{#each [['presented', 'pptx.slideShow.presentedBySpeaker'], ['browsed', 'pptx.slideShow.browsedByIndividual'], ['kiosk', 'pptx.slideShow.browsedAtKiosk']] as item}
-					<label><input type="radio" name="show-type" value={item[0]} checked={(draft.showType ?? 'presented') === item[0]} onchange={() => { draft = { ...draft, showType: item[0] as 'presented' | 'browsed' | 'kiosk', ...(item[0] === 'kiosk' ? { loopContinuously: true } : {}) }; }} />{t(item[1])}</label>
+					<label><pptx-ui-radio name="show-type" value={item[0]} checked={(draft.showType ?? 'presented') === item[0]} onchange={() => { draft = { ...draft, showType: item[0] as 'presented' | 'browsed' | 'kiosk', ...(item[0] === 'kiosk' ? { loopContinuously: true } : {}) }; }}></pptx-ui-radio>{t(item[1])}</label>
 				{/each}
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.showSlides')}</legend>
-				<label><input type="radio" name="range" checked={(draft.showSlidesMode ?? 'all') === 'all'} onchange={() => (draft = { ...draft, showSlidesMode: 'all' })} />{t('pptx.slideShow.allSlides')}</label>
-				<label><input type="radio" name="range" checked={draft.showSlidesMode === 'range'} onchange={() => (draft = { ...draft, showSlidesMode: 'range' })} />{t('pptx.slideShow.fromTo')}</label>
+				<label><pptx-ui-radio name="range" checked={(draft.showSlidesMode ?? 'all') === 'all'} onchange={() => (draft = { ...draft, showSlidesMode: 'all' })}></pptx-ui-radio>{t('pptx.slideShow.allSlides')}</label>
+				<label><pptx-ui-radio name="range" checked={draft.showSlidesMode === 'range'} onchange={() => (draft = { ...draft, showSlidesMode: 'range' })}></pptx-ui-radio>{t('pptx.slideShow.fromTo')}</label>
 				<div class="range"><input aria-label={t('pptx.slideShow.from')} type="number" min="1" max={slideCount} value={draft.showSlidesFrom ?? 1} oninput={(event) => (draft = { ...draft, showSlidesFrom: Number(event.currentTarget.value) })} /><span>{t('pptx.slideShow.to')}</span><input aria-label={t('pptx.slideShow.to')} type="number" min="1" max={slideCount} value={draft.showSlidesTo ?? slideCount} oninput={(event) => (draft = { ...draft, showSlidesTo: Number(event.currentTarget.value) })} /></div>
-				{#if customShows.length}<label><input type="radio" name="range" checked={draft.showSlidesMode === 'customShow'} onchange={() => (draft = { ...draft, showSlidesMode: 'customShow' })} />{t('pptx.slideShow.customShow')}<pptx-ui-select aria-label={t('pptx.slideShow.customShow')} value={draft.showSlidesCustomShowId ?? customShows[0]?.id} onchange={(event) => (draft = { ...draft, showSlidesCustomShowId: event.currentTarget.value })}>{#each customShows as show}<option value={show.id}>{show.name}</option>{/each}</pptx-ui-select></label>{/if}
+				{#if customShows.length}<label><pptx-ui-radio name="range" checked={draft.showSlidesMode === 'customShow'} onchange={() => (draft = { ...draft, showSlidesMode: 'customShow' })}></pptx-ui-radio>{t('pptx.slideShow.customShow')}<pptx-ui-select aria-label={t('pptx.slideShow.customShow')} value={draft.showSlidesCustomShowId ?? customShows[0]?.id} onchange={(event) => (draft = { ...draft, showSlidesCustomShowId: event.currentTarget.value })}>{#each customShows as show}<option value={show.id}>{show.name}</option>{/each}</pptx-ui-select></label>{/if}
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.advanceSlides')}</legend>
-				<label><input type="radio" name="advance" checked={draft.advanceMode === 'manual'} onchange={() => (draft = { ...draft, advanceMode: 'manual' })} />{t('pptx.slideShow.manually')}</label>
-				<label><input type="radio" name="advance" checked={(draft.advanceMode ?? 'useTimings') === 'useTimings'} onchange={() => (draft = { ...draft, advanceMode: 'useTimings' })} />{t('pptx.slideShow.useTimings')}</label>
+				<label><pptx-ui-radio name="advance" checked={draft.advanceMode === 'manual'} onchange={() => (draft = { ...draft, advanceMode: 'manual' })}></pptx-ui-radio>{t('pptx.slideShow.manually')}</label>
+				<label><pptx-ui-radio name="advance" checked={(draft.advanceMode ?? 'useTimings') === 'useTimings'} onchange={() => (draft = { ...draft, advanceMode: 'useTimings' })}></pptx-ui-radio>{t('pptx.slideShow.useTimings')}</label>
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.showOptions')}</legend>
 				<label><pptx-ui-checkbox checked={draft.loopContinuously ?? false} onchange={(event) => option('loopContinuously', event.currentTarget.checked)}></pptx-ui-checkbox>{t('pptx.slideShow.loopContinuously')}</label>

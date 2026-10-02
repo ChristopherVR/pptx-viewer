@@ -90,8 +90,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="printWhat"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.printWhat === opt.value"
@@ -146,8 +145,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="slideRange"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.slideRange === 'all'"
@@ -163,8 +161,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="slideRange"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.slideRange === 'current'"
@@ -180,8 +177,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="slideRange"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.slideRange === 'custom'"
@@ -238,8 +234,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="orientation"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.orientation === 'landscape'"
@@ -255,8 +250,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="orientation"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.orientation === 'portrait'"
@@ -285,8 +279,7 @@ function onCustomToInput(event: Event): void {
 							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
 					"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="colorMode"
 						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.colorMode === opt.value"

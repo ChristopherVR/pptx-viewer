@@ -1,6 +1,6 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { createInspectorCheckbox } from './inspector/controls-extra';
+import { createInspectorCheckbox, createInspectorRadio } from './inspector/controls-extra';
 
 export interface DialogShell {
 	backdrop: HTMLButtonElement;
@@ -81,6 +81,23 @@ export function appendCheckRow(
 	return input;
 }
 
+/** One label-wrapped shared radio (`pptx-ui-radio`) in a named group. */
+export function appendRadioControl(
+	doc: Document,
+	parent: HTMLElement,
+	label: string,
+	name: string,
+	checked: boolean,
+): HTMLInputElement {
+	const row = createEl(doc, 'label', 'pptxv-parity-check');
+	const input = createInspectorRadio(doc, name);
+	input.checked = checked;
+	input.setAttribute('aria-label', label);
+	row.append(input, doc.createTextNode(label));
+	parent.appendChild(row);
+	return input;
+}
+
 /** A single named-radio choice: `label`/`checked` handled by `appendRadioRow`. */
 export interface RadioOption {
 	value: string;
@@ -101,19 +118,13 @@ export function appendRadioRow(
 	onSelect: (value: string) => void,
 ): void {
 	for (const option of options) {
-		const row = createEl(doc, 'label', 'pptxv-parity-check');
-		const input = doc.createElement('input');
-		input.type = 'radio';
-		input.name = name;
+		const input = appendRadioControl(doc, parent, option.label, name, option.value === selected);
 		input.value = option.value;
-		input.checked = option.value === selected;
 		input.addEventListener('change', () => {
 			if (input.checked) {
 				onSelect(option.value);
 			}
 		});
-		row.append(input, doc.createTextNode(option.label));
-		parent.appendChild(row);
 	}
 }
 

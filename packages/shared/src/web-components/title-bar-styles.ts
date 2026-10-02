@@ -22,19 +22,12 @@ export const TITLE_BAR_STYLES = `
 .autosave { flex: none; display: flex; align-items: center; gap: 6px; padding: 0 2px 0 6px; white-space: nowrap; }
 .label, .dot, .status { color: var(--pptx-muted-foreground, #a5a5b5); white-space: nowrap; }
 .switch {
-	position: relative; flex: none; display: inline-flex; align-items: center; box-sizing: border-box;
-	width: ${M.switchTrackWidth}px; height: ${M.switchTrackHeight}px; padding: 0; border: 0; border-radius: 999px;
-	background: color-mix(in srgb, var(--pptx-muted-foreground, #a5a5b5) 40%, transparent);
-	cursor: pointer; touch-action: manipulation; transition: background-color .15s;
+	--pptx-switch-width: ${M.switchTrackWidth}px; --pptx-switch-height: ${M.switchTrackHeight}px;
+	--pptx-switch-knob-size: ${M.switchKnobSize}px; --pptx-switch-knob-offset: ${M.switchKnobOffsetOff}px;
+	--pptx-switch-knob-travel: ${M.switchKnobOffsetOn - M.switchKnobOffsetOff}px;
+	--pptx-switch-track: color-mix(in srgb, var(--pptx-muted-foreground, #a5a5b5) 40%, transparent);
+	--pptx-switch-thumb: #fff;
 }
-.switch[aria-checked="true"] { background: var(--pptx-primary, #6366f1); }
-.switch:disabled { opacity: .4; cursor: not-allowed; }
-.knob {
-	position: absolute; top: ${(M.switchTrackHeight - M.switchKnobSize) / 2}px; left: ${M.switchKnobOffsetOff}px;
-	width: ${M.switchKnobSize}px; height: ${M.switchKnobSize}px; border-radius: 50%;
-	background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .3); transition: transform .15s;
-}
-.switch[aria-checked="true"] .knob { transform: translateX(${M.switchKnobOffsetOn - M.switchKnobOffsetOff}px); }
 .sep { flex: none; width: 1px; height: ${M.separatorHeight}px; margin: 0 4px; background: color-mix(in srgb, var(--pptx-border, #33334d) 60%, transparent); }
 .qat { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .qat button, .results button {
@@ -77,16 +70,12 @@ button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-off
 @media (max-width: 1100px) { .qat small { display: none; } .name { max-width: 140px; } }
 @media (pointer: coarse) {
 	.qat button, .results button { min-width: 44px; min-height: 44px; }
-	.switch::after { content: ''; position: absolute; inset: -15px -8px; }
 	.bar { height: auto; min-height: 44px; }
 }
 @media (forced-colors: active) {
 	.bar { border-bottom-color: CanvasText; background: Canvas; color: CanvasText; }
 	.logo { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
 	.label, .dot, .status, .name, .qat button, .results button { color: CanvasText; }
-	.switch { border: 1px solid ButtonText; background: ButtonFace; }
-	.switch[aria-checked="true"] { background: Highlight; }
-	.knob { background: ButtonText; }
 	.sep { background: CanvasText; }
 	.qat button:hover:not(:disabled), .results button:hover, .results button[aria-selected="true"] { background: Highlight; color: HighlightText; }
 	.qat button:disabled { color: GrayText; opacity: 1; }

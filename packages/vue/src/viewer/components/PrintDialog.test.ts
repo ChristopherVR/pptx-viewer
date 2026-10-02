@@ -27,7 +27,7 @@ function clickButton(label: string): void {
 }
 
 function clickRadio(name: string, index: number): void {
-	const radios = document.body.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`);
+	const radios = document.body.querySelectorAll<HTMLInputElement>(`pptx-ui-radio[name="${name}"]`);
 	radios[index]?.dispatchEvent(new Event('change'));
 }
 

@@ -9,7 +9,15 @@
  *
  * Angular port of the React `PasteSpecialDialog.tsx` / Vue `PasteSpecialDialog.vue`.
  */
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	CUSTOM_ELEMENTS_SCHEMA,
+	Component,
+	effect,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { PASTE_SPECIAL_OPTIONS } from '../internal/shared';
@@ -21,6 +29,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 @Component({
 	selector: 'pptx-paste-special-dialog',
 	standalone: true,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
@@ -33,8 +42,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				@for (option of options; track option.id) {
 					<li>
 						<label class="pptx-ng-paste-special-option">
-							<input
-								type="radio"
+							<pptx-ui-radio
 								name="paste-special-format"
 								[checked]="selected() === option.id"
 								(change)="selected.set(option.id)"

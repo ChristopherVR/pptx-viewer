@@ -45,13 +45,31 @@ describe('remaining parity dialogs', () => {
 		expect(store.getOptions().advanced.showGrid).toBeTruthy();
 	});
 
+	it('renders every Set Up Show radio as the shared radio in named groups', () => {
+		openSlideShowDialog(document, createTranslator(), {}, 6, vi.fn());
+		expect(document.querySelectorAll('input[type="radio"]')).toHaveLength(0);
+		const names = Array.from(document.querySelectorAll<HTMLInputElement>('pptx-ui-radio')).map(
+			(radio) => radio.name,
+		);
+		expect(names).toStrictEqual([
+			'showType',
+			'showType',
+			'showType',
+			'range',
+			'range',
+			'advance',
+			'advance',
+		]);
+	});
+
 	it('saves show range and kiosk settings', () => {
 		const onSave = vi.fn();
 		openSlideShowDialog(document, createTranslator(), {}, 6, onSave);
 		const kiosk = Array.from(document.querySelectorAll('label'))
 			.find((label) => label.textContent?.includes('kiosk'))!
-			.querySelector<HTMLInputElement>('input')!;
-		kiosk.click();
+			.querySelector<HTMLInputElement>('pptx-ui-radio')!;
+		kiosk.checked = true;
+		kiosk.dispatchEvent(new Event('change'));
 		const ok = Array.from(document.querySelectorAll('button')).find(
 			(button) => button.textContent === 'OK',
 		)!;

@@ -1,14 +1,15 @@
 import { definePptxCheckbox } from './checkbox';
-import { definePptxContextMenu } from './context-menu';
 import { definePptxCompatToasts } from './compat-toasts';
+import { definePptxContextMenu } from './context-menu';
 import { definePptxDialogFooter } from './dialog-footer';
 import { HOST_STYLES } from './host-styles';
-import { definePptxNotesToolbar } from './notes-toolbar';
 import { definePptxMobileBar } from './mobile-bar';
 import { definePptxMobileToolbar } from './mobile-toolbar';
+import { definePptxNotesToolbar } from './notes-toolbar';
 import { definePptxPasteOptions } from './paste-options';
 import { definePptxPresentToolbar } from './present-toolbar';
 import { definePptxPresenterConsole } from './presenter-console';
+import { definePptxRadio } from './radio';
 import { definePptxReadOnlyBanner } from './read-only-banner';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
 import { definePptxRibbonAnimations } from './ribbon-animations';
@@ -41,6 +42,7 @@ import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
 import { definePptxStatusBar } from './status-bar';
 import { definePptxSubtitleSettings } from './subtitle-settings';
+import { definePptxSwitch } from './switch';
 import { definePptxThemeEditor } from './theme-editor';
 import { definePptxTitleBar } from './title-bar';
 
@@ -114,6 +116,8 @@ export type {
 const controls = [
 	['pptx-ui-search', definePptxSearchField],
 	['pptx-ui-checkbox', definePptxCheckbox],
+	['pptx-ui-radio', definePptxRadio],
+	['pptx-ui-switch', definePptxSwitch],
 	['pptx-ui-select', definePptxSelect],
 	['pptx-ui-slide-show-options', definePptxSlideShowOptions],
 	['pptx-ui-compat-toasts', definePptxCompatToasts],

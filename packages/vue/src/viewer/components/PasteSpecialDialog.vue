@@ -50,7 +50,12 @@ watch(
 				<label
 					class="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
 				>
-					<input type="radio" name="paste-special-format" :value="option.id" v-model="selected" />
+					<pptx-ui-radio
+						name="paste-special-format"
+						:value="option.id"
+						:checked="selected === option.id"
+						@change="selected = option.id"
+					/>
 					{{ t(option.labelKey) }}
 				</label>
 			</li>

@@ -39,8 +39,7 @@ function setTo(value: string): void {
 		</legend>
 
 		<label class="flex cursor-pointer items-center gap-2">
-			<input
-				type="radio"
+			<pptx-ui-radio
 				name="showSlides"
 				value="all"
 				class="accent-primary"
@@ -51,8 +50,7 @@ function setTo(value: string): void {
 		</label>
 
 		<label class="flex cursor-pointer items-center gap-2">
-			<input
-				type="radio"
+			<pptx-ui-radio
 				name="showSlides"
 				value="range"
 				class="accent-primary"
@@ -94,8 +92,7 @@ function setTo(value: string): void {
 
 		<template v-if="customShows.length > 0">
 			<label class="flex cursor-pointer items-center gap-2">
-				<input
-					type="radio"
+				<pptx-ui-radio
 					name="showSlides"
 					value="customShow"
 					class="accent-primary"

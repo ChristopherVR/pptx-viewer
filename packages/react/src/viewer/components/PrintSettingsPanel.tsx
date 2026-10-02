@@ -11,7 +11,7 @@ import type {
 	PrintSlideRange,
 } from './print-dialog-types';
 import { HANDOUT_OPTIONS, radioClass } from './print-dialog-types';
-import { WebCheckbox } from './WebControls';
+import { WebCheckbox, WebRadio } from './WebControls';
 
 export interface PrintSettingsPanelProps {
 	printWhat: PrintWhat;
@@ -65,8 +65,7 @@ export function PrintSettingsPanel({
 				</legend>
 				<div className='grid grid-cols-2 gap-2'>
 					<label className={radioClass(printWhat === 'slides')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='printWhat'
 							className='sr-only'
 							checked={printWhat === 'slides'}
@@ -76,8 +75,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.fullPageSlides')}
 					</label>
 					<label className={radioClass(printWhat === 'handouts')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='printWhat'
 							className='sr-only'
 							checked={printWhat === 'handouts'}
@@ -87,8 +85,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.handouts')}
 					</label>
 					<label className={radioClass(printWhat === 'notes')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='printWhat'
 							className='sr-only'
 							checked={printWhat === 'notes'}
@@ -98,8 +95,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.notesPages')}
 					</label>
 					<label className={radioClass(printWhat === 'outline')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='printWhat'
 							className='sr-only'
 							checked={printWhat === 'outline'}
@@ -143,8 +139,7 @@ export function PrintSettingsPanel({
 				</legend>
 				<div className='space-y-2'>
 					<label className={radioClass(slideRange === 'all')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='slideRange'
 							className='sr-only'
 							checked={slideRange === 'all'}
@@ -153,8 +148,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.allSlides')} ({totalSlides})
 					</label>
 					<label className={radioClass(slideRange === 'current')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='slideRange'
 							className='sr-only'
 							checked={slideRange === 'current'}
@@ -163,8 +157,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.currentSlide')} ({activeSlideIndex + 1})
 					</label>
 					<label className={radioClass(slideRange === 'custom')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='slideRange'
 							className='sr-only'
 							checked={slideRange === 'custom'}
@@ -205,8 +198,7 @@ export function PrintSettingsPanel({
 					</legend>
 					<div className='flex gap-2'>
 						<label className={radioClass(orientation === 'landscape')}>
-							<input
-								type='radio'
+							<WebRadio
 								name='orientation'
 								className='sr-only'
 								checked={orientation === 'landscape'}
@@ -215,8 +207,7 @@ export function PrintSettingsPanel({
 							{t('pptx.print.landscape')}
 						</label>
 						<label className={radioClass(orientation === 'portrait')}>
-							<input
-								type='radio'
+							<WebRadio
 								name='orientation'
 								className='sr-only'
 								checked={orientation === 'portrait'}
@@ -235,8 +226,7 @@ export function PrintSettingsPanel({
 				</legend>
 				<div className='flex gap-2 flex-wrap'>
 					<label className={radioClass(colorMode === 'color')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='colorMode'
 							className='sr-only'
 							checked={colorMode === 'color'}
@@ -245,8 +235,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.color')}
 					</label>
 					<label className={radioClass(colorMode === 'grayscale')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='colorMode'
 							className='sr-only'
 							checked={colorMode === 'grayscale'}
@@ -255,8 +244,7 @@ export function PrintSettingsPanel({
 						{t('pptx.print.grayscale')}
 					</label>
 					<label className={radioClass(colorMode === 'blackAndWhite')}>
-						<input
-							type='radio'
+						<WebRadio
 							name='colorMode'
 							className='sr-only'
 							checked={colorMode === 'blackAndWhite'}

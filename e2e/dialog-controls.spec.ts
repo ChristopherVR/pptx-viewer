@@ -1,8 +1,8 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec */
 /**
- * Secondary dialogs use the shared select and checkbox primitives in every
- * binding: no dialog or backstage page may show an OS-drawn `<select>` popup or
- * a bare `<input type="checkbox">` (#342). Set UI_SHOTS_DIR to also write the
+ * Secondary dialogs use the shared select, checkbox and radio primitives in every
+ * binding: no dialog or backstage page may show an OS-drawn `<select>` popup, a
+ * bare `<input type="checkbox">` or a bare `<input type="radio">` (#342). Set UI_SHOTS_DIR to also write the
  * before/after evidence screenshots.
  */
 import { expect, test } from '@playwright/test';
@@ -94,22 +94,63 @@ const SURFACES: Surface[] = [
 ];
 
 /** Count OS-owned controls anywhere in the page; the shared primitives are custom elements. */
-function nativeControls(page: Page): Promise<{ selects: number; checkboxes: number }> {
+function nativeControls(
+	page: Page,
+): Promise<{ selects: number; checkboxes: number; radios: number }> {
 	return page.evaluate(() => {
 		const find = (selector: string): number => document.querySelectorAll(selector).length;
-		return { selects: find('select'), checkboxes: find('input[type="checkbox"]') };
+		return {
+			selects: find('select'),
+			checkboxes: find('input[type="checkbox"]'),
+			radios: find('input[type="radio"]'),
+		};
 	});
 }
 
 for (const surface of SURFACES) {
-	test(`${surface.name} shows no native select or checkbox`, async ({ page }, info) => {
+	test(`${surface.name} shows no native select, checkbox or radio`, async ({ page }, info) => {
 		await loadDeck(page);
 		await surface.open(page);
 		await page.waitForTimeout(400);
 		if (SHOTS) {
 			await page.screenshot({ path: `${SHOTS}/${info.project.name}-${surface.name}.png` });
 		}
-		expect(await nativeControls(page)).toEqual({ selects: 0, checkboxes: 0 });
+		expect(await nativeControls(page)).toEqual({ selects: 0, checkboxes: 0, radios: 0 });
 		await surface.close(page);
 	});
 }
+
+test('Set Up Show radios are shared radio groups with roving arrow keys', async ({ page }) => {
+	await loadDeck(page);
+	await SURFACES.find((surface) => surface.name === 'set-up-slide-show')!.open(page);
+	const radios = page.getByRole('radio');
+	await expect(radios.first()).toBeVisible();
+	// Show type (presented, browsed, kiosk), show slides, advance: three groups.
+	await expect(page.locator('pptx-ui-radio')).toHaveCount(7);
+	const checkedBefore = await page.locator('pptx-ui-radio[aria-checked="true"]').count();
+	expect(checkedBefore).toBe(3);
+	// One tab stop per group; the checked radio holds it.
+	await expect(page.locator('pptx-ui-radio[tabindex="0"]')).toHaveCount(3);
+	const first = radios.nth(0);
+	const second = radios.nth(1);
+	const third = radios.nth(2);
+	await first.focus();
+	await first.press('Space');
+	await expect(first).toHaveAttribute('aria-checked', 'true');
+	await page.keyboard.press('ArrowDown');
+	await expect(second).toBeFocused();
+	await expect(second).toHaveAttribute('aria-checked', 'true');
+	await expect(first).toHaveAttribute('aria-checked', 'false');
+	await page.keyboard.press('End');
+	await expect(third).toBeFocused();
+	await expect(third).toHaveAttribute('aria-checked', 'true');
+	await page.keyboard.press('ArrowRight');
+	await expect(first).toBeFocused();
+	await page.keyboard.press('ArrowLeft');
+	await expect(third).toBeFocused();
+	await page.keyboard.press('Home');
+	await expect(first).toBeFocused();
+	// Radios in other groups do not move with this one.
+	await expect(page.locator('pptx-ui-radio[aria-checked="true"]')).toHaveCount(3);
+	await escape(page);
+});

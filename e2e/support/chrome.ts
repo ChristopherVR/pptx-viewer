@@ -91,7 +91,8 @@ export async function measureChrome(page: Page): Promise<ChromeMeasurement> {
 			null;
 		const logo = bar?.firstElementChild ?? null;
 		const toggle = bar?.querySelector('[role="switch"]') ?? null;
-		const knob = toggle?.firstElementChild ?? null;
+		// The shared switch draws its knob inside its own shadow root.
+		const knob = toggle?.shadowRoot?.querySelector('.knob') ?? toggle?.firstElementChild ?? null;
 		const file = bar
 			? (leavesOf(bar).find((el) => /\.pptx$/u.test((el.textContent ?? '').trim())) ?? null)
 			: null;

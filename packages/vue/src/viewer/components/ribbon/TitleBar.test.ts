@@ -28,6 +28,8 @@ function open(props: Partial<Record<string, unknown>> = {}, slots?: Record<strin
 			...props,
 		},
 		slots: slots as never,
+		// Connected, so the shared switch applies its ARIA state like in a page.
+		attachTo: document.body,
 	});
 	const host = wrapper.get('pptx-ui-title-bar').element;
 	const root = host.shadowRoot!;
@@ -48,10 +50,13 @@ describe('titleBar adapter', () => {
 
 	it('renders the AutoSave switch inert when the host forbids autosave', () => {
 		expect(
-			open({ autosaveToggleAvailable: false }).root.querySelector<HTMLButtonElement>('.switch')!
-				.disabled,
+			open({ autosaveToggleAvailable: false }).root.querySelector<
+				HTMLButtonElement & { disabled: boolean }
+			>('.switch')!.disabled,
 		).toBeTruthy();
-		expect(open({}).root.querySelector<HTMLButtonElement>('.switch')!.disabled).toBeFalsy();
+		expect(
+			open({}).root.querySelector<HTMLButtonElement & { disabled: boolean }>('.switch')!.disabled,
+		).toBeFalsy();
 	});
 
 	it('routes every typed event to the matching host handler', () => {
@@ -63,7 +68,7 @@ describe('titleBar adapter', () => {
 			onQuickCommand: vi.fn(),
 		};
 		const { root } = open({ ...h2, canUndo: true, canRedo: true });
-		root.querySelector<HTMLButtonElement>('[role="switch"]')!.click();
+		root.querySelector<HTMLElement>('[role="switch"]')!.click();
 		for (const name of ['Save', 'Undo', 'Redo', 'From Beginning']) {
 			root.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!.click();
 		}

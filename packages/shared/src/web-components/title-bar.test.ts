@@ -125,7 +125,7 @@ describe('pptx-ui-title-bar', () => {
 		}
 		host.state = { ...base };
 		expect(seen).toStrictEqual([]);
-		root(host).querySelector<HTMLButtonElement>('.switch')!.click();
+		root(host).querySelector<HTMLElement & { disabled: boolean }>('.switch')!.click();
 		for (const id of ['save', 'undo', 'print']) {
 			root(host).querySelector<HTMLButtonElement>(`[data-command="${id}"]`)!.click();
 		}
@@ -139,7 +139,7 @@ describe('pptx-ui-title-bar', () => {
 
 	it('renders an inert switch when the host forbids autosave', () => {
 		const host = mount({ autosave: { ...base.autosave, enabled: false, toggleAvailable: false } });
-		const toggle = root(host).querySelector<HTMLButtonElement>('.switch')!;
+		const toggle = root(host).querySelector<HTMLElement & { disabled: boolean }>('.switch')!;
 		const spy = vi.fn();
 		host.addEventListener('toggle-autosave', spy);
 		expect(toggle.disabled).toBeTruthy();

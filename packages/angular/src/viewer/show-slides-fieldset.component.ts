@@ -32,8 +32,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 
 			<!-- All -->
 			<label class="pptx-ng-sss-option">
-				<input
-					type="radio"
+				<pptx-ui-radio
 					name="showSlides"
 					class="pptx-ng-sss-radio"
 					value="all"
@@ -45,8 +44,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 
 			<!-- Range -->
 			<label class="pptx-ng-sss-option">
-				<input
-					type="radio"
+				<pptx-ui-radio
 					name="showSlides"
 					class="pptx-ng-sss-radio"
 					value="range"
@@ -85,8 +83,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 			<!-- Custom show -->
 			@if (customShows().length > 0) {
 				<label class="pptx-ng-sss-option">
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="showSlides"
 						class="pptx-ng-sss-radio"
 						value="customShow"

@@ -25,7 +25,7 @@
 			{#each PASTE_SPECIAL_OPTIONS as option (option.id)}
 				<li>
 					<label>
-						<input type="radio" name="paste-special-format" value={option.id} bind:group={selected} />
+						<pptx-ui-radio name="paste-special-format" value={option.id} checked={selected === option.id} onchange={() => (selected = option.id)}></pptx-ui-radio>
 						{t(option.labelKey)}
 					</label>
 				</li>

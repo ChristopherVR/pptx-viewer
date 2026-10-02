@@ -19,6 +19,8 @@ afterEach(() => {
 
 function renderTitleBar(props: Record<string, unknown> = {}): HTMLElement {
 	const target = document.createElement('div');
+	// Connected, so the shared switch applies its ARIA state like in a page.
+	document.body.append(target);
 	const instance = mount(TitleBar, {
 		target,
 		props: {
@@ -36,7 +38,10 @@ function renderTitleBar(props: Record<string, unknown> = {}): HTMLElement {
 			...props,
 		},
 	});
-	cleanup = () => unmount(instance);
+	cleanup = () => {
+		unmount(instance);
+		target.remove();
+	};
 	return target;
 }
 
@@ -112,7 +117,7 @@ describe('the title bar adapter', () => {
 			onredo: vi.fn(),
 		};
 		const target = renderTitleBar(props);
-		root(target).querySelector<HTMLButtonElement>('.switch')!.click();
+		root(target).querySelector<HTMLElement & { disabled: boolean }>('.switch')!.click();
 		for (const id of ['save', 'undo', 'redo']) {
 			root(target).querySelector<HTMLButtonElement>(`[data-command="${id}"]`)!.click();
 		}
@@ -141,7 +146,9 @@ describe('the title bar adapter', () => {
 		cleanup?.();
 		const target = renderTitleBar({ hiddenActions: ['undo'], autosaveToggleAvailable: false });
 		expect(quickAccessNames(target)).not.toContain('Undo');
-		expect(root(target).querySelector<HTMLButtonElement>('.switch')!.disabled).toBeTruthy();
+		expect(
+			root(target).querySelector<HTMLElement & { disabled: boolean }>('.switch')!.disabled,
+		).toBeTruthy();
 	});
 
 	it('renders host-owned slots', () => {

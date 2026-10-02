@@ -16,6 +16,7 @@
 
 import {
 	ChangeDetectionStrategy,
+	CUSTOM_ELEMENTS_SCHEMA,
 	Component,
 	computed,
 	effect,
@@ -33,6 +34,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 @Component({
 	selector: 'pptx-set-up-slide-show-dialog',
 	standalone: true,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
 		ModalDialogComponent,
@@ -51,8 +53,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 				<fieldset class="pptx-ng-sss-fieldset">
 					<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.showType' | translate }}</legend>
 					<label class="pptx-ng-sss-option">
-						<input
-							type="radio"
+						<pptx-ui-radio
 							name="showType"
 							class="pptx-ng-sss-radio"
 							value="presented"
@@ -62,8 +63,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 						<span>{{ 'pptx.slideShow.presentedBySpeaker' | translate }}</span>
 					</label>
 					<label class="pptx-ng-sss-option">
-						<input
-							type="radio"
+						<pptx-ui-radio
 							name="showType"
 							class="pptx-ng-sss-radio"
 							value="browsed"
@@ -73,8 +73,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 						<span>{{ 'pptx.slideShow.browsedByIndividual' | translate }}</span>
 					</label>
 					<label class="pptx-ng-sss-option">
-						<input
-							type="radio"
+						<pptx-ui-radio
 							name="showType"
 							class="pptx-ng-sss-radio"
 							value="kiosk"
@@ -99,8 +98,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 						{{ 'pptx.slideShow.advanceSlides' | translate }}
 					</legend>
 					<label class="pptx-ng-sss-option">
-						<input
-							type="radio"
+						<pptx-ui-radio
 							name="advanceMode"
 							class="pptx-ng-sss-radio"
 							value="manual"
@@ -110,8 +108,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 						<span>{{ 'pptx.slideShow.manually' | translate }}</span>
 					</label>
 					<label class="pptx-ng-sss-option">
-						<input
-							type="radio"
+						<pptx-ui-radio
 							name="advanceMode"
 							class="pptx-ng-sss-radio"
 							value="useTimings"
@@ -174,6 +171,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 			}
 
 			.pptx-ng-sss-radio {
+				flex: none;
 				accent-color: var(--pptx-primary, #6366f1);
 			}
 

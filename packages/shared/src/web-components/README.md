@@ -14,6 +14,8 @@ account for the viewer's Tailwind reset.
 | `pptx-ui-search`   | `value`, `placeholder`, `disabled`, `aria-label`, `variant="titlebar"`                                    | `input`, `change` |
 | `pptx-ui-select`   | `value`, `disabled`, `selectedIndex`, `options`, `aria-label`; child `<option>` and `<optgroup>` elements | `input`, `change` |
 | `pptx-ui-checkbox` | `checked`, `disabled`, `value`, `aria-label`                                                              | `input`, `change` |
+| `pptx-ui-radio`    | `checked`, `disabled`, `value`, `name`, `aria-label`                                                      | `input`, `change` |
+| `pptx-ui-switch`   | `checked`, `disabled`, `value`, `aria-label`                                                              | `input`, `change` |
 
 `input` and `change` bubble from the host. Read the current value or checked
 state from `event.currentTarget`. Setting a property does not emit an event.
@@ -23,11 +25,31 @@ supported; search exposes its underlying input in an open shadow root.
 Select keeps the popup below the trigger, supports arrows, Home, End,
 PageUp and PageDown (eight options per page, clamped to the nearest enabled
 choice), typeahead, Enter, Space, and Escape, and skips disabled choices.
-Every dialog and panel select and checkbox in the five bindings is one of
-these two elements; `native-controls.test.ts` fails when a binding source
-renders a native `<select>` or `<input type="checkbox">` outside its listed
-exceptions. Checkbox
-supports pointer and Space activation. Labels can wrap form-associated
+Every dialog and panel select, checkbox and radio in the five bindings is one of
+these elements; `native-controls.test.ts` fails when a binding source
+renders a native `<select>`, `<input type="checkbox">` or `<input type="radio">`
+outside its listed exceptions (the list is empty). Checkbox
+supports pointer and Space activation.
+
+`pptx-ui-radio` has a native-like contract: radios sharing a `name` in one tree
+and form are a WAI-ARIA radiogroup with one roving tab stop (the checked radio,
+else the first enabled one). Arrows move, select and focus the next enabled
+radio (wrapping), Home and End jump to the ends, Space selects the focused one.
+Checking a radio programmatically silently unchecks its peers; only user
+activation emits `input` then `change`, and only on the radio that becomes
+checked. Disabled radios are inert and leave the tab order. The control reads
+the checkbox size, border, background and accent tokens plus
+`--pptx-radio-dot-size`, is 22px on touch and uses system colours in forced
+colours. Wrap it in a `<label>` and give each radio an `aria-label`.
+
+`pptx-ui-switch` is the on/off toggle (`role="switch"`, `aria-checked`) used by
+the title-bar AutoSave control. Space, Enter and click toggle it and emit
+`input` then `change`; a disabled switch is inert and leaves the tab order.
+It reads the `--pptx-switch-*` tokens (width, height, track, track-on, thumb,
+knob size, offset and travel), so a host such as the title bar can set its own
+metrics by overriding tokens on the element. Controlled hosts restore the
+switch's `checked` after the `change` event and apply the new state when it
+arrives. Labels can wrap form-associated
 controls, and each use also provides an explicit accessible name.
 
 The migration covers File recent search, title-bar search, File > Options

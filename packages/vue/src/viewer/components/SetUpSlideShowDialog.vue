@@ -79,8 +79,7 @@ const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>((
 					:key="value"
 					class="flex cursor-pointer items-center gap-2"
 				>
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="showType"
 						class="accent-primary"
 						:value="value"
@@ -104,8 +103,7 @@ const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>((
 					{{ t('pptx.slideShow.legendAdvance') }}
 				</legend>
 				<label class="flex cursor-pointer items-center gap-2">
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="advanceMode"
 						value="manual"
 						class="accent-primary"
@@ -115,8 +113,7 @@ const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>((
 					<span>{{ t('pptx.slideShow.advanceManual') }}</span>
 				</label>
 				<label class="flex cursor-pointer items-center gap-2">
-					<input
-						type="radio"
+					<pptx-ui-radio
 						name="advanceMode"
 						value="useTimings"
 						class="accent-primary"

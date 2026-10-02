@@ -3,6 +3,7 @@ import type { DetailedHTMLProps, HTMLAttributes } from 'react';
 type WebControlProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> & {
 	value?: string;
 	checked?: boolean;
+	name?: string;
 	disabled?: boolean;
 	placeholder?: string;
 	variant?: string;
@@ -22,6 +23,8 @@ declare module 'react' {
 			'pptx-ui-search': WebControlProps;
 			'pptx-ui-select': WebControlProps;
 			'pptx-ui-checkbox': WebControlProps;
+			'pptx-ui-radio': WebControlProps;
+			'pptx-ui-switch': WebControlProps;
 			'pptx-ui-slide-show-options': WebControlProps;
 			'pptx-ui-compat-toasts': WebControlProps;
 			'pptx-ui-dialog-footer': WebControlProps;

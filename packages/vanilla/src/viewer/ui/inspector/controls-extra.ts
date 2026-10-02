@@ -9,6 +9,13 @@ export function createInspectorCheckbox(doc: Document): HTMLInputElement {
 	return doc.createElement('pptx-ui-checkbox') as unknown as HTMLInputElement;
 }
 
+/** Shared radio; radios with the same `name` in one dialog form a radiogroup. */
+export function createInspectorRadio(doc: Document, name: string): HTMLInputElement {
+	const radio = doc.createElement('pptx-ui-radio') as unknown as HTMLInputElement;
+	radio.name = name;
+	return radio;
+}
+
 /**
  * Extra reusable DOM control builders for the element-type-aware inspector
  * sections (select / checkbox / labelled range slider). Kept separate from

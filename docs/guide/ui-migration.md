@@ -435,20 +435,22 @@ read through `tok(name)`, which emits `var(--pptx-..., <default>)`. Defaults
 resolve where they are used, so viewer-root themes still reach them. Any token
 can be overridden by the host or a theme.
 
-| Group      | Tokens                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Field      | `--pptx-field-border`, `-border-focus`, `-bg`, `-fg`, `-placeholder`, `-radius`, `-height` (28px), `-height-lg` (40px), `-padding-x` |
-| Focus ring | `--pptx-focus-ring-color`, `-width` (2px), `-offset` (2px)                                                                           |
-| Density    | `--pptx-space-1..4` (4, 8, 12, 16px), `--pptx-row-height` (28px), `--pptx-row-height-nav` (40px), `--pptx-touch-target` (44px)       |
-| Checkbox   | `--pptx-checkbox-size` (16px), `-size-touch` (22px), `-radius`, `-border`, `-bg`, `-accent` (the theme primary), `-accent-fg`        |
-| Switch     | `--pptx-switch-width` (32px), `-height` (16px), `-track`, `-track-on` (the theme primary), `-thumb`                                  |
+| Group      | Tokens                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field      | `--pptx-field-border`, `-border-focus`, `-bg`, `-fg`, `-placeholder`, `-radius`, `-height` (28px), `-height-lg` (40px), `-padding-x`              |
+| Focus ring | `--pptx-focus-ring-color`, `-width` (2px), `-offset` (2px)                                                                                        |
+| Density    | `--pptx-space-1..4` (4, 8, 12, 16px), `--pptx-row-height` (28px), `--pptx-row-height-nav` (40px), `--pptx-touch-target` (44px)                    |
+| Checkbox   | `--pptx-checkbox-size` (16px), `-size-touch` (22px), `-radius`, `-border`, `-bg`, `-accent` (the theme primary), `-accent-fg`                     |
+| Radio      | `--pptx-radio-dot-size` (8px), `-dot-size-touch` (10px); border, background and accent come from the checkbox tokens                              |
+| Switch     | `--pptx-switch-width` (32px), `-height` (16px), `-track`, `-track-on` (the theme primary), `-thumb`, `-knob-size`, `-knob-offset`, `-knob-travel` |
 
-| Kind     | Primitive          | Where native stays                                                                                                                                                                                                                                                                                                                    |
-| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Search   | `pptx-ui-search`   | None. Title bar (28px) and File recent files (40px) are the two variants of one field.                                                                                                                                                                                                                                                |
-| Select   | `pptx-ui-select`   | None. Options, the Properties inspector, every dialog (Print, Custom Shows, Hyperlink, Document Properties, Set Up Show, Date/Time field, Header and Footer) and the ribbon (animation timeline, Insert pickers, Draw width, Transitions sound) use the app-owned listbox in all five bindings.                                       |
-| Checkbox | `pptx-ui-checkbox` | None. Every dialog and panel checkbox is the primitive. Radio buttons stay native: they are a separate control kind with no shared primitive yet.                                                                                                                                                                                     |
-| Switch   | none yet           | The title-bar AutoSave toggle is one shared `<button role="switch">` drawn by `pptx-ui-title-bar` (`title-bar-styles.ts`) with its own track metrics and the theme primary. The `--pptx-switch-*` tokens now exist for the title-bar owner to adopt; no switch primitive is added here, to avoid colliding with the title-bar rework. |
+| Kind     | Primitive          | Where native stays                                                                                                                                                                                                                                                                              |
+| -------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Search   | `pptx-ui-search`   | None. Title bar (28px) and File recent files (40px) are the two variants of one field.                                                                                                                                                                                                          |
+| Select   | `pptx-ui-select`   | None. Options, the Properties inspector, every dialog (Print, Custom Shows, Hyperlink, Document Properties, Set Up Show, Date/Time field, Header and Footer) and the ribbon (animation timeline, Insert pickers, Draw width, Transitions sound) use the app-owned listbox in all five bindings. |
+| Checkbox | `pptx-ui-checkbox` | None. Every dialog and panel checkbox is the primitive.                                                                                                                                                                                                                                         |
+| Radio    | `pptx-ui-radio`    | None. Every native radio input in the five bindings (Set Up Show, Show Slides, Print settings, Paste Special, Options language) is the primitive. The theme gallery and language rows in the Angular Options panes are `role="radio"` buttons with their own preview art, not native inputs.    |
+| Switch   | `pptx-ui-switch`   | None. The title-bar AutoSave toggle is the primitive; it overrides the switch tokens to keep the 28 by 14px track the title-bar metrics own. No other switch-like toggle exists in the five bindings.                                                                                           |
 
 `pptx-ui-select` is a combobox/listbox with a popup placed against the trigger,
 arrow, Home, End, PageUp, PageDown (eight options a page), typeahead, Enter, Space, Escape and Tab behaviour,
@@ -494,8 +496,7 @@ keyboard behaviour are unchanged; selects that had no accessible name gained one
 | Shared ribbon views                      | Insert Shape/Chart pickers, Draw width presets, Transitions Sound and advance checkboxes, Animations Start |
 
 Kept native: nothing. The font-name and size pickers already use the shared select
-with installed-font previews, and no file-type picker is a `<select>`. Radio
-buttons are not covered; they have no primitive yet.
+with installed-font previews, and no file-type picker is a `<select>`.
 
 Select also gained PageUp and PageDown (eight options a page, clamped to the
 nearest enabled option), and no longer rebuilds an open popup when a host re-syncs
@@ -518,6 +519,50 @@ from the same steps then.
 
 Still open under #386, not here: dialog footers, menus, toasts, banners and
 toolbars.
+
+### Radio buttons and the AutoSave switch
+
+`pptx-ui-radio` replaces every native `<input type="radio">`: Set Up Show
+(show type, show slides, advance), Show Slides, Print settings (print what, slide
+range, orientation, colour mode; the visually hidden radios inside the card
+labels), Paste Special and the Vanilla Options language list. Adapters are thin
+in each binding (React `WebRadio`, Vue, Angular and Svelte custom-element tags,
+Vanilla `createInspectorRadio` and `appendRadioControl`). Names, values and
+change behaviour are unchanged; Vue's `v-model` on Paste Special became a
+`:checked` plus `@change` pair, and Vanilla's "All slides" and advance rows,
+which only pretended to be radios by setting `type` on a checkbox, are real
+radio groups now.
+
+Roving tabindex with arrows, Home and End and the single tab stop per group are
+unit-tested in `control-primitives.test.ts` and checked in all five bindings by
+`e2e/dialog-controls.spec.ts` (Set Up Show). `ui-primitives-consistency`
+asserts the 16px size, round shape and focus ring, including forced colours.
+
+`pptx-ui-switch` is the AutoSave toggle in `pptx-ui-title-bar`. It keeps the
+accessible name "Toggle AutoSave", `aria-checked`, Space and Enter, the tooltip
+and the inert disabled state when the host forbids AutoSave. The title bar stays
+controlled: after the `change` it restores the host's state, so a refusal never
+leaves the knob flipped. The bar's own CSS no longer draws a switch; it sets
+`--pptx-switch-width`, `-height`, `-knob-*` and `-track` from the shared title-bar
+metrics, so the track is still 28 by 14px with a 10px knob, and the 44px hit area
+on coarse pointers lives in the primitive. `chrome-shell-parity` reads the knob
+from the switch's shadow root. `title-bar-migration` gained a Space/Enter spec.
+
+Before and after captures: `/assets/ui-migration/radio-switch-before/` (taken on
+`0e4bacffd`, native radios and the title-bar button) and
+`/assets/ui-migration/radio-switch-after/` (`<binding>-radios` and
+`<binding>-titlebar`).
+
+### What #342 delivered
+
+One primitive per control kind: `pptx-ui-search`, `pptx-ui-select`,
+`pptx-ui-checkbox`, `pptx-ui-radio` and `pptx-ui-switch`, all reading the tokens
+in `control-tokens.ts` for size, accent, focus ring and touch target. Every
+native select, checkbox and radio in the five bindings is converted, and
+`native-controls.test.ts` fails on any new one (empty allow-list). Browser
+contracts (`dialog-controls`, `ui-primitives-consistency`, `title-bar-migration`,
+`chrome-shell-parity`) run in every binding. Not claimed: the Angular Options
+theme and language galleries remain `role="radio"` buttons with preview art.
 
 ## Notes toolbar (#395)
 

@@ -48,6 +48,21 @@ test('the AutoSave switch is a labelled switch that flips', async ({ page }) => 
 	await expect(toggle).not.toHaveAttribute('aria-checked', before ?? 'true');
 });
 
+test('the AutoSave switch is the shared switch and flips with Space and Enter', async ({
+	page,
+}) => {
+	await open(page);
+	const toggle = bar(page).getByRole('switch', { name: 'Toggle AutoSave' });
+	await expect(bar(page).locator('pptx-ui-switch')).toHaveCount(1);
+	await expect(toggle).toHaveJSProperty('tagName', 'PPTX-UI-SWITCH');
+	for (const key of ['Space', 'Enter']) {
+		const before = await toggle.getAttribute('aria-checked');
+		await toggle.focus();
+		await page.keyboard.press(key);
+		await expect(toggle).not.toHaveAttribute('aria-checked', before ?? 'true');
+	}
+});
+
 test('the strip is one tab stop with roving arrow, Home and End focus', async ({ page }) => {
 	await open(page);
 	const toggle = bar(page).getByRole('switch', { name: 'Toggle AutoSave' });

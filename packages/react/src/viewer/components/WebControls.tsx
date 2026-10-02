@@ -121,3 +121,41 @@ export function WebCheckbox({
 		/>
 	);
 }
+
+/** Shared radio: radios with one `name` form a roving-tabindex radiogroup. */
+export function WebRadio({
+	checked,
+	disabled = false,
+	onChange,
+	value,
+	name,
+	...rest
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'onChange' | 'type'> & {
+	checked: boolean;
+	onChange?: React.ChangeEventHandler<HTMLInputElement>;
+}): React.ReactElement {
+	const ref = useRef<Host>(null);
+	useLayoutEffect(() => {
+		if (ref.current) {
+			ref.current.checked = checked;
+			ref.current.disabled = disabled;
+		}
+	}, [checked, disabled]);
+	useHostEvent(
+		ref,
+		'change',
+		onChange
+			? (event) => onChange(event as unknown as React.ChangeEvent<HTMLInputElement>)
+			: undefined,
+	);
+	return (
+		<pptx-ui-radio
+			ref={ref}
+			checked={checked || undefined}
+			disabled={disabled || undefined}
+			name={name}
+			value={value === undefined ? undefined : String(value)}
+			{...rest}
+		/>
+	);
+}

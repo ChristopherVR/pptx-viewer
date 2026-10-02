@@ -6,15 +6,23 @@ import { CONTROL_TOKENS, FOCUS_RING, tok } from './control-tokens';
 import type { ControlToken } from './control-tokens';
 import { HOST_STYLES } from './host-styles';
 import { registerPptxWebControls } from './index';
+import { RADIO_STYLES } from './radio-styles';
 import { SEARCH_STYLES } from './search-field-styles';
 import { SELECT_STYLES } from './select-styles';
+import { SWITCH_STYLES } from './switch-styles';
 
 beforeAll(registerPptxWebControls);
 afterEach(() => {
 	document.body.replaceChildren();
 });
 
-const SHARED_CSS = { search: SEARCH_STYLES, select: SELECT_STYLES, checkbox: CHECKBOX_STYLES };
+const SHARED_CSS = {
+	search: SEARCH_STYLES,
+	select: SELECT_STYLES,
+	checkbox: CHECKBOX_STYLES,
+	radio: RADIO_STYLES,
+	switch: SWITCH_STYLES,
+};
 
 describe('canonical control tokens', () => {
 	it('every shared token a primitive reads is declared with a default', () => {
@@ -22,7 +30,9 @@ describe('canonical control tokens', () => {
 		const sources = { ...SHARED_CSS, host: HOST_STYLES };
 		for (const css of Object.values(sources)) {
 			const used = [
-				...css.matchAll(/var\((--pptx-(?:field|focus-ring|space|row|touch|checkbox)[a-z0-9-]*)/g),
+				...css.matchAll(
+					/var\((--pptx-(?:field|focus-ring|space|row|touch|checkbox|radio|switch)[a-z0-9-]*)/g,
+				),
 			].map((match) => match[1]);
 			expect(used.length).toBeGreaterThan(0);
 			for (const token of used) {
@@ -287,5 +297,146 @@ describe('select states', () => {
 		expect(trigger.getAttribute('aria-expanded')).toBe('false');
 		expect(select.value).toBe('a');
 		expect(onChange).not.toHaveBeenCalled();
+	});
+});
+
+describe('radio group', () => {
+	type Radio = HTMLElement & { checked: boolean; disabled: boolean; value: string };
+	function group(count = 3, name = 'g'): Radio[] {
+		const radios: Radio[] = [];
+		for (let i = 0; i < count; i += 1) {
+			const radio = document.createElement('pptx-ui-radio') as Radio;
+			radio.setAttribute('name', name);
+			radio.setAttribute('value', String(i));
+			document.body.append(radio);
+			radios.push(radio);
+		}
+		return radios;
+	}
+	const key = (el: HTMLElement, name: string) =>
+		el.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }));
+
+	it('exposes role, checked state and one roving tab stop', () => {
+		const [a, b, c] = group();
+		expect(a.getAttribute('role')).toBe('radio');
+		expect([a, b, c].map((r) => r.tabIndex)).toStrictEqual([0, -1, -1]);
+		b.checked = true;
+		expect([a, b, c].map((r) => r.tabIndex)).toStrictEqual([-1, 0, -1]);
+		expect(b.getAttribute('aria-checked')).toBe('true');
+		expect(a.getAttribute('aria-checked')).toBe('false');
+	});
+
+	it('checking one radio unchecks its group peers silently', () => {
+		const [a, b] = group();
+		const onChange = vi.fn();
+		document.body.addEventListener('change', onChange);
+		a.checked = true;
+		b.checked = true;
+		expect(a.checked).toBeFalsy();
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('keeps separate names independent', () => {
+		const [a] = group(2, 'one');
+		const [x] = group(2, 'two');
+		a.checked = true;
+		x.checked = true;
+		expect(a.checked).toBeTruthy();
+		expect(x.checked).toBeTruthy();
+	});
+
+	it('click and space select once and emit input then change', () => {
+		const [a, b] = group();
+		const seen: string[] = [];
+		b.addEventListener('input', () => seen.push('input'));
+		b.addEventListener('change', () => seen.push('change'));
+		b.click();
+		b.click();
+		expect(seen).toStrictEqual(['input', 'change']);
+		key(a, ' ');
+		expect(a.checked).toBeTruthy();
+		expect(b.checked).toBeFalsy();
+	});
+
+	it('arrows, Home and End move and select, wrapping and skipping disabled radios', () => {
+		const [a, b, c] = group();
+		a.checked = true;
+		b.disabled = true;
+		a.focus();
+		key(a, 'ArrowDown');
+		expect(c.checked).toBeTruthy();
+		expect(document.activeElement).toBe(c);
+		key(c, 'ArrowRight');
+		expect(a.checked).toBeTruthy();
+		key(a, 'ArrowLeft');
+		expect(c.checked).toBeTruthy();
+		key(c, 'Home');
+		expect(a.checked).toBeTruthy();
+		key(a, 'End');
+		expect(c.checked).toBeTruthy();
+		expect(b.checked).toBeFalsy();
+	});
+
+	it('disabled radios are inert and leave the tab order', () => {
+		const [a, b] = group();
+		const onChange = vi.fn();
+		a.addEventListener('change', onChange);
+		a.disabled = true;
+		a.click();
+		expect(onChange).not.toHaveBeenCalled();
+		expect(a.getAttribute('aria-disabled')).toBe('true');
+		expect([a.tabIndex, b.tabIndex]).toStrictEqual([-1, 0]);
+	});
+
+	it('reports its value, defaulting to on like a native radio', () => {
+		const [a, b] = group(2, 'fruit');
+		expect(a.value).toBe('0');
+		b.removeAttribute('value');
+		expect(b.value).toBe('on');
+	});
+});
+
+describe('switch', () => {
+	type Switch = HTMLElement & { checked: boolean; disabled: boolean };
+	function make(attributes: Record<string, string> = {}): Switch {
+		const toggle = document.createElement('pptx-ui-switch') as Switch;
+		for (const [name, value] of Object.entries(attributes)) {
+			toggle.setAttribute(name, value);
+		}
+		document.body.append(toggle);
+		return toggle;
+	}
+
+	it('exposes role=switch, aria-checked and the tab stop', () => {
+		const toggle = make();
+		expect(toggle.getAttribute('role')).toBe('switch');
+		expect(toggle.getAttribute('aria-checked')).toBe('false');
+		expect(toggle.tabIndex).toBe(0);
+		toggle.checked = true;
+		expect(toggle.getAttribute('aria-checked')).toBe('true');
+	});
+
+	it('space, enter and click toggle; programmatic changes stay silent', () => {
+		const toggle = make();
+		const onChange = vi.fn();
+		toggle.addEventListener('change', onChange);
+		toggle.checked = true;
+		expect(onChange).not.toHaveBeenCalled();
+		toggle.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+		toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		toggle.click();
+		expect(onChange).toHaveBeenCalledTimes(3);
+		expect(toggle.checked).toBeFalsy();
+	});
+
+	it('a disabled switch is inert and leaves the tab order', () => {
+		const toggle = make({ disabled: '' });
+		const onChange = vi.fn();
+		toggle.addEventListener('change', onChange);
+		toggle.click();
+		toggle.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+		expect(onChange).not.toHaveBeenCalled();
+		expect(toggle.getAttribute('aria-disabled')).toBe('true');
+		expect(toggle.tabIndex).toBe(-1);
 	});
 });

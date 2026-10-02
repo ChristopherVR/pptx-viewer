@@ -184,6 +184,27 @@ test('checkbox keyboard focus uses the shared ring, including forced colors', as
 	await expect(checkbox).toHaveCSS('outline-style', 'solid');
 });
 
+test('radio keyboard focus uses the shared ring, size and forced colors', async ({ page }) => {
+	await loadDeck(page);
+	await ribbon(page).getByRole('tab', { name: 'Slide Show', exact: true }).click();
+	await ribbon(page)
+		.getByRole('button', { name: /Set Up Slide Show/ })
+		.first()
+		.click();
+	const radio = page.locator('pptx-ui-radio[tabindex="0"]').first();
+	await radio.waitFor();
+	await radio.focus();
+	await page.keyboard.press('Shift+Tab');
+	await page.keyboard.press('Tab');
+	await expect(radio).toBeFocused();
+	await expect(radio).toHaveCSS('outline-width', '2px');
+	await expect(radio).toHaveCSS('border-top-left-radius', '50%');
+	const box = await radio.boundingBox();
+	expect(box?.width).toBe(16);
+	await page.emulateMedia({ forcedColors: 'active' });
+	await expect(radio).toHaveCSS('outline-style', 'solid');
+});
+
 test('evidence screenshots', async ({ page }, info) => {
 	test.skip(!SHOTS, 'UI_SHOTS_DIR not set');
 	const name = info.project.name;
@@ -203,4 +224,12 @@ test('evidence screenshots', async ({ page }, info) => {
 	await selectElement(page, slideElements(page).first());
 	await page.waitForTimeout(500);
 	await inspector(page).screenshot({ path: `${SHOTS}/${name}-inspector.png` });
+	await ribbon(page).getByRole('tab', { name: 'Slide Show', exact: true }).click();
+	await ribbon(page)
+		.getByRole('button', { name: /Set Up Slide Show/ })
+		.first()
+		.click();
+	await page.locator('pptx-ui-radio').first().waitFor();
+	await page.waitForTimeout(400);
+	await page.screenshot({ path: `${SHOTS}/${name}-radios.png` });
 });

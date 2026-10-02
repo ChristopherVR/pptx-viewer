@@ -2,8 +2,13 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { createInspectorSelect } from './inspector/controls-extra';
-import { appendCheckRow, appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
+import { createInspectorRadio, createInspectorSelect } from './inspector/controls-extra';
+import {
+	appendCheckRow,
+	appendDialogButton,
+	appendRadioControl,
+	createParityDialogShell,
+} from './parity-dialog-shell';
 
 /**
  * PowerPoint's Set Up Show dialog.
@@ -37,29 +42,28 @@ export function openSlideShowDialog(
 		['browsed', 'pptx.slideShow.browsedByIndividual'],
 		['kiosk', 'pptx.slideShow.browsedAtKiosk'],
 	] as const) {
-		const row = createEl(doc, 'label', 'pptxv-parity-check');
-		const input = doc.createElement('input');
-		input.type = 'radio';
-		input.name = 'showType';
-		input.checked = (draft.showType ?? 'presented') === value;
+		const input = appendRadioControl(
+			doc,
+			showType,
+			t(key),
+			'showType',
+			(draft.showType ?? 'presented') === value,
+		);
 		input.addEventListener('change', () => {
 			draft.showType = value;
 			if (value === 'kiosk') {
 				draft.loopContinuously = true;
 			}
 		});
-		row.append(input, doc.createTextNode(t(key)));
-		showType.appendChild(row);
 	}
 	const range = group(t('pptx.slideShow.showSlides'));
-	const all = appendCheckRow(
+	const all = appendRadioControl(
 		doc,
 		range,
 		t('pptx.slideShow.allSlides'),
+		'range',
 		(draft.showSlidesMode ?? 'all') === 'all',
 	);
-	all.type = 'radio';
-	all.name = 'range';
 	all.addEventListener('change', () => {
 		draft.showSlidesMode = 'all';
 	});
@@ -74,9 +78,8 @@ export function openSlideShowDialog(
 	to.max = String(slideCount);
 	to.value = String(draft.showSlidesTo ?? slideCount);
 	const rangeRow = createEl(doc, 'label', 'pptxv-parity-range');
-	const selected = doc.createElement('input');
-	selected.type = 'radio';
-	selected.name = 'range';
+	const selected = createInspectorRadio(doc, 'range');
+	selected.setAttribute('aria-label', t('pptx.slideShow.fromTo'));
 	selected.checked = draft.showSlidesMode === 'range';
 	rangeRow.append(
 		selected,
@@ -93,9 +96,8 @@ export function openSlideShowDialog(
 	// exactly like the other four bindings, so the radio can never name nothing.
 	if (customShows.length > 0) {
 		const showRow = createEl(doc, 'label', 'pptxv-parity-range');
-		const showRadio = doc.createElement('input');
-		showRadio.type = 'radio';
-		showRadio.name = 'range';
+		const showRadio = createInspectorRadio(doc, 'range');
+		showRadio.setAttribute('aria-label', t('pptx.slideShow.customShow'));
 		showRadio.dataset.pptxShowSlidesCustom = 'true';
 		showRadio.checked = draft.showSlidesMode === 'customShow';
 		const picker = createInspectorSelect(doc);
@@ -125,14 +127,13 @@ export function openSlideShowDialog(
 		['manual', 'pptx.slideShow.manually'],
 		['useTimings', 'pptx.slideShow.useTimings'],
 	] as const) {
-		const input = appendCheckRow(
+		const input = appendRadioControl(
 			doc,
 			advance,
 			t(key),
+			'advance',
 			(draft.advanceMode ?? 'useTimings') === value,
 		);
-		input.type = 'radio';
-		input.name = 'advance';
 		input.addEventListener('change', () => {
 			draft.advanceMode = value;
 		});

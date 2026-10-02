@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DialogFooter } from './DialogFooter';
+import { WebRadio } from './WebControls';
 
 export interface PasteSpecialDialogProps {
 	isOpen: boolean;
@@ -54,8 +55,7 @@ export function PasteSpecialDialog({
 					{PASTE_SPECIAL_OPTIONS.map((option) => (
 						<li key={option.id}>
 							<label className='flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-accent text-sm text-foreground'>
-								<input
-									type='radio'
+								<WebRadio
 									name='paste-special-format'
 									value={option.id}
 									checked={selected === option.id}

@@ -1,7 +1,7 @@
 /**
  * Canonical control tokens: one place that owns the field, focus-ring, density
  * and checkbox treatments every shared primitive (`pptx-ui-search`,
- * `pptx-ui-select`, `pptx-ui-checkbox`) and the normalised native controls read.
+ * `pptx-ui-select`, `pptx-ui-checkbox`, `pptx-ui-radio`, `pptx-ui-switch`) and the normalised native controls read.
  *
  * The values are defaults; a viewer root, the host application or a theme can override any
  * of them without touching a component. Colours alias the existing `--pptx-*`
@@ -38,12 +38,20 @@ export const CONTROL_TOKENS = {
 	'--pptx-checkbox-bg': 'var(--pptx-background, #030712)',
 	'--pptx-checkbox-accent': 'var(--pptx-primary, #6366f1)',
 	'--pptx-checkbox-accent-fg': 'var(--pptx-primary-foreground, #fff)',
+	// Radio (shares the checkbox border, background and accent)
+	'--pptx-radio-dot-size': '8px',
+	'--pptx-radio-dot-size-touch': '10px',
 	// Switch (on/off toggles such as the title-bar AutoSave control)
 	'--pptx-switch-width': '32px',
 	'--pptx-switch-height': '16px',
 	'--pptx-switch-track': 'var(--pptx-border, #374151)',
 	'--pptx-switch-track-on': 'var(--pptx-primary, #6366f1)',
 	'--pptx-switch-thumb': 'var(--pptx-primary-foreground, #fff)',
+	'--pptx-switch-knob-size': '12px',
+	'--pptx-switch-knob-offset': '2px',
+	// Distance the knob travels when on; defaults to the free space in the track.
+	'--pptx-switch-knob-travel':
+		'calc(var(--pptx-switch-width, 32px) - var(--pptx-switch-knob-size, 12px) - 2 * var(--pptx-switch-knob-offset, 2px))',
 } as const;
 
 export type ControlToken = keyof typeof CONTROL_TOKENS;
