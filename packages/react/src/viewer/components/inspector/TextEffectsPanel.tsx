@@ -48,7 +48,6 @@ export function TextEffectsPanel({
 			<div className='space-y-1.5'>
 				<label className='inline-flex items-center gap-2 text-foreground'>
 					<WebCheckbox
-						type='checkbox'
 						checked={hasShadow}
 						onChange={(e) => {
 							if (e.target.checked) {
@@ -146,7 +145,6 @@ export function TextEffectsPanel({
 			<div className='space-y-1.5'>
 				<label className='inline-flex items-center gap-2 text-foreground'>
 					<WebCheckbox
-						type='checkbox'
 						checked={hasGlow}
 						onChange={(e) => {
 							if (e.target.checked) {

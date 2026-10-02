@@ -163,7 +163,6 @@ export function MediaPlaybackBookmarks({
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.loop')}</span>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={Boolean(element.loop)}
 						onChange={(e) =>
@@ -194,7 +193,6 @@ export function MediaPlaybackBookmarks({
 					<label className={LABEL_CLS}>
 						<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.playAcrossSlides')}</span>
 						<WebCheckbox
-							type='checkbox'
 							disabled={!canEdit}
 							checked={Boolean(element.playAcrossSlides)}
 							onChange={(e) =>
@@ -209,7 +207,6 @@ export function MediaPlaybackBookmarks({
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.fullScreen')}</span>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={Boolean(element.fullScreen)}
 						onChange={(e) =>
@@ -222,7 +219,6 @@ export function MediaPlaybackBookmarks({
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.hideWhenNotPlaying')}</span>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={Boolean(element.hideWhenNotPlaying)}
 						onChange={(e) =>

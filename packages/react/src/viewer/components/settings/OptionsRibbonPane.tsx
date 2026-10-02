@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebCheckbox } from '../WebControls';
 
 export interface OptionsRibbonPaneProps {
 	options: ViewerOptions;
@@ -45,9 +46,7 @@ export function OptionsRibbonPane({
 									isFile ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-accent',
 								)}
 							>
-								<input
-									type='checkbox'
-									className='h-4 w-4 accent-[var(--pptx-primary,#6366f1)]'
+								<WebCheckbox
 									checked={isVisible}
 									disabled={isFile}
 									onChange={(event) => onRibbonTabHiddenChange(tab.id, !event.target.checked)}

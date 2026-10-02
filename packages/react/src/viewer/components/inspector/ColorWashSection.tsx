@@ -22,7 +22,6 @@ export function ColorWashSection({
 			<label className='flex items-center justify-between gap-2'>
 				<span className='text-muted-foreground'>{t('pptx.image.colorWash')}</span>
 				<WebCheckbox
-					type='checkbox'
 					disabled={!canEdit}
 					checked={Boolean(wash)}
 					onChange={(e) =>

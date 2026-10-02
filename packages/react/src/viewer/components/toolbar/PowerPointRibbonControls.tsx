@@ -3,6 +3,7 @@ import { RIBBON_CONTROL_ATTR, RIBBON_GROUP_ATTR } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { cn } from '../../utils';
+import { WebCheckbox } from '../WebControls';
 
 /** `data-ribbon-control` for an optional catalogue id (nothing when absent). */
 export function controlAttr(id: RibbonControlId | undefined): Record<string, string> {
@@ -147,12 +148,10 @@ export function RibbonToggle({
 				checked && 'bg-primary/15 text-primary',
 			)}
 		>
-			<input
-				type='checkbox'
+			<WebCheckbox
 				checked={checked}
 				disabled={disabled}
 				onChange={(event) => onChange?.(event.target.checked)}
-				className='h-3 w-3 accent-primary disabled:opacity-35'
 			/>
 			{label}
 		</label>

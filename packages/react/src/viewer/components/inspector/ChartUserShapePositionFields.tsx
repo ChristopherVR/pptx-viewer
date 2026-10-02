@@ -99,7 +99,6 @@ function FlipFields({
 		<>
 			<label className='flex items-center gap-1 cursor-pointer'>
 				<WebCheckbox
-					type='checkbox'
 					aria-label={t('pptx.arrange.flipHorizontally')}
 					disabled={!canEdit}
 					className='accent-primary'
@@ -110,7 +109,6 @@ function FlipFields({
 			</label>
 			<label className='flex items-center gap-1 cursor-pointer'>
 				<WebCheckbox
-					type='checkbox'
 					aria-label={t('pptx.arrange.flipVertically')}
 					disabled={!canEdit}
 					className='accent-primary'

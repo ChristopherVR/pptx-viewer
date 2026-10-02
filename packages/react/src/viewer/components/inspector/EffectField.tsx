@@ -76,7 +76,6 @@ export function EffectField({
 		return (
 			<label className={`flex items-center gap-2 ${field.span2 ? COL2 : ''}`}>
 				<WebCheckbox
-					type='checkbox'
 					checked={Boolean(val)}
 					onChange={(e) => {
 						const result = field.write(e.target.checked, style);

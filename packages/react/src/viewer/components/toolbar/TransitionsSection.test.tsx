@@ -84,7 +84,9 @@ describe('transitionsSection reads the active slide', () => {
 
 	it('offers None and Other Sound for a slide with no sound', () => {
 		renderTab();
-		const values = [...field<HTMLSelectElement>('select').options].map((option) => option.value);
+		const values = [...field<HTMLSelectElement>('pptx-ui-select').options].map(
+			(option) => option.value,
+		);
 		expect(values[0]).toBe('none');
 		expect(values.at(-1)).toBe('other');
 	});
@@ -122,7 +124,7 @@ describe('transitionsSection commits through the callbacks', () => {
 			expect.objectContaining({ durationMs: 2500 }),
 		);
 		const after = container.querySelector<HTMLInputElement>(
-			'[data-ribbon-control="transitions.timing.advanceAfter"] input[type=checkbox]',
+			'[data-ribbon-control="transitions.timing.advanceAfter"] pptx-ui-checkbox',
 		)!;
 		act(() => after.click());
 		expect(onTransitionChange).toHaveBeenLastCalledWith(

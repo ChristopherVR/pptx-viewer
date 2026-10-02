@@ -3,6 +3,8 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlus, LuTrash2 } from 'react-icons/lu';
 
+import { WebSelect } from './WebControls';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -110,14 +112,15 @@ export function DocumentPropertiesCustomTab({
 							onChange={(e) => handleChangeName(index, e.target.value)}
 						/>
 						{prop.type === 'bool' ? (
-							<select
-								className='w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none'
+							<WebSelect
+								className='w-full'
+								aria-label={t('pptx.documentProperties.custom.valuePlaceholder')}
 								value={prop.value}
 								onChange={(e) => handleChangeValue(index, e.target.value)}
 							>
 								<option value='true'>{t('pptx.documentProperties.custom.yes')}</option>
 								<option value='false'>{t('pptx.documentProperties.custom.no')}</option>
-							</select>
+							</WebSelect>
 						) : (
 							<input
 								type={prop.type === 'i4' ? 'number' : 'text'}
@@ -127,8 +130,9 @@ export function DocumentPropertiesCustomTab({
 								onChange={(e) => handleChangeValue(index, e.target.value)}
 							/>
 						)}
-						<select
-							className='w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none'
+						<WebSelect
+							className='w-full'
+							aria-label={t('pptx.documentProperties.custom.type')}
 							value={prop.type}
 							onChange={(e) => handleChangeType(index, e.target.value)}
 						>
@@ -137,7 +141,7 @@ export function DocumentPropertiesCustomTab({
 									{t(opt.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 						<button
 							type='button'
 							onClick={() => handleDelete(index)}

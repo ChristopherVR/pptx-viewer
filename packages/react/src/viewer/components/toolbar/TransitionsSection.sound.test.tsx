@@ -57,7 +57,7 @@ function renderTab(
 }
 
 function soundSelect(): HTMLSelectElement {
-	const select = container.querySelector<HTMLSelectElement>('select[aria-label="Sound:"]');
+	const select = container.querySelector<HTMLSelectElement>('pptx-ui-select[aria-label="Sound:"]');
 	if (!select) {
 		throw new Error('no Sound select rendered');
 	}

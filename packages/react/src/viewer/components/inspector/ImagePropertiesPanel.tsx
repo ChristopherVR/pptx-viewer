@@ -103,7 +103,6 @@ export function ImagePropertiesPanel({
 					<label className='flex items-center justify-between gap-2'>
 						<span className='text-muted-foreground'>{t('pptx.image.grayscale')}</span>
 						<WebCheckbox
-							type='checkbox'
 							disabled={!canEdit}
 							checked={Boolean(fx?.grayscale)}
 							onChange={(e) => updateEffects({ grayscale: e.target.checked })}

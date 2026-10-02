@@ -11,6 +11,7 @@ import type {
 	PrintSlideRange,
 } from './print-dialog-types';
 import { HANDOUT_OPTIONS, radioClass } from './print-dialog-types';
+import { WebCheckbox } from './WebControls';
 
 export interface PrintSettingsPanelProps {
 	printWhat: PrintWhat;
@@ -268,11 +269,9 @@ export function PrintSettingsPanel({
 
 			{/* Frame Slides */}
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='checkbox'
+				<WebCheckbox
 					checked={frameSlides}
 					onChange={(e) => onFrameSlidesChange(e.target.checked)}
-					className='rounded border-border'
 				/>
 				<span className='text-sm text-foreground'>{t('pptx.print.frameSlides')}</span>
 			</label>

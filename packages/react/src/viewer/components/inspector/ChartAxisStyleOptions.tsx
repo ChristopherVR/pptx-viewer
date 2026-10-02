@@ -74,7 +74,6 @@ export function ChartAxisStyleOptions({
 								<div className='flex items-center gap-2'>
 									<label className='flex items-center gap-2 cursor-pointer'>
 										<WebCheckbox
-											type='checkbox'
 											disabled={!canEdit}
 											checked={axis.logScale ?? false}
 											onChange={(e) =>
@@ -135,7 +134,6 @@ export function ChartAxisStyleOptions({
 							<div className='flex items-center gap-3 text-[11px]'>
 								<label className='flex items-center gap-1 cursor-pointer'>
 									<WebCheckbox
-										type='checkbox'
 										disabled={!canEdit}
 										checked={axis.fontBold ?? false}
 										onChange={(e) => onSetTitleStyle(type, { fontBold: e.target.checked })}

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { HyperlinkTargetType, HyperlinkActionVerb } from './hyperlink-edit-types';
+import { WebSelect } from './WebControls';
 
 /**
  * Props for the {@link HyperlinkTabContent} component.
@@ -163,8 +164,9 @@ export function HyperlinkTabContent({
 					<label className='block text-xs text-muted-foreground mb-1'>
 						{t('pptx.hyperlink.actionLabel')}
 					</label>
-					<select
-						className={inputCls}
+					<WebSelect
+						className='w-full'
+						aria-label={t('pptx.hyperlink.actionLabel')}
 						value={actionVerb}
 						onChange={(e) => setActionVerb(e.target.value as HyperlinkActionVerb)}
 					>
@@ -173,7 +175,7 @@ export function HyperlinkTabContent({
 						<option value='firstSlide'>{t('pptx.hyperlink.actionFirstSlide')}</option>
 						<option value='lastSlide'>{t('pptx.hyperlink.actionLastSlide')}</option>
 						<option value='endShow'>{t('pptx.hyperlink.actionEndShow')}</option>
-					</select>
+					</WebSelect>
 				</div>
 			)}
 

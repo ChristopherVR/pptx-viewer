@@ -183,7 +183,6 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 						{/* Gridlines */}
 						<label className='flex items-center gap-2 cursor-pointer'>
 							<WebCheckbox
-								type='checkbox'
 								disabled={!canEdit}
 								checked={axis.majorGridlines ?? false}
 								onChange={(e) => onUpdateAxis(type, { majorGridlines: e.target.checked })}
@@ -193,7 +192,6 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 						</label>
 						<label className='flex items-center gap-2 cursor-pointer'>
 							<WebCheckbox
-								type='checkbox'
 								disabled={!canEdit}
 								checked={axis.minorGridlines ?? false}
 								onChange={(e) => onUpdateAxis(type, { minorGridlines: e.target.checked })}

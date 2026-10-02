@@ -8,6 +8,8 @@ import type { PptxPresentationProperties, PptxCustomShow } from 'pptx-viewer-cor
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from './WebControls';
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -129,21 +131,22 @@ export function ShowSlidesFieldset({
 					</label>
 					{showSlidesMode === 'customShow' && (
 						<div className='ml-6'>
-							<select
+							<WebSelect
 								value={draft.showSlidesCustomShowId ?? customShows[0]?.id ?? ''}
 								onChange={(e) =>
 									update({
 										showSlidesCustomShowId: e.target.value,
 									})
 								}
-								className='w-full px-2 py-1 rounded bg-muted border border-border text-foreground text-[11px]'
+								className='w-full text-[11px]'
+								aria-label={t('pptx.slideShow.customShow')}
 							>
 								{customShows.map((cs) => (
 									<option key={cs.id} value={cs.id}>
 										{cs.name}
 									</option>
 								))}
-							</select>
+							</WebSelect>
 						</div>
 					)}
 				</>
