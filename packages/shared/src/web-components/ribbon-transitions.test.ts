@@ -82,7 +82,7 @@ describe('shared Transitions view', () => {
 
 	it('lists sound options, handles stock sounds and routes Other Sound to the file input', () => {
 		const { host, details } = mount();
-		const select = host.querySelector<HTMLSelectElement>('select')!;
+		const select = host.querySelector<HTMLSelectElement>('pptx-ui-select')!;
 		expect(select.value).toBe('none');
 		select.value = 'other';
 		const picker = vi.spyOn(host.querySelector<HTMLInputElement>('input[type=file]')!, 'click');

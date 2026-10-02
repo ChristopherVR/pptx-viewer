@@ -30,7 +30,7 @@ export function createInsertCluster(
 	const el = doc.createElement('div');
 	el.className = 'cluster';
 	el.dataset.ribbonControl = control;
-	const select = doc.createElement('select');
+	const select = doc.createElement('pptx-ui-select') as unknown as HTMLSelectElement;
 	const button = doc.createElement('button');
 	button.type = 'button';
 	button.className = 'pick';

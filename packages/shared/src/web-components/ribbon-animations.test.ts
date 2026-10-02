@@ -97,7 +97,7 @@ describe('shared Animations view', () => {
 		expect(pane.getAttribute('aria-pressed')).toBe('false');
 		expect(button(host, 'animations.advancedAnimation.animationPainter').disabled).toBeTruthy();
 		expect(host.querySelector<HTMLInputElement>('input')!.disabled).toBeTruthy();
-		expect(host.querySelector('select')!.disabled).toBeTruthy();
+		expect(host.querySelector('pptx-ui-select')!.disabled).toBeTruthy();
 		expect(
 			host
 				.querySelector('[data-ribbon-control="animations.preview.preview"]')!
@@ -170,7 +170,7 @@ describe('shared Animations timing placeholders', () => {
 			'[data-ribbon-control="animations.timing.start"]',
 		)!;
 		expect(host.querySelector(`label[for="${start.id}"]`)!.textContent).toBe('Start');
-		expect(mount().querySelector('select')!.id).not.toBe(start.id);
+		expect(mount().querySelector('pptx-ui-select')!.id).not.toBe(start.id);
 	});
 });
 

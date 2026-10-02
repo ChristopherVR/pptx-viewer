@@ -133,3 +133,23 @@ export function nextSelectActive(choices: SelectChoice[], active: number, step: 
 	}
 	return active;
 }
+
+/** Options a PageUp/PageDown press moves, like the visible rows of a native listbox. */
+export const SELECT_PAGE_SIZE = 8;
+
+/** Jump a page of options up (-1) or down (+1), clamped to the nearest enabled option. */
+export function pageSelectActive(
+	choices: SelectChoice[],
+	active: number,
+	direction: 1 | -1,
+): number {
+	const usable = (index: number): boolean => !choices[index]?.disabled && !choices[index]?.hidden;
+	const last = choices.length - 1;
+	const target = Math.max(0, Math.min(last, Math.max(active, 0) + direction * SELECT_PAGE_SIZE));
+	for (let index = target; index >= 0 && index <= last; index -= direction) {
+		if (usable(index)) {
+			return index;
+		}
+	}
+	return active;
+}

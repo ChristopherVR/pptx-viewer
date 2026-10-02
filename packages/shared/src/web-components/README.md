@@ -21,7 +21,12 @@ Select and checkbox participate in forms through `ElementInternals` where
 supported; search exposes its underlying input in an open shadow root.
 
 Select keeps the popup below the trigger, supports arrows, Home, End,
-typeahead, Enter, Space, and Escape, and skips disabled choices. Checkbox
+PageUp and PageDown (eight options per page, clamped to the nearest enabled
+choice), typeahead, Enter, Space, and Escape, and skips disabled choices.
+Every dialog and panel select and checkbox in the five bindings is one of
+these two elements; `native-controls.test.ts` fails when a binding source
+renders a native `<select>` or `<input type="checkbox">` outside its listed
+exceptions. Checkbox
 supports pointer and Space activation. Labels can wrap form-associated
 controls, and each use also provides an explicit accessible name.
 

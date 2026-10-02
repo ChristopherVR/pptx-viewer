@@ -239,6 +239,44 @@ describe('select states', () => {
 		expect(menu.querySelector('[data-active]')?.textContent).toBe('Alpha');
 	});
 
+	it('page down and page up jump a page of enabled options and clamp at the ends', () => {
+		const select = document.createElement('pptx-ui-select');
+		select.setAttribute('aria-label', 'Long');
+		select.innerHTML = Array.from(
+			{ length: 20 },
+			(_v, i) => `<option value="${i}"${i === 9 ? ' disabled' : ''}>Item ${i}</option>`,
+		).join('');
+		document.body.append(select);
+		const trigger = select.shadowRoot!.querySelector('button')!;
+		const menu = select.shadowRoot!.querySelector<HTMLElement>('[role="listbox"]')!;
+		trigger.click();
+		key(trigger, 'PageDown');
+		expect(menu.querySelector('[data-active]')?.textContent).toBe('Item 8');
+		key(trigger, 'PageDown');
+		expect(menu.querySelector('[data-active]')?.textContent).toBe('Item 16');
+		key(trigger, 'PageDown');
+		expect(menu.querySelector('[data-active]')?.textContent).toBe('Item 19');
+		key(trigger, 'PageUp');
+		key(trigger, 'PageUp');
+		key(trigger, 'PageUp');
+		expect(menu.querySelector('[data-active]')?.textContent).toBe('Item 0');
+		select.remove();
+	});
+
+	it('keeps the open popup options when a host re-syncs the same value and labels', async () => {
+		const { select, trigger, menu } = make();
+		trigger.click();
+		const first = menu.querySelector('[role="option"]');
+		select.value = 'a';
+		select.setAttribute('aria-label', 'Choice');
+		await new Promise<void>((resolve) => {
+			requestAnimationFrame(() => resolve());
+		});
+		expect(menu.querySelector('[role="option"]')).toBe(first);
+		select.value = 'c';
+		expect(menu.querySelector('[role="option"]')).not.toBe(first);
+	});
+
 	it('escape closes without changing the value and returns to the trigger', () => {
 		const { select, trigger } = make();
 		const onChange = vi.fn();

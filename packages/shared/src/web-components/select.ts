@@ -3,6 +3,7 @@ import {
 	collectSelectChoices,
 	markSelectActive,
 	nextSelectActive,
+	pageSelectActive,
 	positionSelectMenu,
 	renderSelectMenu,
 	SELECT_OPTION_ATTRIBUTES,
@@ -35,6 +36,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 		private search = '';
 		private searchTimer = 0;
 		private defaultValue = '';
+		private menuKey = '';
 
 		constructor() {
 			super();
@@ -140,12 +142,19 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			}
 			this.trigger.setAttribute('aria-label', this.getAttribute('aria-label') ?? '');
 			this.internals?.setFormValue?.(this.disabled ? null : this.value);
-			if (this.open || this.menu.childElementCount) {
+			// Hosts re-sync the same values often (React re-renders); rebuilding an open
+			// popup under the pointer would swallow the click on an option.
+			if ((this.open || this.menu.childElementCount) && this.menuKey !== this.currentMenuKey()) {
 				this.renderMenu();
 			}
 		}
 
+		private currentMenuKey(): string {
+			return `${this.value}|${JSON.stringify(this.choices)}`;
+		}
+
 		private renderMenu(): void {
+			this.menuKey = this.currentMenuKey();
 			renderSelectMenu(this.menu, this.choices, this.value);
 			prependSelectCustomSlot(this, this.menu);
 			markSelectActive(this.menu, this.trigger, this.active, this.open);
@@ -256,6 +265,16 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 					event.key === 'Home'
 						? nextSelectActive(this.choices, -1, 1)
 						: nextSelectActive(this.choices, 0, -1);
+				markSelectActive(this.menu, this.trigger, this.active, this.open);
+			} else if (event.key === 'PageUp' || event.key === 'PageDown') {
+				event.preventDefault();
+				event.stopPropagation();
+				this.show();
+				this.active = pageSelectActive(
+					this.choices,
+					this.active,
+					event.key === 'PageDown' ? 1 : -1,
+				);
 				markSelectActive(this.menu, this.trigger, this.active, this.open);
 			} else if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault();

@@ -59,7 +59,7 @@ describe('shared Draw view', () => {
 		const host = mount(),
 			request = vi.fn();
 		host.addEventListener('draw-request', request);
-		const presets = host.querySelector('select')!;
+		const presets = host.querySelector('pptx-ui-select')!;
 		expect(presets.value).toBe('5');
 		presets.value = '16';
 		presets.dispatchEvent(new Event('change'));
