@@ -6,12 +6,13 @@ import {
 	createPlainNotesSegments,
 	defaultRichEnabled,
 	insertHyperlinkAtSelection,
-	normalizeNotesLinkUrl,
+	registerPptxWebControls,
 	readEditorSegments,
 	resolveNotesSegments,
 	segmentsToEditorHtml,
 	segmentsToPlainText,
 } from 'pptx-viewer-shared';
+import type { NotesToolbarRequestEvent } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -37,7 +38,7 @@ export interface NotesPanel {
 }
 
 /**
- * The plain-text speaker-notes panel: a collapsible strip docked below the
+ * The speaker-notes panel: a collapsible strip docked below the
  * slide stage. Vanilla counterpart of the Vue binding's `NotesPanel.vue`
  * plain `<textarea>` surface only; there is no rich contentEditable chrome
  * here (that is out of scope for this binding).
@@ -79,12 +80,11 @@ export function createNotesPanel(
 	body.id = 'slide-notes-content';
 	el.appendChild(body);
 
-	const toolbar = createEl(doc, 'div', 'pptxv-notes-toolbar');
+	// The shared toolbar owns the buttons, link popover, roving focus and gating.
+	registerPptxWebControls();
+	const toolbar = doc.createElement('pptx-ui-notes-toolbar');
+	toolbar.className = 'pptxv-notes-toolbar';
 	body.appendChild(toolbar);
-	const editorMode = doc.createElement('button');
-	editorMode.type = 'button';
-	editorMode.className = 'pptxv-notes-mode';
-	toolbar.appendChild(editorMode);
 
 	const richEditor = createEl(doc, 'div', 'pptxv-notes-rich-editor');
 	richEditor.contentEditable = 'true';
@@ -108,13 +108,21 @@ export function createNotesPanel(
 	let currentSlide: PptxSlide | undefined;
 	let currentNotesStyle: PptxTextStyleLevels | undefined;
 
+	const syncToolbar = (): void => {
+		toolbar.hidden = !editable;
+		toolbar.state = {
+			rich: richEnabled,
+			canFormat: richEnabled && editable && currentSlide !== undefined,
+			showPrint: currentSlide !== undefined,
+			disabled: currentSlide === undefined,
+			translate: t,
+		};
+	};
 	const setMode = (nextRichEnabled: boolean): void => {
 		richEnabled = nextRichEnabled;
 		richEditor.hidden = !richEnabled;
 		textarea.hidden = richEnabled;
-		toolbar.hidden = !editable;
-		editorMode.textContent = richEnabled ? t('pptx.notes.plainEditor') : t('pptx.notes.richEditor');
-		editorMode.setAttribute('aria-pressed', String(richEnabled));
+		syncToolbar();
 	};
 
 	const commitRich = (): void => {
@@ -125,54 +133,12 @@ export function createNotesPanel(
 		segments = result.segments;
 		onCommit(result.text, result.segments);
 	};
-	const addCommand = (label: string, commandTitle: string, action: () => void): void => {
-		const button = doc.createElement('button');
-		button.type = 'button';
-		button.className = 'pptxv-notes-tool';
-		button.textContent = label;
-		button.title = commandTitle;
-		button.setAttribute('aria-label', commandTitle);
-		button.addEventListener('mousedown', (event) => event.preventDefault());
-		button.addEventListener('click', () => {
-			richEditor.focus();
-			action();
-			commitRich();
-		});
-		toolbar.insertBefore(button, editorMode);
+	const paragraph = (command: 'bullet' | 'numbered' | 'indent' | 'outdent'): void => {
+		// Read the live DOM first: typing is only committed on blur.
+		segments = readEditorSegments(richEditor).segments;
+		segments = applyParagraphCommand(richEditor, segments, command).segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
 	};
-	addCommand('B', t('pptx.notes.bold'), () => applyInlineCommand('bold'));
-	addCommand('I', t('pptx.notes.italic'), () => applyInlineCommand('italic'));
-	addCommand('U', t('pptx.notes.underline'), () => applyInlineCommand('underline'));
-	addCommand('S', t('pptx.notes.strikethrough'), () => applyInlineCommand('strikeThrough'));
-	addCommand('•', t('pptx.notes.bulletList'), () => {
-		const result = applyParagraphCommand(richEditor, segments, 'bullet');
-		segments = result.segments;
-		richEditor.innerHTML = segmentsToEditorHtml(segments);
-	});
-	addCommand('1.', t('pptx.notes.numberedList'), () => {
-		const result = applyParagraphCommand(richEditor, segments, 'numbered');
-		segments = result.segments;
-		richEditor.innerHTML = segmentsToEditorHtml(segments);
-	});
-	addCommand('→', t('pptx.notes.indent'), () => {
-		const result = applyParagraphCommand(richEditor, segments, 'indent');
-		segments = result.segments;
-		richEditor.innerHTML = segmentsToEditorHtml(segments);
-	});
-	addCommand('←', t('pptx.notes.outdent'), () => {
-		const result = applyParagraphCommand(richEditor, segments, 'outdent');
-		segments = result.segments;
-		richEditor.innerHTML = segmentsToEditorHtml(segments);
-	});
-	addCommand('↗', t('pptx.notes.insertLink'), () => {
-		const selected = doc.getSelection()?.toString() ?? '';
-		const url = window.prompt(t('pptx.notes.linkUrl'), 'https://');
-		if (!url) {
-			return;
-		}
-		const displayText = window.prompt(t('pptx.notes.linkDisplayText'), selected) ?? selected;
-		insertHyperlinkAtSelection(normalizeNotesLinkUrl(url), displayText);
-	});
 	/**
 	 * Print the current slide's speaker notes via the browser's native print
 	 * dialog. Builds the document with the shared `buildNotesPrintHtml`
@@ -181,7 +147,7 @@ export function createNotesPanel(
 	 * (`NotesPanelComponent.printNotes`) implementations exactly, so all logic
 	 * stays in `pptx-viewer-shared` and no binding re-derives the print HTML.
 	 */
-	addCommand('🖨', t('pptx.notes.printNotes'), () => {
+	const printNotes = (): void => {
 		if (!currentSlide) {
 			return;
 		}
@@ -213,16 +179,36 @@ export function createNotesPanel(
 			frame.contentWindow?.print();
 			setTimeout(() => frame.remove(), 1000);
 		}, 200);
-	});
-	editorMode.addEventListener('click', () => {
-		if (richEnabled) {
-			commitRich();
-			textarea.value = segmentsToPlainText(segments);
-		} else {
-			segments = createPlainNotesSegments(textarea.value);
-			richEditor.innerHTML = segmentsToEditorHtml(segments);
+	};
+	toolbar.addEventListener('notes-request', (event) => {
+		const intent = (event as NotesToolbarRequestEvent).detail;
+		if (intent.kind === 'print') {
+			printNotes();
+			return;
 		}
-		setMode(!richEnabled);
+		if (intent.kind === 'toggle-rich') {
+			if (richEnabled) {
+				commitRich();
+				textarea.value = segmentsToPlainText(segments);
+			} else {
+				segments = createPlainNotesSegments(textarea.value);
+				richEditor.innerHTML = segmentsToEditorHtml(segments);
+			}
+			setMode(!richEnabled);
+			return;
+		}
+		if (!richEnabled || !editable) {
+			return;
+		}
+		richEditor.focus();
+		if (intent.kind === 'inline') {
+			applyInlineCommand(intent.command);
+		} else if (intent.kind === 'paragraph') {
+			paragraph(intent.command);
+		} else {
+			insertHyperlinkAtSelection(intent.url, intent.text);
+		}
+		commitRich();
 	});
 
 	const commit = (): void => {
@@ -250,11 +236,11 @@ export function createNotesPanel(
 			editable = nextEditable;
 			currentSlide = slide;
 			currentNotesStyle = notesStyle;
+			syncToolbar();
 			const hasSlide = slide !== undefined;
 			textarea.disabled = !hasSlide;
 			textarea.readOnly = !editable;
 			richEditor.contentEditable = String(editable && hasSlide);
-			toolbar.hidden = !editable;
 			textarea.placeholder = hasSlide ? t('pptx.notes.addSpeakerNotes') : t('pptx.notes.noSlide');
 
 			const slideId = slide?.id ?? null;

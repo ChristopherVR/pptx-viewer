@@ -842,7 +842,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[slide]="activeSlide()"
 							[expanded]="mobileSheetSvc.showNotes()"
 							[notesStyle]="loader.notesMaster()?.notesStyle"
-							(update)="canvasEditing.onNotesUpdate($event)"
+							(notesCommit)="canvasEditing.onNotesUpdate($event.notes, $event.segments)"
 							(notesToggle)="mobileSheetSvc.toggleNotes()"
 						/>
 					</aside>
@@ -1334,7 +1334,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[slide]="activeSlide()"
 							[expanded]="true"
 							[notesStyle]="loader.notesMaster()?.notesStyle"
-							(update)="canvasEditing.onNotesUpdate($event)"
+							(notesCommit)="canvasEditing.onNotesUpdate($event.notes, $event.segments)"
 							(notesToggle)="mobileSheetSvc.toggleNotes()"
 						/>
 					</div>

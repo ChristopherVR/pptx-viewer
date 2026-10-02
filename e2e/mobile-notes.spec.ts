@@ -48,3 +48,31 @@ test('notes editor stays mounted when the virtual keyboard opens', async ({ page
 	await expect(panel).toBeVisible();
 	await expect(editor).toBeVisible();
 });
+
+test('notes toolbar defaults to the plain editor with 44px controls', async ({ page }) => {
+	await resetTabSession(page);
+	await page.goto('/');
+	await page.locator('#file-input').setInputFiles(fixturePath);
+	await page.locator('[data-pptx-element="true"]').first().waitFor();
+	await page
+		.locator('nav')
+		.getByRole('button', { name: 'Toggle notes', exact: true })
+		.filter({ visible: true })
+		.last()
+		.click();
+
+	const toolbar = page.locator('#slide-notes-content').getByRole('toolbar', {
+		name: 'Notes formatting',
+	});
+	await expect(toolbar).toBeVisible();
+	// Phones start in the plain editor: formatting is disabled, switching and printing are not.
+	await expect(toolbar.getByRole('button', { name: 'Rich editor', exact: true })).toBeEnabled();
+	await expect(toolbar.getByRole('button', { name: 'Bold', exact: true })).toBeDisabled();
+	for (const name of ['Rich editor', 'Print notes']) {
+		const box = await toolbar.getByRole('button', { name, exact: true }).boundingBox();
+		expect(box!.height, name).toBeGreaterThanOrEqual(44);
+		expect(box!.width, name).toBeGreaterThanOrEqual(44);
+	}
+	await toolbar.getByRole('button', { name: 'Rich editor', exact: true }).click();
+	await expect(toolbar.getByRole('button', { name: 'Bold', exact: true })).toBeEnabled();
+});

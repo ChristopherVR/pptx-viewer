@@ -24,6 +24,11 @@ afterEach(() => {
 	cleanup = undefined;
 });
 
+/** The shared notes toolbar's open shadow root. */
+function toolbarRoot(target: HTMLElement): ShadowRoot | null | undefined {
+	return target.querySelector('pptx-ui-notes-toolbar')?.shadowRoot;
+}
+
 interface MountResult {
 	target: HTMLElement;
 	textarea: HTMLTextAreaElement;
@@ -45,9 +50,7 @@ function mountPanel(initial: NotesPanelProps): MountResult {
 		// The editable desktop surface starts in rich mode. These legacy plain
 		// commit tests deliberately exercise the Plain toggle path.
 		if (!el) {
-			target
-				.querySelector<HTMLButtonElement>('.pptx-svelte-notes-toolbar button:last-child')
-				?.click();
+			toolbarRoot(target)?.querySelector<HTMLButtonElement>('.mode')?.click();
 			flushSync();
 			el = target.querySelector<HTMLTextAreaElement>('.pptx-svelte-notes-textarea');
 		}
@@ -188,7 +191,9 @@ describe('notesPanel', () => {
 		flushSync();
 		try {
 			const printLabel = translate('en', 'pptx.notes.printNotes');
-			const printButton = target.querySelector<HTMLButtonElement>(`[aria-label="${printLabel}"]`);
+			const printButton = toolbarRoot(target)?.querySelector<HTMLButtonElement>(
+				`[aria-label="${printLabel}"]`,
+			);
 			expect(printButton).not.toBeNull();
 
 			const framesBefore = document.body.querySelectorAll('iframe[aria-hidden="true"]').length;
@@ -231,5 +236,59 @@ describe('notesPanel', () => {
 			unmount(instance);
 			target.remove();
 		}
+	});
+	describe('shared notes toolbar', () => {
+		const control = (target: HTMLElement, key: string) =>
+			toolbarRoot(target)?.querySelector<HTMLButtonElement>(`button[aria-label="${key}"]`);
+
+		it('shows the same buttons in the canonical order and keeps formatting disabled in plain mode', () => {
+			const { target } = mountPanel({ slide: slide(), expanded: true, onupdate: vi.fn() });
+			const order = [
+				...(toolbarRoot(target)?.querySelectorAll<HTMLElement>('button[data-notes-control]') ?? []),
+			].map((b) => b.dataset.notesControl);
+			expect(order).toStrictEqual([
+				'bold',
+				'italic',
+				'underline',
+				'strike',
+				'bullet',
+				'numbered',
+				'indent',
+				'outdent',
+				'link',
+				'print',
+				'toggleRich',
+			]);
+			expect(control(target, 'Bold')?.disabled).toBeFalsy();
+			toolbarRoot(target)?.querySelector<HTMLButtonElement>('.mode')?.click();
+			flushSync();
+			// Plain mode keeps every button (Svelte used to hide them) but disables formatting.
+			expect(control(target, 'Bold')?.disabled).toBeTruthy();
+			expect(control(target, 'Print notes')?.disabled).toBeFalsy();
+		});
+
+		it('inserts a link from the shared popover without window.prompt', () => {
+			const onupdate = vi.fn();
+			const prompt = vi.fn();
+			window.prompt = prompt;
+			const { target } = mountPanel({ slide: slide(), expanded: true, onupdate });
+			const editor = target.querySelector<HTMLElement>('.pptx-svelte-notes-rich')!;
+			document.body.append(target);
+			const range = document.createRange();
+			range.selectNodeContents(editor);
+			range.collapse(false);
+			document.getSelection()?.removeAllRanges();
+			document.getSelection()?.addRange(range);
+			target.querySelector('pptx-ui-notes-toolbar')!.dispatchEvent(
+				new CustomEvent('notes-request', {
+					detail: { kind: 'link', url: 'https://example.com', text: 'Docs' },
+					bubbles: true,
+				}),
+			);
+			flushSync();
+			expect(editor.querySelector('a')?.getAttribute('href')).toBe('https://example.com');
+			expect(onupdate).toHaveBeenCalledWith(expect.stringContaining('Docs'), expect.any(Array));
+			expect(prompt).not.toHaveBeenCalled();
+		});
 	});
 });

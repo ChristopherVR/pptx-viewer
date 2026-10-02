@@ -1,5 +1,6 @@
 import { definePptxCheckbox } from './checkbox';
 import { HOST_STYLES } from './host-styles';
+import { definePptxNotesToolbar } from './notes-toolbar';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
 import { definePptxRibbonAnimations } from './ribbon-animations';
 import { definePptxRibbonCommand } from './ribbon-command';
@@ -49,6 +50,7 @@ export type {
 } from './subtitle-settings';
 
 export type { PptxUiStatusBarElement, StatusBarRequestEvent } from './status-bar';
+export type { NotesToolbarRequestEvent, PptxUiNotesToolbarElement } from './notes-toolbar';
 export type { PptxUiSelectElement } from './select-value';
 export type {
 	PptxUiSlideShowOptionsElement,
@@ -75,6 +77,7 @@ const controls = [
 	['pptx-ui-ribbon-gallery', definePptxRibbonGallery],
 	['pptx-ui-ribbon-toggle', definePptxRibbonToggle],
 	['pptx-ui-status-bar', definePptxStatusBar],
+	['pptx-ui-notes-toolbar', definePptxNotesToolbar],
 	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
 	['pptx-ui-theme-editor', definePptxThemeEditor],
 ] as const;

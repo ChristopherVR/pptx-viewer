@@ -30,6 +30,12 @@ function richEditor(el: HTMLElement): HTMLElement {
 	return found;
 }
 
+/** A control inside the shared notes toolbar's open shadow root. */
+function toolbarControl(el: HTMLElement, selector: string): HTMLButtonElement | null {
+	const host = el.querySelector('pptx-ui-notes-toolbar');
+	return host?.shadowRoot?.querySelector<HTMLButtonElement>(selector) ?? null;
+}
+
 describe('createNotesPanel', () => {
 	it('renders the current slide notes text', () => {
 		const t = createTranslator();
@@ -120,7 +126,7 @@ describe('createNotesPanel', () => {
 	it('offers a rich/plain mode toggle while editing', () => {
 		const panel = createNotesPanel(document, createTranslator(), vi.fn(), vi.fn());
 		panel.update({ slide: buildSlide({ notes: 'original' }), editable: true });
-		const toggle = panel.el.querySelector<HTMLButtonElement>('.pptxv-notes-mode');
+		const toggle = toolbarControl(panel.el, '.mode');
 		expect(toggle).not.toBeNull();
 		expect(richEditor(panel.el).hidden).toBeFalsy();
 
@@ -144,8 +150,71 @@ describe('createNotesPanel', () => {
 			'pptx.notes.outdent',
 			'pptx.notes.insertLink',
 		] as const) {
-			expect(panel.el.querySelector(`[aria-label="${t(key)}"]`)).not.toBeNull();
+			expect(toolbarControl(panel.el, `[aria-label="${t(key)}"]`)).not.toBeNull();
 		}
+	});
+
+	it('hides the toolbar when not editable and disables formatting in the plain editor', () => {
+		const t = createTranslator();
+		const panel = createNotesPanel(document, t, vi.fn(), vi.fn());
+		const host = panel.el.querySelector<HTMLElement>('pptx-ui-notes-toolbar')!;
+		panel.update({ slide: buildSlide({ notes: 'n' }), editable: false });
+		expect(host.hidden).toBeTruthy();
+
+		panel.update({ slide: buildSlide({ notes: 'n' }), editable: true });
+		expect(host.hidden).toBeFalsy();
+		const bold = () => toolbarControl(panel.el, `[aria-label="${t('pptx.notes.bold')}"]`)!;
+		expect(bold().disabled).toBeFalsy();
+		toolbarControl(panel.el, '.mode')!.click();
+		expect(bold().disabled).toBeTruthy();
+		expect(toolbarControl(panel.el, '.mode')!.textContent).toBe(t('pptx.notes.richEditor'));
+	});
+
+	it('commits an inline command and a typed list change from the live editor', () => {
+		const onCommit = vi.fn();
+		const exec = vi.fn(() => true);
+		document.execCommand = exec;
+		const t = createTranslator();
+		const panel = createNotesPanel(document, t, vi.fn(), onCommit);
+		document.body.append(panel.el);
+		panel.update({ slide: buildSlide({ notes: 'original' }), editable: true });
+		toolbarControl(panel.el, `[aria-label="${t('pptx.notes.bold')}"]`)!.click();
+		expect(exec).toHaveBeenCalledWith('bold');
+		expect(onCommit).toHaveBeenCalledOnce();
+
+		// Typed but not yet committed text must survive a paragraph command.
+		richEditor(panel.el).innerHTML = '<p>typed text</p>';
+		toolbarControl(panel.el, `[aria-label="${t('pptx.notes.bulletList')}"]`)!.click();
+		expect(onCommit).toHaveBeenLastCalledWith(
+			expect.stringContaining('typed text'),
+			expect.any(Array),
+		);
+		panel.el.remove();
+	});
+
+	it('inserts a hyperlink from the shared popover instead of window.prompt', () => {
+		const onCommit = vi.fn();
+		const prompt = vi.fn();
+		window.prompt = prompt;
+		const panel = createNotesPanel(document, createTranslator(), vi.fn(), onCommit);
+		document.body.append(panel.el);
+		panel.update({ slide: buildSlide({ notes: 'original' }), editable: true });
+		const editor = richEditor(panel.el);
+		const range = document.createRange();
+		range.selectNodeContents(editor);
+		range.collapse(false);
+		document.getSelection()?.removeAllRanges();
+		document.getSelection()?.addRange(range);
+		panel.el.querySelector('pptx-ui-notes-toolbar')!.dispatchEvent(
+			new CustomEvent('notes-request', {
+				detail: { kind: 'link', url: 'https://example.com', text: 'Docs' },
+				bubbles: true,
+			}),
+		);
+		expect(editor.querySelector('a')?.getAttribute('href')).toBe('https://example.com');
+		expect(onCommit).toHaveBeenCalledOnce();
+		expect(prompt).not.toHaveBeenCalled();
+		panel.el.remove();
 	});
 
 	it('prints the current slide notes into a hidden iframe via the shared buildNotesPrintHtml builder', () => {
@@ -156,9 +225,7 @@ describe('createNotesPanel', () => {
 			editable: true,
 		});
 
-		const printButton = panel.el.querySelector<HTMLButtonElement>(
-			`[aria-label="${t('pptx.notes.printNotes')}"]`,
-		);
+		const printButton = toolbarControl(panel.el, `[aria-label="${t('pptx.notes.printNotes')}"]`);
 		expect(printButton).not.toBeNull();
 		const framesBefore = document.body.querySelectorAll('iframe[aria-hidden="true"]').length;
 		printButton?.click();
@@ -175,9 +242,7 @@ describe('createNotesPanel', () => {
 		const panel = createNotesPanel(document, t, vi.fn(), vi.fn());
 		panel.update({ slide: undefined, editable: true });
 
-		const printButton = panel.el.querySelector<HTMLButtonElement>(
-			`[aria-label="${t('pptx.notes.printNotes')}"]`,
-		);
+		const printButton = toolbarControl(panel.el, `[aria-label="${t('pptx.notes.printNotes')}"]`);
 		const framesBefore = document.body.querySelectorAll('iframe[aria-hidden="true"]').length;
 		printButton?.click();
 

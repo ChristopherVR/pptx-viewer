@@ -4,6 +4,7 @@ import type {
 	PptxElementAnimation,
 	PptxSlide,
 	PptxSlideTransition,
+	TextSegment,
 } from 'pptx-viewer-core';
 import { applyMotionPathPreset } from 'pptx-viewer-shared';
 import type { AnimationApplyGroup } from 'pptx-viewer-shared';
@@ -28,7 +29,7 @@ export interface UseSlideMutationsInput {
 export function useSlideMutations(input: UseSlideMutationsInput) {
 	const { slides, activeSlideIndex, activeSlide, pushHistory, selectedElements } = input;
 
-	function onNotesUpdate(notes: string): void {
+	function onNotesUpdate(notes: string, segments?: TextSegment[]): void {
 		const index = activeSlideIndex.value;
 		const slide = slides.value[index];
 		if (!slide) {
@@ -36,7 +37,14 @@ export function useSlideMutations(input: UseSlideMutationsInput) {
 		}
 		pushHistory();
 		const nextSlides = slides.value.slice();
-		nextSlides[index] = { ...slide, notes };
+		// Segments carry the formatting; an empty list means plain or cleared notes.
+		nextSlides[index] = {
+			...slide,
+			notes,
+			...(segments === undefined
+				? {}
+				: { notesSegments: segments.length > 0 ? segments : undefined }),
+		};
 		slides.value = nextSlides;
 	}
 

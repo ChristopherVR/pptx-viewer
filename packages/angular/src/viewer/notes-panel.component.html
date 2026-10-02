@@ -21,13 +21,9 @@
 			@if (slide()) {
 				<pptx-notes-toolbar
 					[isRichEnabled]="isRichEnabled()"
-					[showLinkPopover]="showLinkPopover()"
-					[savedSelectionText]="savedSelectionText()"
 					(inline)="inlineCommand($event)"
 					(paragraph)="paragraphCommand($event)"
-					(linkButtonClick)="openLinkPopover()"
 					(insertLink)="insertLink($event)"
-					(closeLinkPopover)="showLinkPopover.set(false)"
 					(print)="printNotes()"
 					(toggleRich)="toggleRich()"
 				/>
@@ -43,7 +39,7 @@
 				[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
 				(input)="onRichInput()"
 				(keydown)="onRichKeydown($event)"
-				(blur)="onRichInput()"
+				(blur)="onRichBlur()"
 				(click)="onEditorClick($event)"
 			></div>
 

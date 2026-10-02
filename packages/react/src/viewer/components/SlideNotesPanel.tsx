@@ -76,13 +76,10 @@ export function SlideNotesPanel({
 		draftSegments,
 		isRichEditEnabled,
 		setIsRichEditEnabled,
-		showLinkPopover,
-		setShowLinkPopover,
 		showPrintDialog,
 		setShowPrintDialog,
 		textareaRef,
 		richEditorRef,
-		savedSelectionRef,
 		handlePlainChange,
 		handleRichInput,
 		handleBlur,
@@ -93,7 +90,6 @@ export function SlideNotesPanel({
 		toggleNumberedList,
 		handleIndent,
 		handleOutdent,
-		handleLinkButtonClick,
 		handleInsertLink,
 		handleEditorClick,
 	} = useSlideNotes({
@@ -177,17 +173,13 @@ export function SlideNotesPanel({
 							<>
 								<NotesToolbar
 									isRichEditEnabled={isRichEditEnabled}
-									showLinkPopover={showLinkPopover}
-									savedSelectionText={savedSelectionRef.current?.text ?? ''}
 									hasAllSlides={allSlides !== undefined && allSlides.length > 0}
 									onApplyRichCommand={applyRichCommand}
 									onToggleBulletList={toggleBulletList}
 									onToggleNumberedList={toggleNumberedList}
 									onIndent={handleIndent}
 									onOutdent={handleOutdent}
-									onLinkButtonClick={handleLinkButtonClick}
 									onInsertLink={handleInsertLink}
-									onCloseLinkPopover={() => setShowLinkPopover(false)}
 									onPrintClick={() => setShowPrintDialog(true)}
 									onToggleRichEdit={() => setIsRichEditEnabled((prev) => !prev)}
 								/>

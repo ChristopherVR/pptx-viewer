@@ -306,7 +306,7 @@ can own its markup, gating and callbacks without changing behaviour.
 | Title bar and quick-access buttons                           | All five bindings                                                                                                                    | Yes                            | Keep native for now; the AutoSave switch and command search are interleaved with host state. Follow-up.                            |
 | Inspector panel actions                                      | React about 119 files, Vue 94, Svelte 74, Vanilla 63, Angular fewer, larger components                                               | Per panel                      | Keep native. Panel-by-panel owners; the generic contracts are the ribbon command, shared checkbox and select where they apply.     |
 | Compatibility toasts and collaboration status indicator      | All five bindings (the indicator is slotted into the status bar)                                                                     | Yes                            | Keep native; toast stacking and relay retry are host-owned. Follow-up.                                                             |
-| Notes toolbar and notes panel buttons                        | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Partly                         | Keep native: different feature sets per binding.                                                                                   |
+| Notes toolbar and notes panel buttons                        | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Yes, with divergent behaviour  | **Migrated in #395**: `pptx-ui-notes-toolbar`; see the Notes toolbar section below. The collapse header and editor stay native.    |
 
 ### Status bar (first batch)
 
@@ -411,3 +411,101 @@ Still open: converting the secondary-dialog native selects to `pptx-ui-select`
 needs per-binding adapters (about 35 sites) and is tracked with the remaining
 dialog-body work; the dialog footers, menus, toasts, banners and toolbars belong
 to #386.
+
+## Notes toolbar (#395)
+
+`pptx-ui-notes-toolbar` is one controlled shared view for the speaker-notes
+formatting row: Bold, Italic, Underline, Strikethrough, Bullet list, Numbered
+list, Increase indent, Decrease indent, Insert link, Print notes and the
+Rich/Plain editor switch. It owns the buttons, their order, icons, labels,
+enabled state, toolbar semantics with roving focus, touch targets, forced
+colors and the hyperlink popover. Hosts keep the contenteditable editor, the
+paragraph and inline edit commands, history and persistence, printing and the
+collapse header, and route one typed `notes-request` intent per activation.
+The property and event contract is in
+`packages/shared/src/web-components/README.md`.
+
+### Recorded differences before the change
+
+| Area                | React                                                                               | Vue                                          | Angular                                  | Svelte                                         | Vanilla                                            |
+| ------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
+| Label keys          | `pptx.notes.*`                                                                      | `pptx.notesToolbar.*`                        | `pptx.notes.*`                           | Mixed `pptx.notes.*` and `pptx.notesToolbar.*` | `pptx.notes.*`                                     |
+| Order               | Indent, Outdent                                                                     | Indent, Outdent                              | Indent, Outdent                          | Outdent, Indent                                | Indent, Outdent                                    |
+| Plain mode          | Formatting buttons stay and do nothing                                              | Same                                         | Same                                     | All formatting buttons hidden                  | Formatting buttons stay and act on a hidden editor |
+| Mode switch label   | "Plain editor" / "Rich editor"                                                      | "Plain" / "Rich"                             | "Plain editor" / "Rich editor"           | "Plain" / "Rich"                               | "Plain editor" / "Rich editor" with `aria-pressed` |
+| Print gating        | Only when the host passes all slides                                                | Always                                       | Always                                   | Always                                         | Always                                             |
+| Print route         | `NotesPrintDialog`                                                                  | Hidden iframe                                | Hidden iframe                            | Hidden iframe                                  | Hidden iframe                                      |
+| Toolbar gating      | `canEdit`                                                                           | Panel only mounts when the host can edit     | Same as Vue                              | Hidden unless an `onupdate` handler exists     | Hidden unless `editable`                           |
+| Link UI             | In-toolbar popover                                                                  | In-toolbar popover (own key set)             | In-toolbar popover (own key set)         | Two `window.prompt` calls                      | Two `window.prompt` calls                          |
+| Icons               | Lucide components                                                                   | Lucide components                            | Inline SVG                               | Lucide components                              | Text glyphs                                        |
+| Toolbar semantics   | Plain `div`                                                                         | Plain `div`                                  | `role="toolbar"`, no roving focus        | `aria-label` without a role                    | Plain `div`                                        |
+| Touch targets       | About 24px                                                                          | About 24px                                   | About 24px                               | 24px                                           | 24px                                               |
+| Default surface     | Rich only when the slide has notes; the choice was reset on every slide change      | Rich on desktop, plain on mobile; kept       | Same as Vue                              | Same as Vue                                    | Same as Vue                                        |
+| Collapse and resize | Header button, `panelHeight` and a swipe-down mobile sheet                          | Header button with chevron, `MobileSheet`    | Header button with chevron, mobile sheet | Header button without chevron                  | Header button with a text chevron                  |
+| Editor integration  | React state plus an effect that re-seeds the editor; paragraph edits use hook state | Shared `notes-editor` helpers, DOM re-seeded | Same as Vue                              | Same as Vue                                    | Same, but paragraph edits used the last blur state |
+
+### Canonical set and decisions
+
+- One key set, `pptx.notes.*` (Increase indent, Decrease indent, Bullet list,
+  Plain editor, Rich editor, Insert link, Print notes) plus the existing
+  `pptx.notesToolbar.ariaLabel` for the toolbar name and `pptx.common.cancel`.
+  The Vue-only `pptx.notesToolbar.*` button keys are no longer read.
+- One order: character formats, lists, Increase indent then Decrease indent,
+  link, print, then the editor switch at the end of the row. Svelte followed the
+  other order and now matches the other four.
+- Formatting follows the editor: in the plain editor the formatting buttons and
+  the link button are disabled, not hidden (Svelte used to hide them) and no
+  longer silently inert. Print and the editor switch stay enabled. With no slide
+  every button is disabled. The row is hidden when the host cannot edit.
+- Print is shown whenever a slide exists. React keeps its all-slides dialog for
+  the Print action; the other four keep printing the active slide through a
+  hidden iframe, so the intent is the same but the output is not.
+- The editor switch names the editor it switches to ("Plain editor" while rich
+  is active). It is a plain button with no `aria-pressed`, so Vanilla's pressed
+  state is gone.
+- The link popover moves into the element, so Svelte and Vanilla stop using
+  `window.prompt`. It is a non-modal dialog that places itself above the row (or
+  below when there is no room), focuses the URL, keeps the selected text as the
+  display text, refuses an empty URL, closes on Escape, Cancel or an outside
+  press and returns focus to the Insert link button. Submitting restores the
+  editor selection and emits one `link` intent with a normalised URL.
+- Buttons prevent the default on `mousedown` so the editor selection survives a
+  pointer press. Hosts focus the editor before running a command so the keyboard
+  path works too.
+- React's default surface is rich on desktop like the other bindings, and the
+  choice is no longer reset by changing slide. Vanilla's list and indent
+  commands read the live editor first, so text typed since the last blur is no
+  longer lost.
+- Rich formatting now persists in every binding. Vue and Angular committed the
+  plain text only, so bold, lists and indents were lost on the next slide change
+  and on save; they now commit the text with its segments in one history entry
+  (Angular adds a `notesCommit` output next to `update`), flush on blur so a slide
+  change cannot take the edit with it, and a plain edit or a cleared note drops
+  the stale segments. React no longer keeps the previous slide's draft when you
+  return to a slide whose notes equal the last text it saved.
+- Icons are one inline SVG set. The row is a `role="toolbar"` with a single tab
+  stop; Left, Right, Home and End move between enabled buttons, and those keys
+  do not reach the slide shortcuts. Targets are 28px, 44px on coarse pointers,
+  and forced colors use system colors.
+
+Not changed on purpose: the collapse header, `panelHeight` and the mobile sheet
+(React), the contenteditable editor and its history, the print dialog and iframe
+routes, and the per-binding mobile placement. Each binding keeps its public
+props, callbacks and test classes (`.pptx-vue-notes-toolbar`,
+`.pptxv-notes-toolbar`, `.pptx-svelte-notes-toolbar`, `#slide-notes-content`).
+
+| Binding | Before                                                          | After                                                         |
+| ------- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| React   | [Before](/assets/ui-migration/notes-toolbar/react-before.png)   | [After](/assets/ui-migration/notes-toolbar/react-after.png)   |
+| Vue     | [Before](/assets/ui-migration/notes-toolbar/vue-before.png)     | [After](/assets/ui-migration/notes-toolbar/vue-after.png)     |
+| Angular | [Before](/assets/ui-migration/notes-toolbar/angular-before.png) | [After](/assets/ui-migration/notes-toolbar/angular-after.png) |
+| Svelte  | [Before](/assets/ui-migration/notes-toolbar/svelte-before.png)  | [After](/assets/ui-migration/notes-toolbar/svelte-after.png)  |
+| Vanilla | [Before](/assets/ui-migration/notes-toolbar/vanilla-before.png) | [After](/assets/ui-migration/notes-toolbar/vanilla-after.png) |
+
+`e2e/notes-toolbar-migration.spec.ts` covers the button order and names, real
+Bold, bullet and indent edits that survive a slide change, the link popover with
+no `window.prompt`, Escape and empty-URL handling, roving focus, the disabled
+plain mode, Print, theme tokens, forced colors and 44px touch targets on all
+five bindings; `mobile-notes.spec.ts` checks the default plain surface and its
+touch targets. Adapter unit tests cover state mapping, intent routing, gating and
+callback replacement in each binding.

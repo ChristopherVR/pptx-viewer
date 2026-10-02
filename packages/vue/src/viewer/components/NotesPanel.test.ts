@@ -16,9 +16,14 @@ function makeSlide(overrides: Partial<PptxSlide> = {}): PptxSlide {
 	};
 }
 
-/** The toolbar rich/plain toggle button (labelled "Plain" when rich is active). */
+/** The shared toolbar's open shadow root. */
+function toolbarRoot(wrapper: ReturnType<typeof mount>) {
+	return wrapper.get('pptx-ui-notes-toolbar').element.shadowRoot!;
+}
+
+/** The toolbar rich/plain toggle button (labelled "Plain editor" when rich is active). */
 function toggleButton(wrapper: ReturnType<typeof mount>) {
-	return wrapper.findAll('button').find((b) => b.text() === 'Plain' || b.text() === 'Rich');
+	return toolbarRoot(wrapper).querySelector<HTMLButtonElement>('.mode');
 }
 
 describe('notesPanel', () => {
@@ -51,7 +56,7 @@ describe('notesPanel', () => {
 		});
 		await nextTick();
 
-		await toggleButton(wrapper)?.trigger('click');
+		toggleButton(wrapper)?.click();
 		await nextTick();
 
 		const textarea = wrapper.get('textarea');
@@ -62,7 +67,9 @@ describe('notesPanel', () => {
 
 		const emitted = wrapper.emitted('update');
 		expect(emitted).toBeTruthy();
-		expect(emitted?.at(-1)).toStrictEqual(['new notes text']);
+		expect(emitted?.at(-1)?.[0]).toBe('new notes text');
+		// The plain edit also hands over its (plain) segments, replacing stale rich ones.
+		expect(emitted?.at(-1)?.[1]).toStrictEqual([{ text: 'new notes text', style: {} }]);
 	});
 
 	it('re-seeds the rich editor when the active slide changes', async () => {
@@ -107,5 +114,55 @@ describe('notesPanel', () => {
 		await nextTick();
 		expect(wrapper.find('.pptx-vue-notes-header').exists()).toBeFalsy();
 		expect(wrapper.find('.pptx-vue-notes-body').isVisible()).toBeTruthy();
+	});
+
+	it('drives the shared toolbar: canonical labels, disabled plain mode and one link intent', async () => {
+		const wrapper = mount(NotesPanel, {
+			props: { slide: makeSlide({ notes: 'abc' }) },
+			attachTo: document.body,
+		});
+		await nextTick();
+		const root = toolbarRoot(wrapper);
+		expect(toggleButton(wrapper)?.textContent).toBe('Plain editor');
+		expect(root.querySelector('button[aria-label="Increase indent"]')).not.toBeNull();
+		expect(root.querySelector('button[aria-label="Decrease indent"]')).not.toBeNull();
+		const bold = root.querySelector<HTMLButtonElement>('button[aria-label="Bold"]')!;
+		expect(bold.disabled).toBeFalsy();
+
+		// A link intent inserts an anchor at the editor selection and commits it.
+		const editor = wrapper.get('.pptx-vue-notes-rich').element;
+		const range = document.createRange();
+		range.selectNodeContents(editor);
+		range.collapse(false);
+		document.getSelection()?.removeAllRanges();
+		document.getSelection()?.addRange(range);
+		wrapper.get('pptx-ui-notes-toolbar').element.dispatchEvent(
+			new CustomEvent('notes-request', {
+				detail: { kind: 'link', url: 'https://example.com', text: 'Docs' },
+				bubbles: true,
+			}),
+		);
+		expect(editor.querySelector('a')?.getAttribute('href')).toBe('https://example.com');
+
+		toggleButton(wrapper)?.click();
+		await nextTick();
+		expect(toggleButton(wrapper)?.textContent).toBe('Rich editor');
+		expect(bold.disabled).toBeTruthy();
+		wrapper.unmount();
+	});
+
+	it('commits the rich segments with the text on blur so formatting survives', async () => {
+		const wrapper = mount(NotesPanel, { props: { slide: makeSlide({ notes: 'x' }) } });
+		await nextTick();
+		const rich = wrapper.get('.pptx-vue-notes-rich');
+		rich.element.innerHTML = '<strong>Bold</strong> note';
+
+		await rich.trigger('blur');
+
+		const last = wrapper.emitted('update')!.at(-1)!;
+		expect(last[0]).toBe('Bold note');
+		expect(last[1]).toStrictEqual(
+			expect.arrayContaining([expect.objectContaining({ text: 'Bold', style: { bold: true } })]),
+		);
 	});
 });

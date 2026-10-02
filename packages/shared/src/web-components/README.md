@@ -104,6 +104,51 @@ its existing dialog, document-edit and popup lifecycle. `SLIDE_SHOW_COMMAND_GROU
 owns labels, tooltips, order, icons and unsupported-command metadata in shared
 render code. Other ribbon tabs continue using their current views until migrated.
 
+## Notes toolbar (non-ribbon, #395)
+
+`pptx-ui-notes-toolbar` is the formatting row above the speaker-notes editor. It
+differs from a ribbon command because it owns one `role="toolbar"` with roving
+focus, an editor-dependent enabled state and an in-element hyperlink form.
+
+| Property | Type and default                                          | Meaning                                                                        |
+| -------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `state`  | `NotesToolbarViewState`, rich, formatting on, Print shown | Structured DOM property, never an attribute. Replace the object after updates. |
+
+`NotesToolbarViewState` fields: `rich` (the active surface, drives the editor
+switch label), `canFormat` (enables the formatting and link buttons; false in
+the plain editor), `showPrint`, `disabled` (every button, for example with no
+slide) and `translate` (the host translator; the canonical keys are
+`pptx.notes.bold`, `italic`, `underline`, `strikethrough`, `bulletList`,
+`numberedList`, `indent`, `outdent`, `insertLink`, `printNotes`, `plainEditor`,
+`richEditor`, `switchToPlainEditor`, `switchToRichEditor`, `linkUrl`,
+`linkDisplayText`, plus `pptx.notesToolbar.ariaLabel` and `pptx.common.cancel`).
+
+User activation emits one bubbling, composed `notes-request` event
+(`NotesToolbarRequestEvent`) whose `detail` is a `NotesToolbarIntent`:
+
+| `kind`        | Extra fields                                      | Emitted by                                                |
+| ------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| `inline`      | `command`: bold, italic, underline, strikeThrough | The four character buttons                                |
+| `paragraph`   | `command`: bullet, numbered, indent, outdent      | The list and indent buttons                               |
+| `link`        | `url` (normalised, `https://` added), `text`      | Submitting the link form, after the selection is restored |
+| `print`       |                                                   | Print notes                                               |
+| `toggle-rich` |                                                   | The Plain editor / Rich editor button                     |
+
+State is controlled and programmatic updates emit nothing. Buttons cancel
+`mousedown` so the editor keeps its selection and focus; hosts should still
+focus the editor before running a command so keyboard activation works. The
+link form is a non-modal `dialog` positioned with `position: fixed` (above the
+row when there is room), seeded with the selected text, closed by Escape, Cancel
+or an outside press (Escape returns focus to the Insert link button) and refuses
+an empty URL with `aria-invalid`. The row has a single tab stop; Left, Right,
+Home and End move between enabled buttons and are kept from the viewer's
+shortcuts, as are Enter, Space and every key typed in the form. Buttons are 28px
+and 44px on coarse pointers; forced colors use system colors; the shadow root
+exposes `part="bar"`. Editor, history, printing and collapse stay native in each
+binding (React ref and listener, Vue `.prop` and event directive, Angular
+schema-enabled binding, Svelte `onnotes-request`, Vanilla direct property and
+listener).
+
 ## Registration and supported versions
 
 The controls are internal viewer UI, not separately published custom elements.

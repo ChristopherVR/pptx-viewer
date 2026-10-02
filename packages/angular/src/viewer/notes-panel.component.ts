@@ -94,13 +94,14 @@ export class NotesPanelComponent {
 	/** Emits the new plain-text notes on commit. */
 	readonly update = output<string>();
 
+	/** Emits the plain text together with the rich segments that carry its formatting. */
+	readonly notesCommit = output<{ notes: string; segments: TextSegment[] }>();
+
 	/** Emits when the header strip is clicked to expand / collapse the body. */
 	readonly notesToggle = output<void>();
 
 	readonly collapsed = computed<boolean>(() => !this.expanded());
 	protected readonly isRichEnabled = signal<boolean>(defaultRichEnabled());
-	protected readonly showLinkPopover = signal(false);
-	protected readonly savedSelectionText = signal('');
 
 	private readonly richEditor = viewChild<ElementRef<HTMLDivElement>>('richEditor');
 	private readonly textarea = viewChild<ElementRef<HTMLTextAreaElement>>('textarea');
@@ -149,12 +150,17 @@ export class NotesPanelComponent {
 		}
 	}
 
+	private emit(text: string): void {
+		this.update.emit(text);
+		this.notesCommit.emit({ notes: text, segments: this.draftSegments });
+	}
+
 	private emitNow(text: string): void {
 		if (this.debounceId) {
 			clearTimeout(this.debounceId);
 			this.debounceId = null;
 		}
-		this.update.emit(text);
+		this.emit(text);
 	}
 
 	private scheduleSave(text: string): void {
@@ -162,7 +168,7 @@ export class NotesPanelComponent {
 			clearTimeout(this.debounceId);
 		}
 		this.debounceId = setTimeout(() => {
-			this.update.emit(text);
+			this.emit(text);
 			this.debounceId = null;
 		}, DEBOUNCE_MS);
 	}
@@ -182,6 +188,18 @@ export class NotesPanelComponent {
 		this.draftSegments = next.segments;
 		this.draftText = next.text;
 		this.scheduleSave(next.text);
+	}
+
+	/** Commit now: leaving the editor (for example to another slide) must not wait for the debounce. */
+	onRichBlur(): void {
+		const el = this.richEditor()?.nativeElement;
+		if (!el) {
+			return;
+		}
+		const next = readEditorSegments(el);
+		this.draftSegments = next.segments;
+		this.draftText = next.text;
+		this.emitNow(next.text);
 	}
 
 	inlineCommand(command: NotesInlineCommand): void {
@@ -223,15 +241,9 @@ export class NotesPanelComponent {
 		}
 	}
 
-	/* --- Hyperlink popover --- */
-
-	openLinkPopover(): void {
-		this.savedSelectionText.set(window.getSelection()?.toString() ?? '');
-		this.showLinkPopover.set(true);
-	}
+	/* --- Hyperlink (the shared toolbar owns the popover) --- */
 
 	insertLink(link: { url: string; displayText: string }): void {
-		this.showLinkPopover.set(false);
 		const el = this.richEditor()?.nativeElement;
 		if (!el) {
 			return;
