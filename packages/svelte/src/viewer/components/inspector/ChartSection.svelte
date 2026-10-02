@@ -36,6 +36,7 @@
 		resolveDisplayedChartType,
 		restoreFilteredSeries,
 		schemaLabel,
+		seriesColorClearState,
 		setDataLabelsRangeCache,
 		surfaceWireframePatch,
 		SURFACE_WIREFRAME_OPTIONS,
@@ -214,7 +215,7 @@
 		onreplace={replace}
 		onrenameseries={(index, name) => seriesPatch(index, { name })}
 	/>
-	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesColorPatch(index, event.currentTarget.value)} /></fieldset>{/each}
+	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesColorPatch(index, event.currentTarget.value)} />{#if seriesColorClearState(series, canEdit).visible}<button type="button" class="clear-series-color" title={t('pptx.chart.clearSeriesColor')} aria-label={t('pptx.chart.clearSeriesColor')} onclick={() => seriesPatch(index, { color: undefined })}>×</button>{/if}</fieldset>{/each}
 	<ChartFilteredSeriesOptions
 		chartData={data}
 		{canEdit}

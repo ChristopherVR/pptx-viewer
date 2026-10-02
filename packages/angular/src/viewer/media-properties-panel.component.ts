@@ -10,7 +10,12 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { MediaBookmark, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 
-import { mediaTrimEndAbsoluteMs, mediaTrimEndMsFromAbsoluteMs } from '../internal/shared';
+import {
+	mediaTrimEndAbsoluteMs,
+	mediaTrimEndMsFromAbsoluteMs,
+	mediaTrimResetPatch,
+	mediaTrimResetState,
+} from '../internal/shared';
 import { LoadContentService } from './load-content.service';
 import { MediaPreviewComponent } from './media-preview.component';
 import { appendMediaBookmark } from './media-properties-helpers';
@@ -51,6 +56,11 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 					/>
 				</label>
 			</div>
+			@if (resetTrimState().visible) {
+				<button type="button" class="reset-trim" (click)="patch.emit(trimResetPatch())">
+					{{ 'pptx.media.resetTrim' | translate }}
+				</button>
+			}
 			<label class="row">
 				<span>{{ 'pptx.media.volume' | translate }}</span>
 				<input
@@ -207,6 +217,10 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 export class MediaPropertiesPanelComponent {
 	readonly element = input.required<MediaPptxElement>();
 	readonly canEdit = input<boolean>(true);
+	protected readonly resetTrimState = computed(() =>
+		mediaTrimResetState(this.media(), this.canEdit()),
+	);
+	protected readonly trimResetPatch = mediaTrimResetPatch;
 	readonly patch = output<Partial<PptxElement>>();
 
 	private readonly loader = inject(LoadContentService, { optional: true });

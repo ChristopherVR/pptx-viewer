@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
-import { canInteractWithElement } from 'pptx-viewer-shared';
+import { cropResetPatch, cropResetState } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -19,9 +19,13 @@ import {
  * Replace Image reads the chosen file as a data-URL and emits `{ imageData }`
  * so the swap happens entirely within the panel (no host wiring required).
  */
-const props = defineProps<{
-	element: PptxElement;
-}>();
+const props = withDefaults(
+	defineProps<{
+		element: PptxElement;
+		canEdit?: boolean;
+	}>(),
+	{ canEdit: true },
+);
 
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
@@ -32,7 +36,7 @@ const { t } = useI18n();
 const sides = useCropSides();
 
 // G7: `a:picLocks/@noCrop` forbids cropping this specific picture.
-const croppable = computed(() => canInteractWithElement(props.element, 'crop'));
+const croppable = computed(() => cropResetState(props.element, props.canEdit, true).enabled);
 
 const cropPercents = computed<Record<string, number>>(() => {
 	const el = props.element as unknown as Record<string, number | undefined>;
@@ -55,12 +59,7 @@ function onResetCrop(): void {
 	if (!croppable.value) {
 		return;
 	}
-	emit('update', {
-		cropLeft: 0,
-		cropTop: 0,
-		cropRight: 0,
-		cropBottom: 0,
-	} as Partial<PptxElement>);
+	emit('update', cropResetPatch());
 }
 
 function onReplaceImage(event: Event): void {

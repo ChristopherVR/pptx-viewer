@@ -11,7 +11,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
-import { ARTISTIC_EFFECTS } from '../internal/shared';
+import { ARTISTIC_EFFECTS, imageResetPatch, imageResetState } from '../internal/shared';
 import { ImageCropWashPanelComponent } from './image-crop-wash-panel.component';
 import { RecentColorsService } from './recent-colors.service';
 
@@ -89,8 +89,12 @@ export function mergeImageEffects(
 					{{ 'pptx.common.clear' | translate }}
 				</button>
 			</div>
-			<pptx-image-crop-wash-panel [element]="element()" (patch)="patch.emit($event)" />
-			<button type="button" class="reset" (click)="reset()">
+			<pptx-image-crop-wash-panel
+				[element]="element()"
+				[canEdit]="canEdit()"
+				(patch)="patch.emit($event)"
+			/>
+			<button type="button" class="reset" [disabled]="!resetEnabled()" (click)="reset()">
 				{{ 'pptx.image.resetImage' | translate }}
 			</button>
 		</div>
@@ -151,7 +155,11 @@ export function mergeImageEffects(
 })
 export class ImagePropertiesPanelComponent {
 	readonly element = input.required<PptxElement>();
+	readonly canEdit = input<boolean>(true);
 	readonly patch = output<Partial<PptxElement>>();
+	protected readonly resetEnabled = computed(
+		() => imageResetState(this.element(), this.canEdit(), true).enabled,
+	);
 
 	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
 	private readonly recentColors = inject(RecentColorsService, { optional: true });
@@ -213,12 +221,8 @@ export class ImagePropertiesPanelComponent {
 	}
 
 	protected reset(): void {
-		this.patch.emit({
-			imageEffects: undefined,
-			cropLeft: 0,
-			cropTop: 0,
-			cropRight: 0,
-			cropBottom: 0,
-		} as Partial<PptxElement>);
+		if (this.resetEnabled()) {
+			this.patch.emit(imageResetPatch());
+		}
 	}
 }

@@ -371,7 +371,11 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 					<summary class="pptx-ng-inspector__summary">
 						{{ 'pptx.inspector.image' | translate }}
 					</summary>
-					<pptx-image-properties-panel [element]="image" (patch)="onPatch($event)" />
+					<pptx-image-properties-panel
+						[element]="image"
+						[canEdit]="canEdit()"
+						(patch)="onPatch($event)"
+					/>
 				</details>
 			}
 

@@ -14,7 +14,12 @@
  * used by the slide renderer, so embedded and package media preview identically.
  */
 import type { MediaPptxElement, PptxElement } from 'pptx-viewer-core';
-import { mediaTrimEndAbsoluteMs, mediaTrimEndMsFromAbsoluteMs } from 'pptx-viewer-shared';
+import {
+	mediaTrimEndAbsoluteMs,
+	mediaTrimEndMsFromAbsoluteMs,
+	mediaTrimResetPatch,
+	mediaTrimResetState,
+} from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -73,7 +78,12 @@ const trimEndMs = computed(() => media.value?.trimEndMs ?? 0);
 // The End input shows an absolute clock position; the element stores
 // p14:trim/@end's distance from the clip's tail.
 const trimEndAbsoluteMs = computed(() => mediaTrimEndAbsoluteMs(durationMs.value, trimEndMs.value));
-const hasTrim = computed(() => trimStartMs.value > 0 || trimEndMs.value > 0);
+const resetTrimState = computed(() =>
+	mediaTrimResetState(
+		{ trimStartMs: trimStartMs.value, trimEndMs: trimEndMs.value },
+		canEdit.value,
+	),
+);
 const trimmedLabel = computed(() =>
 	trimmedDurationLabel(trimStartMs.value, trimEndMs.value, durationMs.value),
 );
@@ -141,7 +151,7 @@ function commitTrimEnd(event: Event): void {
 }
 
 function resetTrim(): void {
-	emit('update', { trimStartMs: 0, trimEndMs: 0 } as Partial<PptxElement>);
+	emit('update', mediaTrimResetPatch());
 }
 
 function relay(patch: Partial<PptxElement>): void {
@@ -252,7 +262,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 			</div>
 			<div v-if="trimError" class="text-[10px] text-red-400">{{ trimError }}</div>
 			<button
-				v-if="canEdit && hasTrim"
+				v-if="resetTrimState.visible"
 				type="button"
 				:class="[BTN, 'w-full text-center']"
 				@click="resetTrim"

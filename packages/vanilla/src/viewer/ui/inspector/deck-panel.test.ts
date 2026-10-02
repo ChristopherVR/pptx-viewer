@@ -80,6 +80,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 			t('pptx.documentProperties.notesHandoutHeading'),
 			t('pptx.documentProperties.documentHeading'),
 			t('pptx.tags.title'),
+			t('pptx.viewer.background'),
 			t('pptx.slideBackground.templateBackgroundsHeading'),
 		]);
 	});
@@ -260,7 +261,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		};
 
 		function backgroundSection(panel: ReturnType<typeof createDeckPanel>): HTMLElement {
-			return panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[8];
+			return panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[9];
 		}
 
 		it('stays hidden while editTemplateMode is off, even with a layout/master to edit', () => {

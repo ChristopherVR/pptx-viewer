@@ -44,6 +44,8 @@ import {
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartSeries } from 'pptx-viewer-core';
 
+import { seriesColorClearState } from '../internal/shared';
+import type { InspectorActionState } from '../internal/shared';
 import { AdvancedChartEditorComponent } from './advanced-chart-editor.component';
 import {
 	addCategory,
@@ -154,11 +156,12 @@ import { ViewerOptionsService } from './viewer-options.service';
 												(input)="onSeriesColorChange($event, si)"
 												(change)="pushRecentColor($event)"
 											/>
-											@if (canEdit() && s.color) {
+											@if (seriesClearState(s).visible) {
 												<button
 													type="button"
 													class="pptx-chart-editor__remove-btn"
 													[title]="'pptx.chart.clearSeriesColor' | translate"
+													[attr.aria-label]="'pptx.chart.clearSeriesColor' | translate"
 													(click)="onClearSeriesColor(si)"
 												>
 													×
@@ -578,6 +581,10 @@ export class ChartDataEditorComponent {
 			return;
 		}
 		this.elementChange.emit(setSeriesColor(this.element(), seriesIndex, color));
+	}
+
+	protected seriesClearState(series: PptxChartSeries): InspectorActionState {
+		return seriesColorClearState(series, this.canEdit());
 	}
 
 	protected onClearSeriesColor(seriesIndex: number): void {

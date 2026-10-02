@@ -1,4 +1,9 @@
-import { mediaTrimEndAbsoluteMs, mediaTrimEndMsFromAbsoluteMs } from 'pptx-viewer-shared';
+import {
+	mediaTrimEndAbsoluteMs,
+	mediaTrimEndMsFromAbsoluteMs,
+	mediaTrimResetPatch,
+	mediaTrimResetState,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { makeNumberField } from '../controls';
@@ -90,6 +95,15 @@ export function createMediaSection(
 				trimEndMs: mediaTrimEndMsFromAbsoluteMs(resolveDurationMs(), absoluteEndMs),
 			}),
 	});
+	const resetTrim = doc.createElement('button');
+	resetTrim.type = 'button';
+	resetTrim.className = 'pptxv-media-reset-trim';
+	resetTrim.textContent = t('pptx.media.resetTrim');
+	resetTrim.addEventListener('click', () =>
+		handlers.setMediaProperties(
+			mediaTrimResetPatch() as Parameters<InspectorHandlers['setMediaProperties']>[0],
+		),
+	);
 	const bookmarks = textArea(doc, t('pptx.media.bookmarks'));
 	bookmarks.control.placeholder = '12.5 | Intro';
 	bookmarks.control.addEventListener('change', () =>
@@ -162,6 +176,7 @@ export function createMediaSection(
 		speed.el,
 		trimStart.el,
 		trimEnd.el,
+		resetTrim,
 		bookmarks.label,
 		captions.label,
 		metadata,
@@ -203,6 +218,7 @@ export function createMediaSection(
 			for (const control of [...toggles, volume, speed, trimStart, trimEnd]) {
 				control.setDisabled(!state.isMedia);
 			}
+			resetTrim.hidden = !state.isMedia || !mediaTrimResetState(media, true).visible;
 			bookmarks.control.disabled = !state.isMedia;
 			captions.control.disabled = !state.isMedia;
 		},

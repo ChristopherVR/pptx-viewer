@@ -509,3 +509,52 @@ plain mode, Print, theme tokens, forced colors and 44px touch targets on all
 five bindings; `mobile-notes.spec.ts` checks the default plain surface and its
 touch targets. Adapter unit tests cover state mapping, intent routing, gating and
 callback replacement in each binding.
+
+## Inspector reset and clear actions (#398)
+
+The inspector panels stay native (each commits through its own editor and
+history API). What the audit found was a parity gap in six actions, recorded by
+translation key before the change: Reset Picture (`image.resetImage`) was
+missing its label and gating contract in Svelte (hard-coded English) and was
+gated three different ways elsewhere; Reset Crop was missing in Svelte and
+Vanilla; Reset trim in Angular, Svelte and Vanilla; Clear series colour in
+Svelte and Vanilla; Clear Background in the Svelte and Vanilla inspectors (both
+had it only on the Format Background ribbon dock).
+
+`pptx-viewer-shared` now owns the contract in `inspector-reset-actions.ts`: the
+label keys, the gating (`imageResetState`, `cropResetState`,
+`mediaTrimResetState`, `seriesColorClearState`, `slideBackgroundClearState`) and
+the exact patch each action applies (`imageResetPatch`, `cropResetPatch`,
+`mediaTrimResetPatch`, `slideBackgroundClearPatch`). Canonical behaviour, which
+changed some bindings:
+
+- **Reset Picture** is shown for a picture and enabled only while the host can
+  edit and an effect or a crop-to-shape override exists. It clears
+  `imageEffects` and `cropShape` and keeps the crop (PowerPoint keeps it; Reset
+  Crop owns that). Vue, Angular, Svelte and Vanilla used to clear the crop too;
+  Vue hid the button until dirty and React never disabled it.
+- **Reset Crop** is shown for a picture, enabled when editable and the picture
+  is not `noCrop` locked, and zeroes the four insets. Added to Svelte and
+  Vanilla.
+- **Reset trim** is shown only for editable media that carries a trim. Added to
+  Angular, Svelte and Vanilla.
+- **Clear series colour** is shown per series only while editable and the series
+  has its own colour. Added to Svelte and Vanilla (which has one series
+  selector, so one button for the selected series). Every binding now exposes
+  the action by an accessible name (React, Vue and Angular had only a title or a
+  glyph). In Vanilla only the colour control writes a series colour now;
+  editing the trendline or error bars used to stamp the swatch colour onto the
+  series.
+- **Clear Background** is shown when the slide has a colour, picture, gradient
+  or pattern, enabled when editable, and clears all four (React, Vue and
+  Angular skipped the pattern). Svelte and Vanilla gain a Background card in the
+  no-selection inspector with the colour and this action, and the Svelte ribbon
+  dock's clear button now says "Clear Background" instead of "Default".
+- Each action is one undo step.
+
+The labels are the existing keys, already translated in German, Spanish, French
+and Simplified Chinese; no new key was needed. Svelte's Replace and Reset
+Picture labels now use `pptx.image.replaceImage` and `pptx.image.resetImage`.
+
+`e2e/inspector-reset-actions.spec.ts` (fixture `inspector-reset-actions.pptx`)
+checks the five actions, their gating and undo on all five bindings.

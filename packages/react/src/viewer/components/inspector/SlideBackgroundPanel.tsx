@@ -1,5 +1,9 @@
 import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
-import { resolveTemplateBackgroundRows } from 'pptx-viewer-shared';
+import {
+	resolveTemplateBackgroundRows,
+	slideBackgroundClearPatch,
+	slideBackgroundClearState,
+} from 'pptx-viewer-shared';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
@@ -122,20 +126,12 @@ export function SlideBackgroundPanel({
 				</div>
 
 				{/* Clear background */}
-				{(activeSlide.backgroundColor ||
-					activeSlide.backgroundImage ||
-					activeSlide.backgroundGradient) && (
+				{slideBackgroundClearState(activeSlide, canEdit).visible && (
 					<button
 						type='button'
 						className={cn(BTN, 'w-full text-center text-red-400 hover:text-red-300')}
-						disabled={!canEdit}
-						onClick={() =>
-							onUpdateSlide({
-								backgroundColor: undefined,
-								backgroundImage: undefined,
-								backgroundGradient: undefined,
-							})
-						}
+						disabled={!slideBackgroundClearState(activeSlide, canEdit).enabled}
+						onClick={() => onUpdateSlide(slideBackgroundClearPatch())}
 					>
 						{t('pptx.slideBackground.clearBackground')}
 					</button>

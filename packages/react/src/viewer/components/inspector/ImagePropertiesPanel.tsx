@@ -1,4 +1,5 @@
 import type { PptxElement, PptxImageLikeElement } from 'pptx-viewer-core';
+import { imageResetPatch, imageResetState } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -132,24 +133,9 @@ export function ImagePropertiesPanel({
 				{/* Reset Image */}
 				<button
 					type='button'
-					disabled={!canEdit}
+					disabled={!imageResetState(selectedElement, canEdit, true).enabled}
 					className='w-full text-[11px] rounded bg-muted hover:bg-accent border border-border px-2 py-1 text-foreground'
-					onClick={() =>
-						onUpdateElement({
-							imageEffects: {
-								brightness: 0,
-								contrast: 0,
-								saturation: 0,
-								grayscale: false,
-								artisticEffect: undefined,
-								colorWash: undefined,
-								alphaModFix: undefined,
-								biLevel: undefined,
-								duotone: undefined,
-							},
-							cropShape: 'none',
-						} as Partial<PptxElement>)
-					}
+					onClick={() => onUpdateElement(imageResetPatch())}
 				>
 					{t('pptx.image.resetImage')}
 				</button>

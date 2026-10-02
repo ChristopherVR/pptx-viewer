@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
 import type { PptxChartSeries } from 'pptx-viewer-core';
+import { seriesColorClearState } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { injectRecentColors } from '../../composables/recent-colors-context';
@@ -15,9 +16,13 @@ import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
  * Colour commits are debounced (~180ms) here so dragging through the native
  * colour picker collapses into one history-friendly `setColor` emit.
  */
-const props = defineProps<{
-	series: readonly PptxChartSeries[];
-}>();
+const props = withDefaults(
+	defineProps<{
+		series: readonly PptxChartSeries[];
+		canEdit?: boolean;
+	}>(),
+	{ canEdit: true },
+);
 
 const emit = defineEmits<{
 	setColor: [index: number, color: string];
@@ -69,10 +74,11 @@ function onClear(index: number): void {
 				@change="onCommit"
 			/>
 			<button
-				v-if="s.color"
+				v-if="seriesColorClearState(s, props.canEdit).visible"
 				type="button"
 				class="pptx-vue-chart-clear text-muted-foreground hover:text-red-400 shrink-0"
 				:title="t('pptx.chart.clearSeriesColor')"
+				:aria-label="t('pptx.chart.clearSeriesColor')"
 				@click="onClear(si)"
 			>
 				<X class="w-3 h-3" aria-hidden="true" />

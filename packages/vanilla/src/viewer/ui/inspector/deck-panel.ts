@@ -6,6 +6,7 @@ import { createDeckPresentationCard } from './deck-presentation-card';
 import { createSlideSizeCard } from './deck-slide-size-card';
 import { createThemeCard, createThemeOverrideCard } from './deck-theme-cards';
 import { createSlideBackgroundCard } from './slide-background-card';
+import { createSlideBackgroundFillCard } from './slide-background-fill-card';
 import { createSlideTransitionCard } from './slide-transition-card';
 import { createTagsCard } from './tags-card';
 import type { InspectorDeckState, InspectorHandlers } from './types';
@@ -100,6 +101,7 @@ export function createDeckPanel(
 		createNotesHandoutCard(doc, t),
 		createDocumentCard(doc, t, handlers),
 		createTagsCard(doc, t, handlers),
+		createSlideBackgroundFillCard(doc, t, handlers),
 		createSlideBackgroundCard(doc, t, handlers),
 	];
 	el.append(...cards.map((card) => card.el));

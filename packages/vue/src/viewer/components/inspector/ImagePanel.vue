@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
+import { imageResetPatch, imageResetState } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -21,9 +22,13 @@ import ImageCropSection from './ImageCropSection.vue';
  * patch (nested `imageEffects` emitted whole) which this panel relays upward;
  * the host merges it via `ops.updateElement(id, patch)`.
  */
-const props = defineProps<{
-	element: PptxElement;
-}>();
+const props = withDefaults(
+	defineProps<{
+		element: PptxElement;
+		canEdit?: boolean;
+	}>(),
+	{ canEdit: true },
+);
 
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
@@ -48,14 +53,8 @@ const imgSrc = computed<string | undefined>(() => {
 
 const grayscale = computed<boolean>(() => Boolean(effects.value?.grayscale));
 
-/** True when any effect or crop is set; gates the Reset Picture button. */
-const isDirty = computed<boolean>(() => {
-	if (effects.value !== undefined) {
-		return true;
-	}
-	const el = props.element as unknown as Record<string, number | undefined>;
-	return Boolean(el.cropLeft || el.cropTop || el.cropRight || el.cropBottom);
-});
+/** Shared gating: enabled only while editable and an effect or crop shape is set. */
+const resetState = computed(() => imageResetState(props.element, props.canEdit, true));
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -72,13 +71,7 @@ function onGrayscale(event: Event): void {
 
 /** Clear every adjustment, effect, and crop back to the picture's default. */
 function onResetPicture(): void {
-	emit('update', {
-		imageEffects: undefined,
-		cropLeft: 0,
-		cropTop: 0,
-		cropRight: 0,
-		cropBottom: 0,
-	} as Partial<PptxElement>);
+	emit('update', imageResetPatch());
 }
 </script>
 
@@ -102,7 +95,7 @@ function onResetPicture(): void {
 				/>
 			</label>
 
-			<ImageCropSection :element="element" @update="relay" />
+			<ImageCropSection :element="element" :can-edit="canEdit" @update="relay" />
 
 			<ImageAdjustmentsPanel :fx="effects" @update="relay" />
 
@@ -125,8 +118,8 @@ function onResetPicture(): void {
 			<DuotonePanel :fx="effects" @update="relay" />
 
 			<button
-				v-if="isDirty"
 				type="button"
+				:disabled="!resetState.enabled"
 				class="pptx-vue-image-panel__reset-picture w-full rounded border border-border bg-muted hover:bg-accent px-2 py-1 transition-colors"
 				@click="onResetPicture"
 			>

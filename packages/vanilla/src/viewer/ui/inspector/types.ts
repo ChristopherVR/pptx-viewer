@@ -176,6 +176,7 @@ export interface InspectorHandlers {
 	setImageEffects(patch: Partial<PptxImageEffects>): void;
 	replaceImage(): void;
 	resetImage(): void;
+	resetCrop(): void;
 	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
 	/** Set the selected element's accessibility description (Alt Text field). */
 	setAltText(text: string): void;
@@ -252,6 +253,8 @@ export interface InspectorState {
 	isLocked: boolean;
 	/** `a:picLocks/@noCrop`: may the selected picture's crop be adjusted? */
 	croppable: boolean;
+	/** Reset Picture applies: the picture carries an effect or crop-to-shape override. */
+	imageResettable: boolean;
 	/** `arrowheadsChangeable` (`element-locks.ts`): may connector arrowheads change? */
 	arrowheadsChangeable: boolean;
 	canShape: boolean;

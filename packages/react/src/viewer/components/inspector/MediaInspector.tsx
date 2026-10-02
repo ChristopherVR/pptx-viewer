@@ -2,6 +2,8 @@ import type { MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 import {
 	mediaTrimEndAbsoluteMs,
 	mediaTrimEndMsFromAbsoluteMs,
+	mediaTrimResetPatch,
+	mediaTrimResetState,
 	trimmedMediaDurationMs,
 	validateMediaTrimRange,
 } from 'pptx-viewer-shared';
@@ -211,7 +213,7 @@ export function MediaInspector({
 		[trimStartMs, trimEndMs, durationMs],
 	);
 
-	const hasTrim = trimStartMs > 0 || trimEndMs > 0;
+	const resetTrimState = mediaTrimResetState({ trimStartMs, trimEndMs }, canEdit);
 
 	const handleTrimStartChange = useCallback(
 		(ms: number): void => {
@@ -232,10 +234,7 @@ export function MediaInspector({
 	);
 
 	const handleResetTrim = useCallback((): void => {
-		onUpdateElement({
-			trimStartMs: 0,
-			trimEndMs: 0,
-		} as Partial<PptxElement>);
+		onUpdateElement(mediaTrimResetPatch());
 	}, [onUpdateElement]);
 
 	return (
@@ -276,7 +275,7 @@ export function MediaInspector({
 			{validationError && <div className='text-[10px] text-red-400'>{t(validationError)}</div>}
 
 			{/* Reset trim button */}
-			{canEdit && hasTrim && (
+			{resetTrimState.visible && (
 				<button type='button' className={`${BTN} w-full text-center`} onClick={handleResetTrim}>
 					{t('pptx.media.resetTrim')}
 				</button>

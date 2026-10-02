@@ -47,7 +47,12 @@ describe('slideBackgroundPanel', () => {
 		expect(clear).toBeDefined();
 		await clear!.trigger('click');
 		expect(wrapper.emitted('update')?.[0]).toStrictEqual([
-			{ backgroundColor: undefined, backgroundImage: undefined, backgroundGradient: undefined },
+			{
+				backgroundColor: undefined,
+				backgroundImage: undefined,
+				backgroundGradient: undefined,
+				backgroundPattern: undefined,
+			},
 		]);
 	});
 
