@@ -353,7 +353,12 @@ export function useCanvasInteractions(
 		// its text can be edited without ungrouping (PowerPoint does the same).
 		const chain = mode === 'present' ? null : drillChain(pressedId, e);
 		const innermost = chain ? drillSelectionForDoubleClick(chain) : null;
-		const elementId = innermost ?? pressedId;
+		// Only a selectable member is drilled into (the shared resolver already
+		// skips noSelect members; this keeps the binding honest on its own).
+		const elementId =
+			innermost && canInteractWithElement(elementLookup.get(innermost), 'select')
+				? innermost
+				: pressedId;
 		if (elementId !== pressedId) {
 			ops.applySelection(elementId);
 		}

@@ -8,6 +8,70 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-10-02
+
+_Releases: pptx-react-viewer@4.17.1, pptx-vue-viewer@4.17.1, pptx-angular-viewer@4.17.1, pptx-vanilla-viewer@3.17.1, pptx-svelte-viewer@4.17.1, @christophervr/pptx-viewer@2.34.1_
+
+### Bug Fixes
+
+- **group-drill:** Honour noSelect and noDrilldown when drilling into groups (by @ChristopherVR) ([3bf5f38](https://github.com/ChristopherVR/pptx-viewer/commit/3bf5f38b1072f1e4f82224517f3e369e813fe67d))
+
+### Testing
+
+- **e2e:** Give the dense-panel load tests two deck loads of budget (by @ChristopherVR) ([cb94fb5](https://github.com/ChristopherVR/pptx-viewer/commit/cb94fb55fd18109f8fbad7b52454bd10161f529e))
+- **e2e:** Wait for the undo to reach the saved deck in the animations spec (by @ChristopherVR) ([9ea7536](https://github.com/ChristopherVR/pptx-viewer/commit/9ea7536de9d2bec68ebd3c4a3a0a3fe4ebee7647))
+
+### Build & CI
+
+- **e2e:** Run the browser suite in 10 shards instead of 8 (by @ChristopherVR) ([c38736a](https://github.com/ChristopherVR/pptx-viewer/commit/c38736ac3ccfcec9b1bfa8b98213ed5f7efdccd7))
+
+## 2026-10-01
+
+_Releases: pptx-viewer-core@4.9.3, pptx-react-viewer@4.17.0, pptx-vue-viewer@4.17.0, pptx-angular-viewer@4.17.0, pptx-vanilla-viewer@3.17.0, pptx-svelte-viewer@4.17.0, pptx-viewer-mcp@2.5.8, @christophervr/pptx-viewer@2.34.0_
+
+### Features
+
+- **shared:** Add pptx-ui-ribbon-view shared View ribbon view (by @ChristopherVR) ([5025716](https://github.com/ChristopherVR/pptx-viewer/commit/502571643ca38099dae33cb3dfbe0e8d787aefdd))
+- **shared,react:** Select inside a group like PowerPoint (by @pesnik) ([994f0a1](https://github.com/ChristopherVR/pptx-viewer/commit/994f0a11ade0e9fa8a0e34c300a382db90abeb7d))
+- **vue:** Select inside a group like PowerPoint (by @pesnik) ([ca6ba13](https://github.com/ChristopherVR/pptx-viewer/commit/ca6ba13038266a9411e0732fd222d15342622965))
+- **angular:** Select inside a group like PowerPoint (by @pesnik) ([b76b570](https://github.com/ChristopherVR/pptx-viewer/commit/b76b57034b8ec2c9874e6b5720f7497f6896dd7a))
+- **svelte:** Select inside a group like PowerPoint (by @pesnik) ([c223106](https://github.com/ChristopherVR/pptx-viewer/commit/c2231060ef1e620f0e02b8dcfbea2efa909cf120))
+- **vanilla:** Select inside a group like PowerPoint (by @pesnik) ([117871a](https://github.com/ChristopherVR/pptx-viewer/commit/117871a97a9aea07f5621e86aca3c7fababe3b86))
+
+### Bug Fixes
+
+- **react:** Keep the caret at the end on double-click (by @pesnik) ([7e758c5](https://github.com/ChristopherVR/pptx-viewer/commit/7e758c59780b65a72df9a2a67975a3843128eddd))
+- **ui:** Update tests for the shared View controls and regenerate the customization reference (by @ChristopherVR) ([b663ba3](https://github.com/ChristopherVR/pptx-viewer/commit/b663ba35d0f30a1d309c3eb7c9e7e31b86020dbb))
+- **ui:** Centre the Design ribbon commands in the compact ribbon (by @ChristopherVR) ([62549ff](https://github.com/ChristopherVR/pptx-viewer/commit/62549fff46354746e0ef1b404db2e503a99a3333))
+- **test:** Cover the cleared-override engine contract and the transition label (by @ChristopherVR) ([f08abea](https://github.com/ChristopherVR/pptx-viewer/commit/f08abea176301d6c7241b45a91ee6debb2276ad4))
+
+### Refactor
+
+- **ui:** Migrate Draw ribbon controls across five bindings (by @ChristopherVR) ([80f8d92](https://github.com/ChristopherVR/pptx-viewer/commit/80f8d9287069cd89e00f7fed4812ef3cfa318118))
+- **ui:** Migrate View ribbon controls across five bindings (by @ChristopherVR) ([7c2dd6e](https://github.com/ChristopherVR/pptx-viewer/commit/7c2dd6e09ced1fd4b672f46392181c0219ed99b5))
+- **core:** Make pptx-viewer-core a thin entry point over @christophervr/ooxml-core/pptx (by @ChristopherVR) ([caa5172](https://github.com/ChristopherVR/pptx-viewer/commit/caa517204c931206e0d624db81c7cea3565695b2))
+- **ui:** Migrate Transitions ribbon controls across five bindings (by @ChristopherVR) ([1170313](https://github.com/ChristopherVR/pptx-viewer/commit/11703139c72f670c81cd7a26472068230320a458))
+- **ui:** Migrate Animations ribbon controls across five bindings (by @ChristopherVR) ([7fa9c6e](https://github.com/ChristopherVR/pptx-viewer/commit/7fa9c6e235c391006023ec8e5913531cc82b2f7f))
+- **ui:** Migrate Insert ribbon controls across five bindings (by @ChristopherVR) ([75e81ca](https://github.com/ChristopherVR/pptx-viewer/commit/75e81ca85f0bd87526ec455cc53a1aee738378a9))
+- **ui:** Migrate Home clipboard controls across five bindings (by @ChristopherVR) ([877f08b](https://github.com/ChristopherVR/pptx-viewer/commit/877f08b7e10e864d8d21b3afc1e078a9249a70c2))
+- **ui:** Migrate Home font controls across five bindings (by @ChristopherVR) ([b842cab](https://github.com/ChristopherVR/pptx-viewer/commit/b842cabcd903f521e54d27b5d757f8be13e1f885))
+- **ui:** Migrate Home paragraph and editing controls across five bindings (by @ChristopherVR) ([b5f26b4](https://github.com/ChristopherVR/pptx-viewer/commit/b5f26b4803bc5f5ff5382f8c07a696bee14827bf))
+
+### Documentation
+
+- **ui:** Add Home after screenshots for the five bindings (by @ChristopherVR) ([d420ac1](https://github.com/ChristopherVR/pptx-viewer/commit/d420ac19eb5eef6af13767c85a2128f7b6ecccd5))
+
+### Testing
+
+- **e2e:** Selecting inside a group, across all five bindings (by @pesnik) ([8542f22](https://github.com/ChristopherVR/pptx-viewer/commit/8542f220c5fe862d1678c9dbdcb0fa7a7b9479f1))
+- **ui:** Add Insert ribbon browser coverage, screenshots and docs (by @ChristopherVR) ([2b4ef2a](https://github.com/ChristopherVR/pptx-viewer/commit/2b4ef2a7df43541b7d3a57f84799819b1e9a1be4))
+- **e2e:** Move the caret to the end before appending in inline-edit specs (by @ChristopherVR) ([dc4cecf](https://github.com/ChristopherVR/pptx-viewer/commit/dc4cecfa257d9f71f72507f5e8d86e0052af4531))
+
+### Build & CI
+
+- Build against ooxml-core, retarget scripts and docs at the moved engine (by @ChristopherVR) ([9b5146d](https://github.com/ChristopherVR/pptx-viewer/commit/9b5146d5f6af4afc2da623b929e81baa65e693c4))
+- Consume the published @christophervr/ooxml-core ^0.1.0 (by @ChristopherVR) ([df84fe3](https://github.com/ChristopherVR/pptx-viewer/commit/df84fe3e53cb66e7b35a29e5ea797566b6a2998a))
+
 ## 2026-10-01
 
 _Releases: pptx-viewer-core@4.9.2, pptx-react-viewer@4.16.1, pptx-vue-viewer@4.16.1, pptx-angular-viewer@4.16.1, pptx-vanilla-viewer@3.16.1, pptx-svelte-viewer@4.16.1, @christophervr/pptx-viewer@2.33.1_

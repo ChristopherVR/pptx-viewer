@@ -17,6 +17,7 @@ import type {
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSlide,
+	TextSegment,
 } from 'pptx-viewer-core';
 import { isPanelVisible } from 'pptx-viewer-shared';
 import type { ViewerPanelId } from 'pptx-viewer-shared';
@@ -63,7 +64,7 @@ const props = defineProps<{
 	goTo: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
 	onAddSection: (name: string, afterSlideIndex: number) => void;
-	onNotesUpdate: (notes: string) => void;
+	onNotesUpdate: (notes: string, segments?: TextSegment[]) => void;
 	onInspectorUpdate: (patch: Partial<PptxElement>) => void;
 	onUpdateSlideAnimations: (animations: PptxSlide['animations']) => void;
 	onTableStyleMapChange: (nextMap: ParsedTableStyleMap) => void;

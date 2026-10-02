@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronRight } from 'lucide-vue-next';
-import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -35,7 +35,8 @@ import { useNotesEditor } from './useNotesEditor';
  * which on mobile would dismiss the keyboard and jump the caret.
  *
  * Props : `{ slide: PptxSlide | undefined }`
- * Emits : `update: [notes: string]` - the new plain-text notes.
+ * Emits : `update: [notes: string, segments?: TextSegment[]]` - the new plain-text
+ * notes and the rich segments that carry their formatting.
  */
 const props = defineProps<{
 	slide: PptxSlide | undefined;
@@ -65,7 +66,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	update: [notes: string];
+	update: [notes: string, segments?: TextSegment[]];
 	toggle: [];
 }>();
 
@@ -77,22 +78,19 @@ const {
 	richEditorRef,
 	textareaRef,
 	isRichEnabled,
-	showLinkPopover,
-	savedSelectionText,
 	onRichInput,
+	onRichBlur,
 	inlineCommand,
 	paragraphCommand,
 	onRichKeydown,
 	onEditorClick,
-	openLinkPopover,
 	insertLink,
-	closeLinkPopover,
 	onPlainCommit,
 	toggleRich,
 	printNotes,
 } = useNotesEditor(
 	() => props.slide,
-	(notes) => emit('update', notes),
+	(notes, segments) => emit('update', notes, segments),
 	() => props.notesStyle,
 );
 
@@ -135,16 +133,9 @@ function toggle(): void {
 			<NotesToolbar
 				v-if="hasSlide"
 				:is-rich-enabled="isRichEnabled"
-				:show-link-popover="showLinkPopover"
-				:saved-selection-text="savedSelectionText"
 				@inline="inlineCommand"
-				@toggle-bullet="paragraphCommand('bullet')"
-				@toggle-numbered="paragraphCommand('numbered')"
-				@indent="paragraphCommand('indent')"
-				@outdent="paragraphCommand('outdent')"
-				@link-button-click="openLinkPopover"
+				@paragraph="paragraphCommand"
 				@insert-link="insertLink"
-				@close-link-popover="closeLinkPopover"
 				@print="printNotes"
 				@toggle-rich="toggleRich"
 			/>
@@ -161,7 +152,7 @@ function toggle(): void {
 				class="pptx-vue-notes-rich box-border min-h-20 w-full resize-y overflow-auto rounded-md border border-border/50 bg-muted/60 p-2 text-[0.8125rem] leading-relaxed text-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
 				@input="onRichInput"
 				@keydown="onRichKeydown"
-				@blur="onRichInput"
+				@blur="onRichBlur"
 				@click="onEditorClick"
 			/>
 

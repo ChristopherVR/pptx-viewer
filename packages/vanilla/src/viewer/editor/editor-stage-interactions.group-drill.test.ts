@@ -188,6 +188,33 @@ describe('selecting inside a group', () => {
 		expect(setPendingCaretPoint).toHaveBeenLastCalledWith(null);
 	});
 
+	it('does not drill into a member locked with noSelect (press or double-click)', () => {
+		const locked = () => {
+			const g = cardsGroup() as unknown as { children: PptxElement[] };
+			g.children[0] = { ...g.children[0], locks: { noSelect: true } } as PptxElement;
+			return g as unknown as PptxElement;
+		};
+		const press = setup('cards', locked());
+		press.press(250, 130);
+		press.release(250, 130);
+		expect(press.store.get().selectedElementId).toBe('cards');
+		const dbl = setup(null, locked());
+		dbl.interactions.onStageDblClick(dbl.at(250, 130));
+		expect(dbl.store.get().selectedElementId).not.toBe('a');
+		expect(dbl.editorSurface()).toBeNull();
+	});
+
+	it('does not drill into a group locked with noDrilldown', () => {
+		const press = setup('cards', cardsGroup({ locks: { noDrilldown: true } }));
+		press.press(250, 130);
+		press.release(250, 130);
+		expect(press.store.get().selectedElementId).toBe('cards');
+		const dbl = setup(null, cardsGroup({ locks: { noDrilldown: true } }));
+		dbl.interactions.onStageDblClick(dbl.at(250, 130));
+		expect(dbl.store.get().selectedElementId).not.toBe('a');
+		expect(dbl.editorSurface()).toBeNull();
+	});
+
 	it('keeps a rotated group whole: a press on it never selects a member', () => {
 		const h = setup('cards', cardsGroup({ rotation: 30 }));
 		h.press(250, 130);

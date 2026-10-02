@@ -1,4 +1,5 @@
 import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
+import { defaultRichEnabled } from 'pptx-viewer-shared';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -46,14 +47,12 @@ export function useSlideNotes({
 
 	const [draft, setDraft] = useState(activeSlide?.notes ?? '');
 	const [draftSegments, setDraftSegments] = useState<TextSegment[]>(initialSegments);
-	const [isRichEditEnabled, setIsRichEditEnabled] = useState<boolean>(initialSegments.length > 0);
-	const [showLinkPopover, setShowLinkPopover] = useState(false);
+	const [isRichEditEnabled, setIsRichEditEnabled] = useState<boolean>(defaultRichEnabled);
 	const [showPrintDialog, setShowPrintDialog] = useState(false);
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const richEditorRef = useRef<HTMLDivElement>(null);
-	const savedSelectionRef = useRef<{ text: string } | null>(null);
 	// True when the pending draftSegments change came from the user typing inside
 	// the rich editor (handleRichInput). In that case the contentEditable DOM
 	// already reflects the new content, so the seeding effect must NOT rewrite
@@ -79,10 +78,12 @@ export function useSlideNotes({
 		if (nextText === lastSavedTextRef.current) {
 			return;
 		}
+		// A genuine external change: the echo guard must not outlive it, or returning to
+		// a slide whose notes equal the last save would keep the other slide's draft.
+		lastSavedTextRef.current = null;
 		const nextSegments = resolveNotesSegments(activeSlideRef.current, notesStyle);
 		setDraft(nextText);
 		setDraftSegments(nextSegments);
-		setIsRichEditEnabled(nextSegments.length > 0);
 		// `activeSlide?.id` is not read in the body; it's a re-sync trigger for a
 		// slide switch (see the lastSavedTextRef comment above).
 		// oxlint-disable-next-line react/exhaustive-effect-dependencies
@@ -196,9 +197,10 @@ export function useSlideNotes({
 
 	const applyRichCommand = useCallback(
 		(command: 'bold' | 'italic' | 'underline' | 'strikeThrough') => {
+			// Focus first: a keyboard-activated toolbar button leaves focus outside the editor.
+			richEditorRef.current?.focus();
 			document.execCommand(command);
 			handleRichInput();
-			richEditorRef.current?.focus();
 		},
 		[handleRichInput],
 	);
@@ -255,15 +257,8 @@ export function useSlideNotes({
 		[draft, draftSegments, flush, onToggle, handleIndent, handleOutdent],
 	);
 
-	const handleLinkButtonClick = useCallback(() => {
-		const sel = window.getSelection();
-		savedSelectionRef.current = { text: sel?.toString() ?? '' };
-		setShowLinkPopover(true);
-	}, []);
-
 	const handleInsertLink = useCallback(
 		(url: string, displayText: string) => {
-			setShowLinkPopover(false);
 			if (!richEditorRef.current) {
 				return;
 			}
@@ -309,13 +304,10 @@ export function useSlideNotes({
 		draftSegments,
 		isRichEditEnabled,
 		setIsRichEditEnabled,
-		showLinkPopover,
-		setShowLinkPopover,
 		showPrintDialog,
 		setShowPrintDialog,
 		textareaRef,
 		richEditorRef,
-		savedSelectionRef,
 		handlePlainChange,
 		handleRichInput,
 		handleBlur,
@@ -326,7 +318,6 @@ export function useSlideNotes({
 		toggleNumberedList,
 		handleIndent,
 		handleOutdent,
-		handleLinkButtonClick,
 		handleInsertLink,
 		handleEditorClick,
 	} as const;

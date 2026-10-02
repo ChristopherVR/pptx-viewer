@@ -60,6 +60,19 @@ export function activateModalFocus(
 			return;
 		}
 		if (event.key === 'Escape' && options.onEscape) {
+			// An open select popup consumes the first Escape; the dialog stays open.
+			if (
+				event
+					.composedPath()
+					.some(
+						(node) =>
+							node instanceof Element &&
+							node.localName === 'pptx-ui-select' &&
+							node.hasAttribute('open'),
+					)
+			) {
+				return;
+			}
 			event.preventDefault();
 			event.stopPropagation();
 			options.onEscape();

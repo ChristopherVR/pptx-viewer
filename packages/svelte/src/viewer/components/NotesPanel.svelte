@@ -115,13 +115,10 @@
 		editorEl.focus();
 	}
 
-	function link(): void {
+	function link(url: string, label: string): void {
 		if (!editorEl) {return;}
-		const url = window.prompt(t('pptx.notes.linkUrl'));
-		if (!url) {return;}
-		const selected = window.getSelection()?.toString() || window.prompt(t('pptx.notes.linkDisplayText')) || url;
 		editorEl.focus();
-		insertHyperlinkAtSelection(url, selected);
+		insertHyperlinkAtSelection(url, label);
 		commitRich();
 	}
 

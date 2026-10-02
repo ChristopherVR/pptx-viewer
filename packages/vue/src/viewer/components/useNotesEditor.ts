@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import type { NotesInlineCommand, NotesParagraphCommand } from 'pptx-viewer-shared';
 import {
 	DEBOUNCE_MS,
@@ -25,9 +25,9 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
  * `pptx-viewer-shared`; this composable owns only the Vue refs, the seeding
  * lifecycle, and the debounce.
  *
- * The host's `update` contract is a single plain-text notes string (see
- * NotesPanel.vue), so the editor commits plain text. Rich `notesSegments`
- * loaded from a .pptx are honoured for display/editing within the session.
+ * Every commit hands the host the plain text and the rich segments together,
+ * so formatting survives a slide change and a save (React, Svelte and Vanilla
+ * already did this; Vue and Angular used to commit plain text only).
  *
  * @param getNotesStyle Returns the deck's notes master `<p:notesStyle>`
  *   (`PptxData.notesMaster.notesStyle`), when the host has it. Threaded
@@ -38,15 +38,13 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
  */
 export function useNotesEditor(
 	getSlide: () => PptxSlide | undefined,
-	emitUpdate: (notes: string) => void,
+	emitUpdate: (notes: string, segments: TextSegment[]) => void,
 	getNotesStyle: () => PptxTextStyleLevels | undefined = () => undefined,
 ) {
 	const richEditorRef = ref<HTMLDivElement | null>(null);
 	const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 	const isRichEnabled = ref<boolean>(defaultRichEnabled());
-	const showLinkPopover = ref(false);
-	const savedSelectionText = ref('');
 
 	// Plain-text + segment drafts. The active surface (contentEditable or
 	// textarea) owns the live content during an edit; these mirror it for
@@ -63,7 +61,7 @@ export function useNotesEditor(
 			clearTimeout(debounceId);
 			debounceId = null;
 		}
-		emitUpdate(text);
+		emitUpdate(text, draftSegments);
 	}
 
 	function scheduleSave(text: string): void {
@@ -71,7 +69,7 @@ export function useNotesEditor(
 			clearTimeout(debounceId);
 		}
 		debounceId = setTimeout(() => {
-			emitUpdate(text);
+			emitUpdate(text, draftSegments);
 			debounceId = null;
 		}, DEBOUNCE_MS);
 	}
@@ -132,6 +130,18 @@ export function useNotesEditor(
 		scheduleSave(next.text);
 	}
 
+	/** Commit now: leaving the editor (for example to another slide) must not wait for the debounce. */
+	function onRichBlur(): void {
+		const editor = richEditorRef.value;
+		if (!editor) {
+			return;
+		}
+		const next = readEditorSegments(editor);
+		draftSegments = next.segments;
+		draftText = next.text;
+		emitNow(next.text);
+	}
+
 	function inlineCommand(command: NotesInlineCommand): void {
 		applyInlineCommand(command);
 		onRichInput();
@@ -172,15 +182,9 @@ export function useNotesEditor(
 		}
 	}
 
-	/* --- Hyperlink popover --- */
-
-	function openLinkPopover(): void {
-		savedSelectionText.value = window.getSelection()?.toString() ?? '';
-		showLinkPopover.value = true;
-	}
+	/* --- Hyperlink (the shared toolbar owns the popover) --- */
 
 	function insertLink(url: string, displayText: string): void {
-		showLinkPopover.value = false;
 		const editor = richEditorRef.value;
 		if (!editor) {
 			return;
@@ -251,18 +255,13 @@ export function useNotesEditor(
 		richEditorRef: richEditorRef as Ref<HTMLDivElement | null>,
 		textareaRef: textareaRef as Ref<HTMLTextAreaElement | null>,
 		isRichEnabled,
-		showLinkPopover,
-		savedSelectionText,
 		onRichInput,
+		onRichBlur,
 		inlineCommand,
 		paragraphCommand,
 		onRichKeydown,
 		onEditorClick,
-		openLinkPopover,
 		insertLink,
-		closeLinkPopover: () => {
-			showLinkPopover.value = false;
-		},
 		onPlainCommit,
 		toggleRich,
 		printNotes,

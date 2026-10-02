@@ -1741,3 +1741,5 @@ export * from './ribbon-insert-state';
 export * from './ribbon-home-state';
 export * from './ribbon-view-state';
 export * from './ribbon-transitions-state';
+export * from './status-bar-state';
+export * from './notes-toolbar-state';

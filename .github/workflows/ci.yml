@@ -549,7 +549,7 @@ jobs:
     needs: [scope, build]
     if: needs.scope.outputs.run-e2e == 'true'
     runs-on: ubuntu-latest
-    name: e2e-${{ matrix.key }} (shard ${{ matrix.shard }}/8)
+    name: e2e-${{ matrix.key }} (shard ${{ matrix.shard }}/10)
     # Hang protection only; genuine hangs are caught much earlier by
     # Playwright's own per-test timeout. This ceiling is per SHARD, not per
     # binding.
@@ -577,7 +577,7 @@ jobs:
       fail-fast: false
       matrix:
         key: ${{ fromJSON(needs.scope.outputs.e2e-projects) }}
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       # See the equivalent guard in `test`: a skipped leg must not report green.
       - name: Require the ${{ matrix.key }} build to have succeeded
@@ -656,15 +656,15 @@ jobs:
       # invocation stays as a cheap, low-frequency safety net for whatever
       # residual CI-runner flakiness this or any future incident leaves
       # behind.
-      - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/8)
+      - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/10)
         run: |
           # Each binding also exercises its public custom-shell collaboration path.
           e2e_projects=(--project=${{ matrix.key }} --project=${{ matrix.key }}-headless)
           for attempt in 1 2; do
-            bun run e2e -- "${e2e_projects[@]}" --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
+            bun run e2e -- "${e2e_projects[@]}" --shard=${{ matrix.shard }}/10 --workers=2 --reporter=list,html,github
             status=$?
             [ $status -eq 0 ] && exit 0
-            echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/8 failed (exit $status)"
+            echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/10 failed (exit $status)"
             sleep 15
           done
           exit $status
@@ -675,7 +675,7 @@ jobs:
         if: failure()
         run: |
           {
-            echo "### e2e failures (${{ matrix.key }} shard ${{ matrix.shard }}/8)"
+            echo "### e2e failures (${{ matrix.key }} shard ${{ matrix.shard }}/10)"
             echo ""
             if [ -f test-results/.last-run.json ]; then
               echo '```'

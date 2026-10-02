@@ -74,3 +74,35 @@ describe('useSlideMutations onAddAnimation', () => {
 		expect(slides.value[0].animations).toStrictEqual([]);
 	});
 });
+
+describe('useSlideMutations onNotesUpdate', () => {
+	it('stores the text with its rich segments so formatting survives', () => {
+		const { slides, mutations, pushHistory } = setup();
+		const segments = [{ text: 'Bold', style: { bold: true } }];
+
+		mutations.onNotesUpdate('Bold', segments);
+
+		expect(slides.value[0]).toMatchObject({ notes: 'Bold', notesSegments: segments });
+		expect(pushHistory).toHaveBeenCalledOnce();
+	});
+
+	it('drops stale segments when the notes are cleared or plain', () => {
+		const { slides, mutations } = setup();
+		mutations.onNotesUpdate('Bold', [{ text: 'Bold', style: { bold: true } }]);
+
+		mutations.onNotesUpdate('', []);
+
+		expect(slides.value[0].notes).toBe('');
+		expect(slides.value[0].notesSegments).toBeUndefined();
+	});
+
+	it('leaves segments alone for a text-only update', () => {
+		const { slides, mutations } = setup();
+		mutations.onNotesUpdate('Bold', [{ text: 'Bold', style: { bold: true } }]);
+
+		mutations.onNotesUpdate('Other');
+
+		expect(slides.value[0]).toMatchObject({ notes: 'Other' });
+		expect(slides.value[0].notesSegments).toHaveLength(1);
+	});
+});

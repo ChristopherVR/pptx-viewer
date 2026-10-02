@@ -28,6 +28,7 @@
 import type { GroupPptxElement, PptxElement } from 'pptx-viewer-core';
 
 import { walkAndPatchElements } from '../loader/element-patch-walker';
+import { canDrillDown, canInteractWithElement } from './element-locks';
 
 function isGroup(el: PptxElement): el is GroupPptxElement {
 	return el.type === 'group' && Array.isArray((el as GroupPptxElement).children);
@@ -183,7 +184,8 @@ function containsPoint(el: PptxElement, px: number, py: number): boolean {
  * The ids under a slide-space point inside the top-level element `topId`,
  * innermost first and `topId` last -- the same order as
  * `resolveElementIdChain`, but found by geometry, since grouped children don't
- * receive pointer events. Later children win (they are drawn on top). A point
+ * receive pointer events. Later children win (they are drawn on top). The walk
+ * stops above a `noDrilldown` group and above a `noSelect` member. A point
  * on the group but between its members yields just `[topId]`.
  */
 export function memberChainAtPoint(
@@ -199,7 +201,8 @@ export function memberChainAtPoint(
 	let group: PptxElement = top;
 	let dx = 0;
 	let dy = 0;
-	while (isEnterableGroup(group)) {
+	// A group that forbids drilling (`noDrilldown`) selects as one.
+	while (isEnterableGroup(group) && canDrillDown(group)) {
 		const ox = dx + group.x;
 		const oy = dy + group.y;
 		let hit: PptxElement | null = null;
@@ -211,7 +214,10 @@ export function memberChainAtPoint(
 				break;
 			}
 		}
-		if (!hit) {
+		// A locked (`noSelect`) member can't be selected, and it swallows the
+		// click rather than letting it fall through to what it covers: the
+		// selection stays at the group level.
+		if (!hit || !canInteractWithElement(hit, 'select')) {
 			break;
 		}
 		chain.unshift(hit.id);

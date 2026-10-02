@@ -3,7 +3,6 @@ import {
 	EDITOR_CHROME_CSS,
 	HIDDEN_SLIDE_DIM_OPACITY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
-	STATUS_BAR_METRICS,
 	TITLE_BAR_METRICS,
 } from 'pptx-viewer-shared';
 
@@ -235,9 +234,7 @@ const CHROME_CSS = `
  */
 .pptxv-titlebar-search { flex: 1 1 auto; display: flex; justify-content: center; min-width: 20px; }
 .pptxv-cmdsearch { position: relative; width: min(320px, 30vw); }
-.pptxv-cmdsearch-box { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 12px; border: 1px solid var(--pptx-border); border-radius: 6px; background: var(--pptx-muted); color: var(--pptx-muted-foreground); }
-.pptxv-cmdsearch-box:focus-within { border-color: var(--pptx-ring); }
-.pptxv-cmdsearch-box svg { width: 12px; height: 12px; flex: none; }
+.pptxv-cmdsearch-box { width: 100%; }
 .pptxv-cmdsearch-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pptx-foreground); font: inherit; }
 .pptxv-cmdsearch-menu { position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-card); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); }
 .pptxv-cmdsearch-item, .pptxv-cmdsearch-empty { display: block; width: 100%; padding: 7px 9px; border: 0; background: transparent; color: var(--pptx-foreground); font: inherit; text-align: left; }
@@ -761,15 +758,7 @@ const CHROME_CSS = `
 .pptxv-notes-chevron { font-size: 0.75rem; }
 .pptxv-notes-body { padding: 0 10px 10px; }
 .pptxv-notes-body[hidden] { display: none; }
-.pptxv-notes-toolbar { display: flex; align-items: center; gap: 2px; margin: 0 0 6px; }
-.pptxv-notes-tool, .pptxv-notes-mode {
-  min-width: 26px; height: 24px; padding: 0 6px; border: 1px solid var(--pptx-border);
-  border-radius: 3px; background: var(--pptx-muted); color: var(--pptx-foreground); cursor: pointer;
-  font-size: 0.75rem; line-height: 1;
-}
-.pptxv-notes-mode { margin-left: auto; font-size: 0.6875rem; }
-.pptxv-notes-tool:hover, .pptxv-notes-mode:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-notes-tool:focus-visible, .pptxv-notes-mode:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
+.pptxv-notes-toolbar { margin: 0 0 6px; } /* the row itself is the shared pptx-ui-notes-toolbar */
 .pptxv-notes-rich-editor {
   box-sizing: border-box; width: 100%; min-height: 76px; max-height: 192px; overflow-y: auto;
   border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted);
@@ -804,58 +793,7 @@ const CHROME_CSS = `
 }
 
 /* ── Bottom status bar ──────────────────────────────────────────────── */
-.pptxv-statusbar {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	/* Pinned from the shared metric rather than left to emerge from the padding
-	   + button box, which is how this row ended up 2px shorter than the others. */
-	min-height: ${STATUS_BAR_METRICS.height}px;
-	padding: 2px 8px;
-	border-top: 1px solid var(--pptx-border);
-	background: color-mix(in srgb, var(--pptx-secondary) 50%, transparent);
-	color: var(--pptx-muted-foreground);
-	font-size: 10px;
-}
-.pptxv-statusbar-spacer { flex: 1; }
-.pptxv-statusbar-sep { width: 1px; height: 12px; margin: 0 4px; background: var(--pptx-border); opacity: 0.6; }
-.pptxv-statusbar-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 4px;
-	min-width: 24px;
-	height: 22px;
-	padding: 2px 4px;
-	border: none;
-	border-radius: 3px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
-}
-.pptxv-statusbar-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-statusbar-btn:disabled { opacity: 0.4; cursor: default; }
-.pptxv-statusbar-btn.is-active { color: var(--pptx-primary); }
-.pptxv-statusbar-btn:focus-visible,
-.pptxv-statusbar-zoom:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
-.pptxv-statusbar-btn svg, .pptxv-statusbar-icon svg { width: 12px; height: 12px; display: block; }
-.pptxv-statusbar-counter, .pptxv-statusbar-text { white-space: nowrap; }
-.pptxv-statusbar-save.is-saving { color: #ca8a04; }
-.pptxv-statusbar-save.is-error { color: #dc2626; }
-.pptxv-statusbar-zoom {
-	min-width: 48px;
-	height: 22px;
-	padding: 2px 6px;
-	border: none;
-	border-radius: 3px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	font-variant-numeric: tabular-nums;
-	cursor: pointer;
-}
-.pptxv-statusbar-zoom:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+/* The row itself is the shared pptx-ui-status-bar; only visibility is host-owned. */
 .pptxv.pptxv-presenting .pptxv-statusbar { display: none; }
 
 @media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {

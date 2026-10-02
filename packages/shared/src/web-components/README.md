@@ -65,6 +65,37 @@ button's ARIA attributes. The command's open shadow root exposes `part="button"`
 Icons come from shared trusted paths. Group captions and command sizing share the
 existing theme tokens; compact commands and toggle rows expand on touch.
 
+## Status bar (non-ribbon, #386)
+
+`pptx-ui-status-bar` is the first non-ribbon family. It differs from a ribbon
+command because it owns a whole row of live readouts and three gated clusters.
+
+| Property or slot | Type and default                 | Meaning                                                                                                              |
+| ---------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `state`          | `StatusBarViewState`, empty deck | Structured DOM property, never an attribute. Replace the object after updates.                                       |
+| `collaboration`  | named slot                       | Host connection indicator, between the view buttons and zoom. The separator appears only while the slot has content. |
+
+`StatusBarViewState` fields: `slideCount`, zero-based `activeSlideIndex` (clamped
+for display), already-translated `saveText` with `saveKind` (`idle`, `saving`,
+`error`), `zoomPercent` (omit to drop the zoom cluster), `showNotes` and
+`notesExpanded`, `showViewModes`, `showSorter` and `showSlideShow` (default true),
+`viewMode` (`normal`, `sorter` or `slideShow`, the pressed view button) and
+`translate`. Use `resolveStatusBarSave` for the save text and `statusBarViewMode`
+for the pressed view. The Notes, Normal, Sorter and Slide Show buttons expose
+`aria-pressed`; every button has an `aria-label` and a title; the percent readout
+is named by "Zoom to fit". The shadow root exposes `part="bar"`.
+
+User activation emits one bubbling, composed `status-request` event with
+`detail: { id }` where `id` is `notes`, `normal`, `sorter`, `slideShow`,
+`zoomOut`, `zoomFit` or `zoomIn`. State is controlled; programmatic updates emit
+nothing. Enter and Space stay inside the control. Buttons are 24px minimum and
+44px on coarse pointers, the row keeps the 29px minimum height, language and save
+text hide up to 767px, and forced colors use system colors. Every binding wraps
+it in a thin adapter (React ref and native listener, Vue `.prop` and event
+directive, Angular schema-enabled bindings, Svelte `onstatus-request`, Vanilla
+direct property and listener). Notes, view switching, presentation and zoom stay
+native.
+
 Requests bubble and are composed; programmatic attribute changes never emit
 requests. Toggle state remains controlled until the host commits it. Commands
 use native button focus, Enter, Space and disabled behavior. Both the group and
@@ -72,6 +103,51 @@ its slotted controls retain light-DOM customization ids. Each adapter preserves
 its existing dialog, document-edit and popup lifecycle. `SLIDE_SHOW_COMMAND_GROUPS`
 owns labels, tooltips, order, icons and unsupported-command metadata in shared
 render code. Other ribbon tabs continue using their current views until migrated.
+
+## Notes toolbar (non-ribbon, #395)
+
+`pptx-ui-notes-toolbar` is the formatting row above the speaker-notes editor. It
+differs from a ribbon command because it owns one `role="toolbar"` with roving
+focus, an editor-dependent enabled state and an in-element hyperlink form.
+
+| Property | Type and default                                          | Meaning                                                                        |
+| -------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `state`  | `NotesToolbarViewState`, rich, formatting on, Print shown | Structured DOM property, never an attribute. Replace the object after updates. |
+
+`NotesToolbarViewState` fields: `rich` (the active surface, drives the editor
+switch label), `canFormat` (enables the formatting and link buttons; false in
+the plain editor), `showPrint`, `disabled` (every button, for example with no
+slide) and `translate` (the host translator; the canonical keys are
+`pptx.notes.bold`, `italic`, `underline`, `strikethrough`, `bulletList`,
+`numberedList`, `indent`, `outdent`, `insertLink`, `printNotes`, `plainEditor`,
+`richEditor`, `switchToPlainEditor`, `switchToRichEditor`, `linkUrl`,
+`linkDisplayText`, plus `pptx.notesToolbar.ariaLabel` and `pptx.common.cancel`).
+
+User activation emits one bubbling, composed `notes-request` event
+(`NotesToolbarRequestEvent`) whose `detail` is a `NotesToolbarIntent`:
+
+| `kind`        | Extra fields                                      | Emitted by                                                |
+| ------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| `inline`      | `command`: bold, italic, underline, strikeThrough | The four character buttons                                |
+| `paragraph`   | `command`: bullet, numbered, indent, outdent      | The list and indent buttons                               |
+| `link`        | `url` (normalised, `https://` added), `text`      | Submitting the link form, after the selection is restored |
+| `print`       |                                                   | Print notes                                               |
+| `toggle-rich` |                                                   | The Plain editor / Rich editor button                     |
+
+State is controlled and programmatic updates emit nothing. Buttons cancel
+`mousedown` so the editor keeps its selection and focus; hosts should still
+focus the editor before running a command so keyboard activation works. The
+link form is a non-modal `dialog` positioned with `position: fixed` (above the
+row when there is room), seeded with the selected text, closed by Escape, Cancel
+or an outside press (Escape returns focus to the Insert link button) and refuses
+an empty URL with `aria-invalid`. The row has a single tab stop; Left, Right,
+Home and End move between enabled buttons and are kept from the viewer's
+shortcuts, as are Enter, Space and every key typed in the form. Buttons are 28px
+and 44px on coarse pointers; forced colors use system colors; the shadow root
+exposes `part="bar"`. Editor, history, printing and collapse stay native in each
+binding (React ref and listener, Vue `.prop` and event directive, Angular
+schema-enabled binding, Svelte `onnotes-request`, Vanilla direct property and
+listener).
 
 ## Registration and supported versions
 
@@ -114,6 +190,7 @@ on mutation of the same object to trigger a refresh.
 | Ribbon command     | Enabled, ordinary size, inactive; no pressed/expanded state                                                      | Attributes label, icon, title, disabled, active, compact, pressed, expanded and customization id | One `command-request` with `{ id }`; host owns action                                             |
 | Ribbon toggle      | Unchecked, enabled                                                                                               | Attributes label, title, checked, disabled and customization id                                  | One `toggle-request` with `{ id, checked }`; host commits before display changes                  |
 | Ribbon group       | Empty label and content                                                                                          | Label and optional group id; default slot                                                        | None                                                                                              |
+| Status bar         | Empty deck, no zoom cluster, notes hidden, no pressed view unless `viewMode` is set                              | DOM `state` (counter, save text, zoom, gating, pressed view), `collaboration` slot               | One `status-request` with `{ id }`; host owns every action                                        |
 
 All user events bubble and cross open shadow roots. Programmatic changes emit
 no edits. Use `event.currentTarget` for native value events and `event.detail`
@@ -444,3 +521,13 @@ ordering and gating differ between bindings in ways a shared strip cannot
 unify without a behaviour change. They are tracked as the next Home batches.
 The font family and size selectors, character spacing, change case, font and
 highlight colour pickers stay native for the same reason.
+
+## Design tokens
+
+Search, select and checkbox read the tokens in `control-tokens.ts` (field,
+focus ring, density and checkbox groups) through `tok(name)`; the host
+stylesheet applies the same accent, size and focus ring to native checkboxes,
+radios and select borders inside viewer chrome and dialogs. See the control
+primitives section of `docs/guide/ui-migration.md` for the token table and the
+list of surfaces that keep a native `<select>`. `pptx-ui-search` also exposes
+`placeholder` as a property.

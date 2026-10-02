@@ -100,6 +100,31 @@ describe('resolveGroupPressTarget', () => {
 	});
 });
 
+describe('locked group members', () => {
+	const withLocks = (first: Record<string, unknown>, group: Record<string, unknown> = {}) => {
+		const g = {
+			...(cards as unknown as Record<string, unknown>),
+			...group,
+			children: [{ ...card('a', 0), ...first }, card('b', 120)],
+		};
+		return [plain, g as unknown as PptxElement];
+	};
+
+	it('never drills into a noSelect member (press or double-click)', () => {
+		const elements = withLocks({ locks: { noSelect: true } });
+		expect(resolveGroupPressTarget(elements, 'cards', overA, ['cards'])).toBe('cards');
+		expect(resolveGroupDoubleClickTarget(elements, 'cards', overA)).toBe('cards');
+		// The unlocked sibling still resolves.
+		expect(resolveGroupDoubleClickTarget(elements, 'cards', overB)).toBe('b');
+	});
+
+	it('never drills into a noDrilldown group', () => {
+		const elements = withLocks({}, { locks: { noDrilldown: true } });
+		expect(resolveGroupPressTarget(elements, 'cards', overA, ['cards'])).toBe('cards');
+		expect(resolveGroupDoubleClickTarget(elements, 'cards', overA)).toBe('cards');
+	});
+});
+
 describe('resolveGroupDoubleClickTarget', () => {
 	it('goes straight to the member under the pointer', () => {
 		expect(resolveGroupDoubleClickTarget(slideElements, 'cards', overB)).toBe('b');

@@ -98,3 +98,28 @@ describe('notes panel notesStyle template wiring', () => {
 		}
 	});
 });
+
+describe('notes panel commit wiring', () => {
+	const componentSource = readFileSync(join(HERE, 'notes-panel.component.ts'), 'utf-8');
+
+	it('commits the plain text together with the rich segments', () => {
+		expect(componentSource).toContain('readonly notesCommit = output<');
+		expect(componentSource).toContain('segments: this.draftSegments');
+	});
+
+	it('flushes the rich editor on blur instead of waiting for the debounce', () => {
+		const template = readFileSync(join(HERE, 'notes-panel.component.html'), 'utf-8');
+		expect(template).toContain('(blur)="onRichBlur()"');
+	});
+
+	it('routes both docked and mobile panels to the segment-aware host handler', () => {
+		const source = readFileSync(join(HERE, 'power-point-viewer.component.ts'), 'utf-8');
+		const panelBlocks = source.split('<pptx-notes-panel').slice(1);
+		expect(panelBlocks).toHaveLength(2);
+		for (const block of panelBlocks) {
+			expect(block).toContain(
+				'(notesCommit)="canvasEditing.onNotesUpdate($event.notes, $event.segments)"',
+			);
+		}
+	});
+});

@@ -20,6 +20,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxTableData,
+	TextSegment,
 	TextStyle,
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
@@ -387,8 +388,14 @@ export class ViewerCanvasEditingService {
 	}
 
 	/** Update the active slide's speaker notes from the editable NotesPanel. */
-	onNotesUpdate(notes: string): void {
-		this.editor.updateSlide(this.requireHost().activeSlideIndex(), { notes });
+	onNotesUpdate(notes: string, segments?: TextSegment[]): void {
+		// Segments carry the formatting; an empty list means plain or cleared notes.
+		this.editor.updateSlide(this.requireHost().activeSlideIndex(), {
+			notes,
+			...(segments === undefined
+				? {}
+				: { notesSegments: segments.length > 0 ? segments : undefined }),
+		});
 	}
 
 	// ── Selection pane handlers ────────────────────────────────────────────────

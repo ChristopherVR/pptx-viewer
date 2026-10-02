@@ -7,6 +7,42 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.17.1) - 2026-10-02
+
+### Bug Fixes
+
+- **group-drill:** Honour noSelect and noDrilldown when drilling into groups (by @ChristopherVR) ([3bf5f38](https://github.com/ChristopherVR/pptx-viewer/commit/3bf5f38b1072f1e4f82224517f3e369e813fe67d))
+
+## [4.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.17.0) - 2026-10-01
+
+### Features
+
+- **shared:** Add pptx-ui-ribbon-view shared View ribbon view (by @ChristopherVR) ([5025716](https://github.com/ChristopherVR/pptx-viewer/commit/502571643ca38099dae33cb3dfbe0e8d787aefdd))
+- **shared,react:** Select inside a group like PowerPoint (by @pesnik) ([994f0a1](https://github.com/ChristopherVR/pptx-viewer/commit/994f0a11ade0e9fa8a0e34c300a382db90abeb7d))
+- **svelte:** Select inside a group like PowerPoint (by @pesnik) ([c223106](https://github.com/ChristopherVR/pptx-viewer/commit/c2231060ef1e620f0e02b8dcfbea2efa909cf120))
+
+### Bug Fixes
+
+- **ui:** Update tests for the shared View controls and regenerate the customization reference (by @ChristopherVR) ([b663ba3](https://github.com/ChristopherVR/pptx-viewer/commit/b663ba35d0f30a1d309c3eb7c9e7e31b86020dbb))
+- **ui:** Centre the Design ribbon commands in the compact ribbon (by @ChristopherVR) ([62549ff](https://github.com/ChristopherVR/pptx-viewer/commit/62549fff46354746e0ef1b404db2e503a99a3333))
+
+### Refactor
+
+- **ui:** Migrate Draw ribbon controls across five bindings (by @ChristopherVR) ([80f8d92](https://github.com/ChristopherVR/pptx-viewer/commit/80f8d9287069cd89e00f7fed4812ef3cfa318118))
+- **ui:** Migrate View ribbon controls across five bindings (by @ChristopherVR) ([7c2dd6e](https://github.com/ChristopherVR/pptx-viewer/commit/7c2dd6e09ced1fd4b672f46392181c0219ed99b5))
+- **core:** Make pptx-viewer-core a thin entry point over @christophervr/ooxml-core/pptx (by @ChristopherVR) ([caa5172](https://github.com/ChristopherVR/pptx-viewer/commit/caa517204c931206e0d624db81c7cea3565695b2))
+- **ui:** Migrate Transitions ribbon controls across five bindings (by @ChristopherVR) ([1170313](https://github.com/ChristopherVR/pptx-viewer/commit/11703139c72f670c81cd7a26472068230320a458))
+- **ui:** Migrate Animations ribbon controls across five bindings (by @ChristopherVR) ([7fa9c6e](https://github.com/ChristopherVR/pptx-viewer/commit/7fa9c6e235c391006023ec8e5913531cc82b2f7f))
+- **ui:** Migrate Insert ribbon controls across five bindings (by @ChristopherVR) ([75e81ca](https://github.com/ChristopherVR/pptx-viewer/commit/75e81ca85f0bd87526ec455cc53a1aee738378a9))
+- **ui:** Migrate Home clipboard controls across five bindings (by @ChristopherVR) ([877f08b](https://github.com/ChristopherVR/pptx-viewer/commit/877f08b7e10e864d8d21b3afc1e078a9249a70c2))
+- **ui:** Migrate Home font controls across five bindings (by @ChristopherVR) ([b842cab](https://github.com/ChristopherVR/pptx-viewer/commit/b842cabcd903f521e54d27b5d757f8be13e1f885))
+- **ui:** Migrate Home paragraph and editing controls across five bindings (by @ChristopherVR) ([b5f26b4](https://github.com/ChristopherVR/pptx-viewer/commit/b5f26b4803bc5f5ff5382f8c07a696bee14827bf))
+
+### Build & CI
+
+- Build against ooxml-core, retarget scripts and docs at the moved engine (by @ChristopherVR) ([9b5146d](https://github.com/ChristopherVR/pptx-viewer/commit/9b5146d5f6af4afc2da623b929e81baa65e693c4))
+- Consume the published @christophervr/ooxml-core ^0.1.0 (by @ChristopherVR) ([df84fe3](https://github.com/ChristopherVR/pptx-viewer/commit/df84fe3e53cb66e7b35a29e5ea797566b6a2998a))
+
 ## [4.16.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.16.1) - 2026-10-01
 
 ### Bug Fixes

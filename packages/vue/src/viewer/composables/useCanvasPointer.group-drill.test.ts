@@ -42,6 +42,11 @@ const cards = {
 
 const deck = (): PptxSlide[] => [{ id: 's1', elements: [cards] } as unknown as PptxSlide];
 
+/** The deck with the cards group overridden. */
+const deckWith = (extra: Record<string, unknown>): PptxSlide[] => [
+	{ id: 's1', elements: [{ ...cards, ...extra } as PptxElement] } as unknown as PptxSlide,
+];
+
 function setup(initialSelection: string | null, opts: { drill?: boolean } = {}) {
 	const slides = shallowRef<PptxSlide[]>(deck());
 	const activeSlide = computed(() => slides.value[0]);
@@ -206,6 +211,33 @@ describe('selecting inside a group', () => {
 		h.pointer.onEscape();
 		expect(h.clearSelection).toHaveBeenCalledOnce();
 		expect(h.selection.selectedElementIds.value).toStrictEqual([]);
+	});
+
+	it('does not drill into a member locked with noSelect (press or double-click)', () => {
+		const lockedA = {
+			children: [{ ...card('a', 0), locks: { noSelect: true } }, card('b', 120)],
+		};
+		const press = setup('cards');
+		press.slides.value = deckWith(lockedA);
+		pressAt(press.pointer.onCanvasPointerDown, 250, 130);
+		expect(press.selectElement).not.toHaveBeenCalledWith('a', false);
+		const dbl = setup(null);
+		dbl.slides.value = deckWith(lockedA);
+		doubleClickAt(dbl.pointer.onCanvasDoubleClick, 250, 130);
+		expect(dbl.selectElement).not.toHaveBeenCalledWith('a', false);
+		expect(dbl.enterInlineEdit).not.toHaveBeenCalledWith('a');
+	});
+
+	it('does not drill into a group locked with noDrilldown', () => {
+		const press = setup('cards');
+		press.slides.value = deckWith({ locks: { noDrilldown: true } });
+		pressAt(press.pointer.onCanvasPointerDown, 250, 130);
+		expect(press.selectElement).not.toHaveBeenCalledWith('a', false);
+		const dbl = setup(null);
+		dbl.slides.value = deckWith({ locks: { noDrilldown: true } });
+		doubleClickAt(dbl.pointer.onCanvasDoubleClick, 250, 130);
+		expect(dbl.selectElement).not.toHaveBeenCalledWith('a', false);
+		expect(dbl.enterInlineEdit).not.toHaveBeenCalledWith('a');
 	});
 
 	it('keeps selecting the group as one without the slide elements', () => {

@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.9.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.9.3) - 2026-10-01
+
+### Refactor
+
+- **core:** Make pptx-viewer-core a thin entry point over @christophervr/ooxml-core/pptx (by @ChristopherVR) ([caa5172](https://github.com/ChristopherVR/pptx-viewer/commit/caa517204c931206e0d624db81c7cea3565695b2))
+
+### Build & CI
+
+- Build against ooxml-core, retarget scripts and docs at the moved engine (by @ChristopherVR) ([9b5146d](https://github.com/ChristopherVR/pptx-viewer/commit/9b5146d5f6af4afc2da623b929e81baa65e693c4))
+- Consume the published @christophervr/ooxml-core ^0.1.0 (by @ChristopherVR) ([df84fe3](https://github.com/ChristopherVR/pptx-viewer/commit/df84fe3e53cb66e7b35a29e5ea797566b6a2998a))
+
 ## [4.9.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.9.2) - 2026-10-01
 
 ### Bug Fixes

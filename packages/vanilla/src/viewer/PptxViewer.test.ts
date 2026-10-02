@@ -183,7 +183,11 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-mobile-toolbar')).toBeTruthy();
 		expect(container.querySelector('.pptxv-mobile-nav')).toBeNull();
 		expect(container.querySelectorAll('.pptxv-mobile-actions > nav > button')).toHaveLength(5);
-		expect(container.querySelector('.pptxv-statusbar [aria-label*="Previous"]')).toBeNull();
+		expect(
+			container
+				.querySelector('.pptxv-statusbar')
+				?.shadowRoot?.querySelector('[aria-label*="Previous"]'),
+		).toBeNull();
 		const primary = container.querySelector('.pptxv-ribbon-primary');
 		expect(primary?.getAttribute('role')).toBeNull();
 		// React-aligned quick-access cluster: comments, Present split, "+ Show",
@@ -309,9 +313,9 @@ describe('createPptxViewer', () => {
 	it('wires the status-bar Notes button to expand/collapse the notes panel', () => {
 		const { container } = mount();
 		const notesBody = container.querySelector<HTMLElement>('.pptxv-notes-body');
-		const notesBtn = container.querySelector<HTMLButtonElement>(
-			'.pptxv-statusbar [aria-label="Toggle notes"]',
-		);
+		const notesBtn = container
+			.querySelector('.pptxv-statusbar')
+			?.shadowRoot?.querySelector<HTMLButtonElement>('[aria-label="Toggle notes"]');
 		expect(notesBody?.hidden).toBeTruthy();
 		expect(notesBtn?.getAttribute('aria-pressed')).toBe('false');
 
