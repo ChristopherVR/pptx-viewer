@@ -322,7 +322,7 @@ can own its markup, gating and callbacks without changing behaviour.
 | Mobile bottom bar and mobile top toolbar                     | React, Vue, Angular, Vanilla; Svelte has no separate bottom bar                                                                      | No, differs by binding         | Keep native: not identical across bindings.                                                                                        |
 | File backstage navigation and cards                          | React, Angular, Svelte; Vue and Vanilla have no equivalent                                                                           | No, differs by binding         | Keep native: not present in all five bindings.                                                                                     |
 | Slide rail (thumbnails, drag reorder, section rows)          | All five bindings                                                                                                                    | Partly                         | Keep native. Hosts slide-content rendering and drag state, which the issue excludes.                                               |
-| Title bar and quick-access buttons                           | All five bindings                                                                                                                    | Yes                            | Keep native for now; the AutoSave switch and command search are interleaved with host state. Follow-up.                            |
+| Title bar and quick-access buttons                           | React `TitleBar.tsx`, Vue `TitleBar.vue`, Angular `title-bar.component.ts`, Svelte `TitleBar.svelte`, Vanilla `ui/title-bar.ts`      | Yes                            | **Migrate (#394)**: `pptx-ui-title-bar`. One order, tooltip rule and gating table; host-owned parts are slotted.                   |
 | Inspector panel actions                                      | React about 119 files, Vue 94, Svelte 74, Vanilla 63, Angular fewer, larger components                                               | Per panel                      | Keep native. Panel-by-panel owners; the generic contracts are the ribbon command, shared checkbox and select where they apply.     |
 | Compatibility toasts and collaboration status indicator      | All five bindings (the indicator is slotted into the status bar)                                                                     | Yes                            | Keep native; toast stacking and relay retry are host-owned. Follow-up.                                                             |
 | Notes toolbar and notes panel buttons                        | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Yes, with divergent behaviour  | **Migrated in #395**: `pptx-ui-notes-toolbar`; see the Notes toolbar section below. The collapse header and editor stay native.    |
@@ -377,8 +377,8 @@ projection and callback replacement for each binding.
 
 Not migrated, and to be split into owned follow-up issues before #386 closes:
 read-only banner, paste options toolbar, dialog footers with a shared dialog
-shell, context menus, presentation toolbars, title bar and quick access, and
-compatibility toasts. This is why the issue stays open.
+shell, context menus, presentation toolbars and compatibility toasts. This is why
+the issue stays open.
 
 ## Control primitives and tokens (#342)
 
@@ -654,3 +654,75 @@ Picture labels now use `pptx.image.replaceImage` and `pptx.image.resetImage`.
 
 `e2e/inspector-reset-actions.spec.ts` (fixture `inspector-reset-actions.pptx`)
 checks the five actions, their gating and undo on all five bindings.
+
+### Title bar and quick access (#394)
+
+`pptx-ui-title-bar` is one controlled shared view for the top chrome row and the
+optional below-the-ribbon strip. Hosts supply a `TitleBarViewState` (built with
+`buildTitleBarState`) and route typed `toggle-autosave`, `save`, `undo`, `redo`,
+`quick-command` and `command-search` events to their native handlers. The
+collaboration indicator and account parts are host-owned and slotted through the
+named `collaboration` and `account` slots. The property, event and keyboard contract
+is in `packages/shared/src/web-components/README.md`.
+
+What the five bindings did before, as audited in this change:
+
+| Aspect                 | React                                                         | Vue                          | Angular                                                | Svelte                                                   | Vanilla                                                          |
+| ---------------------- | ------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------- | ---------------------------------------------------------------- |
+| Layout and tokens      | Tailwind `TITLE_BAR_CLASSES`                                  | Tailwind `TITLE_BAR_CLASSES` | Tailwind `TITLE_BAR_CLASSES`                           | Scoped CSS from `titleBarStyleAttr`; name max 200px      | CSS-in-TS from `TITLE_BAR_METRICS`; name max 180px, search 320px |
+| Buttons present        | Save only when `onSave` is passed; Undo, Redo, extras         | Same as React                | Save always; Undo, Redo, extras                        | Save always; hand-drawn Save, Undo, Redo glyphs          | Every configured id in configured order, so no fixed trio        |
+| Extras and tooltips    | Bare label, ignores `showCommandLabels`                       | ScreenTip resolver           | ScreenTip resolver; spellCheck drawn as a search glyph | Bare label; unknown icon falls back to Play              | ScreenTip resolver; spellCheck had no glyph; Undo no action text |
+| AutoSave switch        | Always enabled                                                | Always enabled               | Always enabled                                         | Always enabled; disabled-by-host status keys unreachable | Inert when the host forbids autosave (only binding)              |
+| Search field gate      | `mode` is edit or master                                      | `mode` is edit or master     | Editable                                               | Editable                                                 | Editable                                                         |
+| Search results         | Shared filter, cap 8, category, "find in slides" row          | Same as React                | Own component, same rows                               | Same as React, 120ms blur grace                          | Local three-item list; no category, cap or fallback row          |
+| User and presence area | None                                                          | None                         | None                                                   | None                                                     | AI toggle appended straight into the row                         |
+| Collaboration slot     | None (the indicator lives in the status bar)                  | None                         | None                                                   | None                                                     | None                                                             |
+| Window controls        | None (the viewer embeds in a host page; hosts own the window) | None                         | None                                                   | None                                                     | None                                                             |
+| Below the ribbon       | `TitleBarQuickExtras`                                         | `TitleBarQuickAccess`        | `QuickAccessStripComponent`                            | `QuickAccessToolbar.svelte`                              | Relocates the live strip node                                    |
+| Second separator       | When the strip is on                                          | When the strip is on         | Always                                                 | When the strip is on                                     | Hidden while the strip is docked below                           |
+| Narrow widths          | Hidden under 768px; no wrapping or overflow handling          | Same                         | Same                                                   | Also hidden on landscape phones                          | Also hidden on landscape phones                                  |
+
+Decisions now shared by all five:
+
+- One order: Save, Undo, Redo, then the configured extras in File > Options order.
+- One tooltip rule: `aria-label` is the label, `title` is `screenTip(...)`, and Undo
+  and Redo name the pending action when known. Extras honour `showCommandLabels`.
+- One gating table: AutoSave, strip, status and search show only while editing (edit
+  or master mode with an editable deck). `showSave`, `showUndo` and `showRedo` hide
+  single buttons. The second separator appears only when the strip has buttons.
+- One icon set for every catalog command, including spellCheck, drawn from the
+  shared trusted paths.
+- One search dropdown: shared filter, at most eight rows, a category column, and a
+  "Find in Slides" row where the host can search content. Arrow keys move through the
+  results.
+- The strip is a named toolbar with roving focus. Buttons are 44px on touch, and
+  forced colors use system colors. The row hides under 768px in every binding.
+
+Behaviour that changed:
+
+- React and Vue previously showed the search box in any edit-mode view; it now needs
+  an editable deck, as in the other three.
+- The AutoSave switch is inert (disabled, with the "disabled by host" tooltip) in all five
+  bindings when the host forbids autosave; before, only Vanilla did this.
+- Vanilla now always shows Save, Undo and Redo first; a configured list that omitted
+  them no longer hides them, which matches the other four. Its search box is now the
+  shared one (cap, keyboard selection) but still lists only Save, Undo and Redo and
+  has no "Find in Slides" row, because the viewer has no panel to open from there.
+- The AI toggle is slotted into the `account` slot, and Vanilla's search box now shows
+  its placeholder (it assigned a property the field never read, so it rendered empty).
+- Hiding the `quickAccessToolbar` panel now removes Save, Undo and Redo too in React;
+  before, only the extras were hidden there.
+
+Not done: the Undo and Redo tooltips name the pending action only in React, Vue and
+Angular, because Svelte and Vanilla keep no history labels. Svelte's autosave status
+has no reason field, so its disabled-by-host status keys stay unreachable. Vanilla's
+command catalogue is not unified with the others, since its viewer has no runner for
+the shared command ids; it also has no "Find in Slides" panel to open from the row.
+
+`e2e/title-bar-migration.spec.ts` covers the names, order, AutoSave switch, roving
+focus and tab order, search results, panel customization, narrow widths, theme
+tokens, touch targets and forced colors on all five bindings.
+`chrome-shell-parity.spec.ts` now measures the bar through its shadow root. Adapter
+unit tests cover state mapping, event routing, gating, slots and the below-ribbon
+placement for each binding. Before and after screenshots are in
+`docs/public/assets/ui-migration/title-bar-before` and `title-bar-after`.

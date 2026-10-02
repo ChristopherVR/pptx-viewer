@@ -84,7 +84,11 @@ export async function measureChrome(page: Page): Promise<ChromeMeasurement> {
 				(el) => el.children.length === 0 && !CODE_TAGS.has(el.tagName),
 			);
 
-		const bar = document.querySelector('[data-pptx-title-bar]');
+		// The title bar is the shared `pptx-ui-title-bar` element (#394): its row is the
+		// `bar` part inside the open shadow root, and the host carries the hook.
+		const bar =
+			document.querySelector('[data-pptx-title-bar]')?.shadowRoot?.querySelector('[part="bar"]') ??
+			null;
 		const logo = bar?.firstElementChild ?? null;
 		const toggle = bar?.querySelector('[role="switch"]') ?? null;
 		const knob = toggle?.firstElementChild ?? null;
