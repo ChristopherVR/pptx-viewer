@@ -278,3 +278,93 @@ real copy/paste/cut with undo and redo, the Format Painter, customization,
 touch targets, theme tokens and forced colors across all five bindings.
 Comparable screenshots are `<binding>-home.png` in the baseline and after
 directories.
+
+## Non-ribbon families (#386)
+
+The first pass at #386 classified twelve non-ribbon families from the file
+inventory and migrated only the status bar. This pass read the sources of all
+five bindings for every family before deciding. A family migrated when its markup,
+gating and callbacks were the same across the bindings, or differed only in drift
+that could be normalised without changing what a user can do (the same rule the
+status bar used). A family stayed native only with file evidence that the
+bindings implement different features, and each of those has a focused follow-up
+issue. Ribbon commands are out of scope (#363); the File backstage belongs to #342.
+
+| Family                                           | What the five sources show                                                                                                                                                                                                                                                                                                                                                                                     | Decision                                                                                                                                                                   |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status bar                                       | Five hand-built copies of the counter, save state, notes toggle, view buttons and zoom cluster.                                                                                                                                                                                                                                                                                                                | **Migrated** in #390 as `pptx-ui-status-bar`.                                                                                                                              |
+| Read-only banner                                 | Same message, Edit anyway, Dismiss and password form in all five (`ReadOnlyBanner.tsx`, `ReadOnlyBanner.vue`, `readonly-banner.component.ts`, `ReadOnlyBanner.svelte`, `ui/read-only-banner.ts`). Drift: React and Vanilla had no "Read-only recommended" title, Vanilla used a close glyph, the role was `alert` in one binding and `status` in three, and only React focused the password input.             | **Migrated**: `pptx-ui-read-only-banner`.                                                                                                                                  |
+| Paste options toolbar                            | Same four-format strip, canvas-anchored measurement and window-level dismissal in all five (`PasteOptionsToolbar.tsx/.vue/.svelte`, `paste-options-toolbar.component.ts`, `ui/paste-options-toolbar.ts`). Drift: a press on the strip could dismiss it before its click landed, and choosing a format closed it in only three.                                                                                 | **Migrated**: `pptx-ui-paste-options`. The host still measures the pasted element.                                                                                         |
+| Compatibility toasts                             | Same state (toasts, insets) and callbacks (dismiss one, dismiss all) in all five. Drift: Vue and Svelte capped the stack at five with a "+N" count, the other three showed everything, and markup and icons differed.                                                                                                                                                                                          | **Migrated**: `pptx-ui-compat-toasts`, which caps at five and positions itself with `compatToastStackStyle`.                                                               |
+| Dialog footers                                   | Every dialog hand-builds its footer inside its own modal shell (React `useModalFocus`, Vue `ModalDialog.vue`, Angular `modal-dialog.component.ts`, Svelte `collab/components/ModalDialog.svelte`, Vanilla `parity-dialog-shell.ts`). The button rows are the same shape in all five.                                                                                                                           | **Migrated** as `pptx-ui-dialog-footer` (not a shell), adopted by Paste Special, Keep Annotations, autosave recovery and the signed-deck warning. The rest follow in #396. |
+| Mobile bottom bar and top toolbar                | Same five slots and disabled rule (`buildBarActions`) and the same toolbar order (`MobileBottomBar.tsx/.vue`, `mobile-bottom-bar.component.ts`, `MobileActionSheets.svelte`, `ui/mobile-action-sheets.ts`; `MobileToolbar.tsx/.vue`, `mobile-toolbar.component.ts`, `MobileChrome.svelte`, `ui/mobile-toolbar.ts`). Drift: label keys, the comment badge, the open-sheet pill, edit-only gating, AI and Share. | **Migrated**: `pptx-ui-mobile-bar` and `pptx-ui-mobile-toolbar`.                                                                                                           |
+| Presentation toolbar and presenter console strip | Both already render from shared inventories (`PRESENT_TOOLBAR_CONTROLS`, `PRESENTER_CONSOLE_CONTROLS`) with identical ids, order and label keys, but each binding re-implemented the markup, the palettes, the timer and the slot-state rule. Drift: right-click palettes only in React and Vue, `aria-pressed` only in Svelte and Vanilla, Zoom in active only in React, Vue and Angular.                     | **Migrated**: `pptx-ui-present-toolbar` and `pptx-ui-presenter-console`. Auto-hide, annotations and console snapshot patching stay native.                                 |
+| Context menus                                    | Entry lists are already shared; the rendering is hand-built per menu in each binding (React `ContextMenu.tsx`, Vue `ContextMenu.vue`, Angular `editor-context-menu.component.ts`, Svelte `ElementContextMenu.svelte`, Vanilla `ui/element-context-menu.ts`, plus canvas, thumbnail and presentation menus). No binding implements arrow keys, typeahead or nesting.                                            | Not migrated in this change (about 20 adapters and 40 test files). Concrete scope in #393.                                                                                 |
+| Title bar and quick access                       | Same slot order, and `pptx-ui-search` is already shared. Real drift: Vanilla renders quick-access commands in catalog order while the others hardcode Save, Undo and Redo first; tooltips, icons, Save gating and search gating differ; Svelte never passes `disabledReason`.                                                                                                                                  | Keep native until the drift is decided; the list and the plan are in #394.                                                                                                 |
+| Notes toolbar and panel buttons                  | Same button set, different contracts: Vue uses another i18n namespace, Svelte hides formatting in plain mode and orders Indent differently, the link UI is a popover in three bindings and `window.prompt` in two, and Print is a dialog in React and an iframe elsewhere.                                                                                                                                     | Keep native until the contracts are unified; plan in #395.                                                                                                                 |
+| Slide rail actions                               | Different features: React has an Add Slide footer, Vue a Duplicate/Add/Delete row, Angular per-thumbnail move buttons and Svelte section-header buttons; the section menu is a popup only in React; the sorter menu has five entries in React, three in Vue, Angular and Svelte, and none in Vanilla. The rest of the rail is virtualisation, drag reorder and slide-content rendering, which #386 excludes.   | Keep native. A product decision is needed first (#397).                                                                                                                    |
+| Inspector panel actions                          | About 170 React, 144 Vue, 124 Svelte and 96 Vanilla panel files that each commit through binding-specific editor and history APIs with debounced inputs; the leaf controls are already the shared select and checkbox. Svelte and Vanilla also lack several Reset and Clear actions the others have (`image.resetCrop`, `media.resetTrim`, `chart.clearSeriesColor`, `slideBackground.clearBackground`).       | Keep native; the parity gaps are tracked in #398.                                                                                                                          |
+| File backstage                                   | Owned by the #342 primitives work.                                                                                                                                                                                                                                                                                                                                                                             | Not touched here.                                                                                                                                                          |
+
+### What the new elements own
+
+The eight new elements are in `packages/shared/src/web-components/`; their typed
+`state`, events and behaviour are in that directory's README. They follow the
+existing pattern: an open shadow root, a structured `state` property, bubbling
+composed events and no events for programmatic updates. Adapters keep each
+binding's public props, callbacks, ids and test hooks (`pptx-readonly-*`,
+`pptx-compat-*`, `data-pptx-paste-options`, `data-pptx-present-toolbar`,
+`data-pptx-present-control`, `data-pptx-presenter-control`).
+
+Behaviour that changed so the five bindings now agree:
+
+- Read-only banner: every binding shows "Read-only recommended: message" with a
+  lock and `role="status"`, and focuses the password input when the prompt opens.
+- Paste options: a press inside the strip no longer dismisses it before the click
+  lands, and choosing a format always closes it. Escape inside the strip dismisses.
+- Compatibility toasts: all five cap the stack at five with a "+N" count and always
+  offer "Dismiss all".
+- Dialog footers: Cancel and the primary action are one component, and the
+  signed-deck confirmation uses the warning variant everywhere.
+  `activateModalFocus` now walks open shadow roots, so a trapped dialog still tabs
+  through its footer.
+- Mobile bars: one label key set (Angular used two other keys for Insert and
+  Format), the comment badge and open-sheet pill in every binding, edit-only slots
+  disabled in view mode in every binding, and a tapped slot keeps its pressed
+  colour because hover only applies on hovering devices.
+- Presentation toolbar: every toggle exposes `aria-pressed`, right-clicking Pen or
+  Highlighter opens its palette in every binding, and controls grow to 44px on
+  coarse pointers. The presenter-view toggle is omitted when a host cannot open one.
+- Presenter console: Zoom in reads active while zoomed past 100% in every binding,
+  and one rule (`presenterConsoleViewState`, `presenterConsoleAction`) replaces five
+  copies of the slot-state logic. The Vue and Angular helper modules that held those
+  copies are removed.
+
+Not shared on purpose: the show toolbar's auto-hide wrapper and annotation model,
+presenter snapshot patching, every dialog shell and modal focus trap, the mobile
+sheets, and every document mutation.
+
+### Validation
+
+Typecheck, `oxlint --deny-warnings` and `oxfmt` pass on every changed file. Unit
+suites for shared and all five bindings pass (counts in the pull request). Adapter
+tests cover state mapping, intent routing, gating and callback replacement for every
+migrated family in every binding; shared tests cover the elements, their styles
+(44px targets, forced colors, tokens), the shadow-aware focus trap and the
+slot-state rules.
+
+`e2e/chrome-controls-migration.spec.ts` runs on all five bindings and covers the
+read-only banner (names, password focus, wrong and correct password, 44px), the
+compatibility toasts (dismiss one and all, tokens, forced colors, 44px), the paste
+options strip (four formats, choose, dismiss by key), the dialog footer (keyboard
+cancel and OK, tokens, forced colors), the mobile bars (names, order, 44px, notes
+toggle, tokens) and the slide-show toolbar (navigation, tool pressed state, palette
+pick, End). `present-chrome-parity`, `presenter-view-parity`, `paste-special`,
+`modify-password-*`, `compat-toast-clears-chrome`, `autosave-recovery-*`,
+`mobile-audit`, `mobile-notes`, `keyboard-shortcuts` and the other show specs pass;
+two probes (`present-chrome-parity`, `presenter-view-parity`) now read controls
+through open shadow roots.
+
+Before and after screenshots for the status bar and each migrated family are in
+`docs/public/assets/ui-migration/non-ribbon-families/` (see its README for the decks,
+viewports and commits).
