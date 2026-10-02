@@ -215,7 +215,12 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('role')).toBe('navigation');
 		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('aria-label')).toBe('Slides');
 		expect(container.querySelector('.pptxv-statusbar')?.getAttribute('role')).toBeNull();
-		expect(container.querySelector('[aria-label="Save"]')).toBeTruthy();
+		// The shared title bar renders its quick-access strip (empty until a deck is edited).
+		expect(
+			container
+				.querySelector('pptx-ui-title-bar')
+				?.shadowRoot?.querySelector('[role="toolbar"][aria-label="Quick Access Toolbar"]'),
+		).toBeTruthy();
 
 		mount();
 		const styleTags = document.querySelectorAll('#pptx-vanilla-viewer-styles');
