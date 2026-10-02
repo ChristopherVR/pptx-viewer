@@ -95,7 +95,11 @@ const FR_BTN =
 				class="pptx-vue-fr-case inline-flex items-center gap-1 select-none cursor-pointer"
 				:title="t('pptx.findReplace.matchCase')"
 			>
-				<input v-model="matchCase" type="checkbox" :aria-label="t('pptx.findReplace.matchCase')" />
+				<pptx-ui-checkbox
+					:checked="matchCase"
+					@change="matchCase = ($event.target as HTMLInputElement).checked"
+					:aria-label="t('pptx.findReplace.matchCase')"
+				/>
 				<CaseSensitive class="w-4 h-4" aria-hidden="true" />
 			</label>
 			<button

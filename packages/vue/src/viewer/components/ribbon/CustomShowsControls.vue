@@ -27,7 +27,7 @@ function onSelectChange(e: Event): void {
 <template>
 	<template v-if="props.customShows.length > 0">
 		<div :class="SEP" />
-		<select
+		<pptx-ui-select
 			:value="props.activeCustomShowId ?? ''"
 			class="h-6 px-1.5 text-[11px] rounded bg-muted text-foreground border border-border hover:bg-accent transition-colors cursor-pointer"
 			:title="t('pptx.customShows.customShowTooltip')"
@@ -38,7 +38,7 @@ function onSelectChange(e: Event): void {
 			<option v-for="cs in props.customShows" :key="cs.id" :value="cs.id">
 				{{ cs.name }}
 			</option>
-		</select>
+		</pptx-ui-select>
 		<template v-if="props.canEdit">
 			<button
 				type="button"

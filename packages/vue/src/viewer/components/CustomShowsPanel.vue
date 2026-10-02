@@ -116,7 +116,7 @@ function onToggleSlide(slide: PptxSlide): void {
 
 		<!-- Show list + create -->
 		<div class="pptx-vue-cs-list-row flex items-center gap-1.5">
-			<select
+			<pptx-ui-select
 				class="pptx-vue-cs-select min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				:aria-label="t('pptx.customShows.selectCustomShow')"
 				:value="props.activeShowId ?? ''"
@@ -128,7 +128,7 @@ function onToggleSlide(slide: PptxSlide): void {
 				<option v-for="show in props.customShows" :key="show.id" :value="show.id">
 					{{ show.name }} ({{ show.slideRIds.length }})
 				</option>
-			</select>
+			</pptx-ui-select>
 
 			<button
 				v-if="activeShow"
@@ -244,8 +244,7 @@ function onToggleSlide(slide: PptxSlide): void {
 					class="pptx-vue-cs-all-item px-1 py-px"
 				>
 					<label class="pptx-vue-cs-check flex cursor-pointer items-center gap-1.5">
-						<input
-							type="checkbox"
+						<pptx-ui-checkbox
 							:checked="isSlideInShow(slide)"
 							:disabled="!slide.rId"
 							@change="onToggleSlide(slide)"

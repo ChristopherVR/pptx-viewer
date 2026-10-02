@@ -74,9 +74,7 @@ function onGridlinesToggle(event: Event): void {
 		<div class="space-y-1.5">
 			<label class="flex items-center gap-2 cursor-pointer">
 				<pptx-ui-checkbox
-					type="checkbox"
 					data-testid="chart-show-title"
-					class="accent-primary"
 					:checked="style?.hasTitle ?? false"
 					@change="onCheckbox($event, 'hasTitle')"
 				/>
@@ -85,9 +83,7 @@ function onGridlinesToggle(event: Event): void {
 
 			<label class="flex items-center gap-2 cursor-pointer">
 				<pptx-ui-checkbox
-					type="checkbox"
 					data-testid="chart-show-legend"
-					class="accent-primary"
 					:checked="style?.hasLegend ?? false"
 					@change="onCheckbox($event, 'hasLegend')"
 				/>
@@ -113,9 +109,7 @@ function onGridlinesToggle(event: Event): void {
 
 			<label class="flex items-center gap-2 cursor-pointer">
 				<pptx-ui-checkbox
-					type="checkbox"
 					data-testid="chart-show-gridlines"
-					class="accent-primary"
 					:checked="gridlinesOn"
 					@change="onGridlinesToggle"
 				/>
@@ -124,9 +118,7 @@ function onGridlinesToggle(event: Event): void {
 
 			<label class="flex items-center gap-2 cursor-pointer">
 				<pptx-ui-checkbox
-					type="checkbox"
 					data-testid="chart-show-data-labels"
-					class="accent-primary"
 					:checked="style?.hasDataLabels ?? false"
 					@change="onDataLabelsToggle"
 				/>

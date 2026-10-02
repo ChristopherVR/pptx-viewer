@@ -185,9 +185,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 				<label class="flex items-center gap-2 cursor-pointer">
 					<pptx-ui-checkbox
-						type="checkbox"
 						data-testid="chart-axis-major-gridlines"
-						class="accent-primary"
 						:checked="row.axis.majorGridlines ?? false"
 						@change="onGridline($event, row.type, 'majorGridlines')"
 					/>
@@ -195,9 +193,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 				</label>
 				<label class="flex items-center gap-2 cursor-pointer">
 					<pptx-ui-checkbox
-						type="checkbox"
 						data-testid="chart-axis-minor-gridlines"
-						class="accent-primary"
 						:checked="row.axis.minorGridlines ?? false"
 						@change="onGridline($event, row.type, 'minorGridlines')"
 					/>

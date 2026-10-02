@@ -117,7 +117,7 @@ describe('animationsSection', () => {
 	it('names the timing fields so they are reachable by name, inert like the other bindings', () => {
 		const wrapper = mountAnimations();
 		const root = wrapper.element;
-		const start = root.querySelector<HTMLSelectElement>('select')!;
+		const start = root.querySelector<HTMLSelectElement>('pptx-ui-select')!;
 		expect(root.querySelector(`label[for="${start.id}"]`)!.textContent).toBe('Start');
 		expect(start.disabled).toBeTruthy();
 		expect(root.querySelector('input[aria-label="Duration"]')).toBeTruthy();

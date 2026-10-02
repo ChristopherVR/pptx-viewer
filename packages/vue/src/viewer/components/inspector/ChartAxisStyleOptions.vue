@@ -130,9 +130,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 				<div v-if="row.hasScale" class="flex items-center gap-2">
 					<label class="flex items-center gap-2 cursor-pointer">
 						<pptx-ui-checkbox
-							type="checkbox"
 							data-testid="chart-axis-log-scale"
-							class="accent-primary"
 							:checked="row.axis.logScale ?? false"
 							@change="onLogToggle($event, row)"
 						/>
@@ -175,9 +173,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 				<div class="flex items-center gap-3 text-[11px]">
 					<label class="flex items-center gap-1 cursor-pointer">
 						<pptx-ui-checkbox
-							type="checkbox"
 							data-testid="chart-axis-title-bold"
-							class="accent-primary"
 							:checked="row.axis.fontBold ?? false"
 							@change="onBold($event, row)"
 						/>

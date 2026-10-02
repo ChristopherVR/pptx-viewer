@@ -129,7 +129,6 @@ function onInnerShadowOffsetY(value: string): void {
 	>
 		<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
 			<pptx-ui-checkbox
-				type="checkbox"
 				data-testid="fx-outer-shadow-toggle"
 				:checked="state.outerShadow.enabled"
 				@change="onToggleShadow(($event.target as HTMLInputElement).checked)"
@@ -192,7 +191,6 @@ function onInnerShadowOffsetY(value: string): void {
 				class="pptx-vue-effects-check col-span-2 inline-flex items-center gap-2 text-foreground"
 			>
 				<pptx-ui-checkbox
-					type="checkbox"
 					data-testid="fx-outer-shadow-rotate-with-shape"
 					:checked="state.outerShadow.rotateWithShape"
 					@change="onShadowRotateWithShape(($event.target as HTMLInputElement).checked)"
@@ -208,7 +206,6 @@ function onInnerShadowOffsetY(value: string): void {
 	>
 		<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
 			<pptx-ui-checkbox
-				type="checkbox"
 				data-testid="fx-inner-shadow-toggle"
 				:checked="state.innerShadow.enabled"
 				@change="onToggleInnerShadow(($event.target as HTMLInputElement).checked)"

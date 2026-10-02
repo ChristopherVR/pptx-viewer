@@ -61,7 +61,7 @@ describe('insert section', () => {
 
 	it('routes the shape and chart pickers and the Action menu', () => {
 		const { props, wrapper } = mountInsert();
-		const [shape, chart] = [...document.body.querySelectorAll('select')];
+		const [shape, chart] = [...document.body.querySelectorAll('pptx-ui-select')];
 		shape.value = 'star5';
 		shape.dispatchEvent(new Event('change'));
 		chart.value = 'pie';

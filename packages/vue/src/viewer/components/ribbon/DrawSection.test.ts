@@ -8,6 +8,7 @@ import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
+import { setControlValue } from '../inspector/test-control-value';
 import DrawSection from './DrawSection.vue';
 
 registerPptxWebControls();
@@ -38,7 +39,7 @@ describe('drawSection pen colour (recent colours)', () => {
 		const button = command.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
 		button.click();
 		expect(tool).toHaveBeenCalledExactlyOnceWith('freeform');
-		await wrapper.find('select').setValue('16');
+		await setControlValue(wrapper.find('pptx-ui-select'), '16');
 		expect(width).toHaveBeenCalledExactlyOnceWith(16);
 		await wrapper.setProps({ activeTool: 'freeform', canEdit: false });
 		expect(button.getAttribute('aria-pressed')).toBe('true');

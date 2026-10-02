@@ -227,7 +227,6 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 				</pptx-ui-select>
 				<label class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
 					<pptx-ui-checkbox
-						type="checkbox"
 						data-testid="pptx-action-custom-show-return"
 						:disabled="!canEdit"
 						:checked="actionFor(trigger)?.returnAfter ?? false"

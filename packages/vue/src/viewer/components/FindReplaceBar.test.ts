@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import FindReplaceBar from './FindReplaceBar.vue';
+import { setControlValue } from './inspector/test-control-value';
 
 function mountBar(props: Partial<{ matchCount: number; currentIndex: number }> = {}) {
 	return mount(FindReplaceBar, {
@@ -36,7 +37,7 @@ describe('findReplaceBar', () => {
 
 	it('toggles match case', async () => {
 		const wrapper = mountBar();
-		await wrapper.find('.pptx-vue-fr-case input[type="checkbox"]').setValue(true);
+		await setControlValue(wrapper.find('.pptx-vue-fr-case pptx-ui-checkbox'), true);
 		expect(wrapper.emitted('update:matchCase')?.at(-1)).toStrictEqual([true]);
 	});
 

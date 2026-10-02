@@ -53,9 +53,7 @@ function onPosition(event: Event): void {
 				class="flex items-center gap-2 cursor-pointer"
 			>
 				<pptx-ui-checkbox
-					type="checkbox"
 					data-testid="chart-data-label-content"
-					class="accent-primary"
 					:checked="labels[opt.key] ?? false"
 					@change="onContentToggle($event, opt.key)"
 				/>

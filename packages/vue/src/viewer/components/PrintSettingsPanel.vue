@@ -301,8 +301,7 @@ function onCustomToInput(event: Event): void {
 		<label
 			class="pptx-vue-print-checkbox flex cursor-pointer items-center gap-2 text-sm text-foreground"
 		>
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				class="rounded border-border"
 				:checked="props.frameSlides"
 				@change="emit('update:frameSlides', ($event.target as HTMLInputElement).checked)"

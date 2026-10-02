@@ -29,36 +29,28 @@ function checked(e: Event): boolean {
 			{{ t('pptx.slideShow.showOptions') }}
 		</legend>
 		<label class="flex cursor-pointer items-center gap-2">
-			<input
-				type="checkbox"
-				class="accent-primary"
+			<pptx-ui-checkbox
 				:checked="Boolean(draft.loopContinuously)"
 				@change="emit('update', { loopContinuously: checked($event) })"
 			/>
 			<span>{{ t('pptx.slideShow.loopContinuously') }}</span>
 		</label>
 		<label class="flex cursor-pointer items-center gap-2">
-			<input
-				type="checkbox"
-				class="accent-primary"
+			<pptx-ui-checkbox
 				:checked="draft.showWithNarration === false"
 				@change="emit('update', { showWithNarration: !checked($event) })"
 			/>
 			<span>{{ t('pptx.slideShow.showWithoutNarration') }}</span>
 		</label>
 		<label class="flex cursor-pointer items-center gap-2">
-			<input
-				type="checkbox"
-				class="accent-primary"
+			<pptx-ui-checkbox
 				:checked="draft.showWithAnimation === false"
 				@change="emit('update', { showWithAnimation: !checked($event) })"
 			/>
 			<span>{{ t('pptx.slideShow.showWithoutAnimation') }}</span>
 		</label>
 		<label class="flex cursor-pointer items-center gap-2">
-			<input
-				type="checkbox"
-				class="accent-primary"
+			<pptx-ui-checkbox
 				:checked="Boolean(draft.showSubtitles)"
 				@change="emit('update', { showSubtitles: checked($event) })"
 			/>

@@ -175,12 +175,10 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 					:key="item.key"
 					class="flex items-center gap-2 cursor-pointer"
 				>
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						:disabled="!canEdit"
 						:checked="item.checked"
 						:data-testid="`chart-quick-element-${item.key}`"
-						class="accent-primary"
 						@change="onElementToggle(item.key, ($event.target as HTMLInputElement).checked)"
 					/>
 					<span class="text-[11px]">{{ t(item.labelKey) }}</span>
@@ -245,12 +243,10 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 					:key="row.key"
 					class="flex items-center gap-2 cursor-pointer"
 				>
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						:disabled="!canEdit"
 						:checked="row.visible"
 						:data-testid="`chart-quick-filter-${row.key}`"
-						class="accent-primary"
 						@change="onFilterToggle(row.seriesIndex, row.filteredIndex)"
 					/>
 					<span class="text-[11px] truncate">{{ row.name }}</span>

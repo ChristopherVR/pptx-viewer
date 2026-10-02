@@ -3,6 +3,7 @@ import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import CustomShowsPanel from './CustomShowsPanel.vue';
+import { setControlValue } from './inspector/test-control-value';
 
 function makeSlide(id: string, rId: string, slideNumber: number): PptxSlide {
 	return { id, rId, slideNumber, elements: [] };
@@ -47,7 +48,7 @@ describe('customShowsPanel', () => {
 
 	it('emits select when a different show is chosen', async () => {
 		const wrapper = mountPanel();
-		await wrapper.find('.pptx-vue-cs-select').setValue('show2');
+		await setControlValue(wrapper.find('.pptx-vue-cs-select'), 'show2');
 		expect(wrapper.emitted('select')).toStrictEqual([['show2']]);
 	});
 
@@ -63,8 +64,8 @@ describe('customShowsPanel', () => {
 
 	it('emits toggle-slide when a checklist item is toggled', async () => {
 		const wrapper = mountPanel();
-		const checkbox = wrapper.findAll('.pptx-vue-cs-all-item input[type="checkbox"]')[2]!;
-		await checkbox.setValue(true);
+		const checkbox = wrapper.findAll('.pptx-vue-cs-all-item pptx-ui-checkbox')[2]!;
+		await setControlValue(checkbox, true);
 		expect(wrapper.emitted('toggle-slide')).toStrictEqual([['show1', 'rId8']]);
 	});
 

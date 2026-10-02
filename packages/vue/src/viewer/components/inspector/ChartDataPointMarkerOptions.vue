@@ -111,7 +111,6 @@ function onFillCommit(event: Event): void {
 					<span class="flex-1 truncate" :title="cat">{{ cat }}</span>
 					<label class="flex items-center gap-1 shrink-0">
 						<pptx-ui-checkbox
-							type="checkbox"
 							data-testid="chart-point-marker-toggle"
 							:checked="pointFor(idx)?.marker !== undefined"
 							@change="onToggle($event, idx)"
