@@ -1,16 +1,21 @@
 import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
-import type { MobileSheetKey, ToolbarActionId } from 'pptx-viewer-shared';
+import type {
+	MobileBarId,
+	MobileBarRequestEvent,
+	MobileBarViewState,
+	MobileSheetKey,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 import {
-	buildBarActions,
 	createSheetDismissGesture,
 	isActionHidden,
+	registerPptxWebControls,
 	slideTitle,
 	toggleSheet,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { createIcon } from './icons';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
 
 /** Paint one slide at `scale`, the same callback the desktop rail is given. */
@@ -87,9 +92,7 @@ export function createMobileActionSheets(
 		sheetHost.hidden = true;
 		sheet.style.transform = '';
 		restoreInspector();
-		for (const button of bar.querySelectorAll('button')) {
-			button.setAttribute('aria-pressed', 'false');
-		}
+		syncBar();
 	};
 	backdrop.addEventListener('click', close);
 	const gesture = createSheetDismissGesture((offset, dragging) => {
@@ -235,8 +238,10 @@ export function createMobileActionSheets(
 		}
 	};
 
-	const bar = doc.createElement('nav');
-	bar.setAttribute('aria-label', t('pptx.mobileBar.ariaLabel'));
+	registerPptxWebControls();
+	// A thin adapter over the shared `pptx-ui-mobile-bar`, which owns the markup,
+	// the no-slides gating, the pressed state and the comment badge.
+	const bar = doc.createElement('pptx-ui-mobile-bar');
 	const openSheet = (key: Exclude<MobileSheetKey, null>): void => {
 		active = toggleSheet(active, key);
 		if (!active) {
@@ -245,71 +250,32 @@ export function createMobileActionSheets(
 		}
 		render(active);
 		sheetHost.hidden = false;
-		for (const item of bar.querySelectorAll<HTMLButtonElement>('button')) {
-			item.setAttribute('aria-pressed', String(item.dataset.mobileAction === active));
-		}
+		syncBar();
 	};
-	/** The same five lucide glyphs React's `MobileBottomBar` draws. */
-	const actionIcons = {
-		slides: 'layers',
-		insert: 'plus',
-		inspector: 'sliders',
-		comments: 'comment',
-		notes: 'sticky-note',
-	} as const;
-	for (const descriptor of buildBarActions({ slideCount: 0 })) {
-		const key = descriptor.key as 'slides' | 'insert' | 'inspector' | 'comments' | 'notes';
-		if (key === 'notes' && isActionHidden('notes', hiddenActions)) {
-			continue;
-		}
-		const button = doc.createElement('button');
-		button.type = 'button';
-		button.dataset.mobileAction = key;
+	bar.addEventListener('mobile-bar-request', (event) => {
+		const key = (event as MobileBarRequestEvent).detail.id;
 		if (key === 'notes') {
-			button.setAttribute('aria-label', t('pptx.statusBar.toggleNotes'));
-		}
-		button.appendChild(createIcon(doc, actionIcons[key]));
-		const label = createEl(doc, 'span');
-		label.textContent =
-			key === 'inspector'
-				? t('pptx.field.format')
-				: t(
-						`pptx.${key === 'slides' ? 'sections.slides' : key === 'comments' ? 'toolbar.comments' : key === 'insert' ? 'mobileBar.insert' : 'notes.title'}`,
-					);
-		button.appendChild(label);
-		button.addEventListener('click', () => {
-			if (key === 'notes') {
-				handlers.nav.toggleNotes();
-				return;
-			}
-			if (key === 'insert') {
-				handlers.insert.insert('text');
-				return;
-			}
+			handlers.nav.toggleNotes();
+		} else if (key === 'insert') {
+			handlers.insert.insert('text');
+		} else {
 			openSheet(key);
-		});
-		bar.appendChild(button);
-	}
+		}
+	});
 	el.appendChild(bar);
 	const syncBar = (): void => {
-		const actions = buildBarActions({ slideCount: slides.length });
-		for (const action of actions) {
-			const button = bar.querySelector<HTMLButtonElement>(
-				`button[data-mobile-action='${action.key}']`,
-			);
-			if (!button) {
-				continue;
-			}
-			const editOnly =
-				action.key === 'insert' || action.key === 'inspector' || action.key === 'comments';
-			button.disabled =
-				action.disabled || (editOnly && !editable) || (action.key === 'inspector' && !inspector);
-			button.setAttribute(
-				'aria-pressed',
-				String(action.key === 'notes' ? notesExpanded : action.key === active),
-			);
-		}
+		const editOnly: MobileBarId[] = ['insert', 'inspector', 'comments'];
+		const state: MobileBarViewState = {
+			slideCount: slides.length,
+			activeSheet: active && active !== 'menu' ? active : notesExpanded ? 'notes' : null,
+			commentCount: comments.length,
+			hidden: isActionHidden('notes', hiddenActions) ? ['notes'] : [],
+			disabled: [...(editable ? [] : editOnly), ...(inspector ? [] : (['inspector'] as const))],
+			translate: t,
+		};
+		bar.state = state;
 	};
+	syncBar();
 	return {
 		el,
 		update(nextCurrent, nextSlides, nextComments) {

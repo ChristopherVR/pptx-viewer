@@ -1,9 +1,13 @@
-import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { isActionHidden } from 'pptx-viewer-shared';
+import { isActionHidden, registerPptxWebControls } from 'pptx-viewer-shared';
+import type {
+	MobileToolbarId,
+	MobileToolbarRequestEvent,
+	PptxUiMobileToolbarElement,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { makeButton } from './controls';
 import type { RibbonEditState } from './ribbon/ribbon-types';
 
 export interface MobileToolbarHandlers {
@@ -29,10 +33,13 @@ export interface MobileToolbar {
 }
 
 /**
- * Compact phone toolbar matching React's menu/edit/save/present action row.
- * Applies the same `hiddenActions` rules as the desktop chrome: undo/redo
- * hide independently, and present shares the `'fullscreen'` action with the
- * status bar / View tab's slide-show toggle.
+ * Compact phone toolbar matching React's menu/edit/save/present action row. A
+ * thin adapter over the shared `pptx-ui-mobile-toolbar`, which owns the markup
+ * and gating. Applies the same `hiddenActions` rules as the desktop chrome:
+ * undo/redo hide independently, and present shares the `'fullscreen'` action
+ * with the status bar / View tab's slide-show toggle. The AI toggle and the
+ * collaboration pill are host-mounted into the element's `ai` and
+ * `collaboration` slots; Share is the collaboration pill, so it is not drawn.
  */
 export function createMobileToolbar(
 	doc: Document,
@@ -40,77 +47,56 @@ export function createMobileToolbar(
 	handlers: MobileToolbarHandlers,
 	hiddenActions?: readonly ToolbarActionId[],
 ): MobileToolbar {
-	const el = createEl(doc, 'div', 'pptxv-mobile-toolbar');
-	el.setAttribute('role', 'toolbar');
-	el.setAttribute('aria-label', t('pptx.mobileToolbar.toolbar'));
-
-	const menu = makeButton(doc, {
-		label: t('pptx.mobileToolbar.menu'),
-		// It opens the all-sections sheet, so it is a menu, and React draws it
-		// with lucide's Menu rather than a panel toggle.
-		icon: 'menu',
-		className: 'pptxv-mobile-toolbar-btn pptxv-mobile-toolbar-edit',
-		onClick: handlers.openMenu,
-	});
-	const undo = isActionHidden('undo', hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.toolbar.undo'),
-				icon: 'undo',
-				className: 'pptxv-mobile-toolbar-btn pptxv-mobile-toolbar-edit',
-				onClick: handlers.undo,
-			});
-	const redo = isActionHidden('redo', hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.toolbar.redo'),
-				icon: 'redo',
-				className: 'pptxv-mobile-toolbar-btn pptxv-mobile-toolbar-edit',
-				onClick: handlers.redo,
-			});
-	const spacer = createEl(doc, 'span', 'pptxv-mobile-toolbar-spacer');
-	const save = makeButton(doc, {
-		label: t('pptx.toolbar.save'),
-		icon: 'download',
-		className: 'pptxv-mobile-toolbar-btn',
-		onClick: handlers.save,
-	});
-	const present = isActionHidden('fullscreen', hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.toolbar.present'),
-				icon: 'presentation',
-				className: 'pptxv-mobile-toolbar-btn pptxv-mobile-present',
-				onClick: handlers.present,
-			});
+	registerPptxWebControls();
+	const el = doc.createElement('pptx-ui-mobile-toolbar') as PptxUiMobileToolbarElement;
+	el.className = 'pptxv-mobile-toolbar';
 	const aiHost = createEl(doc, 'span', 'pptxv-mobile-toolbar-ai');
+	aiHost.slot = 'ai';
 	const collaborationHost = createEl(doc, 'span', 'pptxv-mobile-toolbar-collaboration');
+	collaborationHost.slot = 'collaboration';
+	el.append(aiHost, collaborationHost);
 
-	el.append(
-		menu.btn,
-		...(undo ? [undo.btn] : []),
-		...(redo ? [redo.btn] : []),
-		spacer,
-		aiHost,
-		save.btn,
-		...(present ? [present.btn] : []),
-		collaborationHost,
-	);
+	const hidden: MobileToolbarId[] = ['share'];
+	for (const [id, action] of [
+		['undo', 'undo'],
+		['redo', 'redo'],
+		['present', 'fullscreen'],
+	] as const) {
+		if (isActionHidden(action, hiddenActions)) {
+			hidden.push(id);
+		}
+	}
+	let edit: RibbonEditState = { editable: true, canUndo: false, canRedo: false };
+	const sync = (): void => {
+		el.state = {
+			editable: edit.editable,
+			canUndo: edit.canUndo,
+			canRedo: edit.canRedo,
+			hidden,
+			translate: t,
+		};
+	};
+	const intents: Record<MobileToolbarId, (() => void) | undefined> = {
+		menu: handlers.openMenu,
+		undo: handlers.undo,
+		redo: handlers.redo,
+		ai: undefined,
+		save: handlers.save,
+		present: handlers.present,
+		share: undefined,
+	};
+	el.addEventListener('mobile-toolbar-request', (event) => {
+		intents[(event as MobileToolbarRequestEvent).detail.id]?.();
+	});
+	sync();
 
 	return {
 		el,
 		collaborationHost,
 		aiHost,
-		setEditState({ editable, canUndo, canRedo }) {
-			for (const button of [menu.btn, undo?.btn, redo?.btn]) {
-				if (button) {
-					button.hidden = !editable;
-				}
-			}
-			collaborationHost.hidden = !editable;
-			aiHost.hidden = !editable;
-			undo?.setDisabled(!canUndo);
-			redo?.setDisabled(!canRedo);
+		setEditState(state) {
+			edit = state;
+			sync();
 		},
 	};
 }

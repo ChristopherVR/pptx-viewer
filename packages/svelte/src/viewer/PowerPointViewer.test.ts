@@ -197,15 +197,18 @@ describe('powerPointViewer', () => {
 		const statusBar = target.querySelector('.pptx-svelte-statusbar')!.shadowRoot!;
 		expect(statusBar.querySelector('[aria-label="Previous slide"]')).toBeNull();
 		expect(statusBar.querySelector('[aria-label="Share"]')).toBeNull();
+		// Both mobile bars render inside shared elements' open shadow roots.
 		const mobileToolbar = target.querySelector('.pptx-svelte-mobile-toolbar');
 		expect(
-			Array.from(mobileToolbar?.querySelectorAll('button') ?? []).map((button) =>
-				button.getAttribute('aria-label'),
-			),
+			Array.from(mobileToolbar?.shadowRoot?.querySelectorAll('button') ?? [])
+				.filter((button) => !button.hidden)
+				.map((button) => button.getAttribute('aria-label')),
 		).toStrictEqual(['Menu', 'Undo', 'Redo', 'Save', 'Present', 'Share']);
-		const mobileActions = target.querySelector('.pptx-svelte-mobile-actions nav');
+		const mobileActions = target.querySelector('.pptx-svelte-mobile-actions pptx-ui-mobile-bar');
 		expect(
-			Array.from(mobileActions?.querySelectorAll('small') ?? []).map((item) => item.textContent),
+			Array.from(
+				mobileActions?.shadowRoot?.querySelectorAll('button > span:not([class])') ?? [],
+			).map((item) => item.textContent),
 		).toStrictEqual(['Slides', 'Insert', 'Format', 'Comments', 'Notes']);
 	});
 
