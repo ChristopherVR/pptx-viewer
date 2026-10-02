@@ -296,3 +296,57 @@ describe('createArrangeGroup', () => {
 		expect(painter.disabled).toBeFalsy();
 	});
 });
+
+describe('createArrangeGroup merge and crop strip', () => {
+	const ready = {
+		editable: true,
+		hasSelection: true,
+		formatPainterActive: false,
+		selectedCount: 2,
+		selectionGroupable: true,
+		selectedElement: shape(),
+		canMergeShapes: true,
+		canCrop: true,
+	};
+	const slot = (group: ReturnType<typeof createArrangeGroup>, id: string) =>
+		group.el.querySelector<HTMLElement>(`[data-ribbon-control="home.arrange.${id}"]`)!;
+
+	it('runs a Merge Shapes operation from the shared menu', () => {
+		const actions = handlers();
+		const group = createArrangeGroup(document, createTranslator(), actions);
+		group.update(ready);
+		slot(group, 'mergeShapes').querySelector('button')!.click();
+		slot(group, 'mergeShapes').querySelector<HTMLElement>('[data-pptx-merge-op="union"]')!.click();
+		expect(actions.mergeShapes).toHaveBeenCalledExactlyOnceWith('union');
+	});
+
+	it('toggles crop mode and runs the aspect, fill and fit entries', () => {
+		const actions = handlers();
+		const group = createArrangeGroup(document, createTranslator(), actions);
+		group.update(ready);
+		const crop = slot(group, 'crop');
+		expect(crop.hasAttribute('data-pptx-crop-controls')).toBeTruthy();
+		crop.querySelector<HTMLElement>('[data-pptx-ribbon-control="crop"]')!.click();
+		expect(actions.toggleCropMode).toHaveBeenCalledOnce();
+		const caret = crop.querySelector<HTMLElement>('[data-pptx-ribbon-control="crop-menu"]')!;
+		caret.click();
+		crop.querySelector<HTMLElement>('[data-pptx-crop-aspect="16:9"]')!.click();
+		caret.click();
+		crop.querySelector<HTMLElement>('[data-pptx-crop-action="fill"]')!.click();
+		caret.click();
+		crop.querySelector<HTMLElement>('[data-pptx-crop-action="fit"]')!.click();
+		expect(actions.cropToAspect).toHaveBeenCalledExactlyOnceWith(16, 9);
+		expect(actions.cropFill).toHaveBeenCalledOnce();
+		expect(actions.cropFit).toHaveBeenCalledOnce();
+	});
+
+	it('hides Merge Shapes and Crop when the host hides them', () => {
+		const group = createArrangeGroup(document, createTranslator(), handlers(), [
+			'mergeShapes',
+			'crop',
+		]);
+		group.update(ready);
+		expect(slot(group, 'mergeShapes').hidden).toBeTruthy();
+		expect(slot(group, 'crop').querySelector<HTMLElement>('button')!.hidden).toBeTruthy();
+	});
+});

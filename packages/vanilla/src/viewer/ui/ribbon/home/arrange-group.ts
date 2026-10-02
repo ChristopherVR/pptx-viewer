@@ -1,18 +1,24 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { MergeShapeOperation, PptxElement } from 'pptx-viewer-core';
 import type { AlignEdge, ToolbarActionId } from 'pptx-viewer-shared';
-import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
+import {
+	arrangeAlignAction,
+	arrangeHomeControls,
+	arrangePainterHomeControls,
+	arrangeShapeHomeControls,
+	canGroupSelection,
+	canSetStrokeWidth,
+	canUngroupSelection,
+	isActionHidden,
+	parseCropValue,
+	strokeWidthOf,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
-import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
-import type { ArrangeExtrasHandlers } from './arrange-extras';
-import { createArrangeExtras } from './arrange-extras';
-import type { MergeCropHandlers } from './merge-crop-controls';
-import { createMergeCropControls } from './merge-crop-controls';
+import { tagRibbonGroup } from '../ribbon-tagging';
 import { createSharedHomeStrip } from './shared-strip';
 
-export interface ArrangeGroupHandlers extends ArrangeExtrasHandlers, MergeCropHandlers {
+export interface ArrangeGroupHandlers {
 	bringForward(): void;
 	sendBackward(): void;
 	bringToFront(): void;
@@ -24,6 +30,14 @@ export interface ArrangeGroupHandlers extends ArrangeExtrasHandlers, MergeCropHa
 	toggleFormatPainter(): void;
 	duplicate(): void;
 	delete(): void;
+	groupSelected(): void;
+	ungroupSelected(): void;
+	setStrokeWidth(width: number): void;
+	mergeShapes(operation: MergeShapeOperation): void;
+	toggleCropMode(): void;
+	cropToAspect(ratioWidth: number, ratioHeight: number): void;
+	cropFill(): void;
+	cropFit(): void;
 }
 
 export interface ArrangeGroupState {
@@ -51,14 +65,9 @@ export interface ArrangeGroup {
 const MIN_DISTRIBUTE_SELECTION = 3;
 
 /**
- * The ribbon Home tab's Arrange group: align, distribute, the format painter,
- * flip, group/ungroup, the outline-width spinner, z-order, duplicate and
- * delete, matching React's `ArrangeSection` control for control.
- *
- * There is no Cut / Copy / Paste here. This group used to carry a second copy
- * of the trio because React did; PowerPoint has exactly one Clipboard group,
- * so React dropped its duplicate and so does this. The Clipboard group
- * (`clipboard-group.ts`) is the one place each of those commands appears.
+ * The ribbon Home tab's Arrange group: six shared strips (align and
+ * distribute, the Format Painter pill, flip, group/merge/crop/outline width,
+ * z-order, duplicate and delete) whose intents run the native handlers.
  */
 export function createArrangeGroup(
 	doc: Document,
@@ -71,19 +80,10 @@ export function createArrangeGroup(
 	tagRibbonGroup(el, 'home.arrange');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	row.dataset.pptxChrome = 'arrange-controls';
-	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
 	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.arrange.groupLabel');
-	el.appendChild(label);
-
-	const painter = makeButton(doc, {
-		label: t('pptx.arrange.format'),
-		icon: 'paintbrush',
-		textLabel: t('pptx.arrange.format'),
-		onClick: handlers.toggleFormatPainter,
-	});
-	painter.btn.title = t('pptx.arrange.formatPainter');
+	el.append(row, label);
 
 	const strips = {
 		align: createSharedHomeStrip(doc, t, 'arrange-align', ({ part }) => {
@@ -94,9 +94,32 @@ export function createArrangeGroup(
 				handlers.distributeElements(action.axis);
 			}
 		}),
+		painter: createSharedHomeStrip(doc, t, 'arrange-painter', () => handlers.toggleFormatPainter()),
 		flip: createSharedHomeStrip(doc, t, 'arrange-flip', ({ id }) =>
 			id === 'home.arrange.flipHorizontal' ? handlers.flipHorizontal() : handlers.flipVertical(),
 		),
+		shape: createSharedHomeStrip(doc, t, 'arrange-shape', ({ id, value }) => {
+			if (id === 'home.arrange.group') {
+				handlers.groupSelected();
+			} else if (id === 'home.arrange.ungroup') {
+				handlers.ungroupSelected();
+			} else if (id === 'home.arrange.mergeShapes') {
+				handlers.mergeShapes(value as MergeShapeOperation);
+			} else if (id === 'home.arrange.outlineWidth') {
+				handlers.setStrokeWidth(Number(value));
+			} else if (value === undefined) {
+				handlers.toggleCropMode();
+			} else {
+				const crop = parseCropValue(value);
+				if (crop?.kind === 'aspect') {
+					handlers.cropToAspect(crop.width, crop.height);
+				} else if (crop?.kind === 'fill') {
+					handlers.cropFill();
+				} else if (crop?.kind === 'fit') {
+					handlers.cropFit();
+				}
+			}
+		}),
 		order: createSharedHomeStrip(doc, t, 'arrange-order', ({ id }) =>
 			({
 				'home.arrange.sendBackward': handlers.sendBackward,
@@ -109,51 +132,59 @@ export function createArrangeGroup(
 			id === 'home.arrange.duplicate' ? handlers.duplicate() : handlers.delete(),
 		),
 	};
-
-	const extras = createArrangeExtras(doc, t, handlers);
-	const mergeCrop = createMergeCropControls(doc, t, handlers, hiddenActions);
-
-	tagRibbonControl(painter.btn, 'home.clipboard.formatPainter');
+	// Presses inside the crop controls own crop mode's toggle, so they must not also commit it.
+	strips.shape.el.anchor('home.arrange.crop')?.setAttribute('data-pptx-crop-controls', 'true');
 	row.append(
 		strips.align.el,
-		painter.btn,
+		strips.painter.el,
 		strips.flip.el,
-		extras.el,
-		mergeCrop.el,
+		strips.shape.el,
 		strips.order.el,
 		strips.edit.el,
 	);
-	const syncStrips = (controls: ReturnType<typeof arrangeHomeControls>) => {
-		for (const strip of Object.values(strips)) {
-			strip.set(controls);
-		}
-	};
-	syncStrips(arrangeHomeControls({ editable: false, hasSelection: false, canDistribute: false }));
 
-	return {
-		el,
-		update({
+	const render = (state: ArrangeGroupState) => {
+		const { editable, hasSelection, formatPainterActive, selectedElement } = state;
+		const common = arrangeHomeControls({
 			editable,
 			hasSelection,
-			formatPainterActive,
-			selectedCount,
-			selectionGroupable,
-			selectedElement,
-			canMergeShapes = false,
-			canCrop = false,
-			cropActive = false,
-		}) {
-			syncStrips(
-				arrangeHomeControls({
-					editable,
-					hasSelection,
-					canDistribute: selectedCount >= MIN_DISTRIBUTE_SELECTION,
-				}),
-			);
-			extras.update({ editable, selectedCount, selectionGroupable, selectedElement });
-			mergeCrop.update({ editable, canMergeShapes, canCrop, cropActive });
-			painter.setDisabled(!editable || (!hasSelection && !formatPainterActive));
-			painter.btn.dataset.active = String(formatPainterActive);
-		},
+			canDistribute: state.selectedCount >= MIN_DISTRIBUTE_SELECTION,
+		});
+		for (const key of ['align', 'flip', 'order', 'edit'] as const) {
+			strips[key].set(common);
+		}
+		strips.painter.set(
+			arrangePainterHomeControls({
+				editable,
+				active: formatPainterActive,
+				canFormatPaint: hasSelection,
+				show: true,
+			}),
+		);
+		const element = selectedElement ?? null;
+		strips.shape.set(
+			arrangeShapeHomeControls({
+				editable,
+				canGroup: canGroupSelection(editable, state.selectedCount, state.selectionGroupable),
+				canUngroup: canUngroupSelection(editable, element),
+				canMerge: Boolean(state.canMergeShapes),
+				canCrop: Boolean(state.canCrop) || Boolean(state.cropActive),
+				cropActive: Boolean(state.cropActive),
+				canStrokeWidth: canSetStrokeWidth(editable, element),
+				strokeWidth: strokeWidthOf(element),
+				hideMerge: isActionHidden('mergeShapes', hiddenActions),
+				hideCrop: isActionHidden('crop', hiddenActions),
+			}),
+		);
 	};
+	render({
+		editable: false,
+		hasSelection: false,
+		formatPainterActive: false,
+		selectedCount: 0,
+		selectionGroupable: true,
+		selectedElement: undefined,
+	});
+
+	return { el, update: render };
 }

@@ -1,15 +1,20 @@
 import type { PptxLayoutPreview } from 'pptx-viewer-core';
 import { slidesHomeControls } from 'pptx-viewer-shared';
-import type { SlideTemplateId } from 'pptx-viewer-shared';
+import type { LayoutPreviewGeometry, SlideTemplateId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import type { LayoutOption } from '../ribbon-types';
-import { createLayoutMenu } from './layout-menu';
-import type { LayoutPreviewRenderer } from './layout-menu';
 import { createSharedHomeStrip } from './shared-strip';
 import { createSlideTemplateDialog } from './slide-template-dialog';
 
-export type { LayoutPreviewRenderer } from './layout-menu';
+/**
+ * Renders one layout's artwork into a detached element. Injected so the host
+ * owns the element-renderer registry and theme wiring.
+ */
+export type LayoutPreviewRenderer = (
+	preview: PptxLayoutPreview,
+	geometry: LayoutPreviewGeometry,
+) => HTMLElement | undefined;
 
 export interface SlidesGroupHandlers {
 	addSlide(): void;
@@ -36,16 +41,16 @@ export interface SlidesGroupState {
 }
 
 export interface SlidesGroup {
-	/** The shared Slides group element; native layout menus mount inside its anchors. */
+	/** The shared Slides group element. */
 	el: HTMLElement;
 	update(state: SlidesGroupState): void;
 }
 
 /**
- * The ribbon Home tab's Slides group. The group, its buttons and their gating
- * are the shared `pptx-ui-ribbon-home-slides` element; this binding keeps the
- * native layout menus (anchored inside the shared New Slide split and Layout
- * wrappers), the Slide Templates dialog and every document edit.
+ * The ribbon Home tab's Slides group. The group, its buttons, the layout
+ * galleries and their gating are the shared `pptx-ui-ribbon-home-slides`
+ * element; this binding draws each tile's artwork, keeps the Slide Templates
+ * dialog and runs every document edit.
  */
 export function createSlidesGroup(
 	doc: Document,
@@ -56,7 +61,7 @@ export function createSlidesGroup(
 		onInsert: (templateId) => handlers.insertSlideFromTemplate(templateId),
 		getScheme: () => handlers.getTemplateScheme?.(),
 	});
-	let last: Omit<Parameters<typeof slidesHomeControls>[0], 'layoutOpen' | 'newSlideOpen'> = {
+	let last: Parameters<typeof slidesHomeControls>[0] = {
 		editable: false,
 		hasLayouts: false,
 		hasSlides: false,
@@ -64,43 +69,23 @@ export function createSlidesGroup(
 		newSlideNeedsLayout: false,
 		resetNeedsSlide: true,
 	};
-	const open = { newSlide: false, layout: false };
-	const sync = () =>
-		strip.set(
-			slidesHomeControls({ ...last, newSlideOpen: open.newSlide, layoutOpen: open.layout }),
-		);
-	const newSlideMenu = createLayoutMenu(
-		doc,
-		t('pptx.home.chooseLayout'),
-		(layout) => handlers.insertSlideFromLayout(layout.path, layout.name),
-		(next) => {
-			open.newSlide = next;
-			sync();
-		},
-	);
-	const layoutMenu = createLayoutMenu(
-		doc,
-		t('pptx.master.layout'),
-		(layout) => handlers.applyLayout(layout.path),
-		(next) => {
-			open.layout = next;
-			sync();
-		},
-	);
-	const strip = createSharedHomeStrip(doc, t, 'slides', ({ id, part }) => {
+	let layouts: readonly LayoutOption[] = [];
+	const strip = createSharedHomeStrip(doc, t, 'slides', ({ id, value }) => {
 		switch (id) {
-			case 'home.slides.newSlide':
-				if (part === 'caret') {
-					newSlideMenu.toggle();
+			case 'home.slides.newSlide': {
+				const layout = layouts.find((entry) => entry.path === value);
+				if (layout) {
+					handlers.insertSlideFromLayout(layout.path, layout.name);
 				} else {
 					handlers.addSlide();
 				}
 				break;
+			}
 			case 'home.slides.slideTemplates':
 				templateDialog.open(strip.el.closest<HTMLElement>('.pptxv') ?? doc.body);
 				break;
 			case 'home.slides.layout':
-				layoutMenu.toggle();
+				handlers.applyLayout(String(value));
 				break;
 			case 'home.slides.reset':
 				handlers.resetSlide();
@@ -109,28 +94,34 @@ export function createSlidesGroup(
 				handlers.addSection();
 		}
 	});
-	const el = strip.el;
-	el.anchor('home.slides.newSlide')?.append(newSlideMenu.el);
-	el.anchor('home.slides.layout')?.append(layoutMenu.el);
-	sync();
+	strip.el.layoutArtwork = (preview, geometry, container) => {
+		const artwork = handlers.renderLayoutPreview?.(preview, geometry);
+		if (artwork) {
+			container.append(artwork);
+		}
+		return () => artwork?.remove();
+	};
+	strip.set(slidesHomeControls(last));
 
 	return {
-		el,
-		update({ editable, slideCount, layouts, layoutPreviews, currentLayoutPath }) {
-			const previews = layoutPreviews ?? new Map<string, PptxLayoutPreview>();
-			newSlideMenu.setItems(layouts, { previews, renderPreview: handlers.renderLayoutPreview });
-			layoutMenu.setItems(layouts, {
-				previews,
-				currentLayoutPath,
-				renderPreview: handlers.renderLayoutPreview,
-			});
-			last = { ...last, editable, hasLayouts: layouts.length > 0, hasSlides: slideCount > 0 };
+		el: strip.el,
+		update({ editable, slideCount, layouts: next, layoutPreviews, currentLayoutPath }) {
+			layouts = next;
+			last = {
+				...last,
+				editable,
+				hasLayouts: next.length > 0,
+				hasSlides: slideCount > 0,
+				layouts: {
+					layouts: next.map(({ path, name }) => ({ path, name })),
+					current: currentLayoutPath,
+					previews: layoutPreviews ?? new Map(),
+				},
+			};
 			if (!editable) {
-				newSlideMenu.close();
-				layoutMenu.close();
 				templateDialog.close();
 			}
-			sync();
+			strip.set(slidesHomeControls(last));
 		},
 	};
 }

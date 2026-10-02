@@ -1,14 +1,8 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
-import type {
-	ChangeCaseMode,
-	PptxUiRibbonHomeElement,
-	RibbonHomeRequestEvent,
-} from 'pptx-viewer-shared';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
 import {
-	CHANGE_CASE_OPTIONS,
-	CHARACTER_SPACING_OPTIONS,
-	COMMON_FONT_SIZES,
 	fontHomeControls,
+	fontPickerHomeControls,
 	registerPptxWebControls,
 	resolveDefaultFontFamily,
 } from 'pptx-viewer-shared';
@@ -16,10 +10,8 @@ import {
 import type { TextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeDropdown } from '../../dropdown';
-import { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from '../../swatch-picker';
-import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
-import { createFontSelect, setFontSelectCatalog } from './font-select';
+import { tagRibbonGroup } from '../ribbon-tagging';
+import { createSharedHomeStrip } from './shared-strip';
 
 export interface FontGroupHandlers {
 	toggleBold(): void;
@@ -30,7 +22,7 @@ export interface FontGroupHandlers {
 	setFontFamily(family: string): void;
 	setFontSize(size: number): void;
 	changeFontSize(delta: number): void;
-	/** Same `ref` contract as `SwatchPickerOptions.onSelectTheme`: omit for a plain/custom/recent pick. */
+	/** Same `ref` contract as the swatch commit: omit for a plain/custom/recent pick. */
 	setTextColor(color: string, ref?: PptxThemeColorRef): void;
 	setHighlightColor(color: string): void;
 	setCharacterSpacing(value: number): void;
@@ -48,7 +40,7 @@ export interface FontGroupState {
 	embeddedFontFamilies?: readonly string[];
 	/** Families registered this session via File > Options > Fonts. */
 	customFontFamilies?: readonly string[];
-	/** B6: the deck's `p:clrMru`, most-recent-first; seeds/refreshes both pickers' rows. */
+	/** The deck's `p:clrMru`, most-recent-first. */
 	recentColors?: readonly string[];
 	/** The deck's resolved theme colour map, feeding the font-colour "Theme Colors" grid. */
 	themeColorMap?: Record<string, string>;
@@ -61,7 +53,32 @@ export interface FontGroup {
 
 const FONT_STEP = 2;
 
-/** The ribbon Home tab's Font group: family/size, character toggles, colours, spacing, case. */
+type FontAction = (value: string | number | undefined, ref?: PptxThemeColorRef) => void;
+
+const EMPTY_TEXT: TextFormatState = {
+	bold: false,
+	italic: false,
+	underline: false,
+	strikethrough: false,
+	hasTextShadow: false,
+	fontSize: 18,
+	fontFamily: undefined,
+	placeholderType: undefined,
+	color: undefined,
+	colorRef: undefined,
+	highlightColor: undefined,
+	characterSpacing: 0,
+	listType: 'none',
+	align: undefined,
+	paragraphMarginLeft: 0,
+	lineSpacing: undefined,
+};
+
+/**
+ * The Home tab's Font group: the shared family/size picker and the shared Font
+ * strip (character toggles, spacing, case and the two colour popovers). Every
+ * document edit stays with the native handlers.
+ */
 export function createFontGroup(
 	doc: Document,
 	t: Translator,
@@ -70,151 +87,84 @@ export function createFontGroup(
 	registerPptxWebControls();
 	const el = createEl(doc, 'div');
 	el.dataset.pptxChrome = 'font-groups';
-	const pickers = createEl(doc, 'div', 'pptxv-rgroup');
 	const formatting = createEl(doc, 'div', 'pptxv-rgroup');
-	for (const group of [pickers, formatting]) {
-		group.dataset.pptxChrome = 'home-group';
-		tagRibbonGroup(group, 'home.font');
-	}
-	el.append(pickers, formatting);
-	const pickerRow = createEl(doc, 'div');
-	pickerRow.dataset.pptxChrome = 'font-picker-controls';
-	pickers.append(pickerRow);
+	formatting.dataset.pptxChrome = 'home-group';
+	tagRibbonGroup(formatting, 'home.font');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	row.dataset.pptxChrome = 'font-controls';
-	formatting.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
 	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.ribbon.font');
-	formatting.appendChild(label);
-	pickers.appendChild(label.cloneNode(true));
+	formatting.append(row, label);
 
-	const fontFamily = createFontSelect(doc, t, 'family', handlers.setFontFamily);
-	const fontSize = createFontSelect(doc, t, 'size', (value) => handlers.setFontSize(Number(value)));
-	fontSize.el.replaceChildren(
-		...COMMON_FONT_SIZES.map((size) => {
-			const option = doc.createElement('option');
-			option.value = option.textContent = String(size);
-			return option;
-		}),
+	const picker = createSharedHomeStrip(doc, t, 'font-picker', ({ id, value }) =>
+		id === 'home.font.fontFamily'
+			? handlers.setFontFamily(String(value))
+			: handlers.setFontSize(Number(value)),
 	);
-
-	// Character toggles, Text Shadow, size steps and Clear Formatting are the
-	// shared strip; its one intent is mapped onto the native handlers here.
-	const character = doc.createElement('pptx-ui-ribbon-home-font') as PptxUiRibbonHomeElement;
-	let characterState = { enabled: false, text: undefined as TextFormatState | undefined };
-	const syncCharacter = () => {
-		const text = characterState.text;
-		character.state = {
-			controls: fontHomeControls({
-				enabled: characterState.enabled,
-				bold: Boolean(text?.bold),
-				italic: Boolean(text?.italic),
-				underline: Boolean(text?.underline),
-				strikethrough: Boolean(text?.strikethrough),
-				shadow: Boolean(text?.hasTextShadow),
-			}),
-			translate: t,
-		};
-	};
-	const characterActions: Record<string, () => void> = {
-		'home.font.bold': handlers.toggleBold,
-		'home.font.italic': handlers.toggleItalic,
-		'home.font.underline': handlers.toggleUnderline,
-		'home.font.strikethrough': handlers.toggleStrikethrough,
-		'home.font.shadow': handlers.toggleTextShadow,
+	const actions: Record<string, FontAction> = {
+		'home.font.bold': () => handlers.toggleBold(),
+		'home.font.italic': () => handlers.toggleItalic(),
+		'home.font.underline': () => handlers.toggleUnderline(),
+		'home.font.strikethrough': () => handlers.toggleStrikethrough(),
+		'home.font.shadow': () => handlers.toggleTextShadow(),
 		'home.font.increaseFontSize': () => handlers.changeFontSize(FONT_STEP),
 		'home.font.decreaseFontSize': () => handlers.changeFontSize(-FONT_STEP),
-		'home.font.clearFormatting': handlers.clearFormatting,
+		'home.font.clearFormatting': () => handlers.clearFormatting(),
+		'home.font.characterSpacing': (value) => handlers.setCharacterSpacing(Number(value)),
+		'home.font.changeCase': (value) => handlers.changeCase(value as ChangeCaseMode),
+		'home.font.fontColor': (value, ref) => handlers.setTextColor(String(value), ref),
+		'home.font.highlightColor': (value) => handlers.setHighlightColor(String(value)),
 	};
-	character.addEventListener('home-request', (event) =>
-		characterActions[(event as RibbonHomeRequestEvent).detail.id]?.(),
+	const strip = createSharedHomeStrip(doc, t, 'font', ({ id, value, ref }) =>
+		actions[id]?.(value, ref),
 	);
-	syncCharacter();
+	row.append(strip.el);
+	el.append(picker.el, formatting);
 
-	const charSpacing = makeDropdown(doc, {
-		triggerLabel: t('pptx.text.characterSpacing'),
-		triggerText: '',
-		icon: 'char-spacing',
-		items: CHARACTER_SPACING_OPTIONS.map((o) => ({ label: t(o.i18nKey), value: o.value })),
-		onSelect: handlers.setCharacterSpacing,
-	});
-	charSpacing.el.querySelector('.pptxv-dropdown-text')?.remove();
-
-	const changeCase = makeDropdown(doc, {
-		triggerLabel: t('pptx.text.changeCase'),
-		triggerText: '',
-		icon: 'change-case',
-		items: CHANGE_CASE_OPTIONS.map((o) => ({ label: t(o.i18nKey), value: o.value })),
-		onSelect: handlers.changeCase,
-	});
-	changeCase.el.querySelector('.pptxv-dropdown-text')?.remove();
-
-	const fontColor = makeSwatchPicker(doc, t, {
-		label: t('pptx.text.fontColor'),
-		icon: 'font-color',
-		swatches: OFFICE_STANDARD_SWATCHES,
-		fallback: '#000000',
-		onSelect: handlers.setTextColor,
-		onSelectTheme: (commit) => handlers.setTextColor(commit.hex, commit.ref),
-	});
-	const highlight = makeSwatchPicker(doc, t, {
-		label: t('pptx.text.highlightColor'),
-		icon: 'highlight',
-		swatches: OFFICE_STANDARD_SWATCHES,
-		fallback: '#ffff00',
-		onSelect: handlers.setHighlightColor,
-	});
-
-	tagRibbonControl(fontFamily.el, 'home.font.fontFamily');
-	tagRibbonControl(fontSize.el, 'home.font.fontSize');
-	tagRibbonControl(charSpacing.el, 'home.font.characterSpacing');
-	tagRibbonControl(changeCase.el, 'home.font.changeCase');
-	tagRibbonControl(fontColor.el, 'home.font.fontColor');
-	tagRibbonControl(highlight.el, 'home.font.highlightColor');
-	pickerRow.append(fontFamily.el, fontSize.el);
-	row.append(character, charSpacing.el, changeCase.el, fontColor.el, highlight.el);
-
-	// Formatting controls require an editable text or selected table cell.
-	const gated = [charSpacing, changeCase, fontColor, highlight];
-
-	return {
-		el,
-		update({
-			canFormat,
-			editable,
-			text,
-			themeFonts,
-			embeddedFontFamilies,
-			customFontFamilies,
-			recentColors,
-			themeColorMap,
-		}) {
-			// Regroup per deck: the theme fonts and the embedded set are not
-			// known until a presentation has loaded.
-			setFontSelectCatalog(fontFamily.el, t, {
-				themeFonts,
-				embeddedFonts: embeddedFontFamilies,
-				customFonts: customFontFamilies,
-			});
-			characterState = { enabled: editable && canFormat, text };
-			syncCharacter();
-			fontFamily.setTriggerText(
-				text.fontFamily ?? resolveDefaultFontFamily(text.placeholderType, themeFonts),
-			);
-			fontSize.setTriggerText(String(text.fontSize));
-			fontColor.setValue(text.color);
-			highlight.setValue(text.highlightColor);
-			fontColor.setRecentColors(recentColors ?? []);
-			highlight.setRecentColors(recentColors ?? []);
-			fontColor.setThemeColorMap(themeColorMap);
-			fontColor.setSelectedRef(text.colorRef);
-
-			fontFamily.setDisabled(!editable || !canFormat);
-			fontSize.setDisabled(!editable || !canFormat);
-			for (const c of gated) {
-				c.setDisabled(!editable || !canFormat);
-			}
-		},
+	const update = ({
+		canFormat,
+		editable,
+		text,
+		themeFonts,
+		embeddedFontFamilies,
+		customFontFamilies,
+		recentColors,
+		themeColorMap,
+	}: FontGroupState) => {
+		const enabled = editable && canFormat;
+		picker.set(
+			fontPickerHomeControls(
+				{
+					enabled,
+					fontFamily: text.fontFamily ?? resolveDefaultFontFamily(text.placeholderType, themeFonts),
+					fontSize: text.fontSize,
+					themeFonts,
+					embeddedFonts: embeddedFontFamilies,
+					customFonts: customFontFamilies,
+				},
+				t,
+			),
+		);
+		strip.set(
+			fontHomeControls({
+				enabled,
+				bold: Boolean(text.bold),
+				italic: Boolean(text.italic),
+				underline: Boolean(text.underline),
+				strikethrough: Boolean(text.strikethrough),
+				shadow: Boolean(text.hasTextShadow),
+				characterSpacing: text.characterSpacing,
+				fontColor: {
+					value: text.color ?? '#000000',
+					ref: text.colorRef,
+					themeColors: themeColorMap,
+					recent: recentColors,
+				},
+				highlight: { value: text.highlightColor ?? '#ffff00', recent: recentColors },
+			}),
+		);
 	};
+	update({ canFormat: false, editable: false, text: EMPTY_TEXT });
+	return { el, update };
 }

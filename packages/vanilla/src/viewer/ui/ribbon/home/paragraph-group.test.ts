@@ -117,40 +117,52 @@ describe('createParagraphGroup', () => {
 		expect(button.disabled).toBeTruthy();
 	});
 
-	it('offers the Text Direction and Columns menus React puts in this group', () => {
-		const t = createTranslator();
-		const group = createParagraphGroup(document, t, paragraphHandlers());
-		expect(trigger(group.el, t('pptx.paragraph.textDirection'))).toBeTruthy();
-		expect(trigger(group.el, t('pptx.paragraph.columns'))).toBeTruthy();
+	it('offers the Line Spacing, Text Direction and Columns icon menus on the shared select', () => {
+		const group = createParagraphGroup(document, createTranslator(), paragraphHandlers());
+		for (const id of ['lineSpacing', 'textDirection', 'columns']) {
+			const select = group.el.querySelector(`[data-ribbon-control="home.paragraph.${id}"]`)!;
+			expect(select.localName).toBe('pptx-ui-select');
+			expect(select.getAttribute('variant')).toBe('ribbon-icon');
+		}
 	});
 
-	it('sets a text direction from its menu', () => {
-		const t = createTranslator();
+	it('maps select changes onto the native handlers', () => {
 		const handlers = paragraphHandlers();
-		const group = createParagraphGroup(document, t, handlers);
-		const menu = trigger(group.el, t('pptx.paragraph.textDirection')).parentElement;
-		menu?.querySelector<HTMLButtonElement>('.pptxv-dropdown-item')?.click();
-		expect(handlers.setTextDirection).toHaveBeenCalledWith('horizontal');
-	});
-
-	it('sets a column count from its menu', () => {
-		const t = createTranslator();
-		const handlers = paragraphHandlers();
-		const group = createParagraphGroup(document, t, handlers);
-		const menu = trigger(group.el, t('pptx.paragraph.columns')).parentElement;
-		const items = menu?.querySelectorAll<HTMLButtonElement>('.pptxv-dropdown-item') ?? [];
-		expect(items).toHaveLength(3);
-		items[1].click();
-		expect(handlers.setColumnCount).toHaveBeenCalledWith(2);
-	});
-
-	it('gates both menus on something formattable being selected', () => {
-		const t = createTranslator();
-		const group = createParagraphGroup(document, t, paragraphHandlers());
-		group.update({ ...formattable, canFormat: false });
-		expect(trigger(group.el, t('pptx.paragraph.columns')).disabled).toBeTruthy();
+		const group = createParagraphGroup(document, createTranslator(), handlers);
 		group.update(formattable);
-		expect(trigger(group.el, t('pptx.paragraph.columns')).disabled).toBeFalsy();
+		const pick = (id: string, value: string) => {
+			const select = group.el.querySelector<HTMLElement & { value: string }>(
+				`[data-ribbon-control="home.paragraph.${id}"]`,
+			)!;
+			select.value = value;
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+		};
+		pick('lineSpacing', '1.5');
+		pick('textDirection', 'vertical');
+		pick('columns', '2');
+		expect(handlers.setLineSpacing).toHaveBeenCalledExactlyOnceWith(1.5);
+		expect(handlers.setTextDirection).toHaveBeenCalledExactlyOnceWith('vertical');
+		expect(handlers.setColumnCount).toHaveBeenCalledExactlyOnceWith(2);
+	});
+
+	it('gates the menus on something formattable being selected', () => {
+		const group = createParagraphGroup(document, createTranslator(), paragraphHandlers());
+		const columns = () =>
+			group.el.querySelector<HTMLElement & { disabled: boolean }>(
+				'[data-ribbon-control="home.paragraph.columns"]',
+			)!;
+		group.update({ ...formattable, canFormat: false });
+		expect(columns().disabled).toBeTruthy();
+		group.update(formattable);
+		expect(columns().disabled).toBeFalsy();
+	});
+
+	it('renders the Bullets and Numbering library galleries beside their toggles', () => {
+		const group = createParagraphGroup(document, createTranslator(), paragraphHandlers());
+		for (const id of ['bullets', 'numbering']) {
+			const slot = group.el.querySelector(`[data-ribbon-control="home.paragraph.${id}"]`)!;
+			expect(slot.querySelector('pptx-ui-ribbon-gallery[chevron-only]')).not.toBeNull();
+		}
 	});
 });
 
@@ -182,15 +194,20 @@ describe('createEditingGroup', () => {
 			toggleFindReplace: vi.fn(),
 			selectAll: vi.fn(),
 		});
+		group.update({ editable: true });
+		trigger(group.el, t('pptx.ribbon.tool.select')).click();
 		const item = selectAllItem(group.el, t('pptx.editing.selectAll'));
-		// It used to be a `role="option"` inside a listbox, so the one command in
-		// the menu could not be reached by role+name the way React's, Vue's and
-		// Angular's can - which is why the cross-binding effects spec skipped this
-		// binding outright.
-		expect(item.tagName).toBe('BUTTON');
-		expect(item.getAttribute('role')).toBeNull();
-		// Hidden until the trigger opens it, so it stays out of the tab inventory.
-		expect(item.closest('[hidden]')).not.toBeNull();
+		expect(item.getAttribute('role')).toBe('menuitem');
+	});
+
+	it('disables the Select menu without edit rights', () => {
+		const t = createTranslator();
+		const group = createEditingGroup(document, t, {
+			toggleFindReplace: vi.fn(),
+			selectAll: vi.fn(),
+		});
+		group.update({ editable: false });
+		expect(trigger(group.el, t('pptx.ribbon.tool.select')).disabled).toBeTruthy();
 	});
 });
 

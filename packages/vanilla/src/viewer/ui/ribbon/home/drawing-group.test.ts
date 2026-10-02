@@ -28,209 +28,142 @@ function handlers() {
 		sendBackward: vi.fn(),
 		bringToFront: vi.fn(),
 		sendToBack: vi.fn(),
-		groupSelected: vi.fn(),
-		ungroupSelected: vi.fn(),
 		setShapeFill: vi.fn(),
 		setShapeStroke: vi.fn(),
 	};
 }
 
-function control(group: ReturnType<typeof createDrawingGroup>, label: string): HTMLButtonElement {
-	const match = [...group.el.querySelectorAll<HTMLButtonElement>('button')].find(
-		(item) => item.getAttribute('aria-label') === label,
-	);
-	if (!match) {
-		throw new Error(`missing drawing control: ${label}`);
-	}
-	return match;
-}
+type Group = ReturnType<typeof createDrawingGroup>;
 
-/** The Fill/Outline picker's own popup menu, mounted inside its shared trigger's wrapper. */
-function menuFor(group: ReturnType<typeof createDrawingGroup>, label: string): HTMLElement {
-	return control(group, label)
-		.closest('[data-ribbon-control]')!
-		.querySelector('.pptxv-swatch-menu')!;
-}
+const slot = (group: Group, id: string) =>
+	group.el.querySelector<HTMLElement>(`[data-ribbon-control="home.drawing.${id}"]`)!;
+const trigger = (group: Group, id: string) => slot(group, id).querySelector('button')!;
 
 describe('createDrawingGroup', () => {
-	it('offers the Drawing commands plus the Quick Styles and Shape Effects galleries', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
-		for (const label of [
-			t('pptx.drawing.shapes'),
-			t('pptx.ribbon.arrange'),
-			t('pptx.drawing.shapeFill'),
-			t('pptx.drawing.shapeOutline'),
-		]) {
-			expect(control(group, label)).toBeTruthy();
-		}
+	it('renders the shared drawing strip with the public ids and both galleries', () => {
+		const group = createDrawingGroup(document, createTranslator(), handlers());
 		expect(group.el.getAttribute('data-ribbon-group')).toBe('home.drawing');
+		expect(group.el.querySelector('pptx-ui-ribbon-home-drawing')).not.toBeNull();
+		for (const id of ['shapes', 'arrange', 'shapeFill', 'shapeOutline']) {
+			expect(slot(group, id)).toBeTruthy();
+		}
 		expect(
-			group.el.querySelector(
-				'[data-ribbon-control="home.drawing.quickStyles"] [data-ribbon-gallery="shapeStyles"]',
-			),
+			group.el.querySelector('[data-ribbon-control="home.drawing.quickStyles"]'),
 		).not.toBeNull();
 		expect(
-			group.el.querySelector(
-				'[data-ribbon-control="home.drawing.shapeEffects"] [data-ribbon-gallery="shapeEffects"]',
-			),
+			group.el.querySelector('[data-ribbon-control="home.drawing.shapeEffects"]'),
 		).not.toBeNull();
 	});
 
 	it('inserts a preset from the Shapes menu', () => {
-		const t = createTranslator();
 		const actions = handlers();
-		const group = createDrawingGroup(document, t, actions);
+		const group = createDrawingGroup(document, createTranslator(), actions);
 		group.update({ editable: true, hasSelection: false });
-		control(group, t('pptx.drawing.shapes')).click();
-		group.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-item')?.click();
+		trigger(group, 'shapes').click();
+		slot(group, 'shapes').querySelector<HTMLElement>('[role="menuitem"]')?.click();
 		expect(actions.insertShape).toHaveBeenCalledWith(SHAPE_PRESET_DEFS[0].type);
 	});
 
-	it('keeps Group and Ungroup reachable from the Arrange menu', () => {
-		const t = createTranslator();
+	it('runs the four z-order commands from the Arrange menu', () => {
 		const actions = handlers();
-		const group = createDrawingGroup(document, t, actions);
+		const group = createDrawingGroup(document, createTranslator(), actions);
 		group.update({ editable: true, hasSelection: true });
-		const arrangeMenu = group.el.querySelector('[data-ribbon-control="home.drawing.arrange"]')!;
-		const items = [...arrangeMenu.querySelectorAll<HTMLButtonElement>('.pptxv-dropdown-item')];
-		const byLabel = (label: string) => items.find((item) => item.textContent === label);
-		byLabel(t('pptx.ribbon.group'))?.click();
-		byLabel(t('pptx.ribbon.ungroup'))?.click();
-		expect(actions.groupSelected).toHaveBeenCalledOnce();
-		expect(actions.ungroupSelected).toHaveBeenCalledOnce();
+		trigger(group, 'arrange').click();
+		for (const row of slot(group, 'arrange').querySelectorAll<HTMLElement>('[role="menuitem"]')) {
+			trigger(group, 'arrange').click();
+			row.click();
+		}
+		expect(actions.bringForward).toHaveBeenCalledOnce();
+		expect(actions.sendBackward).toHaveBeenCalledOnce();
+		expect(actions.bringToFront).toHaveBeenCalledOnce();
+		expect(actions.sendToBack).toHaveBeenCalledOnce();
 	});
 
-	it('opens a native menu from the shared trigger and reflects it as expanded', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
+	it('reflects the open menu as expanded', () => {
+		const group = createDrawingGroup(document, createTranslator(), handlers());
 		group.update({ editable: true, hasSelection: true });
-		const wrapper = group.el.querySelector('[data-ribbon-control="home.drawing.shapes"]')!;
-		const menu = wrapper.querySelector<HTMLElement>('.pptxv-dropdown-menu')!;
-		const trigger = control(group, t('pptx.drawing.shapes'));
-		expect(menu.hidden).toBeTruthy();
-		expect(trigger.getAttribute('aria-expanded')).toBe('false');
-		trigger.click();
-		expect(menu.hidden).toBeFalsy();
-		expect(trigger.getAttribute('aria-expanded')).toBe('true');
-		trigger.click();
-		expect(menu.hidden).toBeTruthy();
+		const button = trigger(group, 'shapes');
+		expect(button.getAttribute('aria-expanded')).toBe('false');
+		button.click();
+		expect(button.getAttribute('aria-expanded')).toBe('true');
+		button.click();
+		expect(button.getAttribute('aria-expanded')).toBe('false');
 	});
 
-	it('no longer renders the disabled Shape Effects placeholder', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
-		group.update({ editable: true, hasSelection: true });
-		expect(
-			group.el.querySelector(`[aria-label="${t('pptx.drawing.shapeEffectsUnavailable')}"]`),
-		).toBeNull();
-	});
-
-	// B6: both pickers show the same deck-level "Recent colours" row.
-	it('threads recentColors into the fill and outline pickers', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
+	it('shows the deck recent colours in the fill popover', () => {
+		const group = createDrawingGroup(document, createTranslator(), handlers());
 		group.update({ editable: true, hasSelection: true, recentColors: ['#112233'] });
-
-		control(group, t('pptx.drawing.shapeFill')).click();
+		trigger(group, 'shapeFill').click();
 		expect(
-			group.el.querySelector('[data-testid="pptx-color-recent"] .pptxv-swatch'),
+			slot(group, 'shapeFill').querySelector('[data-testid="pptx-color-recent"] .sw'),
 		).not.toBeNull();
 	});
 
 	it('needs a selection before fill, outline and arrange are usable', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
+		const group = createDrawingGroup(document, createTranslator(), handlers());
 		group.update({ editable: true, hasSelection: false });
-		expect(control(group, t('pptx.drawing.shapeFill')).disabled).toBeTruthy();
-		expect(control(group, t('pptx.ribbon.arrange')).disabled).toBeTruthy();
+		expect(trigger(group, 'shapeFill').disabled).toBeTruthy();
+		expect(trigger(group, 'arrange').disabled).toBeTruthy();
 		// Inserting a shape does not need one.
-		expect(control(group, t('pptx.drawing.shapes')).disabled).toBeFalsy();
-
+		expect(trigger(group, 'shapes').disabled).toBeFalsy();
 		group.update({ editable: true, hasSelection: true });
-		expect(control(group, t('pptx.drawing.shapeFill')).disabled).toBeFalsy();
-		expect(control(group, t('pptx.drawing.shapeOutline')).disabled).toBeFalsy();
+		expect(trigger(group, 'shapeFill').disabled).toBeFalsy();
+		expect(trigger(group, 'shapeOutline').disabled).toBeFalsy();
 	});
 });
 
-// W3-G2 follow-up: the deck's real "Theme Colors" grid, above the standard
-// swatches, on the ribbon's Shape Fill / Shape Outline pickers.
-describe('createDrawingGroup Shape Fill / Shape Outline theme colours', () => {
-	it('offers the twelve RIBBON_SHAPE_SWATCHES as the flat standard-colour row', () => {
+describe('createDrawingGroup Shape Fill / Shape Outline colours', () => {
+	it('offers the twelve standard swatches and the Standard Colors heading', () => {
 		const t = createTranslator();
 		const group = createDrawingGroup(document, t, handlers());
 		group.update({ editable: true, hasSelection: true });
-		control(group, t('pptx.drawing.shapeFill')).click();
-		const swatches = menuFor(group, t('pptx.drawing.shapeFill')).querySelectorAll('.pptxv-swatch');
-		expect(swatches).toHaveLength(RIBBON_SHAPE_SWATCHES.length);
+		trigger(group, 'shapeFill').click();
+		expect(slot(group, 'shapeFill').querySelectorAll('.std-grid .sw')).toHaveLength(
+			RIBBON_SHAPE_SWATCHES.length,
+		);
+		expect(slot(group, 'shapeFill').querySelector('.heading')?.textContent).toBe(
+			t('pptx.colorPicker.standardColors'),
+		);
 	});
 
-	it('renders one theme-swatch grid per picker, hidden until a theme is loaded', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
+	it('shows the theme grid only once a theme is loaded', () => {
+		const group = createDrawingGroup(document, createTranslator(), handlers());
 		group.update({ editable: true, hasSelection: true });
-
-		const grids = group.el.querySelectorAll('.pptxv-theme-swatch-grid');
-		expect(grids).toHaveLength(2);
-		for (const grid of grids) {
-			expect((grid as HTMLElement).hidden).toBeTruthy();
-		}
-
+		trigger(group, 'shapeFill').click();
+		expect(slot(group, 'shapeFill').querySelector('.theme-grid')).toBeNull();
 		group.update({ editable: true, hasSelection: true, themeColorMap: OFFICE_THEME });
-		for (const grid of group.el.querySelectorAll('.pptxv-theme-swatch-grid')) {
-			expect((grid as HTMLElement).hidden).toBeFalsy();
-		}
+		expect(slot(group, 'shapeFill').querySelector('.theme-grid')).not.toBeNull();
 	});
 
-	it('shows a "Standard Colors" label above the flat swatch row', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
-		group.update({ editable: true, hasSelection: true });
-		control(group, t('pptx.drawing.shapeFill')).click();
-		const label = menuFor(group, t('pptx.drawing.shapeFill')).querySelector<HTMLElement>(
-			'.pptxv-swatch-standard-label',
-		)!;
-		expect(label.textContent).toBe(t('pptx.colorPicker.standardColors'));
-	});
-
-	it('clicking a theme swatch commits both the hex and the ref for fill and outline', () => {
-		const t = createTranslator();
+	it('commits both the hex and the ref for a theme swatch, for fill and outline', () => {
 		const actions = handlers();
-		const group = createDrawingGroup(document, t, actions);
+		const group = createDrawingGroup(document, createTranslator(), actions);
 		group.update({ editable: true, hasSelection: true, themeColorMap: OFFICE_THEME });
-
-		control(group, t('pptx.drawing.shapeFill')).click();
-		menuFor(group, t('pptx.drawing.shapeFill'))
-			.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!
-			.click();
+		trigger(group, 'shapeFill').click();
+		slot(group, 'shapeFill').querySelector<HTMLElement>('button[title="Accent 2"]')!.click();
 		expect(actions.setShapeFill).toHaveBeenCalledExactlyOnceWith('#ed7d31', { scheme: 'accent2' });
 		expect(actions.setShapeStroke).not.toHaveBeenCalled();
-
-		control(group, t('pptx.drawing.shapeOutline')).click();
-		menuFor(group, t('pptx.drawing.shapeOutline'))
-			.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!
-			.click();
+		trigger(group, 'shapeOutline').click();
+		slot(group, 'shapeOutline').querySelector<HTMLElement>('button[title="Accent 2"]')!.click();
 		expect(actions.setShapeStroke).toHaveBeenCalledExactlyOnceWith('#ed7d31', {
 			scheme: 'accent2',
 		});
 	});
 
-	it('clicking a standard swatch commits the hex with no ref', () => {
-		const t = createTranslator();
+	it('commits a standard swatch as a plain hex', () => {
 		const actions = handlers();
-		const group = createDrawingGroup(document, t, actions);
+		const group = createDrawingGroup(document, createTranslator(), actions);
 		group.update({ editable: true, hasSelection: true, themeColorMap: OFFICE_THEME });
-
-		control(group, t('pptx.drawing.shapeFill')).click();
-		menuFor(group, t('pptx.drawing.shapeFill'))
-			.querySelector<HTMLButtonElement>('.pptxv-swatch')!
-			.click();
-		expect(actions.setShapeFill).toHaveBeenCalledExactlyOnceWith(expect.any(String));
+		trigger(group, 'shapeFill').click();
+		slot(group, 'shapeFill').querySelector<HTMLElement>('.std-grid .sw')!.click();
+		expect(actions.setShapeFill).toHaveBeenCalledExactlyOnceWith(
+			RIBBON_SHAPE_SWATCHES[0],
+			undefined,
+		);
 	});
 
-	it('highlights the selected shape fill/outline theme ref', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
+	it('highlights the selected shape fill theme ref', () => {
+		const group = createDrawingGroup(document, createTranslator(), handlers());
 		group.update({
 			editable: true,
 			hasSelection: true,
@@ -238,23 +171,16 @@ describe('createDrawingGroup Shape Fill / Shape Outline theme colours', () => {
 			fillColorRef: { scheme: 'accent2' },
 			fillColor: '#ed7d31',
 		});
-
-		control(group, t('pptx.drawing.shapeFill')).click();
-		const swatch = menuFor(group, t('pptx.drawing.shapeFill')).querySelector<HTMLButtonElement>(
-			'button[title="Accent 2"]',
-		)!;
-		expect(swatch.classList.contains('is-selected')).toBeTruthy();
+		trigger(group, 'shapeFill').click();
+		const swatch = slot(group, 'shapeFill').querySelector<HTMLElement>('button[title="Accent 2"]')!;
+		expect(swatch.getAttribute('aria-pressed')).toBe('true');
 	});
 
-	it('disables both grids when nothing is selected', () => {
-		const t = createTranslator();
-		const group = createDrawingGroup(document, t, handlers());
-		group.update({ editable: true, hasSelection: false, themeColorMap: OFFICE_THEME });
-
-		for (const grid of group.el.querySelectorAll('.pptxv-theme-swatch-grid')) {
-			expect(
-				grid.querySelector<HTMLButtonElement>('.pptxv-theme-swatch-grid-swatch')!.disabled,
-			).toBeTruthy();
-		}
+	it('re-translates the popover headings when the strip is rebuilt for another locale', () => {
+		const french = (key: string) => (key === 'pptx.colorPicker.standardColors' ? 'Couleurs' : key);
+		const group = createDrawingGroup(document, french as never, handlers());
+		group.update({ editable: true, hasSelection: true });
+		trigger(group, 'shapeFill').click();
+		expect(slot(group, 'shapeFill').querySelector('.heading')?.textContent).toBe('Couleurs');
 	});
 });

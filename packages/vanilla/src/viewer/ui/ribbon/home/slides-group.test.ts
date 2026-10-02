@@ -46,25 +46,46 @@ describe('createSlidesGroup', () => {
 		expect(actions.addSection).toHaveBeenCalledOnce();
 	});
 
-	it('opens the native layout menus inside the shared wrappers and applies a pick', () => {
+	it('opens the shared layout galleries and applies a pick', () => {
 		const actions = handlers();
 		const group = createSlidesGroup(document, createTranslator(), actions);
-		group.update(ready);
+		group.update({ ...ready, currentLayoutPath: 'layouts/one.xml' });
 		const wrapper = control(group, 'layout');
-		const menu = wrapper.querySelector<HTMLElement>('[data-testid="layout-gallery-menu"]')!;
-		expect(menu.hidden).toBeTruthy();
+		const popup = () => wrapper.querySelector<HTMLElement>('.popup')!;
+		expect(popup().hidden).toBeTruthy();
 		wrapper.querySelector('button')!.click();
+		const menu = wrapper.querySelector<HTMLElement>('[data-testid="layout-gallery-menu"]')!;
 		expect(menu.hidden).toBeFalsy();
 		expect(wrapper.querySelector('button')!.getAttribute('aria-expanded')).toBe('true');
-		menu.querySelector<HTMLElement>('.pptxv-layout-tile')!.click();
+		const tile = menu.querySelector<HTMLElement>('[data-layout-path]')!;
+		expect(tile.getAttribute('aria-current')).toBe('true');
+		tile.click();
 		expect(actions.applyLayout).toHaveBeenCalledWith('layouts/one.xml');
 		expect(menu.hidden).toBeTruthy();
 
 		control(group, 'newSlide')
 			.querySelector<HTMLElement>('[data-pptx-chrome="split-caret"]')!
 			.click();
-		control(group, 'newSlide').querySelector<HTMLElement>('.pptxv-layout-tile')!.click();
+		control(group, 'newSlide').querySelector<HTMLElement>('[data-layout-path]')!.click();
 		expect(actions.insertSlideFromLayout).toHaveBeenCalledWith('layouts/one.xml', 'Title');
+	});
+
+	it('draws the host artwork inside each tile and releases it on close', () => {
+		const remove = vi.spyOn(HTMLElement.prototype, 'remove');
+		const group = createSlidesGroup(document, createTranslator(), {
+			...handlers(),
+			renderLayoutPreview: () => document.createElement('i'),
+		});
+		const preview = new Map([
+			['layouts/one.xml', { path: 'layouts/one.xml', name: 'Title', elements: [] }],
+		]);
+		group.update({ ...ready, layoutPreviews: preview as never });
+		const wrapper = control(group, 'layout');
+		wrapper.querySelector('button')!.click();
+		expect(wrapper.querySelector('.surface i')).not.toBeNull();
+		wrapper.querySelector('button')!.click();
+		expect(remove.mock.calls.length).toBeGreaterThan(0);
+		remove.mockRestore();
 	});
 
 	it('gates on edit rights, layouts and an existing slide', () => {

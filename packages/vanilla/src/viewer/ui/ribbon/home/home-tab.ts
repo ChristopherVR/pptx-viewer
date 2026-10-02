@@ -74,7 +74,7 @@ export interface HomeTab {
 }
 
 /**
- * Composes the Home tab's seven groups: Clipboard, Slides, Font, Paragraph,
+ * Composes the Home tab's seven groups (each a shared `pptx-ui-ribbon-home-*` strip): Clipboard, Slides, Font, Paragraph,
  * Editing, Drawing, Arrange (React's order).
  */
 export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): HomeTab {
@@ -159,8 +159,6 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			sendBackward: edit.sendBackward,
 			bringToFront: edit.bringToFront,
 			sendToBack: edit.sendToBack,
-			groupSelected: edit.groupSelected,
-			ungroupSelected: edit.ungroupSelected,
 			setShapeFill: edit.setShapeFill,
 			setShapeStroke: edit.setShapeStroke,
 		},

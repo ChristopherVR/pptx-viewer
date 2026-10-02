@@ -8,11 +8,17 @@ import type {
 
 import type { Translator } from '../../../i18n';
 
-type HomeTag =
+export type HomeTag =
+	| 'font'
+	| 'font-picker'
+	| 'paragraph'
+	| 'editing'
 	| 'slides'
 	| 'drawing'
 	| 'arrange-align'
+	| 'arrange-painter'
 	| 'arrange-flip'
+	| 'arrange-shape'
 	| 'arrange-order'
 	| 'arrange-edit';
 
