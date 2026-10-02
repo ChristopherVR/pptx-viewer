@@ -145,7 +145,10 @@ describe('insertSection', () => {
 		act(() => container.querySelector<HTMLButtonElement>('[data-insert-item="datetime"]')!.click());
 		expect(document.body.textContent).toContain('Format');
 		act(() => {
-			[...document.querySelectorAll('button')].find((el) => el.textContent === 'Insert')!.click();
+			document
+				.querySelector('pptx-ui-dialog-footer')!
+				.shadowRoot!.querySelector<HTMLButtonElement>('[data-action="insert"]')!
+				.click();
 		});
 		expect(props.onInsertField).toHaveBeenLastCalledWith('datetime', expect.any(String));
 	});

@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { WebSelect } from '../WebControls';
+import { DialogFooter } from '../DialogFooter';
 
 function nowLocalInputValue(): string {
 	const now = new Date();
@@ -111,20 +112,13 @@ export function DateTimeFieldDialog(p: DateTimeFieldDialogProps): React.ReactEle
 					</WebSelect>
 				</div>
 				<div className='flex justify-end gap-2 pt-1'>
-					<button
-						type='button'
-						className='px-3 py-1.5 text-xs rounded border border-border text-foreground hover:bg-muted transition-colors'
-						onClick={() => p.onClose()}
-					>
-						{t('pptx.common.cancel', 'Cancel')}
-					</button>
-					<button
-						type='button'
-						className='px-3 py-1.5 text-xs rounded bg-primary text-white hover:bg-primary/90 transition-colors'
-						onClick={confirmDatePicker}
-					>
-						{t('pptx.common.insert', 'Insert')}
-					</button>
+					<DialogFooter
+						actions={[
+							{ id: 'cancel', label: t('pptx.common.cancel', 'Cancel') },
+							{ id: 'insert', label: t('pptx.common.insert', 'Insert'), variant: 'primary' },
+						]}
+						onAction={(id) => (id === 'insert' ? confirmDatePicker() : p.onClose())}
+					/>
 				</div>
 			</div>
 		</div>

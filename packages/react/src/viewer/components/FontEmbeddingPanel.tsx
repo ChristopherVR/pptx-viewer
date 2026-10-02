@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LuType, LuX, LuCheck, LuLoader } from 'react-icons/lu';
 
 import { WebCheckbox } from './WebControls';
+import { DialogFooter } from './DialogFooter';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -187,13 +188,10 @@ export function FontEmbeddingPanel({
 
 					{/* Footer */}
 					<div className='flex items-center justify-end px-5 py-3 border-t border-border/60 shrink-0'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors'
-						>
-							{t('pptx.common.done')}
-						</button>
+						<DialogFooter
+							actions={[{ id: 'done', label: t('pptx.common.done'), variant: 'primary' }]}
+							onAction={onClose}
+						/>
 					</div>
 				</div>
 			</div>

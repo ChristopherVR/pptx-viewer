@@ -2,6 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLock, LuX, LuInfo } from 'react-icons/lu';
 
+import { DialogFooter } from './DialogFooter';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -88,13 +90,10 @@ export function EncryptedFileDialog({
 
 					{/* Footer */}
 					<div className='flex items-center justify-end px-5 py-3 border-t border-border/60'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='px-3 py-1.5 text-xs rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors'
-						>
-							{t('pptx.common.close')}
-						</button>
+						<DialogFooter
+							actions={[{ id: 'close', label: t('pptx.common.close') }]}
+							onAction={onClose}
+						/>
 					</div>
 				</div>
 			</div>

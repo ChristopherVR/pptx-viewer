@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LuLock, LuShieldCheck, LuX, LuEye, LuEyeOff } from 'react-icons/lu';
 
 import { useModalFocus } from '../hooks/useModalFocus';
+import { DialogFooter } from './DialogFooter';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -273,35 +274,31 @@ export function PasswordProtectionDialog({
 
 					{/* Footer */}
 					<div className='flex items-center justify-between px-5 py-3 border-t border-border/60'>
-						<div>
-							{isCurrentlyProtected && (
-								<button
-									type='button'
-									onClick={handleRemove}
-									className='text-xs text-red-400 hover:text-red-300 transition-colors'
-								>
-									{t('pptx.security.removePassword')}
-								</button>
-							)}
-						</div>
-						<div className='flex gap-2'>
-							<button
-								type='button'
-								onClick={handleClose}
-								className='px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors'
-							>
-								{t('pptx.common.cancel')}
-							</button>
-							<button
-								type='button'
-								onClick={handleSubmit}
-								className='px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors'
-							>
-								{isCurrentlyProtected
-									? t('pptx.security.updatePassword')
-									: t('pptx.security.setPassword')}
-							</button>
-						</div>
+						<DialogFooter
+							actions={[
+								...(isCurrentlyProtected
+									? [
+											{
+												id: 'remove',
+												label: t('pptx.security.removePassword'),
+												variant: 'danger' as const,
+												align: 'start' as const,
+											},
+										]
+									: []),
+								{ id: 'cancel', label: t('pptx.common.cancel') },
+								{
+									id: 'submit',
+									label: isCurrentlyProtected
+										? t('pptx.security.updatePassword')
+										: t('pptx.security.setPassword'),
+									variant: 'primary',
+								},
+							]}
+							onAction={(id) =>
+								id === 'remove' ? handleRemove() : id === 'submit' ? handleSubmit() : handleClose()
+							}
+						/>
 					</div>
 				</div>
 			</div>

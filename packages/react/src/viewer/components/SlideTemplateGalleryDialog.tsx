@@ -15,6 +15,7 @@ import { LuX } from 'react-icons/lu';
 import { useModalDismissDrag } from '../hooks';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { cn } from '../utils';
+import { DialogFooter } from './DialogFooter';
 import { SlideTemplatePreview } from './SlideTemplatePreview';
 
 export interface SlideTemplateGalleryDialogProps {
@@ -132,26 +133,18 @@ export function SlideTemplateGalleryDialog({
 					</div>
 
 					<div className='flex items-center justify-end gap-2 px-4 py-3 border-t border-border'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='px-3 py-1.5 text-xs rounded bg-muted hover:bg-accent text-foreground transition-colors'
-						>
-							{t('pptx.slideTemplates.cancel')}
-						</button>
-						<button
-							type='button'
-							onClick={handleInsert}
-							disabled={!selected}
-							className={cn(
-								'px-3 py-1.5 text-xs rounded transition-colors',
-								selected
-									? 'bg-primary hover:bg-primary/80 text-white'
-									: 'bg-muted text-muted-foreground cursor-not-allowed',
-							)}
-						>
-							{t('pptx.slideTemplates.insert')}
-						</button>
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: t('pptx.slideTemplates.cancel') },
+								{
+									id: 'insert',
+									label: t('pptx.slideTemplates.insert'),
+									variant: 'primary',
+									disabled: !selected,
+								},
+							]}
+							onAction={(id) => (id === 'insert' ? handleInsert() : onClose())}
+						/>
 					</div>
 				</div>
 			</div>

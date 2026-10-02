@@ -10,6 +10,24 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	}),
 }));
 
+// The shared footer renders its buttons client-side in a shadow root, which
+// static markup cannot show. Stand in with plain buttons carrying the same
+// action model so these markup tests keep covering label, order and gating.
+vi.mock<typeof import('./DialogFooter')>(import('./DialogFooter'), () => ({
+	DialogFooter: ({
+		actions,
+	}: {
+		actions: readonly { id: string; label: string; disabled?: boolean }[];
+	}) =>
+		React.createElement(
+			'div',
+			{ 'data-dialog-footer': '' },
+			actions.map((action) =>
+				React.createElement('button', { key: action.id, disabled: action.disabled }, action.label),
+			),
+		),
+}));
+
 const { SlideTemplateGalleryDialog } = await import('./SlideTemplateGalleryDialog');
 
 describe('slide template gallery dialog', () => {

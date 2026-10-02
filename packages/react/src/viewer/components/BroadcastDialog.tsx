@@ -21,6 +21,7 @@ import { useModalDismissDrag } from '../hooks';
 import type { CollaborationConfig } from '../hooks/collaboration/types';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { useCollaboration } from './collaboration';
+import { DialogFooter } from './DialogFooter';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -208,21 +209,18 @@ export function BroadcastDialog({
 					{/* Footer */}
 					{!isBroadcasting && (
 						<div className='flex justify-end gap-2 px-5 py-3 border-t border-border'>
-							<button
-								type='button'
-								onClick={onClose}
-								className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
-							>
-								{t('pptx.common.close')}
-							</button>
-							<button
-								type='button'
-								disabled={!canStart}
-								onClick={handleStartBroadcast}
-								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
-							>
-								{t('pptx.broadcast.startBroadcast')}
-							</button>
+							<DialogFooter
+								actions={[
+									{ id: 'close', label: t('pptx.common.close') },
+									{
+										id: 'start',
+										label: t('pptx.broadcast.startBroadcast'),
+										variant: 'primary',
+										disabled: !canStart,
+									},
+								]}
+								onAction={(id) => (id === 'start' ? handleStartBroadcast() : onClose())}
+							/>
 						</div>
 					)}
 				</div>

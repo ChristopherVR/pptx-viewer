@@ -5,6 +5,8 @@
 import { clampPercent } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
+import { DialogFooter } from './DialogFooter';
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -65,13 +67,10 @@ export function ExportProgressModal({
 
 				{/* Cancel button */}
 				<div className='flex justify-end'>
-					<button
-						type='button'
-						onClick={onCancel}
-						className='rounded-md border border-border bg-muted px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent'
-					>
-						{t('pptx.export.cancel')}
-					</button>
+					<DialogFooter
+						actions={[{ id: 'cancel', label: t('pptx.export.cancel') }]}
+						onAction={onCancel}
+					/>
 				</div>
 			</div>
 		</div>

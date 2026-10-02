@@ -10,6 +10,8 @@ import { LuCalendarDays, LuClock, LuFileText, LuHash, LuText, LuX } from 'react-
 
 import { WebCheckbox } from './WebControls';
 
+import { DialogFooter } from './DialogFooter';
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -198,22 +200,18 @@ export function HeaderFooterPanel({
 
 				{/* ── Footer actions ── */}
 				<div className='flex items-center justify-end gap-2 border-t border-border px-4 py-3'>
-					<button
-						type='button'
-						onClick={onApplyToAll}
-						data-testid='hf-apply-all'
-						className='rounded bg-accent px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent/80 transition-colors'
-					>
-						{t('pptx.headerFooter.applyToAll')}
-					</button>
-					<button
-						type='button'
-						onClick={onApplyToCurrent}
-						data-testid='hf-apply-current'
-						className='rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 transition-colors'
-					>
-						{t('pptx.headerFooter.applyToCurrent')}
-					</button>
+					<DialogFooter
+						actions={[
+							{ id: 'applyAll', label: t('pptx.headerFooter.applyToAll'), testId: 'hf-apply-all' },
+							{
+								id: 'applyCurrent',
+								label: t('pptx.headerFooter.applyToCurrent'),
+								variant: 'primary',
+								testId: 'hf-apply-current',
+							},
+						]}
+						onAction={(id) => (id === 'applyAll' ? onApplyToAll() : onApplyToCurrent())}
+					/>
 				</div>
 			</div>
 		</div>

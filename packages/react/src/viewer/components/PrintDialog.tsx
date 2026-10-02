@@ -11,6 +11,7 @@ import { LuPrinter, LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { DialogFooter } from './DialogFooter';
 import { PrintPreview, NotesPagePreview } from './print';
 import type {
 	PrintWhat,
@@ -42,7 +43,6 @@ export function PrintDialog({
 	const { viewportWidth } = useIsMobile();
 	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
 	const closeBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
-	const footerBtnStyle = { minHeight: touchTargetPx };
 
 	// File > Options > Advanced > Print. `undefined` (Options > "Use the most
 	// recently used print settings") keeps this dialog's own sticky in-session
@@ -237,23 +237,18 @@ export function PrintDialog({
 						})}
 					</span>
 					<div className='flex gap-2'>
-						<button
-							type='button'
-							onClick={onClose}
-							style={footerBtnStyle}
-							className='px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors'
-						>
-							{t('pptx.common.cancel')}
-						</button>
-						<button
-							type='button'
-							onClick={handlePrint}
-							style={footerBtnStyle}
-							className='px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-1.5'
-						>
-							<LuPrinter className='w-3.5 h-3.5' />
-							{t('pptx.print.printButton')}
-						</button>
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: t('pptx.common.cancel') },
+								{
+									id: 'print',
+									label: t('pptx.print.printButton'),
+									variant: 'primary',
+									icon: 'print',
+								},
+							]}
+							onAction={(id) => (id === 'print' ? handlePrint() : onClose())}
+						/>
 					</div>
 				</div>
 			</div>

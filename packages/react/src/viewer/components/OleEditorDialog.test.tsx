@@ -301,9 +301,10 @@ describe('oleEditorDialog', () => {
 				<OleEditorDialog isOpen onClose={() => {}} element={element} onUpdateElement={() => {}} />,
 			);
 		});
-		const button = Array.from(container.querySelectorAll('button')).find(
-			(b) => b.textContent === translationsEn['pptx.ole.editDialog.replaceFile'],
-		);
+		const button = Array.from(
+			container.querySelector('pptx-ui-dialog-footer')?.shadowRoot?.querySelectorAll('button') ??
+				[],
+		).find((b) => b.textContent === translationsEn['pptx.ole.editDialog.replaceFile']);
 		expect(button).toBeDefined();
 	});
 });

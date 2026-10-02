@@ -18,6 +18,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
+import { DialogFooter } from './DialogFooter';
 import { OleDeckEditor, OleDocumentEditor, OleSheetGridEditor } from './OleEditorDialogTabs';
 
 /** Props for {@link OleEditorDialog}. */
@@ -270,13 +271,13 @@ export function OleEditorDialog({
 							}
 						}}
 					/>
-					<button
-						type='button'
-						onClick={() => fileInputRef.current?.click()}
-						className='px-3 py-1.5 rounded-lg text-xs text-foreground border border-border hover:bg-accent transition-colors'
-					>
-						{t('pptx.ole.editDialog.replaceFile')}
-					</button>
+					<DialogFooter
+						actions={[
+							{ id: 'replace', label: t('pptx.ole.editDialog.replaceFile'), align: 'start' },
+							{ id: 'save', label: t('pptx.ole.editDialog.save'), variant: 'primary' },
+						]}
+						onAction={(id) => (id === 'replace' ? fileInputRef.current?.click() : onClose())}
+					/>
 					<button
 						type='button'
 						onClick={onClose}

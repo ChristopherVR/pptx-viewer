@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LuFileText, LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
+import { DialogFooter } from './DialogFooter';
 import { DocumentPropertiesCustomTab } from './DocumentPropertiesCustomTab';
 import { DocumentPropertiesStatisticsTab } from './DocumentPropertiesStatisticsTab';
 
@@ -267,21 +268,18 @@ export function DocumentPropertiesDialog({
 
 					{/* Footer */}
 					<div className='flex items-center justify-end gap-2 px-5 py-3 border-t border-border/60'>
-						<button
-							type='button'
-							onClick={handleClose}
-							className='px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors'
-						>
-							{t('pptx.common.cancel')}
-						</button>
-						<button
-							type='button'
-							onClick={handleSave}
-							disabled={!isDirty}
-							className='px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
-						>
-							{t('pptx.common.save')}
-						</button>
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: t('pptx.common.cancel') },
+								{
+									id: 'save',
+									label: t('pptx.common.save'),
+									variant: 'primary',
+									disabled: !isDirty,
+								},
+							]}
+							onAction={(id) => (id === 'save' ? handleSave() : handleClose())}
+						/>
 					</div>
 				</div>
 			</div>

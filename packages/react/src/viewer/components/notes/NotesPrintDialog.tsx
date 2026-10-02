@@ -3,6 +3,7 @@ import { buildNotesPrintHtml, resolveNotesSegments } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { DialogFooter } from '../DialogFooter';
 import { renderRichNotesSegments } from './notes-html';
 import { segmentsToPlainText } from './notes-utils';
 
@@ -82,13 +83,12 @@ export function NotesPrintDialog({
 					})}
 				</div>
 				<div className='flex justify-end px-4 py-3 border-t border-border'>
-					<button
-						type='button'
-						onClick={handlePrint}
-						className='px-3 py-1.5 text-xs bg-primary hover:bg-primary/80 text-white rounded'
-					>
-						{t('pptx.notes.print')}
-					</button>
+					<DialogFooter
+						actions={[
+							{ id: 'print', label: t('pptx.notes.print'), variant: 'primary', icon: 'print' },
+						]}
+						onAction={handlePrint}
+					/>
 				</div>
 				<iframe
 					ref={printFrameRef}

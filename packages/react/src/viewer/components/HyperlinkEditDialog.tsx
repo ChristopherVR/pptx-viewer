@@ -4,6 +4,7 @@ import { LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
+import { DialogFooter } from './DialogFooter';
 import type { HyperlinkTargetType, HyperlinkActionVerb } from './hyperlink-edit-types';
 import { ACTION_VERB_MAP } from './hyperlink-edit-types';
 import { detectTargetType, parseEmailUrl, parseSlideFromUrl } from './hyperlink-edit-utils';
@@ -204,20 +205,13 @@ export function HyperlinkEditDialog({
 
 					{/* Footer */}
 					<div className='flex justify-end gap-2 px-4 py-3 border-t border-border'>
-						<button
-							type='button'
-							className='px-3 py-1.5 text-xs rounded border border-border text-foreground hover:bg-muted'
-							onClick={onCancel}
-						>
-							{t('pptx.common.cancel')}
-						</button>
-						<button
-							type='button'
-							className='px-3 py-1.5 text-xs rounded bg-primary text-white hover:bg-primary/90'
-							onClick={handleConfirm}
-						>
-							{t('pptx.common.apply')}
-						</button>
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: t('pptx.common.cancel') },
+								{ id: 'apply', label: t('pptx.common.apply'), variant: 'primary' },
+							]}
+							onAction={(id) => (id === 'apply' ? handleConfirm() : onCancel())}
+						/>
 					</div>
 				</div>
 			</div>

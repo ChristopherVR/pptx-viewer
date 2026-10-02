@@ -24,6 +24,7 @@ import type { CollaborationConfig } from '../hooks/collaboration/types';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { useCollaboration } from './collaboration';
+import { DialogFooter } from './DialogFooter';
 import { ActiveSessionView } from './ShareDialogActiveView';
 import { StartSessionForm } from './ShareDialogViews';
 
@@ -225,25 +226,24 @@ export function ShareDialog({
 					<div
 						className={`flex justify-end gap-2 px-5 py-3 border-t border-border ${stickyFooterClass}`}
 					>
-						<button
-							type='button'
-							onClick={onClose}
-							style={touchBtnStyle}
-							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors inline-flex items-center justify-center'
-						>
-							{isActive ? t('pptx.share.close') : t('pptx.share.cancel')}
-						</button>
-						{!isActive && (
-							<button
-								type='button'
-								disabled={!canStart}
-								onClick={handleStartSharing}
-								style={touchBtnStyle}
-								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center'
-							>
-								{t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
-							</button>
-						)}
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: isActive ? t('pptx.share.close') : t('pptx.share.cancel') },
+								...(isActive
+									? []
+									: [
+											{
+												id: 'start',
+												label: t(
+													mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing',
+												),
+												variant: 'primary' as const,
+												disabled: !canStart,
+											},
+										]),
+							]}
+							onAction={(id) => (id === 'start' ? handleStartSharing() : onClose())}
+						/>
 					</div>
 				</div>
 			</div>

@@ -12,6 +12,7 @@ import { useModalDismissDrag } from '../hooks';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { cn } from '../utils';
 import { convertLatexToOmml, convertOmmlToLatex } from '../utils/latex-to-omml';
+import { DialogFooter } from './DialogFooter';
 
 // ── Equation templates ────────────────────────────────────────────────────
 
@@ -287,21 +288,20 @@ export function EquationEditorDialog({
 
 				{/* Footer */}
 				<div className='flex items-center justify-end gap-2 px-5 py-3 border-t border-border'>
-					<button
-						type='button'
-						onClick={onClose}
-						className='px-4 py-1.5 rounded-lg text-xs text-foreground hover:bg-accent transition-colors'
-					>
-						{t('pptx.equation.cancel', 'Cancel')}
-					</button>
-					<button
-						type='button'
-						onClick={handleInsert}
-						disabled={!hasContent}
-						className='px-4 py-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/80 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
-					>
-						{isEditing ? t('pptx.equation.update', 'Update') : t('pptx.equation.insert', 'Insert')}
-					</button>
+					<DialogFooter
+						actions={[
+							{ id: 'cancel', label: t('pptx.equation.cancel', 'Cancel') },
+							{
+								id: 'insert',
+								label: isEditing
+									? t('pptx.equation.update', 'Update')
+									: t('pptx.equation.insert', 'Insert'),
+								variant: 'primary',
+								disabled: !hasContent,
+							},
+						]}
+						onAction={(id) => (id === 'insert' ? handleInsert() : onClose())}
+					/>
 				</div>
 			</div>
 		</div>

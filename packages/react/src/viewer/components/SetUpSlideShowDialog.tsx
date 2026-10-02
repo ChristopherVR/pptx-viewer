@@ -8,6 +8,7 @@ import type { PptxPresentationProperties, PptxCustomShow } from 'pptx-viewer-cor
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { DialogFooter } from './DialogFooter';
 import { ShowOptionsFieldset } from './ShowOptionsFieldset';
 import { ShowSlidesFieldset } from './ShowSlidesFieldset';
 import { WebRadio } from './WebControls';
@@ -163,20 +164,13 @@ export function SetUpSlideShowDialog({
 
 					{/* Footer */}
 					<div className='flex justify-end gap-2 px-5 py-3 border-t border-border shrink-0'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
-						>
-							{t('pptx.common.cancel')}
-						</button>
-						<button
-							type='button'
-							onClick={handleSave}
-							className='px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-[12px] text-white transition-colors'
-						>
-							{t('pptx.common.ok')}
-						</button>
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: t('pptx.common.cancel') },
+								{ id: 'ok', label: t('pptx.common.ok'), variant: 'primary' },
+							]}
+							onAction={(id) => (id === 'ok' ? handleSave() : onClose())}
+						/>
 					</div>
 				</div>
 			</div>
