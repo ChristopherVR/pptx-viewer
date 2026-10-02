@@ -1747,3 +1747,4 @@ export * from './ribbon-view-state';
 export * from './ribbon-transitions-state';
 export * from './status-bar-state';
 export * from './notes-toolbar-state';
+export * from './title-bar-state';

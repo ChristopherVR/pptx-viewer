@@ -149,6 +149,48 @@ binding (React ref and listener, Vue `.prop` and event directive, Angular
 schema-enabled binding, Svelte `onnotes-request`, Vanilla direct property and
 listener).
 
+## Title bar and quick access (#394)
+
+`pptx-ui-title-bar` is the top chrome row: app mark, AutoSave switch, the Quick
+Access strip (Save, Undo, Redo and the configured extras), file name and save
+status, and the centred command search. It is controlled like the status bar.
+
+| Property, attribute or slot | Type and default                    | Meaning                                                                                                                                                                        |
+| --------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `state`                     | `TitleBarViewState`, nothing shown  | Structured DOM property, never an attribute. Replace the object after updates; `buildTitleBarState` maps the host values to it and owns the gating table and save-status rule. |
+| `placement`                 | `titleBar` (default), `belowRibbon` | `belowRibbon` renders only the extras row for Options > Quick Access Toolbar > "Show below the Ribbon". It hides itself (`data-empty`) when there is nothing to show.          |
+| `collaboration`, `account`  | named slots                         | Host-owned parts at the end of the row (presence indicator, account or AI button). The element never renders them itself.                                                      |
+
+`TitleBarViewState` fields: `editing` and `searchVisible`, `fileName`, `autosave`
+(`enabled`, `toggleAvailable`, translation key `statusKey`, `tone`), `history`
+(`canUndo`, `canRedo`, `undoLabel`, `redoLabel`, `showUndo`, `showRedo`), `showSave`,
+`quickAccess` (`visible`, `position`, `showCommandLabels`, `commandIds`), the search
+`commands` (default: the shared catalogue), `contentSearch` (default true), a
+`screenTip` function and `translate`.
+
+Decisions that apply to every binding: the strip is Save, Undo, Redo (catalog
+order, each gated by `showSave`, `showUndo`, `showRedo`) and then the other
+configured commands in the order File > Options lists them; AutoSave, strip, status
+and search appear only while `editing`; every strip button has `aria-label` = its
+label and `title` = `screenTip(tooltip)`, where Undo and Redo name the pending
+action when one is known. `resolveTitleBarStrip` is that ordering rule.
+
+Events are bubbling, composed `CustomEvent`s and are never emitted for programmatic
+updates: `toggle-autosave`, `save`, `undo`, `redo` (no detail), `quick-command`
+(`{ id }`) and `command-search` (`{ query, command? }`; no `command` means "find
+this text in the slides"). The switch is controlled: `aria-checked` follows
+`autosave.enabled`. When `toggleAvailable` is false it is disabled and silent.
+
+Keyboard and accessibility: the strip is a `role="toolbar"` named "Quick Access
+Toolbar" with one tab stop and roving focus (Left and Right wrap, Home and End jump,
+disabled buttons are skipped). Tab order is AutoSave, strip, search. Space, Enter,
+arrows and plain typing stay inside the control and never reach slide shortcuts. The
+search results are a listbox: Up and Down move, Enter commits, Escape clears. Buttons
+are 24px and grow to 44px on coarse pointers, forced colors use system colors, and
+the row hides below 768px (and on landscape phones) where the compact toolbar takes
+over. The shadow root exposes `part="bar"`; the host carries `data-pptx-title-bar`
+(`data-pptx-quick-access="below"` for the second placement).
+
 ## Registration and supported versions
 
 The controls are internal viewer UI, not separately published custom elements.
@@ -181,16 +223,17 @@ supplied by the host. Structured objects are DOM properties, never JSON strings.
 Replace presentation properties and label maps after updates rather than relying
 on mutation of the same object to trigger a refresh.
 
-| Family             | Default state                                                                                                    | Programmatic updates                                                                             | User events                                                                                       |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Search             | Empty value/placeholder, enabled; name falls back to placeholder or Search                                       | `value`, `disabled`; attributes placeholder, value, aria-label, disabled                         | Native `input` then `change` as the inner search input produces them; read host value             |
-| Checkbox           | Unchecked, enabled, value `on`; host supplies accessible name                                                    | `checked`, `disabled`, `value` properties or attributes                                          | `input` then `change` after activation; read host checked                                         |
-| Select             | First selected or eligible option, otherwise empty; enabled                                                      | `value`, `selectedIndex`, disabled; children define readonly options list                        | `input` then `change` only when a different eligible option is committed; read host value         |
-| Slide Show options | Timings/narration enabled by default; unsupported options unchecked/disabled; labels default to translation keys | DOM `presentationProperties`, `labels`, disabled                                                 | One `show-options-change` with a presentation-property patch; host commits before display changes |
-| Ribbon command     | Enabled, ordinary size, inactive; no pressed/expanded state                                                      | Attributes label, icon, title, disabled, active, compact, pressed, expanded and customization id | One `command-request` with `{ id }`; host owns action                                             |
-| Ribbon toggle      | Unchecked, enabled                                                                                               | Attributes label, title, checked, disabled and customization id                                  | One `toggle-request` with `{ id, checked }`; host commits before display changes                  |
-| Ribbon group       | Empty label and content                                                                                          | Label and optional group id; default slot                                                        | None                                                                                              |
-| Status bar         | Empty deck, no zoom cluster, notes hidden, no pressed view unless `viewMode` is set                              | DOM `state` (counter, save text, zoom, gating, pressed view), `collaboration` slot               | One `status-request` with `{ id }`; host owns every action                                        |
+| Family             | Default state                                                                                                    | Programmatic updates                                                                             | User events                                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Search             | Empty value/placeholder, enabled; name falls back to placeholder or Search                                       | `value`, `disabled`; attributes placeholder, value, aria-label, disabled                         | Native `input` then `change` as the inner search input produces them; read host value                                             |
+| Checkbox           | Unchecked, enabled, value `on`; host supplies accessible name                                                    | `checked`, `disabled`, `value` properties or attributes                                          | `input` then `change` after activation; read host checked                                                                         |
+| Select             | First selected or eligible option, otherwise empty; enabled                                                      | `value`, `selectedIndex`, disabled; children define readonly options list                        | `input` then `change` only when a different eligible option is committed; read host value                                         |
+| Slide Show options | Timings/narration enabled by default; unsupported options unchecked/disabled; labels default to translation keys | DOM `presentationProperties`, `labels`, disabled                                                 | One `show-options-change` with a presentation-property patch; host commits before display changes                                 |
+| Ribbon command     | Enabled, ordinary size, inactive; no pressed/expanded state                                                      | Attributes label, icon, title, disabled, active, compact, pressed, expanded and customization id | One `command-request` with `{ id }`; host owns action                                                                             |
+| Ribbon toggle      | Unchecked, enabled                                                                                               | Attributes label, title, checked, disabled and customization id                                  | One `toggle-request` with `{ id, checked }`; host commits before display changes                                                  |
+| Ribbon group       | Empty label and content                                                                                          | Label and optional group id; default slot                                                        | None                                                                                                                              |
+| Status bar         | Empty deck, no zoom cluster, notes hidden, no pressed view unless `viewMode` is set                              | DOM `state` (counter, save text, zoom, gating, pressed view), `collaboration` slot               | One `status-request` with `{ id }`; host owns every action                                                                        |
+| Title bar          | Nothing editable, no strip, default file name                                                                    | DOM `state`, `placement` attribute, `collaboration` and `account` slots                          | One typed event per intent (`toggle-autosave`, `save`, `undo`, `redo`, `quick-command`, `command-search`); host owns every action |
 
 All user events bubble and cross open shadow roots. Programmatic changes emit
 no edits. Use `event.currentTarget` for native value events and `event.detail`
