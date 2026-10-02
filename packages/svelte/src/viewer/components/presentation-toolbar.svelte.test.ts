@@ -54,8 +54,13 @@ function mountToolbar(
 	return { target, annotations, ...callbacks };
 }
 
+/** The toolbar renders inside the shared element's open shadow root. */
+function bar(target: HTMLElement): ParentNode {
+	return target.querySelector('pptx-ui-present-toolbar')?.shadowRoot ?? target;
+}
+
 function control(target: HTMLElement, id: string): HTMLElement {
-	const el = target.querySelector<HTMLElement>(`[data-pptx-present-control="${id}"]`);
+	const el = bar(target).querySelector<HTMLElement>(`[data-pptx-present-control="${id}"]`);
 	if (!el) {
 		throw new Error(`missing control ${id}`);
 	}
@@ -74,7 +79,7 @@ function expectedLabels(): Record<string, string> {
 describe('presentationToolbar', () => {
 	it('renders every shared control, in the shared order', () => {
 		const { target } = mountToolbar();
-		const ids = [...target.querySelectorAll('[data-pptx-present-control]')].map((el) =>
+		const ids = [...bar(target).querySelectorAll('[data-pptx-present-control]')].map((el) =>
 			el.getAttribute('data-pptx-present-control'),
 		);
 		expect(ids).toStrictEqual([...PRESENT_TOOLBAR_ORDER]);
@@ -99,7 +104,7 @@ describe('presentationToolbar', () => {
 		expect(titles).toStrictEqual(expected);
 
 		// The regression: these were the old strip's accessible names.
-		const raw = [...target.querySelectorAll('[aria-label]')].map((el) =>
+		const raw = [...bar(target).querySelectorAll('[aria-label]')].map((el) =>
 			el.getAttribute('aria-label'),
 		);
 		expect(raw).not.toContain('pen');
@@ -173,7 +178,7 @@ describe('presentationToolbar', () => {
 		control(target, 'pen-color').click();
 		flushSync();
 		let swatches = [
-			...target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-present-palette button'),
+			...bar(target).querySelectorAll<HTMLButtonElement>('.palette:not([hidden]) button'),
 		];
 		expect(swatches.map((el) => el.getAttribute('aria-label'))).toStrictEqual(
 			PEN_COLORS.map((color) =>
@@ -184,12 +189,12 @@ describe('presentationToolbar', () => {
 		flushSync();
 		expect(annotations.penColor).toBe(PEN_COLORS[2]);
 		expect(annotations.tool).toBe('pen');
-		expect(target.querySelector('.pptx-svelte-present-palette')).toBeNull();
+		expect(bar(target).querySelector('.palette:not([hidden])')).toBeNull();
 
 		control(target, 'highlighter-color').click();
 		flushSync();
 		swatches = [
-			...target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-present-palette button'),
+			...bar(target).querySelectorAll<HTMLButtonElement>('.palette:not([hidden]) button'),
 		];
 		expect(swatches.map((el) => el.getAttribute('aria-label'))).toStrictEqual(
 			HIGHLIGHTER_COLORS.map((color) =>

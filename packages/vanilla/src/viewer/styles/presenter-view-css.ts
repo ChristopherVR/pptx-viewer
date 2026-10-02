@@ -27,49 +27,8 @@ export const PRESENTER_VIEW_CSS = `
 	color: var(--pptx-foreground);
 	font-family: inherit;
 }
-.pptxv-presenter-strip {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--pptx-pv-strip-gap);
-	padding: var(--pptx-pv-strip-pad-y) var(--pptx-pv-strip-pad-x);
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-}
-.pptxv-presenter-strip-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 6px;
-	min-width: var(--pptx-pv-control);
-	height: var(--pptx-pv-control);
-	padding: 0 8px;
-	border: 0;
-	border-radius: var(--pptx-pv-control-radius);
-	background: var(--pptx-secondary);
-	color: var(--pptx-foreground);
-	font-size: 12px;
-	cursor: pointer;
-	transition: background-color .15s ease;
-}
-.pptxv-presenter-strip-btn:hover { background: var(--pptx-accent); }
-.pptxv-presenter-strip-btn.is-active {
-	background: var(--pptx-primary);
-	color: var(--pptx-primary-foreground);
-}
-.pptxv-presenter-strip-icon { display: inline-flex; }
-.pptxv-presenter-strip-icon svg {
-	width: var(--pptx-pv-control-icon);
-	height: var(--pptx-pv-control-icon);
-}
-.pptxv-presenter-strip-icon:empty { display: none; }
-.pptxv-presenter-strip-divider {
-	width: var(--pptx-pv-divider-w);
-	height: var(--pptx-pv-divider-h);
-	margin: 0 var(--pptx-pv-divider-mx);
-	background: var(--pptx-border);
-}
-.pptxv-presenter-strip-spacer { flex: 1; }
+/* The control strip is the shared pptx-ui-presenter-console; it styles itself. */
+.pptxv-presenter-strip { flex: none; }
 
 .pptxv-presenter-body { display: flex; flex: 1; min-height: 0; }
 .pptxv-presenter-main {

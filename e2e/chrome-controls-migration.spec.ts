@@ -273,3 +273,58 @@ test.describe('mobile bars', () => {
 		await expect(slides).toBeVisible();
 	});
 });
+
+test.describe('slide show toolbar', () => {
+	async function startShow(page: Page) {
+		await loadDeck(page);
+		await slideStage(page).waitFor();
+		await page
+			.getByRole('button', { name: /^present$|slide show/iu })
+			.first()
+			.click();
+		await page.waitForTimeout(1500);
+		// The bar auto-hides until the pointer moves.
+		await page.mouse.move(720, 870);
+		await page.mouse.move(721, 868);
+		await page.waitForTimeout(400);
+		return page.locator('pptx-ui-present-toolbar');
+	}
+
+	test('is the shared toolbar with names, tools, palettes and navigation', async ({
+		page,
+	}, info) => {
+		const bar = await startShow(page);
+		await expect(bar).toHaveCount(1);
+		await expect(bar).toHaveAttribute('role', 'toolbar');
+		await expect(bar).toHaveAttribute('data-pptx-present-toolbar', '');
+		await page.screenshot({ path: info.outputPath('present-toolbar.png') });
+
+		const counter = bar.locator('[data-pptx-present-control="counter"]');
+		await expect(counter).toHaveText(/^1 \/ \d+$/u);
+		await bar.getByRole('button', { name: 'Next Slide', exact: true }).click();
+		await expect(counter).toHaveText(/^2 \/ \d+$/u);
+		await bar.getByRole('button', { name: 'Previous Slide', exact: true }).click();
+		await expect(counter).toHaveText(/^1 \/ \d+$/u);
+
+		const pen = bar.getByRole('button', { name: 'Pen', exact: true });
+		await pen.click();
+		await expect(pen).toHaveAttribute('aria-pressed', 'true');
+
+		await bar.getByRole('button', { name: 'Pen colour', exact: true }).click();
+		const swatches = bar.getByRole('button', { name: /^Pen colour #/u });
+		await expect(swatches).toHaveCount(8);
+		await swatches.nth(1).click();
+		await expect(swatches.first()).toBeHidden();
+		await expect(pen).toHaveAttribute('aria-pressed', 'true');
+
+		await bar.getByRole('button', { name: 'End Presentation', exact: true }).click();
+		// Some bindings unmount the bar, others keep it mounted and hide it.
+		await expect(bar).toBeHidden();
+	});
+
+	test('stays usable in forced colors', async ({ page }) => {
+		const bar = await startShow(page);
+		await page.emulateMedia({ forcedColors: 'active' });
+		await expect(bar.getByRole('button', { name: 'End Presentation', exact: true })).toBeVisible();
+	});
+});

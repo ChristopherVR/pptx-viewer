@@ -32,15 +32,20 @@ function build(overrides: Partial<PresentationToolbarHandlers> = {}) {
 	return { toolbar, handlers, container };
 }
 
+/** The bar renders inside the shared element's open shadow root. */
+function bar(root: HTMLElement): ParentNode {
+	return root.querySelector('pptx-ui-present-toolbar')?.shadowRoot ?? root;
+}
+
 /** Every `data-pptx-present-control` in DOM order. */
 function controlIds(root: HTMLElement): string[] {
-	return [...root.querySelectorAll<HTMLElement>('[data-pptx-present-control]')].map(
+	return [...bar(root).querySelectorAll<HTMLElement>('[data-pptx-present-control]')].map(
 		(el) => el.dataset.pptxPresentControl ?? '',
 	);
 }
 
 function control(root: HTMLElement, id: string): HTMLElement | null {
-	return root.querySelector<HTMLElement>(`[data-pptx-present-control="${id}"]`);
+	return bar(root).querySelector<HTMLElement>(`[data-pptx-present-control="${id}"]`);
 }
 
 afterEach(() => {
@@ -56,9 +61,10 @@ describe('createPresentationToolbar', () => {
 
 	it('exposes the toolbar container with its shared aria contract', () => {
 		const { toolbar } = build();
-		const bar = toolbar.el.querySelector('[data-pptx-present-toolbar]');
-		expect(bar?.getAttribute('role')).toBe('toolbar');
-		expect(bar?.getAttribute('aria-label')).toBe('Presentation toolbar');
+		// The shared element is the toolbar: it carries the role and the accessible name.
+		const host = toolbar.el.querySelector('[data-pptx-present-toolbar]');
+		expect(host?.getAttribute('role')).toBe('toolbar');
+		expect(host?.getAttribute('aria-label')).toBe('Presentation toolbar');
 	});
 
 	it('labels every control from its shared i18n key', () => {
@@ -156,43 +162,34 @@ describe('createPresentationToolbar', () => {
 	});
 
 	describe('colour palettes', () => {
+		const palettes = (root: HTMLElement) =>
+			[...bar(root).querySelectorAll<HTMLElement>('.palette')] as [HTMLElement, HTMLElement];
+
 		it('opens one palette at a time from its caret', () => {
 			const { toolbar } = build();
-			const penPalette = control(toolbar.el, 'pen')?.parentElement?.querySelector(
-				'.pptxv-present-palette',
-			);
-			const highlighterPalette = control(toolbar.el, 'highlighter')?.parentElement?.querySelector(
-				'.pptxv-present-palette',
-			);
-			expect((penPalette as HTMLElement).hidden).toBeTruthy();
+			const [penPalette, highlighterPalette] = palettes(toolbar.el);
+			expect(penPalette.hidden).toBeTruthy();
 
 			control(toolbar.el, 'pen-color')?.click();
-			expect((penPalette as HTMLElement).hidden).toBeFalsy();
+			expect(penPalette.hidden).toBeFalsy();
 
 			control(toolbar.el, 'highlighter-color')?.click();
-			expect((penPalette as HTMLElement).hidden).toBeTruthy();
-			expect((highlighterPalette as HTMLElement).hidden).toBeFalsy();
+			expect(penPalette.hidden).toBeTruthy();
+			expect(highlighterPalette.hidden).toBeFalsy();
 
 			control(toolbar.el, 'highlighter-color')?.click();
-			expect((highlighterPalette as HTMLElement).hidden).toBeTruthy();
+			expect(highlighterPalette.hidden).toBeTruthy();
 		});
 
 		it('offers the shared swatches with per-colour accessible names', () => {
 			const { toolbar } = build();
-			const swatches = [
-				...(control(toolbar.el, 'pen')?.parentElement?.querySelectorAll<HTMLElement>(
-					'[data-pptx-present-swatch]',
-				) ?? []),
-			];
-			expect(swatches.map((el) => el.dataset.pptxPresentSwatch)).toStrictEqual([...PEN_COLORS]);
+			const [pen, highlighter] = palettes(toolbar.el);
+			const swatches = [...pen.querySelectorAll<HTMLElement>('button.swatch')];
+			expect(swatches.map((el) => el.dataset.color)).toStrictEqual([...PEN_COLORS]);
 			expect(swatches[0]?.getAttribute('aria-label')).toBe(`Pen colour ${PEN_COLORS[0] ?? ''}`);
 
-			const highlighterSwatches = [
-				...(control(toolbar.el, 'highlighter')?.parentElement?.querySelectorAll<HTMLElement>(
-					'[data-pptx-present-swatch]',
-				) ?? []),
-			];
-			expect(highlighterSwatches.map((el) => el.dataset.pptxPresentSwatch)).toStrictEqual([
+			const highlighterSwatches = [...highlighter.querySelectorAll<HTMLElement>('button.swatch')];
+			expect(highlighterSwatches.map((el) => el.dataset.color)).toStrictEqual([
 				...HIGHLIGHTER_COLORS,
 			]);
 			expect(highlighterSwatches[0]?.getAttribute('aria-label')).toBe(
@@ -203,15 +200,15 @@ describe('createPresentationToolbar', () => {
 		it('picking a colour selects the tool, closes the palette and tints the underline', () => {
 			const { toolbar, handlers } = build();
 			control(toolbar.el, 'pen-color')?.click();
-			const group = control(toolbar.el, 'pen')?.parentElement as HTMLElement;
+			const [penPalette] = palettes(toolbar.el);
 			const pick = PEN_COLORS[2] ?? '';
-			group.querySelector<HTMLElement>(`[data-pptx-present-swatch="${pick}"]`)?.click();
+			penPalette.querySelector<HTMLElement>(`button.swatch[data-color="${pick}"]`)?.click();
 
 			expect(handlers.setColor).toHaveBeenCalledWith(pick);
 			expect(handlers.setTool).toHaveBeenCalledWith('pen');
-			expect(group.querySelector<HTMLElement>('.pptxv-present-palette')?.hidden).toBeTruthy();
+			expect(penPalette.hidden).toBeTruthy();
 			expect(
-				control(toolbar.el, 'pen')?.querySelector<HTMLElement>('.pptxv-present-swatch-bar')?.style
+				control(toolbar.el, 'pen')?.querySelector<HTMLElement>('.swatch-bar')?.style
 					.backgroundColor,
 			).not.toBe('');
 		});

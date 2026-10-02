@@ -1203,6 +1203,8 @@ export * from './presentation-context-menu';
 // The `present-chrome` counterpart for the console rather than the show bar.
 export * from './presenter-chrome';
 export * from './presenter-chrome-metrics';
+// The show toolbar / presenter console view states behind the shared elements.
+export * from './present-controls-state';
 // Presenter-view lifecycle: the one-shot latch that stops the audience popup's
 // fullscreen bounce being mistaken for the presenter ending the show.
 export * from './presenter-show-lifecycle';

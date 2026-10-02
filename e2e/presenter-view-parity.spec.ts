@@ -128,7 +128,14 @@ async function openPresenterView(page: Page, origin: string, deck: string = DECK
 
 async function probeConsole(page: Page): Promise<ConsoleProbe> {
 	return page.evaluate(() => {
-		const controls = [...document.querySelectorAll('[data-pptx-presenter-control]')];
+		// The shared chrome elements render their controls inside open shadow roots.
+		const deepAll = (selector: string, root: ParentNode = document): Element[] => [
+			...root.querySelectorAll(selector),
+			...[...root.querySelectorAll('*')].flatMap((node) =>
+				node.shadowRoot ? deepAll(selector, node.shadowRoot) : [],
+			),
+		];
+		const controls = deepAll('[data-pptx-presenter-control]');
 		const names: Record<string, string> = {};
 		const ids: string[] = [];
 		for (const node of controls) {

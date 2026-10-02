@@ -50,14 +50,14 @@ function mountStrip(snapshot: Partial<PresentationSnapshot> = {}, audienceOpen =
 }
 
 /**
- * Every query here is scoped to `[data-pptx-presenter-strip]`, never to the
- * document: the console's RAIL emits the same `data-pptx-presenter-control`
+ * Every query here is scoped to the strip's shadow root (the host carries
+ * `[data-pptx-presenter-strip]`), never to the document: the console's RAIL emits the same `data-pptx-presenter-control`
  * attribute (all five bindings share one attribute so a framework-neutral spec
  * can use a single selector), so an unscoped sweep would fold `prev` / `next` /
  * the notes font stepper into the strip's inventory and its order.
  */
-function strip(target: HTMLElement): HTMLElement {
-	const root = target.querySelector<HTMLElement>('[data-pptx-presenter-strip]');
+function strip(target: HTMLElement): ShadowRoot {
+	const root = target.querySelector<HTMLElement>('[data-pptx-presenter-strip]')?.shadowRoot;
 	if (!root) {
 		throw new Error('missing presenter console strip root');
 	}

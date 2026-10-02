@@ -274,7 +274,14 @@ describe('powerPointViewer editing wiring', () => {
 				},
 			});
 			await flushPromises();
-			expect(wrapper.find('button[aria-label="Toggle AI assistant"]').exists()).toBeTruthy();
+			// The toolbar renders inside the shared element's open shadow root.
+			const toggle = wrapper
+				.find('pptx-ui-mobile-toolbar')
+				.element.shadowRoot?.querySelector<HTMLButtonElement>(
+					'button[aria-label="Toggle AI assistant"]',
+				);
+			expect(toggle?.hidden).toBeFalsy();
+			expect(toggle).toBeTruthy();
 		} finally {
 			vi.unstubAllGlobals();
 		}

@@ -7,6 +7,8 @@ import { definePptxNotesToolbar } from './notes-toolbar';
 import { definePptxMobileBar } from './mobile-bar';
 import { definePptxMobileToolbar } from './mobile-toolbar';
 import { definePptxPasteOptions } from './paste-options';
+import { definePptxPresentToolbar } from './present-toolbar';
+import { definePptxPresenterConsole } from './presenter-console';
 import { definePptxReadOnlyBanner } from './read-only-banner';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
 import { definePptxRibbonAnimations } from './ribbon-animations';
@@ -45,6 +47,11 @@ export type { DialogFooterRequestEvent, PptxUiDialogFooterElement } from './dial
 export type { MobileBarRequestEvent, PptxUiMobileBarElement } from './mobile-bar';
 export type { MobileToolbarRequestEvent, PptxUiMobileToolbarElement } from './mobile-toolbar';
 export type { PasteOptionsRequestEvent, PptxUiPasteOptionsElement } from './paste-options';
+export type { PptxUiPresentToolbarElement, PresentToolbarRequestEvent } from './present-toolbar';
+export type {
+	PptxUiPresenterConsoleElement,
+	PresenterConsoleRequestEvent,
+} from './presenter-console';
 export type { PptxUiReadOnlyBannerElement, ReadOnlyBannerRequestEvent } from './read-only-banner';
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
@@ -106,6 +113,8 @@ const controls = [
 	['pptx-ui-mobile-bar', definePptxMobileBar],
 	['pptx-ui-mobile-toolbar', definePptxMobileToolbar],
 	['pptx-ui-paste-options', definePptxPasteOptions],
+	['pptx-ui-present-toolbar', definePptxPresentToolbar],
+	['pptx-ui-presenter-console', definePptxPresenterConsole],
 	['pptx-ui-read-only-banner', definePptxReadOnlyBanner],
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-animations', definePptxRibbonAnimations],

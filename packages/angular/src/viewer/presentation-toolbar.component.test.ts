@@ -1,173 +1,132 @@
 /**
  * presentation-toolbar.component.test.ts: guards for the slide-show toolbar.
  *
- * This package has no TestBed (see `vitest.config.ts`), so the inventory guards
- * read the component's authored template as text via `componentSource`, the
- * same technique the element-renderer and context-menu contract specs use. That
- * is not a weaker assertion than rendering for what is being checked here: the
- * template is static markup, so "the 17 shared control ids appear once each, in
- * order, each naming itself from the shared i18n key" is fully decidable from
- * the source, and it is exactly the drift that let Angular ship a five-button
- * strip while React shipped sixteen slots.
- *
- * The behaviour that is NOT static (auto-hide, disabled predicates) is tested
- * directly against the pure module the component delegates to.
+ * The toolbar is the shared `pptx-ui-present-toolbar` element (its inventory,
+ * names, palettes and gating are tested in `pptx-viewer-shared`); this file drives
+ * the Angular adapter through TestBed and keeps the pure behaviour the adapter
+ * delegates to (auto-hide, the Blackboard transition) plus the overlay chrome
+ * guards, which read the overlay's authored source because it has no TestBed.
  */
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it, vi } from 'vitest';
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { translationsEn } from '../../../shared/src/i18n';
+import { registerPptxWebControls } from '../../../shared/src/web-components';
 import {
 	AUTO_HIDE_DELAY_MS,
 	PRESENT_TOOLBAR_CLASSES,
-	PRESENT_TOOLBAR_CONTROLS,
 	PRESENT_TOOLBAR_ORDER,
 } from '../internal/shared';
 import type { PresentationBlackout, PresentationPointerTool } from '../internal/shared';
 import { componentSource } from './component-source.test-support';
+import { PresentationAnnotationsService } from './presentation-annotations.service';
 import { presentationStageStyle } from './presentation-overlay-helpers';
-import {
-	PRESENT_TOOLBAR_VIEW,
-	PresentToolbarAutoHide,
-	isAtFirstSlide,
-	isAtLastSlide,
-	presentToolbarClearClass,
-	presentToolbarSwatchClass,
-	presentToolbarToggleClass,
-	runBlackboardToggle,
-} from './presentation-toolbar-view';
+import { PresentToolbarAutoHide, runBlackboardToggle } from './presentation-toolbar-view';
+import { PresentationToolbarComponent } from './presentation-toolbar.component';
+import { PresenterWindowService } from './presenter-window.service';
+
+beforeAll(() => {
+	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	registerPptxWebControls();
+});
+afterEach(() => TestBed.resetTestingModule());
 
 const here = dirname(fileURLToPath(import.meta.url));
-const source = componentSource(here, 'presentation-toolbar.component.ts');
 const overlaySource = componentSource(here, 'presentation-overlay.component.ts');
 
-/** The `data-pptx-present-control` values the template emits, in render order. */
-function renderedControlIds(): string[] {
-	const ids: string[] = [];
-	const pattern = /data-pptx-present-control="(?<id>[a-z-]+)"/gu;
-	let match = pattern.exec(source);
-	while (match !== null) {
-		ids.push(match[1] ?? '');
-		match = pattern.exec(source);
+function open(inputs: Record<string, unknown> = {}) {
+	TestBed.resetTestingModule();
+	TestBed.configureTestingModule({
+		imports: [PresentationToolbarComponent],
+		providers: [
+			provideTranslateService({ fallbackLang: 'en' }),
+			PresentationAnnotationsService,
+			PresenterWindowService,
+		],
+	});
+	// The Vitest JIT build does not wire signal inputs, so declare them and hand each
+	// field a plain signal.
+	const values = { currentSlideIndex: 1, totalSlides: 5, ...inputs };
+	TestBed.overrideComponent(PresentationToolbarComponent, {
+		add: { inputs: Object.keys(values) },
+	});
+	const fixture = TestBed.createComponent(PresentationToolbarComponent);
+	for (const [name, value] of Object.entries(values)) {
+		fixture.componentRef.setInput(name, signal(value));
 	}
-	return ids;
+	const translate = TestBed.inject(TranslateService);
+	translate.setTranslation('en', translationsEn);
+	translate.use('en');
+	fixture.detectChanges();
+	const host = (fixture.nativeElement as HTMLElement).querySelector('pptx-ui-present-toolbar')!;
+	const control = (id: string) =>
+		host.shadowRoot!.querySelector<HTMLButtonElement>(`[data-pptx-present-control="${id}"]`);
+	return {
+		fixture,
+		host,
+		control,
+		annotations: TestBed.inject(PresentationAnnotationsService),
+	};
 }
 
-/** The template markup of the control with the given shared id. */
-function controlMarkup(id: string): string {
-	const start = source.indexOf(`data-pptx-present-control="${id}"`);
-	expect(start, `control "${id}" is missing from the template`).toBeGreaterThan(-1);
-	const end = source.indexOf('>', start);
-	return source.slice(source.lastIndexOf('<', start), end);
-}
-
-describe('show toolbar inventory', () => {
-	it('renders every shared control exactly once, in the shared order', () => {
-		expect(renderedControlIds()).toStrictEqual([...PRESENT_TOOLBAR_ORDER]);
-	});
-
-	it('renders all seventeen slots, not the old five-button annotation strip', () => {
-		expect(renderedControlIds()).toHaveLength(17);
-	});
-
-	it('slots the blackboard toggle between the eraser and clear, as shared orders it', () => {
-		const ids = renderedControlIds();
-		expect(ids.indexOf('blackboard')).toBe(ids.indexOf('eraser') + 1);
-		expect(ids.indexOf('clear')).toBe(ids.indexOf('blackboard') + 1);
-	});
-
-	it('names each control from its shared i18n key, for the screen reader AND the tooltip', () => {
-		for (const control of PRESENT_TOOLBAR_CONTROLS) {
-			if (control.labelKey === undefined) {
-				continue;
-			}
-			const markup = controlMarkup(control.id);
-			expect(markup, `${control.id} aria-label`).toContain(
-				`[attr.aria-label]="'${control.labelKey}' | translate"`,
-			);
-			expect(markup, `${control.id} title`).toContain(
-				`[attr.title]="'${control.labelKey}' | translate"`,
-			);
-		}
-	});
-
-	it('leaves the counter and the dividers unnamed, as shared declares them', () => {
-		for (const control of PRESENT_TOOLBAR_CONTROLS) {
-			if (control.labelKey !== undefined) {
-				continue;
-			}
-			expect(controlMarkup(control.id)).not.toContain('aria-label');
-		}
-	});
-
-	it('labels each palette swatch with the interpolated shared colour key', () => {
-		expect(source).toContain(
-			"'pptx.presentationToolbar.penColorValue' | translate: { color: color }",
+describe('show toolbar adapter', () => {
+	it('renders the shared inventory as the toolbar landmark with the wrapper token', () => {
+		const { fixture, host } = open();
+		const ids = [...host.shadowRoot!.querySelectorAll('[data-pptx-present-control]')].map(
+			(node) => (node as HTMLElement).dataset['pptxPresentControl'],
 		);
-		expect(source).toContain(
-			"'pptx.presentationToolbar.highlighterColorValue' | translate: { color: color }",
+		expect(ids).toStrictEqual([...PRESENT_TOOLBAR_ORDER]);
+		expect(host.getAttribute('role')).toBe('toolbar');
+		expect(host.getAttribute('aria-label')).toBe('Presentation toolbar');
+		expect((fixture.nativeElement as HTMLElement).className).toContain(
+			PRESENT_TOOLBAR_CLASSES.wrapper.split(' ')[0],
 		);
 	});
 
-	it('is a real toolbar with the shared accessible name', () => {
-		expect(source).toContain('role="toolbar"');
-		expect(source).toContain("'pptx.toolbar.presentationToolbarAria' | translate");
+	it('maps the position inputs onto the counter and the navigation gating', () => {
+		const middle = open({ currentSlideIndex: 1, totalSlides: 5 });
+		expect(middle.control('counter')?.textContent).toBe('2 / 5');
+		expect(middle.control('previous')?.disabled).toBeFalsy();
+		const first = open({ currentSlideIndex: 0, totalSlides: 3 });
+		expect(first.control('previous')?.disabled).toBeTruthy();
+		const last = open({ currentSlideIndex: 2, totalSlides: 3 });
+		expect(last.control('next')?.disabled).toBeTruthy();
 	});
 
-	it('takes its geometry from the shared class tokens, never hand-written utilities', () => {
-		expect(source).toContain('[class]="ui.container"');
-		expect(PRESENT_TOOLBAR_VIEW.container).toBe(PRESENT_TOOLBAR_CLASSES.container);
-		expect(PRESENT_TOOLBAR_VIEW.wrapper).toBe(PRESENT_TOOLBAR_CLASSES.wrapper);
-		expect(PRESENT_TOOLBAR_VIEW.caret).toBe(PRESENT_TOOLBAR_CLASSES.caret);
-		// A literal `w-9 h-9` in the template would drift the moment shared moved.
-		expect(source).not.toMatch(/class="[^"]*\bw-9\b/u);
-	});
-
-	it('stops every press reaching the stage, so a control never also advances', () => {
-		expect(source).toContain('(click)="$event.stopPropagation()"');
-		for (const id of ['previous', 'next', 'end']) {
-			expect(controlMarkup(id)).toContain(`(touchend)="onControlTouch($event, '${id}')"`);
+	it('routes navigation, presenter view and end to the outputs', () => {
+		const { fixture, control } = open();
+		const seen: string[] = [];
+		fixture.componentInstance.move.subscribe((direction) => seen.push(`move:${direction}`));
+		fixture.componentInstance.presenterViewToggle.subscribe(() => seen.push('presenter-view'));
+		fixture.componentInstance.endPresentation.subscribe(() => seen.push('end'));
+		for (const id of ['previous', 'next', 'presenter-view', 'end']) {
+			control(id)?.click();
 		}
-	});
-});
-
-describe('show toolbar disabled states', () => {
-	it('disables "previous" on the first slide only', () => {
-		expect(isAtFirstSlide(0)).toBeTruthy();
-		expect(isAtFirstSlide(1)).toBeFalsy();
-		expect(isAtFirstSlide(11)).toBeFalsy();
+		expect(seen).toStrictEqual(['move:-1', 'move:1', 'presenter-view', 'end']);
 	});
 
-	it('treats an empty deck as the first slide rather than stepping to -1', () => {
-		expect(isAtFirstSlide(-1)).toBeTruthy();
+	it('arms tools and picks swatches through the annotation service', () => {
+		const { control, annotations, host } = open();
+		control('laser')?.click();
+		expect(annotations.tool()).toBe('laser');
+		control('pen-color')?.click();
+		host
+			.shadowRoot!.querySelector<HTMLButtonElement>('button[aria-label="Pen colour #0000ff"]')
+			?.click();
+		expect(annotations.penColor()).toBe('#0000ff');
+		expect(annotations.tool()).toBe('pen');
 	});
 
-	it('disables "next" on the last slide only', () => {
-		expect(isAtLastSlide(0, 12)).toBeFalsy();
-		expect(isAtLastSlide(10, 12)).toBeFalsy();
-		expect(isAtLastSlide(11, 12)).toBeTruthy();
-	});
-
-	it('wires those predicates and the ink guard to the DOM disabled attribute', () => {
-		expect(controlMarkup('previous')).toContain('[disabled]="atFirstSlide()"');
-		expect(controlMarkup('next')).toContain('[disabled]="atLastSlide()"');
-		expect(controlMarkup('clear')).toContain('[disabled]="!hasAnnotations()"');
-	});
-
-	it('withholds the destructive hover tint while "clear" is disabled', () => {
-		expect(presentToolbarClearClass(false)).not.toContain('hover:text-red-400');
-		expect(presentToolbarClearClass(true)).toContain('hover:text-red-400');
-	});
-
-	it('tints an armed tool with the shared active token', () => {
-		expect(presentToolbarToggleClass(true)).toBe(PRESENT_TOOLBAR_CLASSES.toggleActive);
-		expect(presentToolbarToggleClass(false)).toBe(PRESENT_TOOLBAR_CLASSES.toggle);
-	});
-
-	it('rings only the swatch matching the tool colour', () => {
-		expect(presentToolbarSwatchClass(true)).toContain('border-white');
-		expect(presentToolbarSwatchClass(false)).toContain('border-white/20');
+	it('reflects the presenter-view state as pressed', () => {
+		expect(
+			open({ presenterMode: true }).control('presenter-view')?.getAttribute('aria-pressed'),
+		).toBe('true');
 	});
 });
 
@@ -238,15 +197,6 @@ describe('show toolbar auto-hide', () => {
 		expect(seen).toStrictEqual([true]);
 		vi.useRealTimers();
 	});
-
-	it('carries the shared wrapper token and fades via opacity, not display', () => {
-		expect(source).toContain("'[class]': 'ui.wrapper'");
-		// `duration-300` is the shared fade; hiding with `display` instead would
-		// snap the bar away and break the transition the metrics describe.
-		expect(PRESENT_TOOLBAR_VIEW.wrapper).toContain('transition-opacity');
-		expect(source).toContain("'[style.opacity]'");
-		expect(source).toContain("'[style.pointer-events]'");
-	});
 });
 
 describe('blackboard toggle wiring', () => {
@@ -282,12 +232,6 @@ describe('blackboard toggle wiring', () => {
 
 	it('disarms both from the active blackboard state', () => {
 		expect(press('black', 'pen')).toStrictEqual({ blackouts: ['none'], tools: ['none'] });
-	});
-
-	it('routes the control through the shared state helpers in the template', () => {
-		expect(controlMarkup('blackboard')).toContain('[class]="ui.toggleClass(blackboardActive())"');
-		expect(source).toContain('isBlackboardActive(');
-		expect(source).toContain('runBlackboardToggle(');
 	});
 });
 

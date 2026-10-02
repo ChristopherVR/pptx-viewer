@@ -1,16 +1,20 @@
 import {
 	AUTO_HIDE_DELAY_MS,
-	formatElapsed,
-	formatSlideCounter,
 	HIGHLIGHTER_COLORS,
-	isBlackboardActive,
 	isInBottomTriggerZone,
 	PEN_COLORS,
+	presentToolbarCssVars,
+	registerPptxWebControls,
 } from 'pptx-viewer-shared';
-import type { PresentationBlackout, PresentationPointerTool } from 'pptx-viewer-shared';
+import type {
+	PresentationBlackout,
+	PresentationPointerTool,
+	PresentToolbarRequestEvent,
+	PptxUiPresentToolbarElement,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
-import { buildPresentationToolbarDom } from './presentation-toolbar-controls';
+import { createEl } from '../render';
 
 /**
  * The floating slide-show toolbar, matching React's `PresentationToolbar`.
@@ -18,11 +22,13 @@ import { buildPresentationToolbarDom } from './presentation-toolbar-controls';
  * Vanilla previously shipped ONLY `presentation-touch-controls.ts`, whose CSS
  * hides it outside a coarse pointer, so a desktop presenter saw no show chrome
  * at all: no counter, no navigation, and no way out short of Escape. This is the
- * desktop bar, built from the shared `present-chrome` inventory so its control
- * ids, order and accessible names cannot drift from the other four bindings.
+ * desktop bar, a thin adapter over the shared `pptx-ui-present-toolbar`, which
+ * renders the shared `present-chrome` inventory (control ids, order, names,
+ * colour palettes and the elapsed readout) so it cannot drift from the other four
+ * bindings.
  *
- * This module owns behaviour only; the element tree lives in
- * `presentation-toolbar-controls.ts` (see the 300 LOC ceiling in CLAUDE.md).
+ * This module owns behaviour only: the auto-hide wrapper, the start time and the
+ * state reflection. The element tree lives in the shared package.
  */
 
 export interface PresentationToolbarHandlers {
@@ -76,6 +82,7 @@ export function createPresentationToolbar(
 	container: HTMLElement,
 	handlers: PresentationToolbarHandlers,
 ): PresentationToolbar {
+	registerPptxWebControls();
 	const state: PresentationToolbarState = {
 		current: 0,
 		total: 0,
@@ -89,40 +96,71 @@ export function createPresentationToolbar(
 	// tool is kept here and re-applied whenever that tool is picked again.
 	let penColor = PEN_COLORS[0] ?? '#ff0000';
 	let highlighterColor = HIGHLIGHTER_COLORS[0] ?? '#ffff00';
+	let startedAt: number | null = null;
 
-	const parts = buildPresentationToolbarDom(doc, t, handlers, (tool, color) => {
-		if (tool === 'pen') {
-			penColor = color;
-		} else {
-			highlighterColor = color;
-		}
-		render();
-	});
-	const { wrap, bar } = parts;
+	const wrap = createEl(doc, 'div', 'pptxv-present-toolbar-wrap');
+	for (const [name, value] of Object.entries(presentToolbarCssVars())) {
+		wrap.style.setProperty(name, value);
+	}
+	const bar = doc.createElement('pptx-ui-present-toolbar') as PptxUiPresentToolbarElement;
+	wrap.appendChild(bar);
 
 	function render(): void {
-		parts.counter.textContent = formatSlideCounter(state.current, state.total);
-		parts.previous.setDisabled(state.current <= 0);
-		parts.next.setDisabled(state.current >= state.total - 1);
-		parts.laser.setActive(state.tool === 'laser');
-		parts.pen.toggle.setActive(state.tool === 'pen');
-		parts.highlighter.toggle.setActive(state.tool === 'highlighter');
-		parts.eraser.setActive(state.tool === 'eraser');
-		parts.blackboard.setActive(isBlackboardActive(state.blackout, state.tool));
-		parts.clear.setDisabled(!state.hasAnnotations);
-		parts.presenterView.setActive(state.presenterViewActive);
-		parts.pen.bar.style.backgroundColor = penColor;
-		parts.highlighter.bar.style.backgroundColor = highlighterColor;
-		parts.pen.palette.setValue(penColor);
-		parts.highlighter.palette.setValue(highlighterColor);
+		bar.state = {
+			...state,
+			penColor,
+			highlighterColor,
+			presenterViewVisible: true,
+			startTime: startedAt,
+			translate: t,
+		};
 	}
+
+	bar.addEventListener('present-toolbar-request', (event) => {
+		const intent = (event as PresentToolbarRequestEvent).detail;
+		switch (intent.id) {
+			case 'move':
+				if (intent.direction === 1) {
+					handlers.next();
+				} else {
+					handlers.previous();
+				}
+				break;
+			case 'tool':
+				handlers.setTool(intent.tool);
+				break;
+			case 'color':
+				if (intent.tool === 'pen') {
+					penColor = intent.color;
+				} else {
+					highlighterColor = intent.color;
+				}
+				handlers.setColor(intent.color);
+				// Picking a colour arms its tool. The host toggles on re-selection, so an
+				// already-armed tool must not be selected again (React gates it the same way).
+				if (state.tool !== intent.tool) {
+					handlers.setTool(intent.tool);
+				}
+				render();
+				break;
+			case 'blackboard':
+				handlers.toggleBlackboard();
+				break;
+			case 'clear':
+				handlers.clearAnnotations();
+				break;
+			case 'presenterView':
+				handlers.togglePresenterView();
+				break;
+			case 'end':
+				handlers.end();
+		}
+	});
 
 	// -- Auto-hide (React's `PresentationToolbarWrapper`) ---------------------
 	let hideTimer: number | null = null;
 	let visible = false;
 	let hovering = false;
-	let startedAt = 0;
-	let tick: number | null = null;
 
 	const setVisible = (next: boolean): void => {
 		visible = next;
@@ -159,11 +197,6 @@ export function createPresentationToolbar(
 		setVisible(true);
 		resetHideTimer();
 	};
-	const onDocumentPointerDown = (event: Event): void => {
-		if (event.target instanceof Node && !bar.contains(event.target)) {
-			parts.closePalettes();
-		}
-	};
 	wrap.addEventListener('mouseenter', () => {
 		hovering = true;
 		clearHideTimer();
@@ -173,26 +206,17 @@ export function createPresentationToolbar(
 		hovering = false;
 		resetHideTimer();
 	});
-	const renderElapsed = (): void => {
-		parts.elapsedText.textContent = formatElapsed(startedAt === 0 ? 0 : Date.now() - startedAt);
-	};
 	const stopPresenting = (): void => {
 		doc.removeEventListener('mousemove', onMouseMove);
-		doc.removeEventListener('mousedown', onDocumentPointerDown);
 		clearHideTimer();
-		if (tick !== null) {
-			window.clearInterval(tick);
-			tick = null;
-		}
-		startedAt = 0;
+		startedAt = null;
 		hovering = false;
-		parts.closePalettes();
-		renderElapsed();
+		bar.closePalettes();
+		render();
 		setVisible(false);
 	};
 
 	setVisible(false);
-	renderElapsed();
 	render();
 
 	return {
@@ -207,10 +231,8 @@ export function createPresentationToolbar(
 				return;
 			}
 			startedAt = Date.now();
-			renderElapsed();
-			tick ??= window.setInterval(renderElapsed, 1000);
+			render();
 			doc.addEventListener('mousemove', onMouseMove);
-			doc.addEventListener('mousedown', onDocumentPointerDown);
 			setVisible(true);
 			resetHideTimer();
 		},
