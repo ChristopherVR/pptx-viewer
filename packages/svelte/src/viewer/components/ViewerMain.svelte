@@ -17,6 +17,7 @@
 
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
 	import { nextGuideId } from '../state/guide-id';
+	import { stageShowsLoading } from '../state/stage-loading';
 	import MasterViewBody from './MasterViewBody.svelte';
 	import ViewerBody from './ViewerBody.svelte';
 
@@ -106,7 +107,7 @@
 		mediaDataUrls={loader.mediaDataUrls}
 		current={viewer.current}
 		onselect={(index) => viewer.goTo(index)}
-		loading={loader.loading}
+		loading={stageShowsLoading(loader.loading, loader.loadOrigin, Boolean(vm.activeSlide))}
 		isEncrypted={loader.isEncrypted}
 		error={loader.error}
 		activeSlide={vm.activeSlide}
