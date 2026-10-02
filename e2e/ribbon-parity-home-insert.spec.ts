@@ -33,7 +33,21 @@ interface Probe {
 	>;
 }
 
+/** Wait until the tab has rendered all of its groups: the count must hold still across two reads. */
+async function settle(page: Page, groupPrefix: string): Promise<void> {
+	let previous = -1;
+	for (let attempt = 0; attempt < 40; attempt++) {
+		const count = await page.locator(`[data-ribbon-group^="${groupPrefix}"]`).count();
+		if (count > 0 && count === previous) {
+			return;
+		}
+		previous = count;
+		await page.waitForTimeout(150);
+	}
+}
+
 async function probe(page: Page, groupPrefix: string, controls: string[]): Promise<Probe> {
+	await settle(page, groupPrefix);
 	return page.evaluate(
 		({ groupPrefix: prefix, controls: ids }) => {
 			const visible = (el: Element) => {

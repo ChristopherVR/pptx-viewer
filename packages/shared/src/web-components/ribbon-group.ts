@@ -14,7 +14,7 @@ const STYLES = `
    stays in flow and the row's negative margin hands its height to the centring. */
 :host([data-compact-row]) .row { align-items: center; margin-bottom: -14px; }
 /* Several small drop-down galleries or commands (Picture Format > Adjust, SmartArt > Create Graphic, Design > Variants) stack in columns of three, as PowerPoint draws them. */
-:host([data-stack]) .row { flex-direction: column; align-items: stretch; align-content: flex-start; flex-wrap: wrap; max-height: 66px; gap: 2px; margin-bottom: 0; }
+:host([data-stack]) .row { flex-direction: column; align-items: stretch; align-content: flex-start; flex-wrap: wrap; max-height: 80px; gap: 2px; margin-bottom: 0; }
 ::slotted(*) { flex-shrink: 0; }
 .foot { position: relative; display: flex; align-items: center; justify-content: center; min-height: 16px; padding: 0 14px; }
 .caption { color: var(--pptx-muted-foreground, #94a3b8); font: inherit;
