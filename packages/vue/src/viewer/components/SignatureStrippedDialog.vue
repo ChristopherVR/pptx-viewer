@@ -2,6 +2,7 @@
 import { TriangleAlert } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -44,20 +45,13 @@ const { t } = useI18n();
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="rounded-lg bg-accent px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent/80"
-				@click="emit('cancel')"
-			>
-				{{ t('pptx.common.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white transition-colors hover:bg-amber-500"
-				@click="emit('confirm')"
-			>
-				{{ t('pptx.digitalSignatures.strippedConfirm') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.common.cancel') },
+					{ id: 'confirm', label: t('pptx.digitalSignatures.strippedConfirm'), variant: 'warning' },
+				]"
+				@action="(id) => (id === 'confirm' ? emit('confirm') : emit('cancel'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

@@ -5,13 +5,18 @@
  * same as the element context menu.
  *
  * Reactive: mounted once and repainted whenever `store`'s `pasteOptionsToolbar`
- * field changes (set/cleared by the clipboard actions and the dialog).
+ * field changes (set/cleared by the clipboard actions and the dialog). A thin
+ * adapter over the shared `pptx-ui-paste-options`: this measures the pasted
+ * element and the element renders, positions and dismisses the strip.
  */
-import type { PasteSpecialFormat } from 'pptx-viewer-shared';
-import { findCanvasElementNode, PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
+import { findCanvasElementNode, registerPptxWebControls } from 'pptx-viewer-shared';
+import type {
+	PasteOptionsRequestEvent,
+	PasteSpecialFormat,
+	PptxUiPasteOptionsElement,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
-import { createEl } from '../render';
 import type { Store, ViewerState } from '../state';
 
 export interface PasteOptionsToolbarDeps {
@@ -30,16 +35,17 @@ const MAX_PAINT_ATTEMPTS = 10;
 
 export function mountPasteOptionsToolbar(deps: PasteOptionsToolbarDeps): PasteOptionsToolbarHandle {
 	const { doc, store, getTranslator, onChoose } = deps;
-	let toolbar: HTMLElement | null = null;
-	let removeOutsideListeners: (() => void) | undefined;
+	registerPptxWebControls();
+	let toolbar: PptxUiPasteOptionsElement | null = null;
+	let cancelPending: (() => void) | undefined;
 
 	function dismiss(): void {
 		store.set({ pasteOptionsToolbar: null });
 	}
 
 	function unmount(): void {
-		removeOutsideListeners?.();
-		removeOutsideListeners = undefined;
+		cancelPending?.();
+		cancelPending = undefined;
 		toolbar?.remove();
 		toolbar = null;
 	}
@@ -60,44 +66,19 @@ export function mountPasteOptionsToolbar(deps: PasteOptionsToolbarDeps): PasteOp
 			const view = doc.defaultView;
 			if (view && attempt < MAX_PAINT_ATTEMPTS) {
 				const frame = view.requestAnimationFrame(() => paint(attempt + 1));
-				removeOutsideListeners = () => view.cancelAnimationFrame(frame);
+				cancelPending = () => view.cancelAnimationFrame(frame);
 			}
 			return;
 		}
 		const box = node.getBoundingClientRect();
-		const t = getTranslator();
-		const el = createEl(doc, 'div', 'pptxv-paste-options');
-		el.setAttribute('role', 'toolbar');
-		el.setAttribute('tabindex', '-1');
-		el.setAttribute('aria-label', t('pptx.pasteSpecial.optionsLabel'));
-		el.setAttribute('data-pptx-paste-options', '');
-		el.style.position = 'fixed';
-		el.style.left = `${box.right + 4}px`;
-		el.style.top = `${box.bottom + 4}px`;
-		el.addEventListener('mousedown', (e) => e.stopPropagation());
-		for (const option of PASTE_SPECIAL_OPTIONS) {
-			const button = createEl(doc, 'button');
-			button.type = 'button';
-			button.textContent = t(option.labelKey);
-			button.title = t(option.labelKey);
-			button.addEventListener('click', () => onChoose(option.id));
-			el.appendChild(button);
-		}
+		const el = doc.createElement('pptx-ui-paste-options');
+		el.state = { left: box.right, top: box.bottom, translate: getTranslator() };
+		el.addEventListener('paste-options-request', (event) =>
+			onChoose((event as PasteOptionsRequestEvent).detail.format),
+		);
+		el.addEventListener('paste-options-dismiss', dismiss);
 		doc.body.appendChild(el);
 		toolbar = el;
-		// Deferred so the paste action's OWN pointerdown/keydown does not
-		// immediately dismiss the toolbar it just opened.
-		const timer = doc.defaultView?.setTimeout(() => {
-			doc.addEventListener('pointerdown', dismiss, true);
-			doc.addEventListener('keydown', dismiss, true);
-		}, 0);
-		removeOutsideListeners = () => {
-			if (timer !== undefined) {
-				doc.defaultView?.clearTimeout(timer);
-			}
-			doc.removeEventListener('pointerdown', dismiss, true);
-			doc.removeEventListener('keydown', dismiss, true);
-		};
 	}
 
 	paint();

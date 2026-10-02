@@ -1,5 +1,6 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogFooter } from './dialog-footer';
 import { openFileInfoDialogShell } from './file-info-dialog-shell';
 
 /** Warn once when editing starts on a digitally signed deck. */
@@ -20,14 +21,14 @@ export function openSignatureStrippedDialog(
 	copy.append(message, detail);
 	warning.append(icon, copy);
 	shell.body.appendChild(warning);
-	const cancel = createEl(doc, 'button');
-	cancel.type = 'button';
-	cancel.textContent = t('pptx.common.cancel');
-	cancel.addEventListener('click', shell.close);
-	const confirm = createEl(doc, 'button', 'is-primary');
-	confirm.type = 'button';
-	confirm.textContent = t('pptx.digitalSignatures.strippedConfirm');
-	confirm.addEventListener('click', shell.close);
-	shell.footer.append(cancel, confirm);
+	appendDialogFooter(
+		doc,
+		shell.footer,
+		[
+			{ id: 'cancel', label: t('pptx.common.cancel') },
+			{ id: 'confirm', label: t('pptx.digitalSignatures.strippedConfirm'), variant: 'warning' },
+		],
+		shell.close,
+	);
 	return shell.overlay;
 }

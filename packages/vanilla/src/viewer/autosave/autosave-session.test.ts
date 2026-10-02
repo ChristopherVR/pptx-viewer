@@ -141,6 +141,17 @@ describe('autosave activation: host ceiling vs user preference', () => {
 	});
 });
 
+/** Footer actions render inside the shared `pptx-ui-dialog-footer` shadow root. */
+function footerButtons(dialog: HTMLElement): HTMLButtonElement[] {
+	return [
+		...(dialog.querySelector('pptx-ui-dialog-footer')?.shadowRoot?.querySelectorAll('button') ??
+			[]),
+	];
+}
+function action(dialog: HTMLElement, id: 'restore' | 'discard'): HTMLButtonElement {
+	return footerButtons(dialog).find((button) => button.dataset.action === id)!;
+}
+
 describe('the crash-recovery prompt', () => {
 	beforeEach(() => {
 		saveAutosaveSnapshot.mockReset().mockResolvedValue(true);
@@ -172,7 +183,7 @@ describe('the crash-recovery prompt', () => {
 		const { dialog, session } = await raisePrompt();
 		expect(dialog.getAttribute('role')).toBe('dialog');
 		expect(dialog.getAttribute('aria-label')).toBe(t('pptx.autosave.recovery.title'));
-		const labels = [...dialog.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
+		const labels = footerButtons(dialog).map((b) => b.textContent);
 		expect(labels).toStrictEqual([
 			t('pptx.autosave.recovery.discard'),
 			t('pptx.autosave.recovery.restore'),
@@ -189,13 +200,8 @@ describe('the crash-recovery prompt', () => {
 	});
 
 	it('restore loads the snapshot bytes through the viewer load path', async () => {
-		const t = createTranslator();
 		const { dialog, loadFile, session } = await raisePrompt();
-		dialog
-			.querySelector<HTMLButtonElement>(
-				`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
-			)
-			?.click();
+		action(dialog, 'restore')?.click();
 
 		await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce());
 		expect(loadFile.mock.calls[0]?.[0]).toStrictEqual(new Uint8Array([9, 9]));
@@ -206,14 +212,9 @@ describe('the crash-recovery prompt', () => {
 	});
 
 	it('rolls back the acknowledgement when loading the snapshot fails', async () => {
-		const t = createTranslator();
 		const { dialog, loadFile, session } = await raisePrompt();
 		loadFile.mockRejectedValueOnce(new Error('load failed'));
-		dialog
-			.querySelector<HTMLButtonElement>(
-				`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
-			)
-			?.click();
+		action(dialog, 'restore')?.click();
 
 		await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce());
 		await vi.waitFor(() =>
@@ -223,13 +224,8 @@ describe('the crash-recovery prompt', () => {
 	});
 
 	it('discard deletes the snapshot and never loads it', async () => {
-		const t = createTranslator();
 		const { dialog, loadFile, session } = await raisePrompt();
-		dialog
-			.querySelector<HTMLButtonElement>(
-				`button[aria-label="${t('pptx.autosave.recovery.discard')}"]`,
-			)
-			?.click();
+		action(dialog, 'discard')?.click();
 
 		await vi.waitFor(() =>
 			expect(discardAutosaveRecovery).toHaveBeenCalledWith(
@@ -249,14 +245,9 @@ describe('the crash-recovery prompt', () => {
 					finishDiscard = resolve;
 				}),
 		);
-		const t = createTranslator();
 		const { dialog, loadFile, session } = await raisePrompt();
-		const discard = dialog.querySelector<HTMLButtonElement>(
-			`button[aria-label="${t('pptx.autosave.recovery.discard')}"]`,
-		);
-		const restore = dialog.querySelector<HTMLButtonElement>(
-			`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
-		);
+		const discard = action(dialog, 'discard');
+		const restore = action(dialog, 'restore');
 
 		discard?.click();
 		await vi.waitFor(() => expect(discardAutosaveRecovery).toHaveBeenCalledOnce());
@@ -279,14 +270,9 @@ describe('the crash-recovery prompt', () => {
 
 	it('keeps the dialog open and re-enables its actions after a failed discard', async () => {
 		discardAutosaveRecovery.mockRejectedValueOnce(new Error('transaction failed'));
-		const t = createTranslator();
 		const { dialog, session } = await raisePrompt();
-		const discard = dialog.querySelector<HTMLButtonElement>(
-			`button[aria-label="${t('pptx.autosave.recovery.discard')}"]`,
-		);
-		const restore = dialog.querySelector<HTMLButtonElement>(
-			`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
-		);
+		const discard = action(dialog, 'discard');
+		const restore = action(dialog, 'restore');
 
 		discard?.click();
 		await vi.waitFor(() => expect(discardAutosaveRecovery).toHaveBeenCalledOnce());

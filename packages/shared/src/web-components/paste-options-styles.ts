@@ -1,8 +1,8 @@
 export const PASTE_OPTIONS_STYLES = `
-:host { display: contents; }
+:host { position: fixed; z-index: 1100; display: block; }
 :host([hidden]) { display: none !important; }
 .toolbar {
-	position: fixed; z-index: 1100; box-sizing: border-box; display: flex; align-items: center; gap: 2px;
+	box-sizing: border-box; display: flex; align-items: center; gap: 2px;
 	padding: 4px; border: 1px solid var(--pptx-border, #374151); border-radius: 4px;
 	background: var(--pptx-popover, #111827); box-shadow: 0 10px 25px rgba(0, 0, 0, .35);
 	font: 11px/1.2 system-ui, sans-serif;

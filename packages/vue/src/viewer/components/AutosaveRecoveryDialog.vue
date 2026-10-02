@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { History, Trash2 } from 'lucide-vue-next';
+import { History } from 'lucide-vue-next';
 import type { AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -65,24 +66,24 @@ function requestDiscard(): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-				:disabled="props.discarding"
-				@click="requestDiscard"
-			>
-				<Trash2 class="h-4 w-4" />
-				{{ t(props.prompt.discardKey) }}
-			</button>
-			<button
-				type="button"
-				class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-				:disabled="props.discarding"
-				@click="emit('restore')"
-			>
-				<History class="h-4 w-4" />
-				{{ t(props.prompt.restoreKey) }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{
+						id: 'discard',
+						label: t(props.prompt.discardKey),
+						icon: 'trash',
+						disabled: props.discarding,
+					},
+					{
+						id: 'restore',
+						label: t(props.prompt.restoreKey),
+						variant: 'primary',
+						icon: 'restore',
+						disabled: props.discarding,
+					},
+				]"
+				@action="(id) => (id === 'restore' ? emit('restore') : requestDiscard())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

@@ -22,6 +22,12 @@ declare module 'react' {
 			'pptx-ui-select': WebControlProps;
 			'pptx-ui-checkbox': WebControlProps;
 			'pptx-ui-slide-show-options': WebControlProps;
+			'pptx-ui-compat-toasts': WebControlProps;
+			'pptx-ui-dialog-footer': WebControlProps;
+			'pptx-ui-mobile-bar': WebControlProps;
+			'pptx-ui-mobile-toolbar': WebControlProps;
+			'pptx-ui-paste-options': WebControlProps;
+			'pptx-ui-read-only-banner': WebControlProps;
 			'pptx-ui-ribbon-command': WebControlProps;
 			'pptx-ui-ribbon-animations': WebControlProps;
 			'pptx-ui-ribbon-draw': WebControlProps;

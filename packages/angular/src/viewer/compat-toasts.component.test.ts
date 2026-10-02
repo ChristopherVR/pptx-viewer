@@ -1,100 +1,94 @@
 /**
- * CompatToastsComponent: stack positioning + "Dismiss all" gating.
- *
- * No Angular TestBed (see `chart-display-options.component.test.ts`): the
- * component is instantiated directly for the style-object assertion, and the
- * template is read off the source file (same technique as
- * `custom-shows-deck.test.ts`'s slide-size-preset regression test) for the
- * wiring the DOM can't be rendered here to prove. Two real bugs, caught live
- * in the demo:
+ * CompatToastsComponent: the Angular adapter around the shared
+ * `pptx-ui-compat-toasts`. Two real bugs were caught live in the demo and stay
+ * pinned here:
  * - the stack used a Tailwind `fixed bottom-4 right-4` class scoped to the
  *   whole viewport, so it could sit on top of the status bar's "Slide show"
- *   button instead of stopping above it.
+ *   button instead of stopping above it;
  * - "Dismiss all" only rendered once a SECOND toast appeared, so a deck with
  *   exactly one compatibility warning had no way to clear it without
  *   dismissing the single toast itself.
  */
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { Injector, runInInjectionContext, signal } from '@angular/core';
-import type { InputSignal } from '@angular/core';
-import { describe, expect, it } from 'vitest';
-
+import { translationsEn } from '../../../shared/src/i18n';
+import { registerPptxWebControls } from '../../../shared/src/web-components';
 import type { CompatibilityWarningToast } from '../internal/shared';
-import { compatToastStackStyleAttr } from '../internal/shared';
+import { compatToastStackStyle } from '../internal/shared';
 import { CompatToastsComponent } from './compat-toasts.component';
+
+beforeAll(() => {
+	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	registerPptxWebControls();
+});
+afterEach(() => TestBed.resetTestingModule());
 
 function toast(overrides: Partial<CompatibilityWarningToast> = {}): CompatibilityWarningToast {
 	return {
 		id: 't1',
 		code: 'unmodelledMarkup',
 		severity: 'warning',
-		messageKey: 'pptx.compatibility.unmodelledMarkup',
+		messageKey: 'pptx.compatibility.unmodelledSlideMarkup',
 		...overrides,
 	} as CompatibilityWarningToast;
 }
 
-function createComponent(
-	toasts: readonly CompatibilityWarningToast[],
-	rightInset = 0,
-	bottomInset = 0,
-): CompatToastsComponent {
-	const component = runInInjectionContext(
-		Injector.create({ providers: [] }),
-		() => new CompatToastsComponent(),
-	);
-	Object.assign(component, {
-		toasts: signal(toasts) as unknown as InputSignal<readonly CompatibilityWarningToast[]>,
-		rightInset: signal(rightInset) as unknown as InputSignal<number>,
-		bottomInset: signal(bottomInset) as unknown as InputSignal<number>,
+function open(toasts: readonly CompatibilityWarningToast[], inputs: Record<string, unknown> = {}) {
+	TestBed.resetTestingModule();
+	TestBed.configureTestingModule({
+		imports: [CompatToastsComponent],
+		providers: [provideTranslateService({ fallbackLang: 'en' })],
 	});
-	return component;
+	const values = { toasts, ...inputs };
+	TestBed.overrideComponent(CompatToastsComponent, { add: { inputs: Object.keys(values) } });
+	const fixture = TestBed.createComponent(CompatToastsComponent);
+	for (const [name, value] of Object.entries(values)) {
+		fixture.componentRef.setInput(name, signal(value));
+	}
+	const translate = TestBed.inject(TranslateService);
+	translate.setTranslation('en', translationsEn);
+	translate.use('en');
+	fixture.detectChanges();
+	const host = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+		'pptx-ui-compat-toasts',
+	);
+	return { fixture, host, root: host?.shadowRoot };
 }
 
-describe('compatToastsComponent stack style', () => {
-	it('positions the stack via the shared metrics, not a viewport-fixed class', () => {
-		const component = createComponent([toast()]);
-		expect(component.stackStyle()).toBe(compatToastStackStyleAttr());
-		expect(component.stackStyle()).toContain('position:absolute');
-		expect(component.stackStyle()).toContain('pointer-events:none');
+describe('compatToastsComponent adapter', () => {
+	it('renders nothing when there are no toasts', () => {
+		expect(open([]).host).toBeNull();
 	});
 
-	// The viewer root the stack is anchored to spans the FULL chrome width,
-	// including a right-docked format/inspector panel when one is open, so
-	// without `rightInset` the stack renders UNDER that panel's own content
-	// (it visually overlapped the Properties panel's "Presentation" section)
-	// instead of clear of it.
-	it('adds rightInset (the open format/inspector panel width) to the right offset', () => {
-		const component = createComponent([toast()], 288);
-		expect(component.stackStyle()).toBe(compatToastStackStyleAttr(288));
-		expect(component.stackStyle()).toContain('right:300px');
+	it('renders each toast with its code and severity hooks', () => {
+		const { host, root } = open([toast(), toast({ id: 't2', code: 'other', severity: 'info' })]);
+		expect(host!.getAttribute('data-testid')).toBe('pptx-compat-toasts');
+		const items = root!.querySelectorAll('[data-testid="pptx-compat-toast"]');
+		expect(items).toHaveLength(2);
+		expect(items[0].getAttribute('data-code')).toBe('unmodelledMarkup');
+		expect(items[1].getAttribute('data-severity')).toBe('info');
 	});
 
-	// The docked "Speaker notes" strip sits between the canvas and the status
-	// bar in the same containing block, so the stack must clear its height.
-	it('adds bottomInset (the measured notes-strip height) to the bottom offset', () => {
-		const component = createComponent([toast()], 0, 52);
-		expect(component.stackStyle()).toBe(compatToastStackStyleAttr(0, 52));
-		expect(component.stackStyle()).toContain('bottom:93px');
-	});
-});
-
-describe('compatToastsComponent template wiring (source-level)', () => {
-	const source = readFileSync(path.join(__dirname, 'compat-toasts.component.ts'), 'utf8');
-
-	it('never gates "Dismiss all" on more than one toast', () => {
-		expect(source).not.toContain('toasts().length > 1');
+	it('positions the stack via the shared metrics, with both insets applied', () => {
+		const { host } = open([toast()], { rightInset: 288, bottomInset: 52 });
+		const expected = compatToastStackStyle(288, 52);
+		expect(host!.style.position).toBe('absolute');
+		expect(host!.style.right).toBe(expected.right);
+		expect(host!.style.bottom).toBe(expected.bottom);
+		expect(host!.style.pointerEvents).toBe('none');
 	});
 
-	it('binds the stack container to the shared style, not a fixed/bottom/right class', () => {
-		expect(source).toContain('[style]="stackStyle()"');
-		expect(source).not.toMatch(/class="[^"]*\bfixed\b[^"]*\bbottom-/u);
-	});
-
-	it('marks each toast pointer-events:auto so the pointer-events:none stack still lets clicks through', () => {
-		const start = source.indexOf('pptx-ng-compat-toast ');
-		const toastTag = source.slice(start, source.indexOf('>', start));
-		expect(toastTag).toContain('pointer-events:auto');
+	it('always offers Dismiss all, even for a single toast, and forwards both dismissals', () => {
+		const { fixture, root } = open([toast()]);
+		const seen: string[] = [];
+		fixture.componentInstance.dismissOne.subscribe((id) => seen.push(`one:${id}`));
+		fixture.componentInstance.dismissAll.subscribe(() => seen.push('all'));
+		root!.querySelector<HTMLElement>('[data-testid="pptx-compat-toast-dismiss"]')!.click();
+		root!.querySelector<HTMLElement>('[data-testid="pptx-compat-toasts-dismiss-all"]')!.click();
+		expect(seen).toStrictEqual(['one:t1', 'all']);
 	});
 });

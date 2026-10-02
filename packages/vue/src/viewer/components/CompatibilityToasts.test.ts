@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
 import { compatToastStackStyle } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
@@ -15,6 +16,11 @@ function toast(overrides: Partial<CompatibilityWarningToast> = {}): Compatibilit
 	};
 }
 
+/** The stack renders inside the shared element's open shadow root. */
+function inner(wrapper: VueWrapper, selector: string): HTMLElement | null {
+	return (wrapper.element as HTMLElement).shadowRoot?.querySelector<HTMLElement>(selector) ?? null;
+}
+
 describe('compatibilityToasts', () => {
 	it('renders nothing for an empty toast list', () => {
 		const wrapper = mount(CompatibilityToasts, { props: { toasts: [], overflowCount: 0 } });
@@ -25,18 +31,18 @@ describe('compatibilityToasts', () => {
 		const wrapper = mount(CompatibilityToasts, {
 			props: { toasts: [toast()], overflowCount: 0 },
 		});
-		const el = wrapper.find('[data-testid="pptx-compat-toast"]');
-		expect(el.exists()).toBeTruthy();
-		expect(el.attributes('data-code')).toBe('SAVE_ELEMENT_SKIPPED');
-		expect(el.attributes('data-severity')).toBe('warning');
+		const el = inner(wrapper, '[data-testid="pptx-compat-toast"]');
+		expect(el).not.toBeNull();
+		expect(el!.getAttribute('data-code')).toBe('SAVE_ELEMENT_SKIPPED');
+		expect(el!.getAttribute('data-severity')).toBe('warning');
 	});
 
 	it('emits dismiss with the toast id and dismiss-all from the header button', async () => {
 		const wrapper = mount(CompatibilityToasts, {
 			props: { toasts: [toast()], overflowCount: 0 },
 		});
-		await wrapper.find('[data-testid="pptx-compat-toast-dismiss"]').trigger('click');
-		await wrapper.find('[data-testid="pptx-compat-toasts-dismiss-all"]').trigger('click');
+		inner(wrapper, '[data-testid="pptx-compat-toast-dismiss"]')!.click();
+		inner(wrapper, '[data-testid="pptx-compat-toasts-dismiss-all"]')!.click();
 		expect(wrapper.emitted('dismiss')?.[0]).toStrictEqual(['SAVE_ELEMENT_SKIPPED']);
 		expect(wrapper.emitted('dismiss-all')).toHaveLength(1);
 	});
@@ -45,14 +51,14 @@ describe('compatibilityToasts', () => {
 		const wrapper = mount(CompatibilityToasts, {
 			props: { toasts: [toast()], overflowCount: 3 },
 		});
-		expect(wrapper.text()).toContain('+3');
+		expect(inner(wrapper, '.overflow')?.textContent).toBe('+3');
 	});
 
 	it('renders the dismiss-all button for a single toast (not gated on more than one)', () => {
 		const wrapper = mount(CompatibilityToasts, {
 			props: { toasts: [toast()], overflowCount: 0 },
 		});
-		expect(wrapper.find('[data-testid="pptx-compat-toasts-dismiss-all"]').exists()).toBeTruthy();
+		expect(inner(wrapper, '[data-testid="pptx-compat-toasts-dismiss-all"]')).not.toBeNull();
 	});
 
 	/**

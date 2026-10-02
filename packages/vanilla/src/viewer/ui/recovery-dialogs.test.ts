@@ -10,7 +10,8 @@ describe('recovery dialogs', () => {
 	it('shows signature count and the continue action', () => {
 		const dialog = openSignatureStrippedDialog(document, createTranslator(), 2);
 		expect(dialog.textContent).toContain('2');
-		expect(dialog.textContent).toContain('Edit anyway');
+		const footer = dialog.querySelector('pptx-ui-dialog-footer')!;
+		expect(footer.shadowRoot!.textContent).toContain('Edit anyway');
 	});
 
 	it('shows empty history when the recovery store has no record', async () => {

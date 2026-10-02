@@ -14,7 +14,7 @@ button {
 	border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; touch-action: manipulation;
 	transition: transform .1s ease, color .1s ease;
 }
-button:hover:not(:disabled) { color: var(--pptx-foreground, #e2e8f0); }
+@media (hover: hover) { button:hover:not(:disabled):not([aria-pressed="true"]) { color: var(--pptx-foreground, #e2e8f0); } }
 button:active:not(:disabled) { transform: scale(.95); }
 button:disabled { opacity: .4; pointer-events: none; }
 button[aria-pressed="true"] { color: var(--pptx-primary, #6366f1); }
@@ -51,7 +51,7 @@ button {
 	min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent;
 	color: inherit; cursor: pointer; touch-action: manipulation; transition: transform .1s ease;
 }
-button:hover:not(:disabled) { background: var(--pptx-accent, #33334d); }
+@media (hover: hover) { button:hover:not(:disabled) { background: var(--pptx-accent, #33334d); } }
 button:active:not(:disabled) { transform: scale(.95); }
 button:disabled { opacity: .4; cursor: default; }
 button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }

@@ -9,7 +9,8 @@ import type { PasteSpecialFormat } from 'pptx-viewer-shared';
 import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
-import { appendDialogButton, appendRadioRow, createParityDialogShell } from './parity-dialog-shell';
+import { appendDialogFooter } from './dialog-footer';
+import { appendRadioRow, createParityDialogShell } from './parity-dialog-shell';
 
 export interface PasteSpecialDialogOptions {
 	onConfirm(format: PasteSpecialFormat): void;
@@ -32,15 +33,18 @@ export function openPasteSpecialDialog(
 			selected = value as PasteSpecialFormat;
 		},
 	);
-	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), () => shell.close());
-	appendDialogButton(
+	appendDialogFooter(
 		doc,
 		shell.footer,
-		t('pptx.common.ok'),
-		() => {
+		[
+			{ id: 'cancel', label: t('pptx.common.cancel') },
+			{ id: 'ok', label: t('pptx.common.ok'), variant: 'primary' },
+		],
+		(id) => {
 			shell.close();
-			options.onConfirm(selected);
+			if (id === 'ok') {
+				options.onConfirm(selected);
+			}
 		},
-		true,
 	);
 }
