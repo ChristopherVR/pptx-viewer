@@ -7,6 +7,35 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.19.0) - 2026-10-02
+
+### Features
+
+- **shared:** Add menus, colours, selects and galleries to the Home strips (by @ChristopherVR) ([c30aa60](https://github.com/ChristopherVR/pptx-viewer/commit/c30aa60c38c3d40e8b63584f98f38ed22741569e))
+- **ui:** Shared radio and switch primitives, adopt in all bindings (by @ChristopherVR) ([37f8c8f](https://github.com/ChristopherVR/pptx-viewer/commit/37f8c8f0694b3e186437a09f051ce6714fd62523))
+- **ui:** Match PowerPoint on Transitions, Animations, Review, View, SmartArt (by @ChristopherVR) ([cee954b](https://github.com/ChristopherVR/pptx-viewer/commit/cee954bf0a1dc126c365a51d6f34f6c54c66cb55))
+- **ui:** Finish dialog footers and add the drift e2e (by @ChristopherVR) ([0e3ff44](https://github.com/ChristopherVR/pptx-viewer/commit/0e3ff4440d9f31d6c4bd87193ce0fc9fc270287e))
+
+### Bug Fixes
+
+- **shared:** Validate Home gallery picks and scope popup roles to open (by @ChristopherVR) ([94c8655](https://github.com/ChristopherVR/pptx-viewer/commit/94c86553d92c60de53ca00a3dcf698e69915444a))
+- **shared:** Keep open Home popups and selects stable across state updates (by @ChristopherVR) ([85f2738](https://github.com/ChristopherVR/pptx-viewer/commit/85f2738aacafd3c23b25f89a462ef60484bdcadd))
+
+### Refactor
+
+- **react:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([531b8fb](https://github.com/ChristopherVR/pptx-viewer/commit/531b8fb6261eb300b6a1524df416b0746b59b559))
+- **vanilla:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([a5c3c20](https://github.com/ChristopherVR/pptx-viewer/commit/a5c3c207fc342d3e93bd62137336923cfbb82531))
+- **react:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([2145b47](https://github.com/ChristopherVR/pptx-viewer/commit/2145b47b2de1d145fcac2aa21812c273a3d5dae2))
+- **vue:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([3e51932](https://github.com/ChristopherVR/pptx-viewer/commit/3e5193280c4da6121d6620f38c408a437dafaf9f))
+
+### Testing
+
+- **shared:** Allow the SmartArt Design tab to carry more than two galleries (by @ChristopherVR) ([566fa82](https://github.com/ChristopherVR/pptx-viewer/commit/566fa829748ccb53f43238a4e8b0f947f18ece28))
+
+### Build & CI
+
+- **core:** Depend on the unscoped ooxml-core package (by @ChristopherVR) ([5ae6159](https://github.com/ChristopherVR/pptx-viewer/commit/5ae615928d76d1328e46719c5b441afb5bfc2f7f))
+
 ## [4.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.18.0) - 2026-10-02
 
 ### Features

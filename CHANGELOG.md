@@ -10,6 +10,55 @@ dated sections beneath it are generated from
 
 ## 2026-10-02
 
+_Releases: pptx-viewer-core@4.9.4, pptx-react-viewer@4.19.0, pptx-vue-viewer@4.19.0, pptx-angular-viewer@4.19.0, pptx-vanilla-viewer@3.19.0, pptx-svelte-viewer@4.19.0, pptx-viewer-mcp@2.5.9, @christophervr/pptx-viewer@2.36.0_
+
+### Features
+
+- **shared:** Add menus, colours, selects and galleries to the Home strips (by @ChristopherVR) ([c30aa60](https://github.com/ChristopherVR/pptx-viewer/commit/c30aa60c38c3d40e8b63584f98f38ed22741569e))
+- **ui:** Shared radio and switch primitives, adopt in all bindings (by @ChristopherVR) ([37f8c8f](https://github.com/ChristopherVR/pptx-viewer/commit/37f8c8f0694b3e186437a09f051ce6714fd62523))
+- **ui:** Match PowerPoint on Transitions, Animations, Review, View, SmartArt (by @ChristopherVR) ([cee954b](https://github.com/ChristopherVR/pptx-viewer/commit/cee954bf0a1dc126c365a51d6f34f6c54c66cb55))
+- **ui:** Finish dialog footers and add the drift e2e (by @ChristopherVR) ([0e3ff44](https://github.com/ChristopherVR/pptx-viewer/commit/0e3ff4440d9f31d6c4bd87193ce0fc9fc270287e))
+
+### Bug Fixes
+
+- **shared:** Validate Home gallery picks and scope popup roles to open (by @ChristopherVR) ([94c8655](https://github.com/ChristopherVR/pptx-viewer/commit/94c86553d92c60de53ca00a3dcf698e69915444a))
+- **shared:** Keep open Home popups and selects stable across state updates (by @ChristopherVR) ([85f2738](https://github.com/ChristopherVR/pptx-viewer/commit/85f2738aacafd3c23b25f89a462ef60484bdcadd))
+
+### Refactor
+
+- **react:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([531b8fb](https://github.com/ChristopherVR/pptx-viewer/commit/531b8fb6261eb300b6a1524df416b0746b59b559))
+- **vue:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([76a0401](https://github.com/ChristopherVR/pptx-viewer/commit/76a0401f0bb79097a4da1364e650e3c10a797fc5))
+- **angular:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([2328b43](https://github.com/ChristopherVR/pptx-viewer/commit/2328b434b40edf0fe9fa311104b42c42cc4c7749))
+- **vanilla:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([0a61646](https://github.com/ChristopherVR/pptx-viewer/commit/0a61646f0e1501786ae6fb8ba06a148a62934479))
+- **svelte:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([6ad584e](https://github.com/ChristopherVR/pptx-viewer/commit/6ad584ed53bb9fad906d0497fb8e81ca3b70de3d))
+- **vanilla:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([a5c3c20](https://github.com/ChristopherVR/pptx-viewer/commit/a5c3c207fc342d3e93bd62137336923cfbb82531))
+- **react:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([2145b47](https://github.com/ChristopherVR/pptx-viewer/commit/2145b47b2de1d145fcac2aa21812c273a3d5dae2))
+- **vue:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([3e51932](https://github.com/ChristopherVR/pptx-viewer/commit/3e5193280c4da6121d6620f38c408a437dafaf9f))
+- **svelte:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([b7c581a](https://github.com/ChristopherVR/pptx-viewer/commit/b7c581ae357af15c34f9c8aaebb6c763cb46f30b))
+- **angular:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([1ad1599](https://github.com/ChristopherVR/pptx-viewer/commit/1ad159909a3885295ddf5758a38c68afcd10e1f4))
+
+### Documentation
+
+- Map the sibling repositories in a single canonical AGENTS.md (by @ChristopherVR) ([2f70cd0](https://github.com/ChristopherVR/pptx-viewer/commit/2f70cd09f1136c6328183ccf6bff64eca0b3dc15))
+- Record the finished Home migration and its remaining native parts (by @ChristopherVR) ([daecae2](https://github.com/ChristopherVR/pptx-viewer/commit/daecae20b061996852b824d6f6556bbd5e65c8cb))
+- **ui:** Audit Transitions to View and contextual ribbon tabs vs PowerPoint (by @ChristopherVR) ([a934e59](https://github.com/ChristopherVR/pptx-viewer/commit/a934e594f612d97f842ac694f51d3ab1a8e5fdaa))
+
+### Testing
+
+- **svelte:** Follow the Home popup role that exists only while open (by @ChristopherVR) ([59ba33c](https://github.com/ChristopherVR/pptx-viewer/commit/59ba33cd411015d7f17416a69f6f3313b582b59f))
+- **e2e:** Cover the remaining Home controls on all five bindings (by @ChristopherVR) ([01fac8a](https://github.com/ChristopherVR/pptx-viewer/commit/01fac8a65c326b2afaa8975b7e6dede2a92c8d52))
+- **shared:** Allow the SmartArt Design tab to carry more than two galleries (by @ChristopherVR) ([566fa82](https://github.com/ChristopherVR/pptx-viewer/commit/566fa829748ccb53f43238a4e8b0f947f18ece28))
+- **e2e:** Open Custom Slide Shows from its new Slide Show tab label (by @ChristopherVR) ([4481de8](https://github.com/ChristopherVR/pptx-viewer/commit/4481de8c9bc809d9a6e93c4a9c5f7257a54c84a6))
+- **e2e:** Save the equation round-trip through the File dialog (by @ChristopherVR) ([af805d0](https://github.com/ChristopherVR/pptx-viewer/commit/af805d040fea784778ff826cf594290f4005e162))
+- **e2e:** Cover nine dialog footers per binding with captures (by @ChristopherVR) ([6ae7b97](https://github.com/ChristopherVR/pptx-viewer/commit/6ae7b9721b9284fc878f7847f1f425fc9ef4b884))
+- Stabilise the footer focus check and the ribbon hit-area guard (by @ChristopherVR) ([a14ccfd](https://github.com/ChristopherVR/pptx-viewer/commit/a14ccfd048ca70e5f4101ec4d683e38e945762ce))
+
+### Build & CI
+
+- **core:** Depend on the unscoped ooxml-core package (by @ChristopherVR) ([5ae6159](https://github.com/ChristopherVR/pptx-viewer/commit/5ae615928d76d1328e46719c5b441afb5bfc2f7f))
+
+## 2026-10-02
+
 _Releases: pptx-react-viewer@4.18.0, pptx-vue-viewer@4.18.0, pptx-angular-viewer@4.18.0, pptx-vanilla-viewer@3.18.0, pptx-svelte-viewer@4.18.0, @christophervr/pptx-viewer@2.35.0_
 
 ### Features

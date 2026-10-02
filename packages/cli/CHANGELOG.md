@@ -7,6 +7,23 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.36.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.36.0) - 2026-10-02
+
+### Features
+
+- **ui:** Shared radio and switch primitives, adopt in all bindings (by @ChristopherVR) ([37f8c8f](https://github.com/ChristopherVR/pptx-viewer/commit/37f8c8f0694b3e186437a09f051ce6714fd62523))
+- **ui:** Match PowerPoint on Transitions, Animations, Review, View, SmartArt (by @ChristopherVR) ([cee954b](https://github.com/ChristopherVR/pptx-viewer/commit/cee954bf0a1dc126c365a51d6f34f6c54c66cb55))
+- **ui:** Finish dialog footers and add the drift e2e (by @ChristopherVR) ([0e3ff44](https://github.com/ChristopherVR/pptx-viewer/commit/0e3ff4440d9f31d6c4bd87193ce0fc9fc270287e))
+
+### Refactor
+
+- **react:** Use shared Home menus, colours, selects and galleries (by @ChristopherVR) ([531b8fb](https://github.com/ChristopherVR/pptx-viewer/commit/531b8fb6261eb300b6a1524df416b0746b59b559))
+- **react:** Adopt pptx-ui-dialog-footer in the remaining dialogs (by @ChristopherVR) ([2145b47](https://github.com/ChristopherVR/pptx-viewer/commit/2145b47b2de1d145fcac2aa21812c273a3d5dae2))
+
+### Build & CI
+
+- **core:** Depend on the unscoped ooxml-core package (by @ChristopherVR) ([5ae6159](https://github.com/ChristopherVR/pptx-viewer/commit/5ae615928d76d1328e46719c5b441afb5bfc2f7f))
+
 ## [2.35.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.35.0) - 2026-10-02
 
 ### Features
