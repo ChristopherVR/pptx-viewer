@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.17.1) - 2026-10-02
+
+### Bug Fixes
+
+- **group-drill:** Honour noSelect and noDrilldown when drilling into groups (by @ChristopherVR) ([3bf5f38](https://github.com/ChristopherVR/pptx-viewer/commit/3bf5f38b1072f1e4f82224517f3e369e813fe67d))
+
 ## [3.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.17.0) - 2026-10-01
 
 ### Features

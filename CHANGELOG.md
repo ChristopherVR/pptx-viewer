@@ -8,6 +8,23 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-10-02
+
+_Releases: pptx-react-viewer@4.17.1, pptx-vue-viewer@4.17.1, pptx-angular-viewer@4.17.1, pptx-vanilla-viewer@3.17.1, pptx-svelte-viewer@4.17.1, @christophervr/pptx-viewer@2.34.1_
+
+### Bug Fixes
+
+- **group-drill:** Honour noSelect and noDrilldown when drilling into groups (by @ChristopherVR) ([3bf5f38](https://github.com/ChristopherVR/pptx-viewer/commit/3bf5f38b1072f1e4f82224517f3e369e813fe67d))
+
+### Testing
+
+- **e2e:** Give the dense-panel load tests two deck loads of budget (by @ChristopherVR) ([cb94fb5](https://github.com/ChristopherVR/pptx-viewer/commit/cb94fb55fd18109f8fbad7b52454bd10161f529e))
+- **e2e:** Wait for the undo to reach the saved deck in the animations spec (by @ChristopherVR) ([9ea7536](https://github.com/ChristopherVR/pptx-viewer/commit/9ea7536de9d2bec68ebd3c4a3a0a3fe4ebee7647))
+
+### Build & CI
+
+- **e2e:** Run the browser suite in 10 shards instead of 8 (by @ChristopherVR) ([c38736a](https://github.com/ChristopherVR/pptx-viewer/commit/c38736ac3ccfcec9b1bfa8b98213ed5f7efdccd7))
+
 ## 2026-10-01
 
 _Releases: pptx-viewer-core@4.9.3, pptx-react-viewer@4.17.0, pptx-vue-viewer@4.17.0, pptx-angular-viewer@4.17.0, pptx-vanilla-viewer@3.17.0, pptx-svelte-viewer@4.17.0, pptx-viewer-mcp@2.5.8, @christophervr/pptx-viewer@2.34.0_
