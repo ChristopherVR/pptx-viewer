@@ -174,8 +174,13 @@ for (const surface of SURFACES) {
 				test.skip(true, 'this dialog has no dismiss action in its footer');
 			}
 			const before = await visibleFooters(page).count();
-			await dismiss.focus();
-			await expect(dismiss).toBeFocused();
+			// A dialog's own initial-focus effect can land just after the first focus(): retry until it holds.
+			await expect(async () => {
+				await dismiss.focus();
+				// Let any late initial-focus effect run, then require focus to still be here.
+				await page.waitForTimeout(250);
+				await expect(dismiss).toBeFocused({ timeout: 1000 });
+			}).toPass({ timeout: 10_000 });
 			await page.keyboard.press('Enter');
 			await expect(visibleFooters(page)).toHaveCount(before - 1);
 		});

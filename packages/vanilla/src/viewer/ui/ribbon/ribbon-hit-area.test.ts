@@ -144,7 +144,8 @@ describe('ribbon button hit areas', () => {
 		const buttons = ribbonIconButtons(ribbon.el);
 		// Guards the vacuous pass: a ribbon that built nothing agrees with
 		// every rule about buttons it does not have.
-		expect(buttons.length).toBeGreaterThan(20);
+		// (Dialog action rows now live in the shared footer's shadow root, so they are not counted.)
+		expect(buttons.length).toBeGreaterThan(10);
 
 		// Any name listed here renders a text label inside the fixed 28px icon
 		// box, so the label overflows and steals its neighbour's hit area.
