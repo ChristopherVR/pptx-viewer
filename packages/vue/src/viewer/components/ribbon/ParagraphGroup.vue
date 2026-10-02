@@ -15,6 +15,7 @@ import {
 	paragraphHomeAlign,
 	paragraphHomeControls,
 	selectionBulletKind,
+	homeSnapshotTranslator,
 } from 'pptx-viewer-shared';
 import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
@@ -80,7 +81,7 @@ const paragraphState = computed(() => ({
 		enabled: canMut.value && canFormat.value,
 		align: paragraphHomeAlign(effectiveTs.value?.align),
 	}),
-	translate: t,
+	translate: homeSnapshotTranslator(['paragraph'], t),
 }));
 
 function requestParagraph(event: RibbonHomeRequestEvent): void {
