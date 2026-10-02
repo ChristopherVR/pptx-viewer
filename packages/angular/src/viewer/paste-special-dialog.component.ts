@@ -14,13 +14,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { PASTE_SPECIAL_OPTIONS } from '../internal/shared';
 import type { PasteSpecialFormat } from '../internal/shared';
+import { DialogFooterComponent } from './dialog-footer.component';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 
 @Component({
 	selector: 'pptx-paste-special-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -44,16 +46,10 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</ul>
 
 			<div footer>
-				<button type="button" class="pptx-ng-paste-special-btn" (click)="cancel.emit()">
-					{{ 'pptx.common.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ng-paste-special-btn pptx-ng-paste-special-btn-primary"
-					(click)="confirm.emit(selected())"
-				>
-					{{ 'pptx.common.ok' | translate }}
-				</button>
+				<pptx-dialog-footer
+					[actions]="footerActions"
+					(action)="$event === 'ok' ? confirm.emit(selected()) : cancel.emit()"
+				/>
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -82,35 +78,15 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			.pptx-ng-paste-special-option:hover {
 				background: var(--pptx-accent, #1f2937);
 			}
-
-			.pptx-ng-paste-special-btn {
-				padding: 0.5rem 1rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-background, #030712);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.8125rem;
-				font-weight: 500;
-				cursor: pointer;
-			}
-
-			.pptx-ng-paste-special-btn:hover {
-				background: var(--pptx-accent, #1f2937);
-			}
-
-			.pptx-ng-paste-special-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-paste-special-btn-primary:hover {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class PasteSpecialDialogComponent {
+	protected readonly footerActions: readonly DialogFooterActionSpec[] = [
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{ id: 'ok', labelKey: 'pptx.common.ok', variant: 'primary' },
+	];
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

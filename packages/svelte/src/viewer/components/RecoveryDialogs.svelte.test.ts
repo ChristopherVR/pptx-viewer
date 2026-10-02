@@ -6,6 +6,11 @@ import AutosaveRecoveryDialog from './AutosaveRecoveryDialog.svelte';
 import SignatureStrippedDialog from './SignatureStrippedDialog.svelte';
 import VersionHistoryPanel from './VersionHistoryPanel.svelte';
 
+/** Footer actions render inside the shared `pptx-ui-dialog-footer` shadow root. */
+const footerButtons = (target: HTMLElement): HTMLButtonElement[] => [
+	...(target.querySelector('pptx-ui-dialog-footer')?.shadowRoot?.querySelectorAll('button') ?? []),
+];
+
 const cleanups: Array<() => void> = [];
 afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
 
@@ -61,9 +66,7 @@ describe('the autosave recovery prompt', () => {
 	it('routes its two buttons to restore and discard', () => {
 		const { target, onrestore, ondiscard } = renderPrompt(3);
 		const button = (name: string): HTMLButtonElement | null =>
-			[...target.querySelectorAll('button')].find(
-				(candidate) => candidate.textContent?.trim() === name,
-			) ?? null;
+			footerButtons(target).find((candidate) => candidate.textContent?.trim() === name) ?? null;
 
 		button('Restore')?.click();
 		button('Discard')?.click();
@@ -75,8 +78,9 @@ describe('the autosave recovery prompt', () => {
 	it('disables both actions and exposes busy state while discarding', () => {
 		const { target, onrestore, ondiscard } = renderPrompt(3, true);
 		const dialog = target.querySelector('[role="dialog"]');
-		const buttons = [...target.querySelectorAll<HTMLButtonElement>('button')];
+		const buttons = footerButtons(target);
 
+		expect(buttons).toHaveLength(2);
 		expect(dialog?.getAttribute('aria-busy')).toBe('true');
 		expect(buttons.every((button) => button.disabled)).toBeTruthy();
 		buttons.forEach((button) => button.click());
@@ -94,7 +98,7 @@ describe('recovery and signature surfaces', () => {
 		});
 		cleanups.push(() => unmount(instance));
 		expect(target.textContent).toContain('2');
-		expect(target.textContent).toContain('Edit anyway');
+		expect(footerButtons(target).map((button) => button.textContent)).toContain('Edit anyway');
 	});
 
 	it('renders an empty version history without a file path', async () => {

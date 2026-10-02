@@ -15,13 +15,15 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { DialogFooterComponent } from './dialog-footer.component';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 
 @Component({
 	selector: 'pptx-signature-stripped-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -45,16 +47,10 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-sig-btn" (click)="cancel.emit()">
-					{{ 'pptx.common.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ng-sig-btn pptx-ng-sig-btn-danger"
-					(click)="confirm.emit()"
-				>
-					{{ 'pptx.digitalSignatures.strippedConfirm' | translate }}
-				</button>
+				<pptx-dialog-footer
+					[actions]="footerActions"
+					(action)="$event === 'confirm' ? confirm.emit() : cancel.emit()"
+				/>
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -101,35 +97,15 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				line-height: 1.5;
 				color: rgba(252, 211, 77, 0.7);
 			}
-
-			.pptx-ng-sig-btn {
-				padding: 0.375rem 0.75rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				cursor: pointer;
-				white-space: nowrap;
-			}
-
-			.pptx-ng-sig-btn:hover {
-				background: var(--pptx-border, #374151);
-			}
-
-			.pptx-ng-sig-btn-danger {
-				border-color: #d97706;
-				background: #d97706;
-				color: #ffffff;
-			}
-
-			.pptx-ng-sig-btn-danger:hover {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class SignatureStrippedDialogComponent {
+	protected readonly footerActions: readonly DialogFooterActionSpec[] = [
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{ id: 'confirm', labelKey: 'pptx.digitalSignatures.strippedConfirm', variant: 'warning' },
+	];
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

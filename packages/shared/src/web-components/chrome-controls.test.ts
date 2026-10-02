@@ -85,8 +85,9 @@ describe('pptx-ui-paste-options', () => {
 		document.body.append(host);
 		expect(host.hasAttribute('data-pptx-paste-options')).toBeTruthy();
 		const toolbar = q<HTMLElement>(host, '[role="toolbar"]')!;
-		expect(toolbar.style.left).toBe('104px');
-		expect(toolbar.style.top).toBe('54px');
+		// The host itself is the fixed box, 4px from the pasted element's corner.
+		expect(host.style.left).toBe('104px');
+		expect(host.style.top).toBe('54px');
 		expect(toolbar.getAttribute('aria-label')).toBe('t:pptx.pasteSpecial.optionsLabel');
 		const buttons = host.shadowRoot!.querySelectorAll('button');
 		expect(buttons).toHaveLength(4);
@@ -95,6 +96,10 @@ describe('pptx-ui-paste-options', () => {
 		const spy = listen(host, 'paste-options-request');
 		buttons[2].click();
 		expect(spy).toHaveBeenCalledWith({ format: 'picture' });
+		// A choice also asks the host to close the strip.
+		const dismiss = listen(host, 'paste-options-dismiss');
+		buttons[0].click();
+		expect(dismiss).toHaveBeenCalledOnce();
 	});
 
 	it('arms outside dismissal after a task and ignores presses on the strip', async () => {

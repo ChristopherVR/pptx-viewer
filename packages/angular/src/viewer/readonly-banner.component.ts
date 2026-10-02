@@ -3,10 +3,12 @@
  *
  * Selector: `pptx-readonly-banner`
  *
- * Purely presentational: {@link LoadNoticesService} decides WHETHER a deck
- * recommends read-only (`p:modifyVerifier` / "Mark as Final", see shared's
- * `read-only-recommendation.ts`) and which message key to show; this
- * component only renders that decision and forwards the two button clicks.
+ * A thin adapter around the shared `pptx-ui-read-only-banner` element, which
+ * owns the markup, the inline password form and its focus.
+ * {@link LoadNoticesService} decides WHETHER a deck recommends read-only
+ * (`p:modifyVerifier` / "Mark as Final", see shared's
+ * `read-only-recommendation.ts`) and which message key to show; this component
+ * maps that decision onto the element's state and re-emits its typed intents.
  *
  * When `passwordPromptOpen` is set (a `modifyVerifier` with a hash this
  * viewer can check), the two buttons are replaced by an inline password
@@ -16,103 +18,32 @@
  *
  * @module viewer/readonly-banner
  */
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+} from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
-import type { ReadOnlyRecommendationKind } from '../internal/shared';
+import type {
+	ReadOnlyBannerRequestEvent,
+	ReadOnlyBannerViewState,
+	ReadOnlyRecommendationKind,
+} from '../internal/shared';
 import type { ModifyPasswordErrorReason } from './load-notices.service';
+import { translationsSignal } from './translations-signal';
 
 @Component({
 	selector: 'pptx-readonly-banner',
 	standalone: true,
-	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	template: `
-		<div
-			class="pptx-ng-readonly-banner flex items-center gap-3 border-b border-amber-700/30 bg-amber-900/20 px-4 py-2"
-			data-testid="pptx-readonly-banner"
-			[attr.data-kind]="kind()"
-			role="status"
-		>
-			<span class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true">&#128274;</span>
-			<p class="flex-1 text-xs text-amber-200">
-				<strong>{{ 'pptx.readOnly.bannerTitle' | translate }}</strong
-				>: {{ messageKey() | translate }}
-			</p>
-			@if (passwordPromptOpen()) {
-				<form
-					data-testid="pptx-readonly-password-form"
-					class="flex shrink-0 items-center gap-2"
-					(submit)="onSubmit($event)"
-				>
-					<label [for]="inputId" class="sr-only">{{
-						'pptx.readOnly.passwordLabel' | translate
-					}}</label>
-					<input
-						[id]="inputId"
-						data-testid="pptx-readonly-password-input"
-						type="password"
-						[disabled]="checkingPassword()"
-						[value]="password()"
-						(input)="password.set($any($event.target).value)"
-						name="modifyPassword"
-						[placeholder]="'pptx.readOnly.passwordPlaceholder' | translate"
-						[attr.aria-invalid]="passwordError() !== null"
-						[attr.aria-describedby]="passwordError() !== null ? errorId : null"
-						class="rounded border border-amber-600/40 bg-black/20 px-2 py-1 text-xs text-amber-100"
-					/>
-					<button
-						type="submit"
-						data-testid="pptx-readonly-unlock"
-						[disabled]="checkingPassword()"
-						class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30 disabled:opacity-60"
-					>
-						{{ 'pptx.readOnly.unlock' | translate }}
-					</button>
-					<button
-						type="button"
-						data-testid="pptx-readonly-password-cancel"
-						class="shrink-0 rounded px-2 py-1 text-xs font-medium text-amber-200/80 transition-colors hover:bg-amber-700/20"
-						(click)="cancelPassword.emit()"
-					>
-						{{ 'pptx.common.cancel' | translate }}
-					</button>
-					@if (passwordError() !== null) {
-						<span
-							[id]="errorId"
-							role="alert"
-							data-testid="pptx-readonly-password-error"
-							class="shrink-0 text-xs text-red-300"
-						>
-							{{
-								(passwordError() === 'wrong-password'
-									? 'pptx.readOnly.wrongPassword'
-									: 'pptx.readOnly.unsupportedAlgorithm'
-								) | translate
-							}}
-						</span>
-					}
-				</form>
-			} @else {
-				<button
-					type="button"
-					data-testid="pptx-readonly-edit-anyway"
-					class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30"
-					(click)="editAnyway.emit()"
-				>
-					{{ 'pptx.readOnly.editAnyway' | translate }}
-				</button>
-				<button
-					type="button"
-					data-testid="pptx-readonly-dismiss"
-					class="shrink-0 rounded border border-transparent px-2 py-1 text-xs text-amber-200/80 transition-colors hover:text-amber-100"
-					(click)="dismiss.emit()"
-				>
-					{{ 'pptx.readOnly.dismiss' | translate }}
-				</button>
-			}
-		</div>
-	`,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { class: 'contents' },
+	template: ` <pptx-ui-read-only-banner [state]="view()" (read-only-request)="request($event)" /> `,
 })
 export class ReadOnlyBannerComponent {
 	/** `ReadOnlyRecommendation.kind`; mirrored onto `data-kind` for the e2e spec. */
@@ -134,12 +65,35 @@ export class ReadOnlyBannerComponent {
 	/** The password form's "Cancel". */
 	readonly cancelPassword = output<void>();
 
-	protected readonly password = signal('');
-	protected readonly inputId = 'pptx-readonly-password-input';
-	protected readonly errorId = 'pptx-readonly-password-error-text';
+	private readonly translate = inject(TranslateService);
+	private readonly translations = translationsSignal(this.translate);
 
-	protected onSubmit(event: Event): void {
-		event.preventDefault();
-		this.submitPassword.emit(this.password());
+	protected readonly view = computed<ReadOnlyBannerViewState>(() => {
+		this.translations();
+		return {
+			kind: this.kind(),
+			messageKey: this.messageKey(),
+			passwordPromptOpen: this.passwordPromptOpen(),
+			passwordError: this.passwordError(),
+			checkingPassword: this.checkingPassword(),
+			translate: (key, params) => this.translate.instant(key, params),
+		};
+	});
+
+	protected request(event: Event): void {
+		const intent = (event as ReadOnlyBannerRequestEvent).detail;
+		switch (intent.id) {
+			case 'editAnyway':
+				this.editAnyway.emit();
+				break;
+			case 'dismiss':
+				this.dismiss.emit();
+				break;
+			case 'cancelPassword':
+				this.cancelPassword.emit();
+				break;
+			case 'submitPassword':
+				this.submitPassword.emit(intent.password);
+		}
 	}
 }

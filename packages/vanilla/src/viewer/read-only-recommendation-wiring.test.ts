@@ -65,6 +65,17 @@ async function buildSaltlessPasswordProtectedDeck(password: string): Promise<Uin
 	}
 }
 
+/** The banner renders inside the shared element's open shadow root. */
+function inner<T extends HTMLElement = HTMLElement>(
+	container: HTMLElement,
+	selector: string,
+): T | null {
+	return (
+		container.querySelector('pptx-ui-read-only-banner')?.shadowRoot?.querySelector<T>(selector) ??
+		null
+	);
+}
+
 describe('vanilla read-only recommendation password prompt', () => {
 	let protectedDeck: Uint8Array;
 	let saltlessDeck: Uint8Array;
@@ -89,13 +100,9 @@ describe('vanilla read-only recommendation password prompt', () => {
 		const { container, viewer } = mount();
 		await viewer.loadFile(protectedDeck);
 
-		container
-			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-			.click();
+		inner<HTMLButtonElement>(container, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
-		const form = container.querySelector<HTMLElement>(
-			'[data-testid="pptx-readonly-password-form"]',
-		);
+		const form = inner<HTMLElement>(container, '[data-testid="pptx-readonly-password-form"]');
 		expect(form?.hidden).toBeFalsy();
 		expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
 	});
@@ -103,43 +110,41 @@ describe('vanilla read-only recommendation password prompt', () => {
 	it('a wrong password stays read-only and reports the error', async () => {
 		const { container, viewer } = mount();
 		await viewer.loadFile(protectedDeck);
-		container
-			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-			.click();
+		inner<HTMLButtonElement>(container, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
-		const input = container.querySelector<HTMLInputElement>(
+		const input = inner<HTMLInputElement>(
+			container,
 			'[data-testid="pptx-readonly-password-input"]',
 		)!;
 		input.value = 'wrong-password';
-		container
-			.querySelector<HTMLFormElement>('[data-testid="pptx-readonly-password-form"]')!
-			.dispatchEvent(new Event('submit', { cancelable: true }));
+		inner<HTMLFormElement>(container, '[data-testid="pptx-readonly-password-form"]')!.dispatchEvent(
+			new Event('submit', { cancelable: true }),
+		);
 
 		await vi.waitFor(() => {
-			const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
+			const error = inner(container, '[data-testid="pptx-readonly-password-error"]');
 			expect(error).not.toBeNull();
 			expect((error as HTMLElement).hidden).toBeFalsy();
 		});
 		expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
 		expect(
-			container.querySelector<HTMLElement>('[data-testid="pptx-readonly-password-form"]')?.hidden,
+			inner<HTMLElement>(container, '[data-testid="pptx-readonly-password-form"]')?.hidden,
 		).toBeFalsy();
 	});
 
 	it('the correct password unlocks editing and closes the prompt', async () => {
 		const { container, viewer } = mount();
 		await viewer.loadFile(protectedDeck);
-		container
-			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-			.click();
+		inner<HTMLButtonElement>(container, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
-		const input = container.querySelector<HTMLInputElement>(
+		const input = inner<HTMLInputElement>(
+			container,
 			'[data-testid="pptx-readonly-password-input"]',
 		)!;
 		input.value = 'right-password';
-		container
-			.querySelector<HTMLFormElement>('[data-testid="pptx-readonly-password-form"]')!
-			.dispatchEvent(new Event('submit', { cancelable: true }));
+		inner<HTMLFormElement>(container, '[data-testid="pptx-readonly-password-form"]')!.dispatchEvent(
+			new Event('submit', { cancelable: true }),
+		);
 
 		await vi.waitFor(() => {
 			expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeTruthy();
@@ -154,13 +159,9 @@ describe('vanilla read-only recommendation password prompt', () => {
 			const { container, viewer } = mount();
 			await viewer.loadFile(saltlessDeck);
 
-			container
-				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-				.click();
+			inner<HTMLButtonElement>(container, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
-			const form = container.querySelector<HTMLElement>(
-				'[data-testid="pptx-readonly-password-form"]',
-			);
+			const form = inner<HTMLElement>(container, '[data-testid="pptx-readonly-password-form"]');
 			expect(form?.hidden).toBeFalsy();
 			expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
 		});
@@ -168,20 +169,20 @@ describe('vanilla read-only recommendation password prompt', () => {
 		it('a wrong password stays read-only', async () => {
 			const { container, viewer } = mount();
 			await viewer.loadFile(saltlessDeck);
-			container
-				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-				.click();
+			inner<HTMLButtonElement>(container, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
-			const input = container.querySelector<HTMLInputElement>(
+			const input = inner<HTMLInputElement>(
+				container,
 				'[data-testid="pptx-readonly-password-input"]',
 			)!;
 			input.value = 'wrong-password';
-			container
-				.querySelector<HTMLFormElement>('[data-testid="pptx-readonly-password-form"]')!
-				.dispatchEvent(new Event('submit', { cancelable: true }));
+			inner<HTMLFormElement>(
+				container,
+				'[data-testid="pptx-readonly-password-form"]',
+			)!.dispatchEvent(new Event('submit', { cancelable: true }));
 
 			await vi.waitFor(() => {
-				const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
+				const error = inner(container, '[data-testid="pptx-readonly-password-error"]');
 				expect(error).not.toBeNull();
 				expect((error as HTMLElement).hidden).toBeFalsy();
 			});
@@ -191,17 +192,17 @@ describe('vanilla read-only recommendation password prompt', () => {
 		it('the correct password unlocks editing', async () => {
 			const { container, viewer } = mount();
 			await viewer.loadFile(saltlessDeck);
-			container
-				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-				.click();
+			inner<HTMLButtonElement>(container, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
-			const input = container.querySelector<HTMLInputElement>(
+			const input = inner<HTMLInputElement>(
+				container,
 				'[data-testid="pptx-readonly-password-input"]',
 			)!;
 			input.value = 'right-password';
-			container
-				.querySelector<HTMLFormElement>('[data-testid="pptx-readonly-password-form"]')!
-				.dispatchEvent(new Event('submit', { cancelable: true }));
+			inner<HTMLFormElement>(
+				container,
+				'[data-testid="pptx-readonly-password-form"]',
+			)!.dispatchEvent(new Event('submit', { cancelable: true }));
 
 			await vi.waitFor(() => {
 				expect(

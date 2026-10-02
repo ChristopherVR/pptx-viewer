@@ -2,6 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuTriangleAlert, LuX } from 'react-icons/lu';
 
+import { DialogFooter } from './DialogFooter';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -85,21 +87,18 @@ export function SignatureStrippedDialog({
 					</div>
 
 					{/* Footer */}
-					<div className='flex items-center justify-end gap-2 px-5 py-3 border-t border-border/60'>
-						<button
-							type='button'
-							onClick={onCancel}
-							className='px-3 py-1.5 text-xs rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors'
-						>
-							{t('pptx.common.cancel')}
-						</button>
-						<button
-							type='button'
-							onClick={onConfirm}
-							className='px-3 py-1.5 text-xs rounded-lg bg-amber-600 text-white hover:bg-amber-500 transition-colors'
-						>
-							{t('pptx.digitalSignatures.strippedConfirm')}
-						</button>
+					<div className='px-5 py-3 border-t border-border/60'>
+						<DialogFooter
+							actions={[
+								{ id: 'cancel', label: t('pptx.common.cancel') },
+								{
+									id: 'confirm',
+									label: t('pptx.digitalSignatures.strippedConfirm'),
+									variant: 'warning',
+								},
+							]}
+							onAction={(id) => (id === 'confirm' ? onConfirm() : onCancel())}
+						/>
 					</div>
 				</div>
 			</div>

@@ -1,4 +1,5 @@
 import type { Translator } from '../i18n';
+import { appendDialogFooter } from '../ui/dialog-footer';
 
 export type KeepAnnotationsChoice = 'keep' | 'discard';
 
@@ -26,13 +27,6 @@ export function promptKeepAnnotations(
 		});
 		const footer = doc.createElement('footer');
 		footer.className = 'pptxv-parity-footer';
-		const discard = doc.createElement('button');
-		discard.type = 'button';
-		discard.textContent = t('pptx.keepAnnotations.discard');
-		const keep = doc.createElement('button');
-		keep.type = 'button';
-		keep.className = 'is-primary';
-		keep.textContent = t('pptx.keepAnnotations.keep');
 		const finish = (choice: KeepAnnotationsChoice): void => {
 			doc.removeEventListener('keydown', onKeyDown);
 			backdrop.remove();
@@ -43,13 +37,19 @@ export function promptKeepAnnotations(
 				finish('discard');
 			}
 		};
-		discard.addEventListener('click', () => finish('discard'));
-		keep.addEventListener('click', () => finish('keep'));
 		doc.addEventListener('keydown', onKeyDown);
-		footer.append(discard, keep);
+		const actions = appendDialogFooter(
+			doc,
+			footer,
+			[
+				{ id: 'discard', label: t('pptx.keepAnnotations.discard') },
+				{ id: 'keep', label: t('pptx.keepAnnotations.keep'), variant: 'primary' },
+			],
+			(id) => finish(id === 'keep' ? 'keep' : 'discard'),
+		);
 		dialog.append(title, body, footer);
 		backdrop.append(dialog);
 		doc.body.append(backdrop);
-		queueMicrotask(() => keep.focus());
+		queueMicrotask(() => actions.focusAction('keep'));
 	});
 }

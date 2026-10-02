@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createReadOnlyBanner } from './read-only-banner';
 
+/** The banner and toasts render inside the shared elements' open shadow roots. */
+const inner = <T extends HTMLElement>(el: HTMLElement, selector: string): T =>
+	el.shadowRoot!.querySelector<T>(selector)!;
+
 const NOT_CHECKING = { promptOpen: false, error: null, checking: false } as const;
 
 function mount() {
@@ -56,7 +60,7 @@ describe('read-only recommendation banner', () => {
 
 		expect(banner.el.hidden).toBeFalsy();
 		expect(banner.el.dataset.kind).toBe('modifyVerifier');
-		expect(banner.el.textContent).toContain('pptx.readOnly.modifyVerifierRecommended');
+		expect(banner.el.shadowRoot!.textContent).toContain('pptx.readOnly.modifyVerifierRecommended');
 	});
 
 	it('shows the markedFinal recommendation with its own kind and message', () => {
@@ -65,7 +69,7 @@ describe('read-only recommendation banner', () => {
 		banner.update(MARKED_FINAL, false, NOT_CHECKING);
 
 		expect(banner.el.dataset.kind).toBe('markedFinal');
-		expect(banner.el.textContent).toContain('pptx.readOnly.markedFinal');
+		expect(banner.el.shadowRoot!.textContent).toContain('pptx.readOnly.markedFinal');
 	});
 
 	it('stays hidden when there is no recommendation', () => {
@@ -88,9 +92,7 @@ describe('read-only recommendation banner', () => {
 		const { banner, onEditAnyway } = mount();
 		banner.update(MODIFY_VERIFIER, false, NOT_CHECKING);
 
-		banner.el
-			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-			.click();
+		inner<HTMLButtonElement>(banner.el, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
 
 		expect(onEditAnyway).toHaveBeenCalledOnce();
 	});
@@ -99,13 +101,14 @@ describe('read-only recommendation banner', () => {
 		const { banner, onDismiss } = mount();
 		banner.update(MODIFY_VERIFIER, false, NOT_CHECKING);
 
-		banner.el.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-dismiss"]')!.click();
+		inner<HTMLButtonElement>(banner.el, '[data-testid="pptx-readonly-dismiss"]')!.click();
 
 		expect(onDismiss).toHaveBeenCalledOnce();
 	});
 
 	it('carries the pptx-readonly-banner testid', () => {
 		const { banner } = mount();
+		banner.update(MODIFY_VERIFIER, false, NOT_CHECKING);
 
 		expect(banner.el.dataset.testid).toBe('pptx-readonly-banner');
 	});
@@ -115,18 +118,19 @@ describe('read-only recommendation banner', () => {
 			const { banner } = mount();
 			banner.update(PASSWORD_PROTECTED, false, { promptOpen: true, error: null, checking: false });
 
-			const form = banner.el.querySelector<HTMLFormElement>(
+			const form = inner<HTMLFormElement>(
+				banner.el,
 				'[data-testid="pptx-readonly-password-form"]',
 			)!;
 			expect(form.hidden).toBeFalsy();
 			expect(
-				banner.el.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
-					.hidden,
+				inner<HTMLButtonElement>(banner.el, '[data-testid="pptx-readonly-edit-anyway"]')!.hidden,
 			).toBeTruthy();
 			expect(
-				banner.el.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-dismiss"]')!.hidden,
+				inner<HTMLButtonElement>(banner.el, '[data-testid="pptx-readonly-dismiss"]')!.hidden,
 			).toBeTruthy();
-			const input = banner.el.querySelector<HTMLInputElement>(
+			const input = inner<HTMLInputElement>(
+				banner.el,
 				'[data-testid="pptx-readonly-password-input"]',
 			)!;
 			expect(input.type).toBe('password');
@@ -137,10 +141,12 @@ describe('read-only recommendation banner', () => {
 			const { banner, onSubmitPassword } = mount();
 			banner.update(PASSWORD_PROTECTED, false, { promptOpen: true, error: null, checking: false });
 
-			const form = banner.el.querySelector<HTMLFormElement>(
+			const form = inner<HTMLFormElement>(
+				banner.el,
 				'[data-testid="pptx-readonly-password-form"]',
 			)!;
-			const input = banner.el.querySelector<HTMLInputElement>(
+			const input = inner<HTMLInputElement>(
+				banner.el,
 				'[data-testid="pptx-readonly-password-input"]',
 			)!;
 			input.value = 'secret';
@@ -153,9 +159,7 @@ describe('read-only recommendation banner', () => {
 			const { banner, onCancelPassword } = mount();
 			banner.update(PASSWORD_PROTECTED, false, { promptOpen: true, error: null, checking: false });
 
-			banner.el
-				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-password-cancel"]')!
-				.click();
+			inner<HTMLButtonElement>(banner.el, '[data-testid="pptx-readonly-password-cancel"]')!.click();
 
 			expect(onCancelPassword).toHaveBeenCalledOnce();
 		});
@@ -168,13 +172,12 @@ describe('read-only recommendation banner', () => {
 				checking: false,
 			});
 
-			const input = banner.el.querySelector<HTMLInputElement>(
+			const input = inner<HTMLInputElement>(
+				banner.el,
 				'[data-testid="pptx-readonly-password-input"]',
 			)!;
 			expect(input.getAttribute('aria-invalid')).toBe('true');
-			const error = banner.el.querySelector<HTMLElement>(
-				'[data-testid="pptx-readonly-password-error"]',
-			)!;
+			const error = inner<HTMLElement>(banner.el, '[data-testid="pptx-readonly-password-error"]')!;
 			expect(error.hidden).toBeFalsy();
 			expect(error.getAttribute('role')).toBe('alert');
 			expect(error.textContent).toContain('pptx.readOnly.wrongPassword');
@@ -185,12 +188,11 @@ describe('read-only recommendation banner', () => {
 			banner.update(PASSWORD_PROTECTED, false, { promptOpen: true, error: null, checking: true });
 
 			expect(
-				banner.el.querySelector<HTMLInputElement>('[data-testid="pptx-readonly-password-input"]')!
+				inner<HTMLInputElement>(banner.el, '[data-testid="pptx-readonly-password-input"]')!
 					.disabled,
 			).toBeTruthy();
 			expect(
-				banner.el.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-unlock"]')!
-					.disabled,
+				inner<HTMLButtonElement>(banner.el, '[data-testid="pptx-readonly-unlock"]')!.disabled,
 			).toBeTruthy();
 		});
 	});

@@ -8,7 +8,9 @@
 import type { AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuHistory, LuTrash2 } from 'react-icons/lu';
+import { LuHistory } from 'react-icons/lu';
+
+import { DialogFooter } from './DialogFooter';
 
 export interface AutosaveRecoveryDialogProps {
 	/** The descriptor to render, or null to render nothing. */
@@ -58,25 +60,20 @@ export function AutosaveRecoveryDialog({
 				<p className='text-xs text-muted-foreground mt-2'>
 					{t('pptx.autosave.recovery.savedLabel', { when })}
 				</p>
-				<div className='flex flex-wrap justify-end gap-2 mt-6'>
-					<button
-						type='button'
-						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-accent transition-colors disabled:cursor-not-allowed disabled:opacity-50'
-						onClick={onDiscard}
-						disabled={busy}
-					>
-						<LuTrash2 className='w-4 h-4' />
-						{t(prompt.discardKey)}
-					</button>
-					<button
-						type='button'
-						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50'
-						onClick={onRestore}
-						disabled={busy}
-					>
-						<LuHistory className='w-4 h-4' />
-						{t(prompt.restoreKey)}
-					</button>
+				<div className='mt-6'>
+					<DialogFooter
+						actions={[
+							{ id: 'discard', label: t(prompt.discardKey), icon: 'trash', disabled: busy },
+							{
+								id: 'restore',
+								label: t(prompt.restoreKey),
+								variant: 'primary',
+								icon: 'restore',
+								disabled: busy,
+							},
+						]}
+						onAction={(id) => (id === 'restore' ? onRestore() : onDiscard())}
+					/>
 				</div>
 			</div>
 		</div>

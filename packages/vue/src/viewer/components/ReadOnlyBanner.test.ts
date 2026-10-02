@@ -1,7 +1,15 @@
 import { mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import ReadOnlyBanner from './ReadOnlyBanner.vue';
+
+/** The banner renders inside the shared element's open shadow root. */
+function inner(wrapper: VueWrapper, selector: string): HTMLElement | null {
+	return (wrapper.element as HTMLElement).shadowRoot?.querySelector<HTMLElement>(selector) ?? null;
+}
+const visible = (wrapper: VueWrapper, selector: string): boolean =>
+	inner(wrapper, selector)?.hidden === false;
 
 describe('readOnlyBanner', () => {
 	it('renders nothing for a null kind', () => {
@@ -22,8 +30,8 @@ describe('readOnlyBanner', () => {
 		const wrapper = mount(ReadOnlyBanner, {
 			props: { kind: 'markedFinal', messageKey: 'pptx.readOnly.markedFinal' },
 		});
-		await wrapper.find('[data-testid="pptx-readonly-edit-anyway"]').trigger('click');
-		await wrapper.find('[data-testid="pptx-readonly-dismiss"]').trigger('click');
+		inner(wrapper, '[data-testid="pptx-readonly-edit-anyway"]')!.click();
+		inner(wrapper, '[data-testid="pptx-readonly-dismiss"]')!.click();
 		expect(wrapper.emitted('edit-anyway')).toHaveLength(1);
 		expect(wrapper.emitted('dismiss')).toHaveLength(1);
 	});
@@ -37,12 +45,12 @@ describe('readOnlyBanner', () => {
 					passwordPromptOpen: true,
 				},
 			});
-			expect(wrapper.find('[data-testid="pptx-readonly-password-form"]').exists()).toBeTruthy();
-			expect(wrapper.find('[data-testid="pptx-readonly-edit-anyway"]').exists()).toBeFalsy();
-			expect(wrapper.find('[data-testid="pptx-readonly-dismiss"]').exists()).toBeFalsy();
-			const input = wrapper.find('[data-testid="pptx-readonly-password-input"]');
-			expect(input.attributes('type')).toBe('password');
-			expect(input.attributes('aria-invalid')).toBe('false');
+			expect(visible(wrapper, '[data-testid="pptx-readonly-password-form"]')).toBeTruthy();
+			expect(visible(wrapper, '[data-testid="pptx-readonly-edit-anyway"]')).toBeFalsy();
+			expect(visible(wrapper, '[data-testid="pptx-readonly-dismiss"]')).toBeFalsy();
+			const input = inner(wrapper, '[data-testid="pptx-readonly-password-input"]')!;
+			expect(input.getAttribute('type')).toBe('password');
+			expect(input.getAttribute('aria-invalid')).toBe('false');
 		});
 
 		it('emits submit-password with the typed value when "Unlock" is clicked', async () => {
@@ -53,8 +61,14 @@ describe('readOnlyBanner', () => {
 					passwordPromptOpen: true,
 				},
 			});
-			await wrapper.find('[data-testid="pptx-readonly-password-input"]').setValue('secret');
-			await wrapper.find('[data-testid="pptx-readonly-unlock"]').trigger('submit');
+			const input = inner(
+				wrapper,
+				'[data-testid="pptx-readonly-password-input"]',
+			) as HTMLInputElement;
+			input.value = 'secret';
+			inner(wrapper, '[data-testid="pptx-readonly-password-form"]')!.dispatchEvent(
+				new Event('submit', { cancelable: true }),
+			);
 			expect(wrapper.emitted('submit-password')).toStrictEqual([['secret']]);
 		});
 
@@ -66,7 +80,7 @@ describe('readOnlyBanner', () => {
 					passwordPromptOpen: true,
 				},
 			});
-			await wrapper.find('[data-testid="pptx-readonly-password-cancel"]').trigger('click');
+			inner(wrapper, '[data-testid="pptx-readonly-password-cancel"]')!.click();
 			expect(wrapper.emitted('cancel-password')).toHaveLength(1);
 		});
 
@@ -79,11 +93,12 @@ describe('readOnlyBanner', () => {
 					passwordError: 'wrong-password',
 				},
 			});
-			const input = wrapper.find('[data-testid="pptx-readonly-password-input"]');
-			expect(input.attributes('aria-invalid')).toBe('true');
-			const error = wrapper.find('[data-testid="pptx-readonly-password-error"]');
-			expect(error.exists()).toBeTruthy();
-			expect(error.attributes('role')).toBe('alert');
+			const input = inner(wrapper, '[data-testid="pptx-readonly-password-input"]')!;
+			expect(input.getAttribute('aria-invalid')).toBe('true');
+			expect(visible(wrapper, '[data-testid="pptx-readonly-password-error"]')).toBeTruthy();
+			expect(
+				inner(wrapper, '[data-testid="pptx-readonly-password-error"]')!.getAttribute('role'),
+			).toBe('alert');
 		});
 	});
 });

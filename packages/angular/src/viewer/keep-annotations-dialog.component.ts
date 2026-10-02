@@ -15,13 +15,15 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { DialogFooterComponent } from './dialog-footer.component';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 
 @Component({
 	selector: 'pptx-keep-annotations-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -39,16 +41,10 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-keep-btn" (click)="discard.emit()">
-					{{ 'pptx.keepAnnotations.discard' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ng-keep-btn pptx-ng-keep-btn-primary"
-					(click)="keep.emit()"
-				>
-					{{ 'pptx.keepAnnotations.keep' | translate }}
-				</button>
+				<pptx-dialog-footer
+					[actions]="footerActions"
+					(action)="$event === 'keep' ? keep.emit() : discard.emit()"
+				/>
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -78,39 +74,15 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				line-height: 1.5;
 				color: var(--pptx-muted-foreground, #9ca3af);
 			}
-
-			.pptx-ng-keep-btn {
-				display: inline-flex;
-				align-items: center;
-				gap: 0.375rem;
-				padding: 0.375rem 0.875rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				font-weight: 500;
-				cursor: pointer;
-				white-space: nowrap;
-			}
-
-			.pptx-ng-keep-btn:hover {
-				background: var(--pptx-border, #374151);
-			}
-
-			.pptx-ng-keep-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-keep-btn-primary:hover {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class KeepAnnotationsDialogComponent {
+	protected readonly footerActions: readonly DialogFooterActionSpec[] = [
+		{ id: 'discard', labelKey: 'pptx.keepAnnotations.discard', icon: 'trash' },
+		{ id: 'keep', labelKey: 'pptx.keepAnnotations.keep', variant: 'primary', icon: 'pen' },
+	];
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

@@ -9,6 +9,7 @@
 	import type { PasteSpecialFormat } from 'pptx-viewer-shared';
 	import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
+	import DialogFooter from './DialogFooter.svelte';
 
 	const { oncancel, onconfirm }: { oncancel: () => void; onconfirm: (format: PasteSpecialFormat) => void } =
 		$props();
@@ -31,8 +32,13 @@
 			{/each}
 		</ul>
 		<footer>
-			<button type="button" onclick={oncancel}>{t('pptx.common.cancel')}</button>
-			<button class="primary" type="button" onclick={() => onconfirm(selected)}>{t('pptx.common.ok')}</button>
+			<DialogFooter
+				actions={[
+					{ id: 'cancel', label: t('pptx.common.cancel') },
+					{ id: 'ok', label: t('pptx.common.ok'), variant: 'primary' },
+				]}
+				onaction={(id) => (id === 'ok' ? onconfirm(selected) : oncancel())}
+			/>
 		</footer>
 	</section>
 </div>
@@ -44,7 +50,4 @@
 	ul { margin: 0 0 16px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 	label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: 13px; cursor: pointer; }
 	label:hover { background: var(--pptx-muted, #2a2a3d); }
-	footer { display: flex; justify-content: flex-end; gap: 8px; }
-	button { border: 1px solid var(--pptx-border, #3f3f52); border-radius: 6px; padding: 8px 14px; background: var(--pptx-muted, #2a2a3d); color: inherit; font-size: 13px; }
-	.primary { background: var(--pptx-primary, #c43b32); color: #fff; border-color: var(--pptx-primary, #c43b32); }
 </style>

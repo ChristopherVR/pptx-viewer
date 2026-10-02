@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { PenTool, Trash2 } from 'lucide-vue-next';
+import { PenTool } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 const { t } = useI18n();
@@ -40,22 +41,13 @@ const emit = defineEmits<{
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-				@click="emit('discard')"
-			>
-				<Trash2 class="h-4 w-4" />
-				{{ t('pptx.keepAnnotations.discard') }}
-			</button>
-			<button
-				type="button"
-				class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-				@click="emit('keep')"
-			>
-				<PenTool class="h-4 w-4" />
-				{{ t('pptx.keepAnnotations.keep') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'discard', label: t('pptx.keepAnnotations.discard'), icon: 'trash' },
+					{ id: 'keep', label: t('pptx.keepAnnotations.keep'), variant: 'primary', icon: 'pen' },
+				]"
+				@action="(id) => (id === 'keep' ? emit('keep') : emit('discard'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

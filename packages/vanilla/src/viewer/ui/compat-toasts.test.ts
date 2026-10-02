@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createCompatToastStack } from './compat-toasts';
 
+/** The banner and toasts render inside the shared elements' open shadow roots. */
+const inner = <T extends HTMLElement>(el: HTMLElement, selector: string): T =>
+	el.shadowRoot!.querySelector<T>(selector)!;
+
 function toast(overrides: Partial<CompatibilityWarningToast> = {}): CompatibilityWarningToast {
 	return {
 		id: 'CODE',
@@ -47,7 +51,7 @@ describe('compatibility toast stack', () => {
 		stack.update([toast({ id: 'A', code: 'A', severity: 'info' }), toast({ id: 'B', code: 'B' })]);
 
 		expect(stack.el.hidden).toBeFalsy();
-		const toasts = stack.el.querySelectorAll('[data-testid="pptx-compat-toast"]');
+		const toasts = stack.el.shadowRoot!.querySelectorAll('[data-testid="pptx-compat-toast"]');
 		expect(toasts).toHaveLength(2);
 		expect((toasts[0] as HTMLElement).dataset.code).toBe('A');
 		expect((toasts[0] as HTMLElement).dataset.severity).toBe('info');
@@ -59,15 +63,17 @@ describe('compatibility toast stack', () => {
 
 		stack.update(Array.from({ length: 8 }, (_, i) => toast({ id: `t${i}`, code: `t${i}` })));
 
-		expect(stack.el.querySelectorAll('[data-testid="pptx-compat-toast"]')).toHaveLength(5);
-		expect(stack.el.textContent).toContain('+3');
+		expect(stack.el.shadowRoot!.querySelectorAll('[data-testid="pptx-compat-toast"]')).toHaveLength(
+			5,
+		);
+		expect(stack.el.shadowRoot!.textContent).toContain('+3');
 	});
 
 	it('fires onDismiss with the toast id from its own dismiss button', () => {
 		const { stack, onDismiss } = mount();
 		stack.update([toast({ id: 'A' })]);
 
-		stack.el.querySelector<HTMLButtonElement>('[data-testid="pptx-compat-toast-dismiss"]')!.click();
+		inner<HTMLButtonElement>(stack.el, '[data-testid="pptx-compat-toast-dismiss"]')!.click();
 
 		expect(onDismiss).toHaveBeenCalledWith('A');
 	});
@@ -76,9 +82,7 @@ describe('compatibility toast stack', () => {
 		const { stack, onDismissAll } = mount();
 		stack.update([toast()]);
 
-		stack.el
-			.querySelector<HTMLButtonElement>('[data-testid="pptx-compat-toasts-dismiss-all"]')!
-			.click();
+		inner<HTMLButtonElement>(stack.el, '[data-testid="pptx-compat-toasts-dismiss-all"]')!.click();
 
 		expect(onDismissAll).toHaveBeenCalledOnce();
 	});
@@ -88,7 +92,7 @@ describe('compatibility toast stack', () => {
 
 		stack.update([toast({ messageKey: 'pptx.compatibility.generic', params: { code: 'FOO' } })]);
 
-		expect(stack.el.textContent).toContain('pptx.compatibility.generic');
+		expect(stack.el.shadowRoot!.textContent).toContain('pptx.compatibility.generic');
 	});
 
 	// The viewer root the stack is appended to spans the FULL chrome width,

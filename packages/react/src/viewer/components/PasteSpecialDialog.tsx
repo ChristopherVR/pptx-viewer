@@ -10,6 +10,8 @@ import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { DialogFooter } from './DialogFooter';
+
 export interface PasteSpecialDialogProps {
 	isOpen: boolean;
 	onCancel: () => void;
@@ -64,22 +66,13 @@ export function PasteSpecialDialog({
 						</li>
 					))}
 				</ul>
-				<div className='flex justify-end gap-2'>
-					<button
-						type='button'
-						className='px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-accent transition-colors'
-						onClick={onCancel}
-					>
-						{t('pptx.common.cancel')}
-					</button>
-					<button
-						type='button'
-						className='px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors'
-						onClick={() => onConfirm(selected)}
-					>
-						{t('pptx.common.ok')}
-					</button>
-				</div>
+				<DialogFooter
+					actions={[
+						{ id: 'cancel', label: t('pptx.common.cancel') },
+						{ id: 'ok', label: t('pptx.common.ok'), variant: 'primary' },
+					]}
+					onAction={(id) => (id === 'ok' ? onConfirm(selected) : onCancel())}
+				/>
 			</div>
 		</div>
 	);

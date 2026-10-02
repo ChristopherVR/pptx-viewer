@@ -1,45 +1,96 @@
 /**
- * readonly-banner.component.test.ts: the modify-password unlock prompt inside
- * the read-only recommendation banner. No Angular TestBed (see
- * `vitest.config.ts`), so this is a source-text guard (same technique as
- * `ribbon-color-popover.component.test.ts`).
+ * readonly-banner.component.test.ts: the Angular adapter around the shared
+ * `pptx-ui-read-only-banner`, including the modify-password unlock prompt.
  */
-import { describe, expect, it } from 'vitest';
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { componentSource } from './component-source.test-support';
+import { translationsEn } from '../../../shared/src/i18n';
+import { registerPptxWebControls } from '../../../shared/src/web-components';
+import { ReadOnlyBannerComponent } from './readonly-banner.component';
 
-const source = componentSource(import.meta.dirname, 'readonly-banner.component.ts');
+beforeAll(() => {
+	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	registerPptxWebControls();
+});
+afterEach(() => TestBed.resetTestingModule());
 
-describe('readOnlyBannerComponent password prompt', () => {
-	it('replaces the two buttons with the password form when passwordPromptOpen is set', () => {
-		expect(source).toContain('@if (passwordPromptOpen()) {');
-		expect(source).toContain('data-testid="pptx-readonly-password-form"');
-		expect(source).toContain('data-testid="pptx-readonly-password-input"');
-		expect(source).toContain('data-testid="pptx-readonly-unlock"');
-		expect(source).toContain('data-testid="pptx-readonly-password-cancel"');
-		expect(source).toContain('} @else {');
+function open(inputs: Record<string, unknown> = {}) {
+	TestBed.resetTestingModule();
+	TestBed.configureTestingModule({
+		imports: [ReadOnlyBannerComponent],
+		providers: [provideTranslateService({ fallbackLang: 'en' })],
+	});
+	// The Vitest JIT build does not wire signal inputs, so declare them and hand each
+	// field a plain signal.
+	const values = {
+		kind: 'modifyVerifier',
+		messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+		...inputs,
+	};
+	TestBed.overrideComponent(ReadOnlyBannerComponent, { add: { inputs: Object.keys(values) } });
+	const fixture = TestBed.createComponent(ReadOnlyBannerComponent);
+	for (const [name, value] of Object.entries(values)) {
+		fixture.componentRef.setInput(name, signal(value));
+	}
+	const translate = TestBed.inject(TranslateService);
+	translate.setTranslation('en', translationsEn);
+	translate.use('en');
+	fixture.detectChanges();
+	const host = (fixture.nativeElement as HTMLElement).querySelector('pptx-ui-read-only-banner')!;
+	const root = host.shadowRoot!;
+	const part = (testId: string) => root.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!;
+	return { fixture, host, part };
+}
+
+describe('readOnlyBannerComponent adapter', () => {
+	it('maps the recommendation onto the shared banner and keeps its test hooks', () => {
+		const { host, part } = open();
+		expect(host.getAttribute('data-testid')).toBe('pptx-readonly-banner');
+		expect(host.getAttribute('data-kind')).toBe('modifyVerifier');
+		expect(part('pptx-readonly-edit-anyway').hidden).toBeFalsy();
+		expect(part('pptx-readonly-password-form').hidden).toBeTruthy();
 	});
 
-	it('submits the entered password and never immediately unlocks from editAnyway', () => {
-		expect(source).toContain('(submit)="onSubmit($event)"');
-		expect(source).toContain('this.submitPassword.emit(this.password());');
-		expect(source).toContain('readonly submitPassword = output<string>();');
+	it('forwards Edit anyway and Dismiss as separate outputs', () => {
+		const { fixture, part } = open();
+		const seen: string[] = [];
+		fixture.componentInstance.editAnyway.subscribe(() => seen.push('editAnyway'));
+		fixture.componentInstance.dismiss.subscribe(() => seen.push('dismiss'));
+		part('pptx-readonly-edit-anyway').click();
+		part('pptx-readonly-dismiss').click();
+		expect(seen).toStrictEqual(['editAnyway', 'dismiss']);
 	});
 
-	it('marks the input aria-invalid and renders the alert only when passwordError is set', () => {
-		expect(source).toContain('[attr.aria-invalid]="passwordError() !== null"');
-		expect(source).toContain('@if (passwordError() !== null) {');
-		expect(source).toContain('role="alert"');
-		expect(source).toContain('data-testid="pptx-readonly-password-error"');
+	it('swaps the two buttons for the password form and submits the typed password', () => {
+		const { fixture, part } = open({ passwordPromptOpen: true });
+		expect(part('pptx-readonly-password-form').hidden).toBeFalsy();
+		expect(part('pptx-readonly-edit-anyway').hidden).toBeTruthy();
+		const passwords: string[] = [];
+		const cancelled: string[] = [];
+		fixture.componentInstance.submitPassword.subscribe((value) => passwords.push(value));
+		fixture.componentInstance.cancelPassword.subscribe(() => cancelled.push('cancel'));
+		(part('pptx-readonly-password-input') as HTMLInputElement).value = 'secret';
+		part('pptx-readonly-password-form').dispatchEvent(new Event('submit', { cancelable: true }));
+		part('pptx-readonly-password-cancel').click();
+		expect(passwords).toStrictEqual(['secret']);
+		expect(cancelled).toStrictEqual(['cancel']);
 	});
 
-	it('disables the input and unlock button while checkingPassword is true', () => {
-		expect(source).toContain('[disabled]="checkingPassword()"');
-	});
-
-	it('forwards Cancel as a distinct output from Dismiss', () => {
-		expect(source).toContain('(click)="cancelPassword.emit()"');
-		expect(source).toContain('readonly cancelPassword = output<void>();');
-		expect(source).toContain('(click)="dismiss.emit()"');
+	it('marks the input invalid and alerts on a wrong password, disabling while checking', () => {
+		const { part } = open({
+			passwordPromptOpen: true,
+			passwordError: 'wrong-password',
+			checkingPassword: true,
+		});
+		const input = part('pptx-readonly-password-input') as HTMLInputElement;
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		expect(input.disabled).toBeTruthy();
+		expect(part('pptx-readonly-unlock')).toHaveProperty('disabled', true);
+		expect(part('pptx-readonly-password-error').getAttribute('role')).toBe('alert');
+		expect(part('pptx-readonly-password-error').hidden).toBeFalsy();
 	});
 });

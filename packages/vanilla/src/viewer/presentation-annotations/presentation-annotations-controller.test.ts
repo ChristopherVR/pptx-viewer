@@ -22,6 +22,13 @@ function slide(id: string): PptxSlide {
 	return { id, rId: id, slideNumber: 1, elements: [] };
 }
 
+/** The prompt's actions render inside the shared dialog footer's shadow root. */
+const footerButtons = (): HTMLButtonElement[] => [
+	...(document
+		.querySelector('.pptxv-keep-annotations pptx-ui-dialog-footer')
+		?.shadowRoot?.querySelectorAll('button') ?? []),
+];
+
 describe('createPresentationAnnotationsController', () => {
 	beforeEach(() => document.body.replaceChildren());
 
@@ -45,7 +52,7 @@ describe('createPresentationAnnotationsController', () => {
 		controller.setStrokes([stroke]);
 
 		const result = controller.finishPresentation();
-		document.querySelector<HTMLButtonElement>('.pptxv-keep-annotations .is-primary')?.click();
+		footerButtons()[1].click();
 
 		await expect(result).resolves.toBe('kept');
 		expect(slides[0].elements).toHaveLength(1);
@@ -70,8 +77,7 @@ describe('createPresentationAnnotationsController', () => {
 		controller.setStrokes([stroke]);
 
 		const result = controller.finishPresentation();
-		const buttons = document.querySelectorAll<HTMLButtonElement>('.pptxv-keep-annotations button');
-		buttons[0].click();
+		footerButtons()[0].click();
 
 		await expect(result).resolves.toBe('discarded');
 		expect(slides[0].elements).toHaveLength(0);
