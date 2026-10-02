@@ -11,6 +11,8 @@ import type { ViewToggleState } from './tabs/view-tab';
 /** The imperative handle `createRibbon` returns (split out to keep `ribbon.ts` in budget). */
 export interface Ribbon {
 	el: HTMLElement;
+	/** Remove the window/document listeners the ribbon registered (group overflow); idempotent. */
+	destroy(): void;
 	update(state: RibbonNavState): void;
 	setEditState(state: RibbonEditState): void;
 	setNotesExpanded(expanded: boolean): void;

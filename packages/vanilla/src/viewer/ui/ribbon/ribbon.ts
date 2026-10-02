@@ -165,6 +165,8 @@ export function createRibbon(
 		view: viewTab?.el,
 		help: helpTab ?? undefined,
 	};
+	// Detach functions for every pane's overflow listeners; `destroy()` releases them.
+	const detachOverflow: Array<() => void> = [];
 	// Font, Paragraph and Drawing launchers open the Properties pane (there are no modal dialogs).
 	const launchers = homeLaunchers(
 		() => t('pptx.inspector.properties'),
@@ -182,7 +184,7 @@ export function createRibbon(
 			pane.dataset.pptxChrome = 'ribbon-content';
 			el.appendChild(pane);
 			// Groups collapse into popup buttons when the window is too narrow, as in Office.
-			attachRibbonOverflow(pane, { launchers });
+			detachOverflow.push(attachRibbonOverflow(pane, { launchers }));
 		}
 	}
 
@@ -191,7 +193,7 @@ export function createRibbon(
 	const contextualPanes = createContextualTabPanes(doc, t, galleryHub);
 	for (const [id, pane] of contextualPanes) {
 		pane.hidden = true;
-		attachRibbonOverflow(pane, { launchers });
+		detachOverflow.push(attachRibbonOverflow(pane, { launchers }));
 		panes[id] = pane;
 	}
 
@@ -267,6 +269,11 @@ export function createRibbon(
 
 	return {
 		el,
+		destroy() {
+			for (const detach of detachOverflow.splice(0)) {
+				detach();
+			}
+		},
 		update() {},
 		setSpellCheck(enabled) {
 			reviewTab?.setSpellCheck(enabled);

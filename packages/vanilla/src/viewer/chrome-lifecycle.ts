@@ -574,6 +574,9 @@ export function unmountChrome(lifecycle: ChromeLifecycle, detachEditorChrome: ()
 	lifecycle.detachTouchGestures();
 	lifecycle.resizeObserver?.disconnect();
 	lifecycle.presentation.dispose();
+	// The ribbon registered window/document listeners (group overflow): without this a destroyed
+	// viewer stays reachable from them, pinning the whole ribbon for the life of the page.
+	lifecycle.chrome.ribbon?.destroy();
 	lifecycle.chrome.root.remove();
 }
 

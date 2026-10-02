@@ -136,6 +136,45 @@ function hasTextLabel(button: HTMLButtonElement): boolean {
 }
 
 describe('ribbon button hit areas', () => {
+	it('removes the window and document listeners its group overflow registered when destroyed', () => {
+		const added = { resize: 0, pointerdown: 0 };
+		const removed = { resize: 0, pointerdown: 0 };
+		const spies = [
+			vi.spyOn(window, 'addEventListener').mockImplementation((type: string) => {
+				if (type === 'resize') {
+					added.resize += 1;
+				}
+			}),
+			vi.spyOn(window, 'removeEventListener').mockImplementation((type: string) => {
+				if (type === 'resize') {
+					removed.resize += 1;
+				}
+			}),
+			vi.spyOn(document, 'addEventListener').mockImplementation((type: string) => {
+				if (type === 'pointerdown') {
+					added.pointerdown += 1;
+				}
+			}),
+			vi.spyOn(document, 'removeEventListener').mockImplementation((type: string) => {
+				if (type === 'pointerdown') {
+					removed.pointerdown += 1;
+				}
+			}),
+		];
+		try {
+			const ribbon = createRibbon(document, createTranslator(), buildHandlers());
+			expect(added.resize).toBeGreaterThan(0);
+			ribbon.destroy();
+			ribbon.destroy();
+			expect(removed.resize).toBe(added.resize);
+			expect(removed.pointerdown).toBeGreaterThanOrEqual(1);
+		} finally {
+			for (const spy of spies) {
+				spy.mockRestore();
+			}
+		}
+	});
+
 	it('lets every text-labelled ribbon button size to its own label', () => {
 		const ribbon = createRibbon(document, createTranslator(), buildHandlers());
 		const selectors = autoWidthSelectors(buildViewerCss());
