@@ -98,8 +98,13 @@ function mountMenu(editor: EditorState, options: MenuOptions = {}): HTMLElement 
 	return target;
 }
 
+/** The shared element's shadow root, where the rows are drawn. */
+function menuRoot(target: HTMLElement): ParentNode {
+	return target.querySelector('pptx-ui-context-menu')?.shadowRoot ?? target;
+}
+
 function itemsOf(target: HTMLElement): HTMLButtonElement[] {
-	return Array.from(target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+	return Array.from(menuRoot(target).querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
 }
 
 function labelsOf(target: HTMLElement): string[] {
@@ -134,10 +139,10 @@ describe('elementContextMenu', () => {
 	 */
 	it('names itself as a context menu and carries the neutral marker', () => {
 		const target = mountMenu(createEditor());
-		const menu = target.querySelector<HTMLElement>('[data-pptx-context-menu="true"]');
+		const host = target.querySelector<HTMLElement>('[data-pptx-context-menu="true"]');
+		const menu = menuRoot(target).querySelector<HTMLElement>('[role="menu"]');
 
-		expect(menu).not.toBeNull();
-		expect(menu?.getAttribute('role')).toBe('menu');
+		expect(host).not.toBeNull();
 		expect(menu?.getAttribute('aria-label')).toBe('Context menu');
 	});
 
@@ -150,7 +155,7 @@ describe('elementContextMenu', () => {
 		items[0].click();
 		items[1].click();
 		items[2].click();
-		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
 		expect(editor.clipboardOps.copySelected).toHaveBeenCalledOnce();
 		expect(editor.clipboardOps.cutSelected).toHaveBeenCalledOnce();

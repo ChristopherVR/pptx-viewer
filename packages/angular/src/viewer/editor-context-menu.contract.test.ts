@@ -2,12 +2,11 @@
  * The context menu must be findable and announceable by the same contract in
  * every binding.
  *
- * Two neutral hooks exist: `role="menu"` (what assistive tech reads) and
- * `data-pptx-context-menu="true"` (what a cross-binding test can select on
- * without knowing a single class name). Angular declared the first but not the
- * second, so a parity check had to special-case it. Angular has no TestBed here
- * (see `vitest.config.ts`), so the guard reads the component source, as
- * `element-contract-ownership.test.ts` does.
+ * The rows are drawn by the shared `pptx-ui-context-menu`; this component only
+ * hands it state. Two neutral hooks exist: `role="menu"` (owned by the element)
+ * and `data-pptx-context-menu` (set through the state's `markers`).
+ * Angular has no TestBed here (see `vitest.config.ts`), so the guard reads
+ * the component source, as `element-contract-ownership.test.ts` does.
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -22,32 +21,31 @@ const SOURCE = readFileSync(
 );
 
 describe('editor context menu contract', () => {
-	it('carries the neutral context-menu marker', () => {
-		expect(SOURCE).toContain('data-pptx-context-menu="true"');
+	it('renders through the shared element and routes its typed events', () => {
+		expect(SOURCE).toContain('<pptx-ui-context-menu');
+		expect(SOURCE).toContain('[state]="view()"');
+		expect(SOURCE).toContain('(menu-request)="request($event)"');
+		expect(SOURCE).toContain('(menu-close)="closed.emit()"');
+		expect(SOURCE).not.toContain('<button');
 	});
 
-	it('declares menu semantics and a name of its own', () => {
-		expect(SOURCE).toContain('role="menu"');
-		expect(SOURCE).toContain(`[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"`);
+	it('carries the neutral context-menu marker and a name of its own', () => {
+		expect(SOURCE).toContain(`markers: ['data-pptx-context-menu']`);
+		expect(SOURCE).toContain(`this.t('pptx.contextMenu.ariaLabel')`);
 	});
 
-	it('roles every command as a menuitem', () => {
-		const commands = SOURCE.match(/<button\b/gu)?.length ?? 0;
-		const roled = SOURCE.match(/role="menuitem"/gu)?.length ?? 0;
-		expect(commands).toBeGreaterThan(0);
-		expect(roled).toBe(commands);
+	it('leaves dismissal and clamping to the shared element', () => {
+		expect(SOURCE).not.toContain('HostListener');
+		expect(SOURCE).not.toContain('clampedMenuPosition');
 	});
 
 	/**
-	 * The command COUNT used to be asserted here (`> 4` buttons in the source),
-	 * which only made sense while the items were hand-written. They now come from
-	 * the shared list through a single `@for`-rendered button, so the count is
-	 * asserted where it is now decided: on `buildContextMenuEntries`, which the
-	 * template must be reading from for any command to render at all.
+	 * The command COUNT is decided where the list is built: `buildContextMenuEntries`,
+	 * which the component must read for any command to render at all.
 	 */
 	it('renders the shared command list rather than a hand-written one', () => {
 		expect(SOURCE).toContain('buildContextMenuEntries');
-		expect(SOURCE).toContain('@for (entry of entries(); track entry.id)');
+		expect(SOURCE).toContain('contextMenuViewItems(this.entries(), this.t)');
 		expect(buildContextMenuEntries({ elementType: 'shape' }).length).toBeGreaterThan(4);
 	});
 });

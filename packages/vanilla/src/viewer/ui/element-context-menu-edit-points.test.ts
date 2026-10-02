@@ -5,6 +5,7 @@ import type { EditActions } from '../editor';
 import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import type { ViewerState } from '../state';
+import { menuButtons } from './context-menu.test-support';
 import { mountElementContextMenu } from './element-context-menu';
 
 const t = createTranslator('en');
@@ -52,7 +53,7 @@ function mount(slide: PptxSlide) {
 }
 
 function editPointsItem(): HTMLButtonElement | undefined {
-	return Array.from(document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item')).find(
+	return menuButtons().find(
 		(node) => node.textContent?.trim() === t('pptx.contextMenu.editPoints'),
 	);
 }

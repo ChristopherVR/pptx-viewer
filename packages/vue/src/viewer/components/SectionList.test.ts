@@ -65,10 +65,12 @@ describe('sectionList', () => {
 		expect(wrapper.emitted('toggle-collapse')).toStrictEqual([['sec1']]);
 	});
 
-	/** The section menu teleports to the body; read it from there. */
+	/** The section menu teleports to the body; its rows are in the shared element's shadow root. */
 	const menuItems = (): HTMLButtonElement[] =>
 		Array.from(
-			document.body.querySelectorAll<HTMLButtonElement>('[role="menu"] [role="menuitem"]'),
+			document.body
+				.querySelector('pptx-ui-context-menu')
+				?.shadowRoot?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [],
 		);
 	const itemNamed = (label: string): HTMLButtonElement =>
 		menuItems().find((candidate) => candidate.textContent?.trim() === label)!;

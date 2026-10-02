@@ -129,6 +129,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 				label: 'host' in entry ? entry.label : t(entry.labelKey),
 				onSelect: 'host' in entry ? entry.onSelect : undefined,
 				disabled: entry.disabled,
+				danger: entry.danger,
 			};
 			return entry.separatorBefore
 				? [{ id: `sep-${index}`, label: '', separator: true }, item]

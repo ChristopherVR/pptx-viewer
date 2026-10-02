@@ -10,6 +10,7 @@ export const translations = {
 	'pptx.presentation.laserPointer': 'Laserpointer',
 	'pptx.presentation.endOfSlideShow': 'Ende der Bildschirmpräsentation, zum Beenden klicken.',
 	'pptx.presentation.pointerTools': 'Zeigeroptionen',
+	'pptx.presentation.menuLabel': 'Bildschirmpräsentationsmenü',
 	'pptx.presentation.runProgramNotice':
 		'Diese Präsentation möchte ein Programm ausführen, das nicht über den Browser gestartet werden kann: {{target}}',
 	'pptx.presentation.runProgramCopy': 'Kopieren',

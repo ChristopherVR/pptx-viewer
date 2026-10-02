@@ -10,6 +10,7 @@ export const translations = {
 	'pptx.presentation.laserPointer': '激光笔',
 	'pptx.presentation.endOfSlideShow': '幻灯片放映结束，单击退出。',
 	'pptx.presentation.pointerTools': '指针选项',
+	'pptx.presentation.menuLabel': '放映菜单',
 	'pptx.presentation.runProgramNotice': '该演示文稿想要运行一个无法从浏览器启动的程序：{{target}}',
 	'pptx.presentation.runProgramCopy': '复制',
 	'pptx.customShows.title': '自定义放映',

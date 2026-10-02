@@ -7,6 +7,7 @@ import type { EditActions } from '../editor';
 import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import type { ViewerState } from '../state';
+import { menuButtons } from './context-menu.test-support';
 import { mountElementContextMenu } from './element-context-menu';
 
 const t = createTranslator('en');
@@ -144,15 +145,11 @@ function openMenu(): HTMLElement | null {
 }
 
 function labels(): string[] {
-	return Array.from(document.querySelectorAll('.pptxv-context-menu-item')).map((node) =>
-		(node.textContent ?? '').trim(),
-	);
+	return menuButtons().map((node) => (node.textContent ?? '').trim());
 }
 
 function clickCommand(label: string): void {
-	const button = Array.from(
-		document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'),
-	).find((node) => (node.textContent ?? '').trim() === label);
+	const button = menuButtons().find((node) => (node.textContent ?? '').trim() === label);
 	button?.click();
 }
 
@@ -171,9 +168,7 @@ describe('mountElementContextMenu', () => {
 		h.target.dispatchEvent(
 			new MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }),
 		);
-		const button = Array.from(
-			document.querySelectorAll<HTMLButtonElement>('[data-pptx-context-menu] button'),
-		).find((item) => item.textContent === 'Send to chat')!;
+		const button = menuButtons().find((item) => item.textContent === 'Send to chat')!;
 		button.click();
 		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 0, elementIds: ['el-1'] });
 		expect(document.querySelector('[data-pptx-context-menu]')).toBeNull();
@@ -206,10 +201,10 @@ describe('mountElementContextMenu', () => {
 
 		expect(event.defaultPrevented).toBeTruthy();
 		const menu = openMenu();
-		expect(menu?.getAttribute('role')).toBe('menu');
-		expect(menu?.getAttribute('aria-label')).toBe('Context menu');
-		expect(menu?.querySelectorAll('[role="separator"]').length).toBeGreaterThan(0);
-		for (const item of menu?.querySelectorAll('.pptxv-context-menu-item') ?? []) {
+		const surface = menu?.shadowRoot?.querySelector('[role="menu"]');
+		expect(surface?.getAttribute('aria-label')).toBe('Context menu');
+		expect(surface?.querySelectorAll('[role="separator"]').length).toBeGreaterThan(0);
+		for (const item of menuButtons()) {
 			expect(item.tagName).toBe('BUTTON');
 			expect(item.getAttribute('type')).toBe('button');
 			expect(item.getAttribute('role')).toBe('menuitem');
@@ -243,9 +238,7 @@ describe('mountElementContextMenu', () => {
 		});
 		rightClick(context.target);
 
-		const paste = Array.from(
-			document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'),
-		).find((node) => node.textContent === 'Paste');
+		const paste = menuButtons().find((node) => node.textContent === 'Paste');
 		expect(paste?.disabled).toBeTruthy();
 		expect(labels()).toContain('Group');
 		// Already part of the selection, so the multi-selection is left intact.
@@ -261,9 +254,7 @@ describe('mountElementContextMenu', () => {
 		});
 		rightClick(context.target);
 
-		const group = Array.from(
-			document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'),
-		).find((node) => node.textContent === 'Group');
+		const group = menuButtons().find((node) => node.textContent === 'Group');
 		expect(group?.disabled).toBeTruthy();
 		context.destroy();
 	});

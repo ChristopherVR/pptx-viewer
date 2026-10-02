@@ -102,6 +102,15 @@ async function settle(): Promise<void> {
 	await nextTick();
 }
 
+/** A row of the shared context menu, read through its shadow root. */
+function menuItem(id: string): HTMLButtonElement | null {
+	return (
+		document
+			.querySelector('pptx-ui-context-menu')
+			?.shadowRoot?.querySelector<HTMLButtonElement>(`[data-item-id="${id}"]`) ?? null
+	);
+}
+
 describe('presentationMode', () => {
 	afterEach(() => {
 		document.body.replaceChildren();
@@ -431,9 +440,9 @@ describe('presentationMode right-click menu', () => {
 		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
 		rightClickOverlay();
 		await wrapper.vm.$nextTick();
-		expect(document.querySelector('[data-pptx-context-menu]')).not.toBeNull();
-		expect(document.querySelector('[data-item-id="next"]')).not.toBeNull();
-		expect(document.querySelector('[data-item-id="endShow"]')).not.toBeNull();
+		expect(document.querySelector('[data-pptx-presentation-menu]')).not.toBeNull();
+		expect(menuItem('next')).not.toBeNull();
+		expect(menuItem('endShow')).not.toBeNull();
 		wrapper.unmount();
 	});
 
@@ -443,7 +452,7 @@ describe('presentationMode right-click menu', () => {
 		});
 		rightClickOverlay();
 		await wrapper.vm.$nextTick();
-		expect(document.querySelector('[data-pptx-context-menu]')).toBeNull();
+		expect(document.querySelector('[data-pptx-presentation-menu]')).toBeNull();
 		wrapper.unmount();
 	});
 
@@ -451,10 +460,10 @@ describe('presentationMode right-click menu', () => {
 		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
 		rightClickOverlay();
 		await wrapper.vm.$nextTick();
-		const next = document.querySelector<HTMLButtonElement>('[data-item-id="next"]');
+		const next = menuItem('next');
 		next?.click();
 		await wrapper.vm.$nextTick();
-		expect(document.querySelector('[data-pptx-context-menu]')).toBeNull();
+		expect(document.querySelector('[data-pptx-presentation-menu]')).toBeNull();
 		expect(wrapper.emitted('slide-change')?.at(-1)).toStrictEqual([1]);
 		wrapper.unmount();
 	});
@@ -463,7 +472,7 @@ describe('presentationMode right-click menu', () => {
 		const wrapper = mountMode([makeSlide('s1')]);
 		rightClickOverlay();
 		await wrapper.vm.$nextTick();
-		const end = document.querySelector<HTMLButtonElement>('[data-item-id="endShow"]');
+		const end = menuItem('endShow');
 		end?.click();
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('close')).toHaveLength(1);

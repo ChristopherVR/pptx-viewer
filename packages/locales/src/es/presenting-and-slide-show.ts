@@ -10,6 +10,7 @@ export const translations = {
 	'pptx.presentation.laserPointer': 'Puntero láser',
 	'pptx.presentation.endOfSlideShow': 'Fin de la presentación, haga clic para salir.',
 	'pptx.presentation.pointerTools': 'Opciones de puntero',
+	'pptx.presentation.menuLabel': 'Menú de la presentación',
 	'pptx.presentation.runProgramNotice':
 		'Esta presentación quiere ejecutar un programa, que no se puede iniciar desde el navegador: {{target}}',
 	'pptx.presentation.runProgramCopy': 'Copiar',

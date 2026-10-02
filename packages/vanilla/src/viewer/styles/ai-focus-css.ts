@@ -137,36 +137,6 @@ export const AI_FOCUS_CSS = `
 		border-color 0.5s ease;
 }
 
-/* ── Click-to-ask context menu ────────────────────────────────────────── */
-.pptxv-ai-menu {
-	position: fixed;
-	z-index: 60;
-	min-width: 180px;
-	padding: 4px;
-	border: 1px solid var(--pptx-border);
-	border-radius: 8px;
-	background: var(--pptx-popover, var(--pptx-card));
-	color: var(--pptx-popover-foreground, var(--pptx-card-foreground));
-	box-shadow: 0 8px 24px rgb(0 0 0 / 0.24);
-}
-.pptxv-ai-menu-item {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	width: 100%;
-	padding: 7px 10px;
-	border: none;
-	border-radius: 6px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	font-size: 0.8125rem;
-	text-align: left;
-	cursor: pointer;
-}
-.pptxv-ai-menu-item svg { width: 14px; height: 14px; color: var(--pptx-primary); }
-.pptxv-ai-menu-item:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-
 /* ── Settings-dialog AI export section ────────────────────────────────── */
 .pptxv-ai-settings { display: flex; flex-direction: column; gap: 12px; }
 .pptxv-ai-settings-intro {

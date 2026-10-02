@@ -2,12 +2,13 @@
  * Reading the canvas right-click menu through the one contract every binding
  * can be held to.
  *
- * There is no shared component behind the five context menus: React renders a
- * plain positioned `<div>`, Vue teleports a data-driven list, Angular ships a
- * `<ul>`, Svelte hand-rolls one and Vanilla has none at all. So the neutral
- * hook has to be the union of what a context menu IS to a user and to a screen
- * reader: a visible floating container that either declares `role="menu"` or
- * carries the `data-pptx-context-menu` marker, holding activatable commands.
+ * All five bindings draw their context menus with the shared
+ * `pptx-ui-context-menu` element: the host carries the `data-pptx-*` markers and
+ * an open shadow root holds the `role="menu"` surface and its commands. The
+ * neutral hook is still the union of what a context menu IS to a user and to a
+ * screen reader: a visible floating container that either declares
+ * `role="menu"` or carries a `data-pptx-*` menu marker, holding activatable
+ * commands. Reads therefore go through the host's shadow root when it has one.
  * Anything narrower would silently exclude a binding and turn a parity gap into
  * a locator timeout, which is exactly the failure mode this module exists to
  * avoid: {@link openMenuAt} always resolves, with `present: false` when nothing
@@ -18,7 +19,8 @@
 import type { Locator, Page } from '@playwright/test';
 
 /** A context-menu container, whichever of the two neutral markers it uses. */
-export const MENU_SELECTOR = '[data-pptx-context-menu="true"], [role="menu"]';
+export const MENU_SELECTOR =
+	'[data-pptx-context-menu="true"], [data-pptx-presentation-menu], pptx-ui-context-menu, [role="menu"]';
 
 /**
  * The same contract narrowed to what is on screen.
@@ -29,7 +31,7 @@ export const MENU_SELECTOR = '[data-pptx-context-menu="true"], [role="menu"]';
  * waiting for it to become clickable.
  */
 export const VISIBLE_MENU_SELECTOR =
-	'[data-pptx-context-menu="true"]:visible, [role="menu"]:visible';
+	'[data-pptx-context-menu="true"]:visible, [data-pptx-presentation-menu]:visible, pptx-ui-context-menu:visible, [role="menu"]:visible';
 
 /** How long a right-click may take to paint a menu before we call it missing. */
 export const MENU_TIMEOUT_MS = 4_000;
@@ -113,8 +115,11 @@ export async function readMenu(page: Page): Promise<MenuSnapshot> {
 		if (!menu) {
 			return empty;
 		}
+		// The shared element draws its rows inside an open shadow root.
+		const scope: ParentNode = menu.shadowRoot ?? menu;
+		const surface = scope.querySelector<HTMLElement>('[role="menu"]') ?? menu;
 		const nodes = Array.from(
-			menu.querySelectorAll<HTMLElement>('button, [role="menuitem"], [role="menuitemcheckbox"]'),
+			scope.querySelectorAll<HTMLElement>('button, [role="menuitem"], [role="menuitemcheckbox"]'),
 		);
 		const commands = nodes
 			.map((node) => ({
@@ -124,7 +129,7 @@ export async function readMenu(page: Page): Promise<MenuSnapshot> {
 			.filter((command) => command.label.length > 0);
 		return {
 			present: true,
-			role: menu.getAttribute('role'),
+			role: surface.getAttribute('role'),
 			itemRoles: Array.from(new Set(nodes.map((node) => node.getAttribute('role') ?? '(none)'))),
 			commands,
 			labels: commands.map((command) => command.label.toLowerCase()),

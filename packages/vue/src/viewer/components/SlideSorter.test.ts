@@ -29,6 +29,15 @@ function mountSorter(slides: PptxSlide[], activeIndex = 0) {
 	});
 }
 
+/** A row of the shared context menu, read through its shadow root. */
+function menuItem(id: string): HTMLButtonElement | null {
+	return (
+		document
+			.querySelector('pptx-ui-context-menu')
+			?.shadowRoot?.querySelector<HTMLButtonElement>(`[data-item-id="${id}"]`) ?? null
+	);
+}
+
 describe('slideSorter', () => {
 	it('renders one tile per slide', () => {
 		const wrapper = mountSorter(makeSlides(4));
@@ -124,26 +133,26 @@ describe('slideSorter', () => {
 			const wrapper = mountEditable(makeSlides(3));
 			await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('contextmenu');
 			expect(wrapper.emitted('select')).toBeUndefined();
-			expect(document.querySelector('.pptx-vue-context-menu')).not.toBeNull();
+			expect(document.querySelector('pptx-ui-context-menu')).not.toBeNull();
 		});
 
 		it('opens on right-click and emits duplicate for the target tile on selection', async () => {
 			const wrapper = mountEditable(makeSlides(3));
 			await wrapper.findAll('.pptx-vue-sorter-tile')[2]!.trigger('contextmenu');
-			const duplicateItem = document.querySelector<HTMLButtonElement>('[data-item-id="duplicate"]');
+			const duplicateItem = menuItem('duplicate');
 			duplicateItem?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 			await wrapper.vm.$nextTick();
 			expect(wrapper.emitted('duplicate')).toStrictEqual([[2]]);
 		});
 
 		const itemLabels = (): (string | undefined)[] =>
-			Array.from(document.querySelectorAll<HTMLElement>('[role="menu"] [role="menuitem"]')).map(
-				(node) => node.textContent?.trim(),
-			);
+			Array.from(
+				document
+					.querySelector('pptx-ui-context-menu')
+					?.shadowRoot?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+			).map((node) => node.textContent?.trim());
 		const click = (id: string): void =>
-			document
-				.querySelector<HTMLButtonElement>(`[data-item-id="${id}"]`)
-				?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			menuItem(id)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
 		it('offers the shared list: Copy, Duplicate, Hide Slides, Delete', async () => {
 			const wrapper = mountEditable(makeSlides(3));
@@ -175,7 +184,7 @@ describe('slideSorter', () => {
 		it('does not open when canEdit is false', async () => {
 			const wrapper = mountSorter(makeSlides(3));
 			await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('contextmenu');
-			expect(document.querySelector('.pptx-vue-context-menu')).toBeNull();
+			expect(document.querySelector('pptx-ui-context-menu')).toBeNull();
 		});
 	});
 });

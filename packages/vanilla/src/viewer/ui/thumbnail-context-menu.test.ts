@@ -5,6 +5,7 @@ import type { EditActions } from '../editor';
 import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import type { ViewerState } from '../state';
+import { menuButtons } from './context-menu.test-support';
 import { createThumbnailContextMenu } from './thumbnail-context-menu';
 import type { ThumbnailContextMenuState } from './thumbnail-rail-menu';
 
@@ -65,7 +66,7 @@ function openMenu(): HTMLElement | null {
 }
 
 function clickCommand(label: string): void {
-	Array.from(document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'))
+	menuButtons()
 		.find((node) => (node.textContent ?? '').trim() === label)
 		?.click();
 }
@@ -81,8 +82,8 @@ describe('createThumbnailContextMenu', () => {
 		menu.open(state, slides(5));
 		const el = openMenu();
 		expect(el).not.toBeNull();
-		expect(el?.getAttribute('role')).toBe('menu');
-		expect(document.querySelectorAll('.pptxv-context-menu-item')).toHaveLength(6);
+		expect(el?.shadowRoot?.querySelector('[role="menu"]')).not.toBeNull();
+		expect(menuButtons()).toHaveLength(6);
 	});
 
 	it('new Slide inserts after the target and closes', () => {
@@ -139,9 +140,7 @@ describe('createThumbnailContextMenu', () => {
 		});
 		menu.open({ x: 0, y: 0, index: 0, selectedIndexes: [0] }, slides(2));
 		clickCommand(t('pptx.slidesPane.contextMenu.layout'));
-		const layoutBtn = Array.from(
-			document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'),
-		).find((b) => b.textContent === 'Title Slide');
+		const layoutBtn = menuButtons().find((b) => b.textContent === 'Title Slide');
 		expect(layoutBtn).toBeTruthy();
 		layoutBtn?.click();
 		expect(actions.applyLayout).toHaveBeenCalledWith('ppt/slideLayouts/slideLayout1.xml');

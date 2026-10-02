@@ -437,8 +437,12 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 		if (sectionIndex > 0) {
 			items.push({ id: `sep-${section.id}`, label: '', separator: true });
 		}
-		for (const item of section.items) {
-			items.push({ id: item.id, label: t(item.labelKey) });
+		for (const [itemIndex, item] of section.items.entries()) {
+			items.push({
+				id: item.id,
+				label: t(item.labelKey),
+				heading: itemIndex === 0 && section.headingKey ? t(section.headingKey) : undefined,
+			});
 		}
 	});
 	return items;
@@ -850,6 +854,8 @@ useTouchGestures({
 				:x="contextMenuState?.x ?? 0"
 				:y="contextMenuState?.y ?? 0"
 				:items="contextMenuItems"
+				:aria-label="t('pptx.presentation.menuLabel')"
+				:presentation="true"
 				@select="onContextMenuSelect"
 				@close="contextMenuState = null"
 			/>

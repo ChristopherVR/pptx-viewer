@@ -485,6 +485,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentation.laserPointer': 'Laser Pointer',
 	'pptx.presentation.endOfSlideShow': 'End of slide show, click to exit.',
 	'pptx.presentation.pointerTools': 'Pointer Options',
+	'pptx.presentation.menuLabel': 'Slide show menu',
 	'pptx.presentation.runProgramNotice':
 		'This presentation wants to run a program, which cannot be launched from the browser: {{target}}',
 	'pptx.presentation.runProgramCopy': 'Copy',

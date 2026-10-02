@@ -19,27 +19,23 @@ const SOURCE = readFileSync(
 );
 
 describe('slide canvas context menu contract', () => {
-	it('carries the neutral context-menu marker, plus its own canvas marker', () => {
-		expect(SOURCE).toContain('data-pptx-context-menu="true"');
-		expect(SOURCE).toContain('data-pptx-canvas-context-menu="true"');
+	it('renders through the shared element and routes its typed events', () => {
+		expect(SOURCE).toContain('<pptx-ui-context-menu');
+		expect(SOURCE).toContain('(menu-request)="request($event)"');
+		expect(SOURCE).toContain('(menu-close)="closed.emit()"');
+		expect(SOURCE).not.toContain('<button');
 	});
 
-	it('declares menu semantics and a name of its own', () => {
-		expect(SOURCE).toContain('role="menu"');
-		expect(SOURCE).toContain(`[attr.aria-label]="'pptx.canvasContextMenu.ariaLabel' | translate"`);
-	});
-
-	it('roles every command as a menuitem or menuitemcheckbox', () => {
-		const commands = SOURCE.match(/<button\b/gu)?.length ?? 0;
-		expect(commands).toBeGreaterThan(0);
+	it('carries the neutral context-menu marker, plus its own canvas marker and name', () => {
 		expect(SOURCE).toContain(
-			`[attr.role]="entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"`,
+			`markers: ['data-pptx-context-menu', 'data-pptx-canvas-context-menu']`,
 		);
+		expect(SOURCE).toContain(`this.t('pptx.canvasContextMenu.ariaLabel')`);
 	});
 
 	it('renders the shared command list rather than a hand-written one', () => {
 		expect(SOURCE).toContain('buildCanvasContextMenuEntries');
-		expect(SOURCE).toContain('@for (entry of entries(); track entry.id)');
+		expect(SOURCE).toContain('contextMenuViewItems(this.entries(), this.t)');
 		expect(buildCanvasContextMenuEntries()).toHaveLength(6);
 	});
 });

@@ -5,16 +5,21 @@
  * Item order/grouping/i18n keys come from the shared
  * `getPresentationContextMenuSections` (`pptx-viewer-shared`), the same
  * source React's `PresentationContextMenu` and Vue/Angular/Svelte's own
- * ports render from, so this menu cannot drift from theirs. Only the view is
- * local: mount at the pointer, clamp into the viewport, dismiss on Escape or
- * an outside press, matching `element-context-menu.ts`'s own menu.
+ * ports render from, so this menu cannot drift from theirs. The rows,
+ * clamping, keyboard navigation and dismissal belong to the shared
+ * `pptx-ui-context-menu` (see `context-menu-surface.ts`).
  */
-import { clampFlyoutPosition, getPresentationContextMenuSections } from 'pptx-viewer-shared';
+import {
+	CONTEXT_MENU_PRESENTATION_LAYER,
+	getPresentationContextMenuSections,
+	presentationViewItems,
+} from 'pptx-viewer-shared';
 import type { PresentationContextMenuActionId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
-import { createEl } from '../render';
 import type { Store, ViewerState } from '../state';
+import { mountContextMenuSurface } from './context-menu-surface';
+import type { ContextMenuSurface } from './context-menu-surface';
 
 export interface PresentationContextMenuDeps {
 	doc: Document;
@@ -38,38 +43,16 @@ export interface PresentationContextMenu {
 	destroy(): void;
 }
 
-function positionMenu(menu: HTMLElement, doc: Document, x: number, y: number): void {
-	const view = doc.defaultView;
-	const box = menu.getBoundingClientRect();
-	const { left, top } = clampFlyoutPosition({
-		x,
-		y,
-		width: box.width,
-		height: box.height,
-		viewportWidth: view?.innerWidth ?? box.right,
-		viewportHeight: view?.innerHeight ?? box.bottom,
-		margin: 4,
-	});
-	menu.style.left = `${left}px`;
-	menu.style.top = `${top}px`;
-}
-
 /** Attach the slide-show right-click menu to the presentation root. */
 export function mountPresentationContextMenu(
 	deps: PresentationContextMenuDeps,
 ): PresentationContextMenu {
 	const { doc, store, root } = deps;
-	let menu: HTMLElement | null = null;
-	let onDismiss: ((event: Event) => void) | null = null;
+	let menu: ContextMenuSurface | null = null;
 
 	const close = (): void => {
-		menu?.remove();
+		menu?.close();
 		menu = null;
-		if (onDismiss) {
-			doc.removeEventListener('pointerdown', onDismiss, true);
-			doc.removeEventListener('keydown', onDismiss, true);
-			onDismiss = null;
-		}
 	};
 
 	const run = (id: PresentationContextMenuActionId): void => {
@@ -114,9 +97,7 @@ export function mountPresentationContextMenu(
 	};
 
 	const open = (x: number, y: number): void => {
-		menu = createEl(doc, 'div', 'pptxv-showmenu', { left: `${x}px`, top: `${y}px` });
-		menu.dataset.pptxPresentationMenu = 'true';
-		menu.setAttribute('role', 'menu');
+		const t = deps.getTranslator();
 		const sections = getPresentationContextMenuSections({
 			seeAllSlides: true,
 			presenterView: true,
@@ -125,39 +106,23 @@ export function mountPresentationContextMenu(
 			blankBlack: true,
 			blankWhite: true,
 		});
-		sections.forEach((section, sectionIndex) => {
-			if (sectionIndex > 0) {
-				const separator = createEl(doc, 'hr', 'pptxv-showmenu-separator');
-				separator.setAttribute('role', 'separator');
-				menu?.appendChild(separator);
-			}
-			for (const item of section.items) {
-				const button = createEl(doc, 'button');
-				button.type = 'button';
-				button.setAttribute('role', 'menuitem');
-				button.dataset.itemId = item.id;
-				button.textContent = deps.getTranslator()(item.labelKey);
-				button.addEventListener('click', () => {
-					close();
-					run(item.id);
-				});
-				menu?.appendChild(button);
-			}
+		menu = mountContextMenuSurface({
+			doc,
+			parent: root,
+			state: {
+				x,
+				y,
+				label: t('pptx.presentation.menuLabel'),
+				markers: ['data-pptx-presentation-menu'],
+				zIndex: CONTEXT_MENU_PRESENTATION_LAYER,
+				items: presentationViewItems(sections, t),
+			},
+			onRequest: (id) => {
+				close();
+				run(id as PresentationContextMenuActionId);
+			},
+			onClose: close,
 		});
-		root.appendChild(menu);
-		positionMenu(menu, doc, x, y);
-
-		onDismiss = (event: Event): void => {
-			if (event instanceof KeyboardEvent && event.key !== 'Escape') {
-				return;
-			}
-			if (event.target instanceof Node && menu?.contains(event.target)) {
-				return;
-			}
-			close();
-		};
-		doc.addEventListener('pointerdown', onDismiss, true);
-		doc.addEventListener('keydown', onDismiss, true);
 	};
 
 	const onContextMenu = (event: MouseEvent): void => {

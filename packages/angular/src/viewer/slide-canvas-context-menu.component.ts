@@ -33,85 +33,43 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	ElementRef,
-	HostListener,
-	inject,
+	CUSTOM_ELEMENTS_SCHEMA,
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
 
 import type {
-	CanvasContextMenuCommandId,
+	ContextMenuRequestEvent,
+	ContextMenuViewState,
 	CustomizedCanvasContextMenuEntry,
 } from '../internal/shared';
 import {
 	buildCanvasContextMenuEntries,
+	contextMenuViewItems,
 	customizeCanvasContextMenuEntries,
-	hostMenuLabel,
 } from '../internal/shared';
-import { clampedMenuPosition } from './context-menu-position';
-import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
+import type { MenuTranslate } from './context-menu-translate';
+import { injectMenuTranslate } from './context-menu-translate';
 import type { CanvasContextMenuActions } from './slide-canvas-context-menu-dispatch';
 import { runCanvasContextMenuCommand } from './slide-canvas-context-menu-dispatch';
 import { injectResolvedCustomization } from './viewer-customization.service';
 
-/** Extra rule for the checkbox-style entries (Grid and Guides, Ruler). */
-const CHECKBOX_ITEM_STYLES = `
-	.pptx-ctx__check {
-		display: inline-block;
-		width: 14px;
-	}
-`;
-
 @Component({
 	selector: 'pptx-slide-canvas-context-menu',
 	standalone: true,
-	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { style: 'display: contents' },
+	// An empty menu (host customisation removed every entry) renders nothing.
 	template: `
-		<!-- An empty menu (host customisation removed every entry) renders nothing. -->
-		@if (entries().length > 0) {
-			<ul
-				class="pptx-ctx__menu"
-				data-pptx-context-menu="true"
-				data-pptx-canvas-context-menu="true"
-				role="menu"
-				[attr.aria-label]="'pptx.canvasContextMenu.ariaLabel' | translate"
-			>
-				@for (entry of entries(); track entry.id) {
-					@if (entry.separatorBefore) {
-						<li role="separator" class="pptx-ctx__divider"></li>
-					}
-					<li role="none">
-						<button
-							type="button"
-							class="pptx-ctx__item"
-							[attr.role]="entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
-							[attr.aria-checked]="entry.checked === undefined ? null : entry.checked"
-							[disabled]="!!entry.disabled"
-							(click)="run(entry)"
-						>
-							@if (entry.checked !== undefined) {
-								<span class="pptx-ctx__check" aria-hidden="true">{{
-									entry.checked ? '✓' : ''
-								}}</span>
-							}
-							{{ hostLabel(entry) ?? (entry.labelKey | translate) }}
-						</button>
-					</li>
-				}
-			</ul>
-		}
+		<pptx-ui-context-menu
+			[state]="view()"
+			(menu-request)="request($event)"
+			(menu-close)="closed.emit()"
+		></pptx-ui-context-menu>
 	`,
-	styles: [EDITOR_CONTEXT_MENU_STYLES, CHECKBOX_ITEM_STYLES],
-	host: {
-		'[style.--pptx-ctx-x]': 'position.left() + "px"',
-		'[style.--pptx-ctx-y]': 'position.top() + "px"',
-	},
 })
 export class SlideCanvasContextMenuComponent {
-	protected readonly hostLabel = hostMenuLabel;
 	readonly x = input.required<number>();
 	readonly y = input.required<number>();
 	readonly slideIndex = input<number>(0);
@@ -129,9 +87,7 @@ export class SlideCanvasContextMenuComponent {
 	readonly toggleGrid = output<void>();
 	readonly toggleRulers = output<void>();
 
-	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
-	/** Kept inside the viewport (see `context-menu-position.ts`). */
-	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
+	private readonly t: MenuTranslate = injectMenuTranslate();
 
 	private readonly customization = injectResolvedCustomization();
 
@@ -156,33 +112,34 @@ export class SlideCanvasContextMenuComponent {
 		toggleRulers: () => this.toggleRulers.emit(),
 	};
 
-	@HostListener('document:keydown.escape')
-	onEscape(): void {
-		this.closed.emit();
+	/** The shared element's state: translated rows, the hook markers and the label. */
+	protected readonly view = computed<ContextMenuViewState>(() => ({
+		x: this.x(),
+		y: this.y(),
+		label: this.t('pptx.canvasContextMenu.ariaLabel'),
+		markers: ['data-pptx-context-menu', 'data-pptx-canvas-context-menu'],
+		items: contextMenuViewItems(this.entries(), this.t),
+	}));
+
+	protected request(event: Event): void {
+		this.run((event as ContextMenuRequestEvent).detail.id);
 	}
 
-	@HostListener('document:pointerdown', ['$event'])
-	onDocumentPointerDown(event: PointerEvent): void {
-		const target = event.target;
-		if (!(target instanceof Node)) {
+	/** Run the chosen command (an id or an entry), then close: every item closes the menu. */
+	protected run(target: string | CustomizedCanvasContextMenuEntry): void {
+		const entry =
+			typeof target === 'string'
+				? this.entries().find((candidate) => candidate.id === target)
+				: target;
+		if (!entry) {
 			return;
 		}
-		if (!this.host.nativeElement.contains(target)) {
+		if ('host' in entry) {
 			this.closed.emit();
+			entry.onSelect();
+			return;
 		}
-	}
-
-	/** Run the chosen command, then close: every item closes the menu. */
-	protected run(id: CanvasContextMenuCommandId | CustomizedCanvasContextMenuEntry): void {
-		if (typeof id !== 'string') {
-			if ('host' in id) {
-				this.closed.emit();
-				id.onSelect();
-				return;
-			}
-			id = id.id;
-		}
-		runCanvasContextMenuCommand(id, this.actions);
+		runCanvasContextMenuCommand(entry.id, this.actions);
 		this.closed.emit();
 	}
 }

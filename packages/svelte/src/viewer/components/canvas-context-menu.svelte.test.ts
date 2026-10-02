@@ -58,8 +58,13 @@ function mountMenu(editor: EditorState, options: MenuOptions = {}): HTMLElement 
 	return target;
 }
 
+/** The shared element's shadow root, where the rows are drawn. */
+function menuRoot(target: HTMLElement): ParentNode {
+	return target.querySelector('pptx-ui-context-menu')?.shadowRoot ?? target;
+}
+
 function items(target: HTMLElement): HTMLButtonElement[] {
-	return Array.from(target.querySelectorAll<HTMLButtonElement>('button'));
+	return Array.from(menuRoot(target).querySelectorAll<HTMLButtonElement>('button'));
 }
 
 describe('canvasContextMenu', () => {
@@ -78,7 +83,7 @@ describe('canvasContextMenu', () => {
 
 	it('renders Grid and Guides / Ruler as menuitemcheckbox, reflecting state', () => {
 		const target = mountMenu(createEditor(), { showGrid: true, showRulers: false });
-		const checkboxes = target.querySelectorAll('[role="menuitemcheckbox"]');
+		const checkboxes = menuRoot(target).querySelectorAll('[role="menuitemcheckbox"]');
 		expect(checkboxes).toHaveLength(2);
 		expect(checkboxes[0].getAttribute('aria-checked')).toBe('true');
 		expect(checkboxes[1].getAttribute('aria-checked')).toBe('false');
@@ -88,7 +93,9 @@ describe('canvasContextMenu', () => {
 		const ontogglegrid = vi.fn();
 		const onclose = vi.fn();
 		const target = mountMenu(createEditor(), { ontogglegrid, onclose });
-		const checkbox = target.querySelector('[role="menuitemcheckbox"]') as HTMLButtonElement;
+		const checkbox = menuRoot(target).querySelector(
+			'[role="menuitemcheckbox"]',
+		) as HTMLButtonElement;
 		checkbox.click();
 		expect(ontogglegrid).toHaveBeenCalledOnce();
 		expect(onclose).toHaveBeenCalledOnce();
@@ -97,7 +104,7 @@ describe('canvasContextMenu', () => {
 	it('closes on Escape', () => {
 		const onclose = vi.fn();
 		mountMenu(createEditor(), { onclose });
-		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 		expect(onclose).toHaveBeenCalledOnce();
 	});
 });

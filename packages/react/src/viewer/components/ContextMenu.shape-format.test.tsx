@@ -63,7 +63,8 @@ function render(value: ShapeFormatCommands, overrides: Partial<ContextMenuProps>
 }
 
 function item(label: string): HTMLElement | undefined {
-	return Array.from(container.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
+	const surface = container.querySelector('pptx-ui-context-menu')?.shadowRoot;
+	return Array.from(surface?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []).find(
 		(node) => node.textContent === label,
 	);
 }

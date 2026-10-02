@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import type { ViewerState } from '../state';
+import { menuItem } from './context-menu.test-support';
 import { mountPresentationContextMenu } from './presentation-context-menu';
 
 const t = createTranslator('en');
@@ -50,8 +51,8 @@ describe('mountPresentationContextMenu', () => {
 		const { root, menu } = harness();
 		rightClick(root);
 		expect(root.querySelector('[data-pptx-presentation-menu]')).not.toBeNull();
-		expect(root.querySelector('[data-item-id="next"]')).not.toBeNull();
-		expect(root.querySelector('[data-item-id="endShow"]')).not.toBeNull();
+		expect(menuItem('next', root)).not.toBeNull();
+		expect(menuItem('endShow', root)).not.toBeNull();
 		menu.destroy();
 	});
 
@@ -79,7 +80,7 @@ describe('mountPresentationContextMenu', () => {
 	it('advances the slide and closes when "Next Slide" is chosen', () => {
 		const { root, menu, next } = harness();
 		rightClick(root);
-		root.querySelector<HTMLButtonElement>('[data-item-id="next"]')?.click();
+		menuItem('next', root)?.click();
 		expect(next).toHaveBeenCalledOnce();
 		expect(root.querySelector('[data-pptx-presentation-menu]')).toBeNull();
 		menu.destroy();
@@ -88,7 +89,7 @@ describe('mountPresentationContextMenu', () => {
 	it('ends the show when "End Presentation" is chosen', () => {
 		const { root, menu, exitPresentation } = harness();
 		rightClick(root);
-		root.querySelector<HTMLButtonElement>('[data-item-id="endShow"]')?.click();
+		menuItem('endShow', root)?.click();
 		expect(exitPresentation).toHaveBeenCalledOnce();
 		menu.destroy();
 	});

@@ -9,9 +9,9 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import { resolveTopLevelElementId } from '../editor/element-hit';
 import type { Translator } from '../i18n';
-import { createEl } from '../render';
 import type { Store, ViewerState } from '../state';
-import { createIcon } from '../ui/icons';
+import { mountContextMenuSurface } from '../ui/context-menu-surface';
+import type { ContextMenuSurface } from '../ui/context-menu-surface';
 import type { AiFocusController } from './ai-panel-controller';
 
 export interface AiContextMenuDeps {
@@ -32,10 +32,10 @@ export interface AiContextMenu {
 /** Attach the right-click "Ask AI" / "Fix with AI" menu to the canvas. */
 export function mountAiContextMenu(deps: AiContextMenuDeps): AiContextMenu {
 	const { doc, t, store, controller, viewport } = deps;
-	let menu: HTMLElement | null = null;
+	let menu: ContextMenuSurface | null = null;
 
 	const close = (): void => {
-		menu?.remove();
+		menu?.close();
 		menu = null;
 	};
 
@@ -45,17 +45,6 @@ export function mountAiContextMenu(deps: AiContextMenuDeps): AiContextMenu {
 		// Reflect the target as the live selection so pin captures exactly it.
 		store.set({ selectedElementId: elementId, selectedElementIds: [elementId] });
 		return el;
-	};
-
-	const item = (icon: Parameters<typeof createIcon>[1], label: string, onClick: () => void) => {
-		const btn = createEl(doc, 'button', 'pptxv-ai-menu-item');
-		btn.type = 'button';
-		btn.append(createIcon(doc, icon), doc.createTextNode(label));
-		btn.addEventListener('click', () => {
-			onClick();
-			close();
-		});
-		return btn;
 	};
 
 	const onContextMenu = (event: MouseEvent): void => {
@@ -75,32 +64,31 @@ export function mountAiContextMenu(deps: AiContextMenuDeps): AiContextMenu {
 		close();
 		const el = selectAndScope(id);
 		const slideIndex = store.get().currentSlide;
-
-		menu = createEl(doc, 'div', 'pptxv-ai-menu', {
-			left: `${event.clientX}px`,
-			top: `${event.clientY}px`,
-		});
-		menu.setAttribute('role', 'menu');
-		menu.append(
-			item('sparkles', t('pptx.ai.askAboutElement'), () => controller.askAboutSelection()),
-			item('wrench', t('pptx.ai.fixElement'), () => controller.fixElement(el, slideIndex)),
-		);
-		doc.body.appendChild(menu);
-
-		// Dismiss on the next pointer down / escape anywhere outside the menu.
-		const onDismiss = (dismissEvent: Event): void => {
-			if (dismissEvent instanceof KeyboardEvent && dismissEvent.key !== 'Escape') {
-				return;
-			}
-			if (dismissEvent.target instanceof Node && menu?.contains(dismissEvent.target)) {
-				return;
-			}
-			close();
-			doc.removeEventListener('pointerdown', onDismiss, true);
-			doc.removeEventListener('keydown', onDismiss, true);
+		const commands: Record<string, () => void> = {
+			ask: () => controller.askAboutSelection(),
+			fix: () => controller.fixElement(el, slideIndex),
 		};
-		doc.addEventListener('pointerdown', onDismiss, true);
-		doc.addEventListener('keydown', onDismiss, true);
+		// The rows, clamping, keyboard navigation and dismissal belong to the shared
+		// `pptx-ui-context-menu`; only the two commands are local.
+		menu = mountContextMenuSurface({
+			doc,
+			parent: doc.body,
+			state: {
+				x: event.clientX,
+				y: event.clientY,
+				label: t('pptx.contextMenu.ariaLabel'),
+				markers: ['data-pptx-ai-context-menu'],
+				items: [
+					{ id: 'ask', label: t('pptx.ai.askAboutElement') },
+					{ id: 'fix', label: t('pptx.ai.fixElement') },
+				],
+			},
+			onRequest: (command) => {
+				close();
+				commands[command]?.();
+			},
+			onClose: close,
+		});
 	};
 
 	viewport.addEventListener('contextmenu', onContextMenu);

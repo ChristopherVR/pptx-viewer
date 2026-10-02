@@ -114,6 +114,7 @@ export function useSlidePaneRailMenu(
 					? t(entry.labelKey, { count: selected.length })
 					: t(entry.labelKey),
 				disabled: entry.disabled,
+				danger: entry.id === 'delete',
 			};
 			return entry.separatorBefore
 				? [{ id: `sep-${index}`, label: '', separator: true }, item]

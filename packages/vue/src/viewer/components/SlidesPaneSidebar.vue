@@ -293,6 +293,8 @@ const {
 			:x="menu.x"
 			:y="menu.y"
 			:items="menuItems"
+			:aria-label="t('pptx.slidesPane.contextMenu.newSlide')"
+			:markers="['data-pptx-slide-pane-context-menu']"
 			@select="onMenuSelect"
 			@close="menu.open = false"
 		/>

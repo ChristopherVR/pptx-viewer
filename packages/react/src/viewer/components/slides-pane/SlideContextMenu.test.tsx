@@ -60,8 +60,13 @@ function props(overrides: Partial<React.ComponentProps<typeof SlideContextMenu>>
 	};
 }
 
+/** The shared element's shadow root, where the rows are drawn. */
+function surface(): ShadowRoot {
+	return container.querySelector('pptx-ui-context-menu')!.shadowRoot!;
+}
+
 function clickItem(label: string): void {
-	const item = Array.from(container.querySelectorAll('button')).find(
+	const item = Array.from(surface().querySelectorAll('button')).find(
 		(b) => (b.textContent ?? '').trim() === label,
 	);
 	if (!item) {
@@ -75,7 +80,8 @@ describe('slideContextMenu', () => {
 		act(() => {
 			root.render(<SlideContextMenu {...props()} />);
 		});
-		expect(container.querySelectorAll('[role="menuitem"]')).toHaveLength(6);
+		expect(surface().querySelectorAll('[role="menuitem"]')).toHaveLength(6);
+		expect(container.querySelector('[data-pptx-slide-pane-context-menu="true"]')).not.toBeNull();
 	});
 
 	it('new Slide inserts after the right-clicked slide and closes', () => {
@@ -137,7 +143,7 @@ describe('slideContextMenu', () => {
 		act(() => {
 			root.render(<SlideContextMenu {...props({ state })} />);
 		});
-		const buttons = Array.from(container.querySelectorAll('button'));
+		const buttons = Array.from(surface().querySelectorAll('button'));
 		const layout = buttons.find((b) => b.textContent === 'pptx.slidesPane.contextMenu.layout');
 		const addSection = buttons.find(
 			(b) => b.textContent === 'pptx.slidesPane.contextMenu.addSection',

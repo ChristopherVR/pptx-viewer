@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
+import { menuButtons } from '../ui/context-menu.test-support';
 import { mountAiContextMenu } from './ai-context-menu';
 import { createAiFocusController } from './ai-panel-controller';
 
@@ -49,7 +50,7 @@ describe('mountAiContextMenu', () => {
 
 		el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
-		const items = document.querySelectorAll('.pptxv-ai-menu-item');
+		const items = menuButtons();
 		expect(items).toHaveLength(2);
 		expect(items[0]?.textContent).toContain('Ask AI about this');
 		expect(items[1]?.textContent).toContain('Fix with AI');
@@ -64,7 +65,7 @@ describe('mountAiContextMenu', () => {
 		expect(prefill.text).toContain('slide 1');
 		expect(openCount).toBeGreaterThan(0);
 		// The menu closes after a choice.
-		expect(document.querySelector('.pptxv-ai-menu')).toBeNull();
+		expect(document.querySelector('[data-pptx-ai-context-menu]')).toBeNull();
 
 		menu.destroy();
 	});
@@ -90,7 +91,7 @@ describe('mountAiContextMenu', () => {
 
 		// Two floating menus on one right-click would be the bug; the element menu
 		// already carries "Ask AI" / "Fix with AI" as two of its own entries.
-		expect(document.querySelector('.pptxv-ai-menu')).toBeNull();
+		expect(document.querySelector('[data-pptx-ai-context-menu]')).toBeNull();
 	});
 
 	it('does nothing when the right-click is not on a canvas element', () => {
@@ -107,6 +108,6 @@ describe('mountAiContextMenu', () => {
 		});
 
 		viewport.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-		expect(document.querySelector('.pptxv-ai-menu')).toBeNull();
+		expect(document.querySelector('[data-pptx-ai-context-menu]')).toBeNull();
 	});
 });
