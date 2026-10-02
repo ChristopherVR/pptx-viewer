@@ -1,12 +1,5 @@
 import {
-	AlignCenter,
-	AlignHorizontalSpaceAround,
-	AlignLeft,
-	AlignRight,
-	AlignVerticalSpaceAround,
 	Check,
-	ChevronDown,
-	ChevronUp,
 	Clock,
 	Copy,
 	Database,
@@ -62,20 +55,6 @@ export const ics = 'w-3.5 h-3.5';
 
 /* Data-driven button groups (icon component refs, not JSX). */
 export const MODES: ViewerMode[] = ['edit', 'preview', 'present'];
-
-export const ALIGN_BTNS: Array<{ k: string; icon: Component; rotate?: boolean }> = [
-	{ k: 'left', icon: AlignLeft },
-	{ k: 'center', icon: AlignCenter },
-	{ k: 'right', icon: AlignRight },
-	{ k: 'top', icon: ChevronUp },
-	{ k: 'middle', icon: AlignCenter, rotate: true },
-	{ k: 'bottom', icon: ChevronDown },
-];
-
-export const DISTRIBUTE_BTNS: Array<{ k: string; icon: Component }> = [
-	{ k: 'horizontal', icon: AlignHorizontalSpaceAround },
-	{ k: 'vertical', icon: AlignVerticalSpaceAround },
-];
 
 /** Overflow / File menu entries (`---*` keys render as separators). */
 export const OV: Array<{ labelKey: string; icon: Component | null; k: string }> = [

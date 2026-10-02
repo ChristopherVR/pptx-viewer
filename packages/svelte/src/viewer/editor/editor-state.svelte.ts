@@ -49,6 +49,7 @@ import { EditorClipboardController } from './editor-clipboard-controller';
 import { EditorCropController } from './editor-crop-controller.svelte';
 import type { LoadDocumentArgs } from './editor-document-lifecycle';
 import {
+	adoptDocumentParts,
 	applyRemoteEditorSlides,
 	loadEditorDocument,
 	resetEditorSession,
@@ -260,6 +261,14 @@ export class EditorState {
 		return this.history.canUndo;
 	}
 
+	get undoLabel(): string | undefined {
+		return this.history.undoLabel;
+	}
+
+	get redoLabel(): string | undefined {
+		return this.history.redoLabel;
+	}
+
 	get headerFooter(): PptxHeaderFooter {
 		return this.presentationMetadata.headerFooter;
 	}
@@ -378,6 +387,11 @@ export class EditorState {
 	/** Adopt a freshly loaded deck as the working document (see `loadEditorDocument`). */
 	setSlides(...args: LoadDocumentArgs): void {
 		loadEditorDocument(this, ...args);
+	}
+
+	/** Adopt a load's masters/properties but keep the live slides and editing session. */
+	adoptLoadedParts(...args: LoadDocumentArgs): void {
+		adoptDocumentParts(this, ...args);
 	}
 
 	/** Adopt a remote (collaboration) snapshot; see `applyRemoteEditorSlides`. */

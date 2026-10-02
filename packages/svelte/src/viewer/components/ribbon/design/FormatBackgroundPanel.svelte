@@ -52,7 +52,7 @@
 			disabled={!editor.editable}
 			onclick={() => editor.backgroundOps.clearSlideBackground()}
 		>
-			{t('pptx.ribbon.theme.default')}
+			{t('pptx.slideBackground.clearBackground')}
 		</button>
 		<label class="pptx-svelte-formatbg-hide">
 			<input

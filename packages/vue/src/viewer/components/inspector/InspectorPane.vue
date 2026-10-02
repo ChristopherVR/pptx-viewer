@@ -130,7 +130,7 @@ function relay(patch: Partial<PptxElement>): void {
 		</InspectorSectionCard>
 
 		<InspectorSectionCard v-if="isImage" :title="t('pptx.inspector.image')">
-			<ImagePanel :element="element" @update="relay" />
+			<ImagePanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</InspectorSectionCard>
 
 		<InspectorSectionCard v-if="isTable" :title="t('pptx.inspector.table')">
@@ -145,7 +145,7 @@ function relay(patch: Partial<PptxElement>): void {
 		</InspectorSectionCard>
 
 		<InspectorSectionCard v-if="isChart" :title="t('pptx.inspector.chart')">
-			<ChartPanel :element="element" @update="relay" />
+			<ChartPanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</InspectorSectionCard>
 
 		<InspectorSectionCard v-if="isMedia" :title="t('pptx.inspector.media')">

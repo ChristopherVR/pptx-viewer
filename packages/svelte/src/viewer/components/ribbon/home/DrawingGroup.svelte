@@ -1,23 +1,21 @@
 <script lang="ts">
-	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
-	 * DrawingGroup: the Home tab's Drawing controls, React's `DrawingGroup` in
-	 * Svelte form: a Shapes gallery, an Arrange z-order menu, and the Quick
-	 * Styles (Shape Styles) and Shape Effects galleries.
-	 *
-	 * Shape Fill, Shape Outline and stroke width are NOT repeated here: Svelte
-	 * already ships them as `ShapeFormatGroup`, which sits in the same row. This
-	 * file only adds what the Home tab was missing.
-	 *
-	 * The two galleries are shared descriptors (`FIXED_TAB_GALLERIES`) rendered
-	 * by `RibbonGallery`; they replaced the old disabled Shape Effects button.
+	 * DrawingGroup: the Home tab's Drawing controls. The Shapes, Arrange, Shape
+	 * Fill and Shape Outline triggers are the shared
+	 * `pptx-ui-ribbon-home-drawing` strip; the Shapes gallery, the Arrange z-order
+	 * menu and the two colour popovers stay native and hang from those triggers.
+	 * The Quick Styles (Shape Styles) and Shape Effects galleries are shared
+	 * descriptors (`FIXED_TAB_GALLERIES`) rendered by `RibbonGallery`.
 	 */
-	import { SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+	import { hasShapeProperties } from 'pptx-viewer-core';
+	import { SHAPE_PRESET_DEFS, drawingHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
+	import type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { ZOrderDirection } from '../../../editor';
 	import { newPresetShapeElement } from '../../../editor';
+	import ShapeFormatGroup from '../../ShapeFormatGroup.svelte';
 	import { anchoredPopup } from '../anchored-popup';
 	import { fixedGalleryPlacement } from '../galleries/fixed-placements';
 	import RibbonGallery from '../galleries/RibbonGallery.svelte';
@@ -37,89 +35,148 @@
 	];
 
 	let openMenu = $state<'shapes' | 'arrange' | null>(null);
+	let fillOpen = $state(false);
+	let outlineOpen = $state(false);
 	// eslint-disable-next-line prefer-const
-	let shapesAnchor: HTMLElement | undefined = $state();
+	let root: HTMLElement | undefined = $state();
 	// eslint-disable-next-line prefer-const
-	let arrangeAnchor: HTMLElement | undefined = $state();
+	let strip: PptxUiRibbonHomeElement | undefined = $state();
+	let anchor: HTMLElement | undefined = $state();
+	let fillAnchor: HTMLElement | undefined = $state();
+	let outlineAnchor: HTMLElement | undefined = $state();
 
 	const hasSelection = $derived(Boolean(editor.selectedElementId));
+	const hasShape = $derived(
+		editor.selectedElement !== undefined && hasShapeProperties(editor.selectedElement),
+	);
 	const QUICK_STYLES = fixedGalleryPlacement('home.drawing.quickStyles');
 	const SHAPE_EFFECTS = fixedGalleryPlacement('home.drawing.shapeEffects');
 
+	// Fill and Outline need a selected shape (not merely a selection), and obey
+	// read-only mode like every other trigger.
+	const view = $derived.by(() => {
+		const controls = drawingHomeControls({
+			editable: editor.editable,
+			hasSelection,
+			open: {
+				shapes: openMenu === 'shapes',
+				arrange: openMenu === 'arrange',
+				fill: fillOpen,
+				outline: outlineOpen,
+			},
+		});
+		const noShape = !editor.editable || !hasShape;
+		return {
+			controls: {
+				...controls,
+				'home.drawing.shapeFill': { ...controls['home.drawing.shapeFill'], disabled: noShape },
+				'home.drawing.shapeOutline': { ...controls['home.drawing.shapeOutline'], disabled: noShape },
+			},
+			translate: homeSnapshotTranslator(['drawing'], t),
+		};
+	});
+
+	function closeAll(): void {
+		openMenu = null;
+		fillOpen = false;
+		outlineOpen = false;
+	}
+
 	function onFocusOut(event: FocusEvent): void {
-		const root = event.currentTarget as HTMLElement;
-		if (!(event.relatedTarget instanceof Node) || !root.contains(event.relatedTarget)) {
-			openMenu = null;
+		if (!(event.relatedTarget instanceof Node) || !root?.contains(event.relatedTarget)) {
+			closeAll();
+		}
+	}
+
+	// The shared triggers keep focus in the slide, so close on an outside press too.
+	$effect(() => {
+		if (openMenu === null && !fillOpen && !outlineOpen) {
+			return;
+		}
+		const close = (event: PointerEvent): void => {
+			if (!(event.target instanceof Node) || !root?.contains(event.target)) {
+				closeAll();
+			}
+		};
+		document.addEventListener('pointerdown', close, true);
+		return () => document.removeEventListener('pointerdown', close, true);
+	});
+
+	function request(event: RibbonHomeRequestEvent): void {
+		const id = event.detail.id;
+		const wasShapes = openMenu === 'shapes';
+		const wasArrange = openMenu === 'arrange';
+		const wasFill = fillOpen;
+		const wasOutline = outlineOpen;
+		closeAll();
+		switch (id) {
+			case 'home.drawing.shapes':
+				anchor = strip?.anchor(id);
+				openMenu = wasShapes ? null : 'shapes';
+				break;
+			case 'home.drawing.arrange':
+				anchor = strip?.anchor(id);
+				openMenu = wasArrange ? null : 'arrange';
+				break;
+			case 'home.drawing.shapeFill':
+				fillAnchor = strip?.anchor(id);
+				fillOpen = !wasFill;
+				break;
+			case 'home.drawing.shapeOutline':
+				outlineAnchor = strip?.anchor(id);
+				outlineOpen = !wasOutline;
 		}
 	}
 </script>
 
-<div class="pptx-svelte-drawgrp" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.drawing.shapes')}>
-	<div class="pptx-svelte-drawgrp-menu" data-ribbon-control="home.drawing.shapes" bind:this={shapesAnchor} onfocusout={onFocusOut}>
-		<button
-			type="button"
-			disabled={!editor.editable}
-			aria-haspopup="menu"
-			aria-expanded={openMenu === 'shapes'}
-			title={t('pptx.drawing.shapes')}
-			onclick={() => (openMenu = openMenu === 'shapes' ? null : 'shapes')}
-		>
-			<RibbonIcon name="home.drawing.shapes" />
-			<span>{t('pptx.drawing.shapes')}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
-		</button>
-		{#if openMenu === 'shapes'}
-			<div class="pptx-svelte-drawgrp-grid" role="menu" use:anchoredPopup={{ anchor: shapesAnchor }}>
-				{#each TOP_SHAPES as preset (preset.type)}
-					<button
-						type="button"
-						role="menuitem"
-						aria-label={t(preset.i18nKey)}
-						title={t(preset.i18nKey)}
-						onclick={() => {
-							openMenu = null;
-							editor.insertElement(newPresetShapeElement(preset.type));
-						}}
-					>
-						<svg viewBox="0 0 16 16" aria-hidden="true" style={`transform:${glyphClassToTransform(preset.glyphClass)}`}>
-							{#if isStrokeGlyph(preset.glyph)}
-								<path d={shapeGlyphPath(preset.glyph)} fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
-							{:else}
-								<path d={shapeGlyphPath(preset.glyph)} fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
-							{/if}
-						</svg>
-					</button>
-				{/each}
-			</div>
-		{/if}
-	</div>
-
-	<div class="pptx-svelte-drawgrp-menu" data-ribbon-control="home.drawing.arrange" bind:this={arrangeAnchor} onfocusout={onFocusOut}>
-		<button
-			type="button"
-			disabled={!editor.editable || !hasSelection}
-			aria-haspopup="menu"
-			aria-expanded={openMenu === 'arrange'}
-			title={t('pptx.ribbon.arrange')}
-			onclick={() => (openMenu = openMenu === 'arrange' ? null : 'arrange')}
-		>
-			<RibbonIcon name="home.drawing.arrange" />
-			<span>{t('pptx.ribbon.arrange')}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
-		</button>
-		{#if openMenu === 'arrange'}
-			<div class="pptx-svelte-drawgrp-pop" role="menu" use:anchoredPopup={{ anchor: arrangeAnchor }}>
-				{#each ARRANGE_ACTIONS as action (action.key)}
-					<button
-						type="button"
-						role="menuitem"
-						onclick={() => {
-							openMenu = null;
-							editor.reorderSelected(action.direction);
-						}}
-					>{t(action.key)}</button>
-				{/each}
-			</div>
-		{/if}
-	</div>
+<div class="pptx-svelte-drawgrp" bind:this={root} onfocusout={onFocusOut}>
+	<pptx-ui-ribbon-home-drawing bind:this={strip} state={view} onhome-request={request}></pptx-ui-ribbon-home-drawing>
+	<ShapeFormatGroup
+		{editor}
+		section="popovers"
+		{fillAnchor}
+		{outlineAnchor}
+		bind:fillOpen
+		bind:outlineOpen
+	/>
+	{#if openMenu === 'shapes'}
+		<div class="pptx-svelte-drawgrp-grid" role="menu" use:anchoredPopup={{ anchor }}>
+			{#each TOP_SHAPES as preset (preset.type)}
+				<button
+					type="button"
+					role="menuitem"
+					aria-label={t(preset.i18nKey)}
+					title={t(preset.i18nKey)}
+					onclick={() => {
+						openMenu = null;
+						editor.insertElement(newPresetShapeElement(preset.type));
+					}}
+				>
+					<svg viewBox="0 0 16 16" aria-hidden="true" style={`transform:${glyphClassToTransform(preset.glyphClass)}`}>
+						{#if isStrokeGlyph(preset.glyph)}
+							<path d={shapeGlyphPath(preset.glyph)} fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+						{:else}
+							<path d={shapeGlyphPath(preset.glyph)} fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
+						{/if}
+					</svg>
+				</button>
+			{/each}
+		</div>
+	{/if}
+	{#if openMenu === 'arrange'}
+		<div class="pptx-svelte-drawgrp-pop" role="menu" use:anchoredPopup={{ anchor }}>
+			{#each ARRANGE_ACTIONS as action (action.key)}
+				<button
+					type="button"
+					role="menuitem"
+					onclick={() => {
+						openMenu = null;
+						editor.reorderSelected(action.direction);
+					}}
+				>{t(action.key)}</button>
+			{/each}
+		</div>
+	{/if}
 
 	<RibbonGallery placement={QUICK_STYLES} />
 	<RibbonGallery placement={SHAPE_EFFECTS} />
@@ -130,11 +187,6 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
-	}
-
-	.pptx-svelte-drawgrp-menu {
-		position: relative;
-		display: inline-flex;
 	}
 
 	.pptx-svelte-drawgrp button {

@@ -52,6 +52,10 @@ export interface EditorHistoryResult {
 	canUndo: ComputedRef<boolean>;
 	/** True when there is at least one snapshot to redo to. */
 	canRedo: ComputedRef<boolean>;
+	/** Description of the action Undo would revert, when one was recorded. */
+	undoLabel: ComputedRef<string | undefined>;
+	/** Description of the action Redo would re-apply, when one was recorded. */
+	redoLabel: ComputedRef<string | undefined>;
 	/**
 	 * Snapshot the current `slides.value` onto the undo stack and clear the redo
 	 * stack. Call this immediately **before** committing a mutating change.
@@ -149,6 +153,15 @@ export function useEditorHistory(
 		return stack.canRedo;
 	});
 
+	const undoLabel = computed(() => {
+		void tick.value;
+		return stack.undoLabel || undefined;
+	});
+	const redoLabel = computed(() => {
+		void tick.value;
+		return stack.redoLabel || undefined;
+	});
+
 	const pushHistory = (label = ''): void => {
 		stack.record(snapshot(), label);
 		bump();
@@ -185,6 +198,8 @@ export function useEditorHistory(
 	return {
 		canUndo,
 		canRedo,
+		undoLabel,
+		redoLabel,
 		pushHistory,
 		undo,
 		redo,

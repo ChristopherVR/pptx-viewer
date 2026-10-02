@@ -1,8 +1,13 @@
 <script lang="ts">
-	/** Home slide controls; operations preserve history and active-slide navigation. */
-	import { ChevronDown, FolderPlus, LayoutGrid, Plus, RotateCcw } from '@lucide/svelte';
+	/**
+	 * Home slide controls. The buttons, caption and gating come from the shared
+	 * `pptx-ui-ribbon-home-slides` element; this adapter keeps the native layout
+	 * popovers (anchored to the shared triggers), the template gallery dialog and
+	 * every edit, so operations keep history and active-slide navigation.
+	 */
 	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-	import { scopeLayoutOptionsToSlide } from 'pptx-viewer-shared';
+	import { scopeLayoutOptionsToSlide, slidesHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
+	import type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -15,6 +20,7 @@
 	const t = useTranslator();
 
 	let openMenu = $state<'new' | 'layout' | null>(null);
+	let templatesOpen = $state(false);
 	let layouts = $state<PptxLayoutOption[]>([]);
 	/**
 	 * Layout artwork for the thumbnails, fetched alongside the layout list.
@@ -24,14 +30,34 @@
 	 */
 	let previews = $state<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
 	// eslint-disable-next-line prefer-const
-	let newSplitEl: HTMLElement | undefined = $state();
+	let root: HTMLElement | undefined = $state();
 	// eslint-disable-next-line prefer-const
-	let layoutSplitEl: HTMLElement | undefined = $state();
+	let strip: PptxUiRibbonHomeElement | undefined = $state();
+	let anchor: HTMLElement | undefined = $state();
 
 	/** Layout gallery scoped to the active slide's own master (shared `scopeLayoutOptionsToSlide`); dedupes same-named layouts across a multi-master deck. */
 	const scopedLayouts = $derived(
 		scopeLayoutOptionsToSlide(layouts, editor.slides[editor.currentSlideIndex]?.layoutPath),
 	);
+
+	// The layout list loads lazily on opening, so the caret and Layout stay
+	// available; Reset has no slide requirement but Section needs a slide.
+	const view = $derived({
+		controls: {
+			...slidesHomeControls({
+				editable: editor.editable,
+				hasLayouts: true,
+				hasSlides: editor.slides.length > 0,
+				showTemplates: true,
+				newSlideNeedsLayout: false,
+				resetNeedsSlide: false,
+				layoutOpen: openMenu === 'layout',
+				newSlideOpen: openMenu === 'new',
+			}),
+			'home.slides.section': { disabled: !editor.editable || editor.slides.length === 0 },
+		},
+		translate: homeSnapshotTranslator(['slides'], t),
+	});
 
 	function run(action: () => number | null): void {
 		const index = action();
@@ -50,11 +76,24 @@
 	}
 
 	function onFocusOut(event: FocusEvent): void {
-		const root = event.currentTarget as HTMLElement;
-		if (!(event.relatedTarget instanceof Node) || !root.contains(event.relatedTarget)) {
+		if (!(event.relatedTarget instanceof Node) || !root?.contains(event.relatedTarget)) {
 			openMenu = null;
 		}
 	}
+
+	// The shared triggers keep focus in the slide, so close on an outside press too.
+	$effect(() => {
+		if (openMenu === null) {
+			return;
+		}
+		const close = (event: PointerEvent): void => {
+			if (!(event.target instanceof Node) || !root?.contains(event.target)) {
+				openMenu = null;
+			}
+		};
+		document.addEventListener('pointerdown', close, true);
+		return () => document.removeEventListener('pointerdown', close, true);
+	});
 
 	async function toggleLayoutMenu(): Promise<void> {
 		if (openMenu === 'layout') {
@@ -63,180 +102,60 @@
 		}
 		layouts = await editor.slidesOps.availableLayouts();
 		previews = await editor.slidesOps.layoutPreviews();
+		anchor = strip?.anchor('home.slides.layout');
 		openMenu = 'layout';
+	}
+
+	function request(event: RibbonHomeRequestEvent): void {
+		const { id, part } = event.detail;
+		switch (id) {
+			case 'home.slides.newSlide':
+				if (part === 'caret') {
+					anchor = strip?.anchor('home.slides.newSlide');
+					openMenu = openMenu === 'new' ? null : 'new';
+				} else {
+					run(() => editor.slidesOps.insertSlideAfterCurrent());
+				}
+				break;
+			case 'home.slides.slideTemplates':
+				templatesOpen = true;
+				break;
+			case 'home.slides.layout':
+				void toggleLayoutMenu();
+				break;
+			case 'home.slides.reset':
+				void runAsync(() => editor.slidesOps.resetSlide());
+				break;
+			case 'home.slides.section':
+				editor.sectionOps.add(t('pptx.sections.defaultName'));
+		}
 	}
 </script>
 
-<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.slides')} data-ribbon-group="home.slides">
-	<div class="pptx-svelte-rgroup-row" data-pptx-chrome="slides-controls">
-		<!-- New Slide split button: primary inserts a blank slide; the chevron
-		     dropdown re-houses Duplicate / Delete (no thumbnail context menu). -->
-		<div class="pptx-svelte-rgroup-split" data-ribbon-control="home.slides.newSlide" data-pptx-chrome="split-button" bind:this={newSplitEl} onfocusout={onFocusOut}>
-			<button
-				data-pptx-chrome="split-main"
-				type="button"
-				class="pptx-svelte-rgroup-main"
-				disabled={!editor.editable}
-				aria-label={t('pptx.home.newSlide')}
-				title={t('pptx.home.newSlide')}
-				onclick={() => run(() => editor.slidesOps.insertSlideAfterCurrent())}
-			>
-				<Plus size={16} />
-				<span>{t('pptx.home.newSlide')}</span>
-			</button>
-			<button
-				data-pptx-chrome="split-caret"
-				type="button"
-				class="pptx-svelte-rgroup-caret"
-				disabled={!editor.editable}
-				aria-haspopup="menu"
-				aria-expanded={openMenu === 'new'}
-				aria-label={t('pptx.home.chooseLayout')}
-				title={t('pptx.home.chooseLayout')}
-				onclick={() => (openMenu = openMenu === 'new' ? null : 'new')}
-			>
-				<ChevronDown size={16} />
-			</button>
-			{#if openMenu === 'new'}
-				<div class="pptx-svelte-rgroup-pop" role="menu" use:anchoredPopup={{ anchor: newSplitEl }}>
-					<button type="button" role="menuitem" onclick={() => run(() => editor.slidesOps.duplicateCurrentSlide())}>{t('pptx.ribbon.duplicateSlide')}</button>
-					<button type="button" role="menuitem" class="pptx-svelte-rgroup-pop-danger" onclick={() => run(() => editor.slidesOps.deleteCurrentSlide())}>{t('pptx.arrange.delete')}</button>
-				</div>
-			{/if}
+<div class="pptx-svelte-rgroup" bind:this={root} onfocusout={onFocusOut}>
+	<pptx-ui-ribbon-home-slides bind:this={strip} state={view} onhome-request={request}></pptx-ui-ribbon-home-slides>
+	{#if openMenu === 'new'}
+		<div class="pptx-svelte-rgroup-pop" role="menu" use:anchoredPopup={{ anchor }}>
+			<button type="button" role="menuitem" onclick={() => run(() => editor.slidesOps.duplicateCurrentSlide())}>{t('pptx.ribbon.duplicateSlide')}</button>
+			<button type="button" role="menuitem" class="pptx-svelte-rgroup-pop-danger" onclick={() => run(() => editor.slidesOps.deleteCurrentSlide())}>{t('pptx.arrange.delete')}</button>
 		</div>
-
-		<!-- Slide Templates gallery: pre-designed starter slides (React parity). -->
-		<SlideTemplatesLauncher {editor} {onnavigate} />
-
-		<!-- Layout dropdown: re-map the current slide onto another layout. -->
-		<div class="pptx-svelte-rgroup-split" data-ribbon-control="home.slides.layout" bind:this={layoutSplitEl} onfocusout={onFocusOut}>
-			<button
-				type="button"
-				class="pptx-svelte-rgroup-main"
-				disabled={!editor.editable}
-				aria-haspopup="menu"
-				aria-expanded={openMenu === 'layout'}
-				aria-label={t('pptx.master.layout')}
-				title={t('pptx.master.layout')}
-				onclick={() => void toggleLayoutMenu()}
-			>
-				<LayoutGrid size={16} />
-				<span>{t('pptx.master.layout')}</span>
-			</button>
-			{#if openMenu === 'layout'}
-				<div class="pptx-svelte-rgroup-pop pptx-svelte-rgroup-pop-wide" role="menu" use:anchoredPopup={{ anchor: layoutSplitEl }}>
-					<LayoutGalleryMenu
-						layouts={scopedLayouts}
-						{previews}
-						currentLayoutPath={editor.slides[editor.currentSlideIndex]?.layoutPath}
-						onselect={(layout) => void runAsync(() => editor.slidesOps.applyLayout(layout.path))}
-					/>
-				</div>
-			{/if}
+	{/if}
+	{#if openMenu === 'layout'}
+		<div class="pptx-svelte-rgroup-pop pptx-svelte-rgroup-pop-wide" role="menu" use:anchoredPopup={{ anchor }}>
+			<LayoutGalleryMenu
+				layouts={scopedLayouts}
+				{previews}
+				currentLayoutPath={editor.slides[editor.currentSlideIndex]?.layoutPath}
+				onselect={(layout) => void runAsync(() => editor.slidesOps.applyLayout(layout.path))}
+			/>
 		</div>
-
-		<button
-			type="button"
-			class="pptx-svelte-rgroup-main"
-			disabled={!editor.editable}
-			title={t('pptx.sections.resetSlideTitle')} data-ribbon-control="home.slides.reset"
-			onclick={() => void runAsync(() => editor.slidesOps.resetSlide())}
-		>
-			<RotateCcw size={16} />
-			<span>{t('pptx.animations.reset')}</span>
-		</button>
-
-		<button
-			type="button"
-			class="pptx-svelte-rgroup-main"
-			disabled={!editor.editable || editor.slides.length === 0}
-			title={t('pptx.sections.addSection')} data-ribbon-control="home.slides.section"
-			onclick={() => editor.sectionOps.add(t('pptx.sections.defaultName'))}
-		>
-			<FolderPlus size={16} />
-			<span>{t('pptx.sections.sectionButtonLabel')}</span>
-		</button>
-	</div>
-	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.slides')}</span>
+	{/if}
+	<SlideTemplatesLauncher {editor} {onnavigate} bind:open={templatesOpen} />
 </div>
 
 <style>
 	.pptx-svelte-rgroup {
-		display: flex;
-		flex: none;
-		flex-direction: column;
-		align-items: center;
-		gap: 3px;
-	}
-
-	.pptx-svelte-rgroup-label {
-		font-size: 9px;
-		color: var(--pptx-muted-foreground, #94a3b8);
-		line-height: 1;
-	}
-
-	.pptx-svelte-rgroup-row {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
-	}
-
-	.pptx-svelte-rgroup-split {
-		position: relative;
-		display: inline-flex;
-		align-items: stretch;
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		overflow: visible;
-	}
-
-	.pptx-svelte-rgroup-main,
-	.pptx-svelte-rgroup-caret {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		justify-content: center;
-		min-width: 26px;
-		height: 26px;
-		padding: 0 8px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-		font: inherit;
-		font-size: 11.5px;
-	}
-
-	.pptx-svelte-rgroup-caret {
-		min-width: 18px;
-		padding: 0 4px;
-		border-left: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 50%, transparent);
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
-	}
-
-	.pptx-svelte-rgroup-main {
-		border-top-right-radius: 0;
-		border-bottom-right-radius: 0;
-	}
-
-	.pptx-svelte-rgroup-main:hover:not(:disabled),
-	.pptx-svelte-rgroup-caret:hover:not(:disabled) {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-rgroup-main:disabled,
-	.pptx-svelte-rgroup-caret:disabled {
-		opacity: 0.35;
-		cursor: default;
-	}
-
-	.pptx-svelte-rgroup-main :global(svg),
-	.pptx-svelte-rgroup-caret :global(svg) {
-		width: 14px;
-		height: 14px;
+		display: contents;
 	}
 
 	.pptx-svelte-rgroup-pop {

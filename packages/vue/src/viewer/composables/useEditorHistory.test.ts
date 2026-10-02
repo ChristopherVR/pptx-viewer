@@ -25,6 +25,19 @@ function slide(id: string, elements: PptxElement[] = []): PptxSlide {
 }
 
 describe('useEditorHistory', () => {
+	it('exposes the recorded label for undo and redo, empty as undefined', () => {
+		const slides = shallowRef<PptxSlide[]>([slide('s1', [el('a')])]);
+		const { undoLabel, redoLabel, pushHistory, undo } = useEditorHistory(slides);
+		expect(undoLabel.value).toBeUndefined();
+		pushHistory('Delete shape');
+		expect(undoLabel.value).toBe('Delete shape');
+		undo();
+		expect(undoLabel.value).toBeUndefined();
+		expect(redoLabel.value).toBe('Delete shape');
+		pushHistory();
+		expect(undoLabel.value).toBeUndefined();
+	});
+
 	it('starts with no undo/redo available', () => {
 		const slides = shallowRef<PptxSlide[]>([slide('s1')]);
 		const { canUndo, canRedo } = useEditorHistory(slides);

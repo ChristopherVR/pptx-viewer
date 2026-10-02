@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { fontHomeControls } from 'pptx-viewer-shared';
+	import { fontHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -35,7 +35,7 @@
 			strikethrough: Boolean(style?.strikethrough),
 			shadow: hasTextShadow(element),
 		}),
-		translate: t,
+		translate: homeSnapshotTranslator(['font'], t),
 	});
 
 	function request(event: RibbonHomeRequestEvent): void {

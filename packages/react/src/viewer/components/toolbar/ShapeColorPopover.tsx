@@ -1,14 +1,11 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
-import type { RibbonControlId } from 'pptx-viewer-shared';
 import { RIBBON_SHAPE_SWATCHES } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { RecentColorsRow } from '../inspector/RecentColorsRow';
 import { ThemeColorSwatchGrid } from '../inspector/ThemeColorSwatchGrid';
-import { controlAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
-import { pill } from './toolbar-constants';
 
 // ---------------------------------------------------------------------------
 // ShapeColorPopover
@@ -28,27 +25,18 @@ import { pill } from './toolbar-constants';
  * hex has no theme identity for PowerPoint to reapply.
  */
 export function ShapeColorPopover({
-	icon,
-	title,
 	prefix,
 	anchorRef,
-	open,
-	onToggle,
 	disabled,
 	swatchAriaLabel,
 	selectedRef,
 	selectedHex,
 	onApply,
 	onClose,
-	controlId,
 }: {
-	icon: React.ReactNode;
-	title: string;
 	/** Prefix for swatch/row React keys and testids, unique per popover instance. */
 	prefix: string;
-	anchorRef: React.RefObject<HTMLDivElement | null>;
-	open: boolean;
-	onToggle: () => void;
+	anchorRef: React.RefObject<HTMLElement | null>;
 	disabled: boolean;
 	/** e.g. "Fill colour" / "Outline colour", prefixed to each swatch's aria-label. */
 	swatchAriaLabel: string;
@@ -59,59 +47,50 @@ export function ShapeColorPopover({
 	/** Apply the picked colour (and ref, for a theme-swatch pick) to the selected shape. */
 	onApply: (color: string, ref?: PptxThemeColorRef) => void;
 	onClose: () => void;
-	/** Catalogue id for host customisation (`home.drawing.shapeFill`, ...). */
-	controlId?: RibbonControlId;
 }): React.ReactElement {
 	const { t } = useTranslation();
 	return (
-		<div className='relative' ref={anchorRef} {...controlAttr(controlId)}>
-			<button type='button' disabled={disabled} className={pill} title={title} onClick={onToggle}>
-				{icon}
-			</button>
-			{open && (
-				<RibbonMenu anchorRef={anchorRef} className='pt-1'>
-					<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2'>
-						<ThemeColorSwatchGrid
-							prefix={prefix}
-							disabled={disabled}
-							selectedRef={selectedRef}
-							selectedHex={selectedHex}
-							onPick={(c) => {
-								onApply(c.hex, c.ref);
-								onClose();
-							}}
-						/>
-						<div className='mt-1 text-[10px] text-muted-foreground mb-1'>
-							{t('pptx.colorPicker.standardColors')}
-						</div>
-						<div className='grid grid-cols-6 gap-1'>
-							{RIBBON_SHAPE_SWATCHES.map((c) => (
-								<button
-									key={c}
-									type='button'
-									aria-label={`${swatchAriaLabel} ${c}`}
-									data-pptx-compact
-									className='w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform'
-									style={{ backgroundColor: c }}
-									title={c}
-									onClick={() => {
-										onApply(c);
-										onClose();
-									}}
-								/>
-							))}
-						</div>
-						<RecentColorsRow
-							prefix={prefix}
-							disabled={disabled}
-							onCommit={(c) => {
+		<RibbonMenu anchorRef={anchorRef} className='pt-1'>
+			<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2'>
+				<ThemeColorSwatchGrid
+					prefix={prefix}
+					disabled={disabled}
+					selectedRef={selectedRef}
+					selectedHex={selectedHex}
+					onPick={(c) => {
+						onApply(c.hex, c.ref);
+						onClose();
+					}}
+				/>
+				<div className='mt-1 text-[10px] text-muted-foreground mb-1'>
+					{t('pptx.colorPicker.standardColors')}
+				</div>
+				<div className='grid grid-cols-6 gap-1'>
+					{RIBBON_SHAPE_SWATCHES.map((c) => (
+						<button
+							key={c}
+							type='button'
+							aria-label={`${swatchAriaLabel} ${c}`}
+							data-pptx-compact
+							className='w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform'
+							style={{ backgroundColor: c }}
+							title={c}
+							onClick={() => {
 								onApply(c);
 								onClose();
 							}}
 						/>
-					</div>
-				</RibbonMenu>
-			)}
-		</div>
+					))}
+				</div>
+				<RecentColorsRow
+					prefix={prefix}
+					disabled={disabled}
+					onCommit={(c) => {
+						onApply(c);
+						onClose();
+					}}
+				/>
+			</div>
+		</RibbonMenu>
 	);
 }

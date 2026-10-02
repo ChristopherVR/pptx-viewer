@@ -1,16 +1,16 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { AlignEdge, ToolbarActionId } from 'pptx-viewer-shared';
-import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
+import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
-import type { IconName } from '../../icons';
-import { tagRibbonControl, tagRibbonGroup, wrapRibbonControl } from '../ribbon-tagging';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 import type { ArrangeExtrasHandlers } from './arrange-extras';
 import { createArrangeExtras } from './arrange-extras';
 import type { MergeCropHandlers } from './merge-crop-controls';
 import { createMergeCropControls } from './merge-crop-controls';
+import { createSharedHomeStrip } from './shared-strip';
 
 export interface ArrangeGroupHandlers extends ArrangeExtrasHandlers, MergeCropHandlers {
 	bringForward(): void;
@@ -47,19 +47,6 @@ export interface ArrangeGroup {
 	update(state: ArrangeGroupState): void;
 }
 
-/**
- * Keep the operation's edge separate from the shared label direction:
- * horizontal centering uses `centerH` internally and `center` for its label.
- */
-const ALIGN_BUTTONS: ReadonlyArray<{ edge: AlignEdge; label: string; icon: IconName }> = [
-	{ edge: 'left', label: 'left', icon: 'align-left' },
-	{ edge: 'centerH', label: 'center', icon: 'align-center' },
-	{ edge: 'right', label: 'right', icon: 'align-right' },
-	{ edge: 'top', label: 'top', icon: 'align-top' },
-	{ edge: 'middle', label: 'middle', icon: 'align-middle' },
-	{ edge: 'bottom', label: 'bottom', icon: 'align-bottom' },
-];
-
 /** Multi-selection threshold below which Distribute cannot do anything useful. */
 const MIN_DISTRIBUTE_SELECTION = 3;
 
@@ -90,24 +77,6 @@ export function createArrangeGroup(
 	label.textContent = t('pptx.arrange.groupLabel');
 	el.appendChild(label);
 
-	const alignButtons = ALIGN_BUTTONS.map((def) =>
-		makeButton(doc, {
-			label: t(ALIGNMENT_LABEL_KEYS[def.label]),
-			icon: def.icon,
-			onClick: () => handlers.alignElements(def.edge),
-		}),
-	);
-	const distributeH = makeButton(doc, {
-		label: t('pptx.arrange.distributeHorizontal'),
-		icon: 'distribute-h',
-		onClick: () => handlers.distributeElements('horizontal'),
-	});
-	const distributeV = makeButton(doc, {
-		label: t('pptx.arrange.distributeVertical'),
-		icon: 'distribute-v',
-		onClick: () => handlers.distributeElements('vertical'),
-	});
-
 	const painter = makeButton(doc, {
 		label: t('pptx.arrange.format'),
 		icon: 'paintbrush',
@@ -116,87 +85,50 @@ export function createArrangeGroup(
 	});
 	painter.btn.title = t('pptx.arrange.formatPainter');
 
-	const flipH = makeButton(doc, {
-		label: t('pptx.arrange.flipH'),
-		textLabel: t('pptx.arrange.flipH'),
-		onClick: handlers.flipHorizontal,
-	});
-	const flipV = makeButton(doc, {
-		label: t('pptx.arrange.flipV'),
-		textLabel: t('pptx.arrange.flipV'),
-		onClick: handlers.flipVertical,
-	});
-
-	const backward = makeButton(doc, {
-		label: t('pptx.arrange.sendBackward'),
-		icon: 'send-backward',
-		onClick: handlers.sendBackward,
-	});
-	const forward = makeButton(doc, {
-		label: t('pptx.arrange.bringForward'),
-		icon: 'bring-forward',
-		onClick: handlers.bringForward,
-	});
-	const back = makeButton(doc, {
-		label: t('pptx.arrange.back'),
-		textLabel: t('pptx.arrange.back'),
-		onClick: handlers.sendToBack,
-	});
-	back.btn.title = t('pptx.arrange.sendToBack');
-	const front = makeButton(doc, {
-		label: t('pptx.arrange.front'),
-		textLabel: t('pptx.arrange.front'),
-		onClick: handlers.bringToFront,
-	});
-	front.btn.title = t('pptx.arrange.bringToFront');
-
-	const duplicate = makeButton(doc, {
-		label: t('pptx.arrange.duplicate'),
-		icon: 'duplicate',
-		textLabel: t('pptx.arrange.duplicate'),
-		onClick: handlers.duplicate,
-	});
-	const del = makeButton(doc, {
-		label: t('pptx.arrange.delete'),
-		icon: 'trash',
-		textLabel: t('pptx.arrange.delete'),
-		onClick: handlers.delete,
-	});
+	const strips = {
+		align: createSharedHomeStrip(doc, t, 'arrange-align', ({ part }) => {
+			const action = arrangeAlignAction(part);
+			if (action?.kind === 'align') {
+				handlers.alignElements(action.edge);
+			} else if (action?.kind === 'distribute') {
+				handlers.distributeElements(action.axis);
+			}
+		}),
+		flip: createSharedHomeStrip(doc, t, 'arrange-flip', ({ id }) =>
+			id === 'home.arrange.flipHorizontal' ? handlers.flipHorizontal() : handlers.flipVertical(),
+		),
+		order: createSharedHomeStrip(doc, t, 'arrange-order', ({ id }) =>
+			({
+				'home.arrange.sendBackward': handlers.sendBackward,
+				'home.arrange.bringForward': handlers.bringForward,
+				'home.arrange.sendToBack': handlers.sendToBack,
+				'home.arrange.bringToFront': handlers.bringToFront,
+			})[id as 'home.arrange.sendBackward']?.(),
+		),
+		edit: createSharedHomeStrip(doc, t, 'arrange-edit', ({ id }) =>
+			id === 'home.arrange.duplicate' ? handlers.duplicate() : handlers.delete(),
+		),
+	};
 
 	const extras = createArrangeExtras(doc, t, handlers);
 	const mergeCrop = createMergeCropControls(doc, t, handlers, hiddenActions);
 
 	tagRibbonControl(painter.btn, 'home.clipboard.formatPainter');
-	tagRibbonControl(flipH.btn, 'home.arrange.flipHorizontal');
-	tagRibbonControl(flipV.btn, 'home.arrange.flipVertical');
-	tagRibbonControl(backward.btn, 'home.arrange.sendBackward');
-	tagRibbonControl(forward.btn, 'home.arrange.bringForward');
-	tagRibbonControl(back.btn, 'home.arrange.sendToBack');
-	tagRibbonControl(front.btn, 'home.arrange.bringToFront');
-	tagRibbonControl(duplicate.btn, 'home.arrange.duplicate');
-	tagRibbonControl(del.btn, 'home.arrange.delete');
-	const alignment = wrapRibbonControl(doc, 'home.arrange.align', ...alignButtons.map((b) => b.btn));
-	alignment.dataset.pptxChrome = 'align-controls';
-	const distribution = createEl(doc, 'div');
-	distribution.dataset.pptxChrome = 'distribute-controls';
-	distribution.append(distributeH.btn, distributeV.btn);
-	const flip = createEl(doc, 'div');
-	flip.dataset.pptxChrome = 'flip-controls';
-	flip.append(flipH.btn, flipV.btn);
-	const order = createEl(doc, 'div');
-	order.dataset.pptxChrome = 'order-controls';
-	order.append(backward.btn, forward.btn, back.btn, front.btn);
 	row.append(
-		alignment,
-		distribution,
+		strips.align.el,
 		painter.btn,
-		flip,
+		strips.flip.el,
 		extras.el,
 		mergeCrop.el,
-		order,
-		duplicate.btn,
-		del.btn,
+		strips.order.el,
+		strips.edit.el,
 	);
+	const syncStrips = (controls: ReturnType<typeof arrangeHomeControls>) => {
+		for (const strip of Object.values(strips)) {
+			strip.set(controls);
+		}
+	};
+	syncStrips(arrangeHomeControls({ editable: false, hasSelection: false, canDistribute: false }));
 
 	return {
 		el,
@@ -211,26 +143,17 @@ export function createArrangeGroup(
 			canCrop = false,
 			cropActive = false,
 		}) {
-			const canMut = editable && hasSelection;
-			for (const b of [
-				...alignButtons,
-				flipH,
-				flipV,
-				backward,
-				forward,
-				back,
-				front,
-				duplicate,
-				del,
-			]) {
-				b.setDisabled(!canMut);
-			}
+			syncStrips(
+				arrangeHomeControls({
+					editable,
+					hasSelection,
+					canDistribute: selectedCount >= MIN_DISTRIBUTE_SELECTION,
+				}),
+			);
 			extras.update({ editable, selectedCount, selectionGroupable, selectedElement });
 			mergeCrop.update({ editable, canMergeShapes, canCrop, cropActive });
 			painter.setDisabled(!editable || (!hasSelection && !formatPainterActive));
 			painter.btn.dataset.active = String(formatPainterActive);
-			distributeH.setDisabled(!editable || selectedCount < MIN_DISTRIBUTE_SELECTION);
-			distributeV.setDisabled(!editable || selectedCount < MIN_DISTRIBUTE_SELECTION);
 		},
 	};
 }

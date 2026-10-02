@@ -15,15 +15,14 @@
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
-	import ArrangeGroup from '../../ArrangeGroup.svelte';
 	import ShapeFormatGroup from '../../ShapeFormatGroup.svelte';
 	import FontFormattingGroup from './FontFormattingGroup.svelte';
 	import FontSizeSelect from './FontSizeSelect.svelte';
 	import ArrangeExtras from './ArrangeExtras.svelte';
+	import ArrangeHomeStrip from './ArrangeHomeStrip.svelte';
 	import ClipboardGroup from './ClipboardGroup.svelte';
 	import CropControls from './CropControls.svelte';
 	import DrawingGroup from './DrawingGroup.svelte';
-	import DuplicateDeleteControls from './DuplicateDeleteControls.svelte';
 	import EditingGroup from './EditingGroup.svelte';
 	import FontFamilySelect from './FontFamilySelect.svelte';
 	import MergeShapesButton from './MergeShapesButton.svelte';
@@ -71,7 +70,6 @@
 	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.drawing">
 		<div class="pptx-svelte-hometab-row" data-pptx-chrome="drawing-controls">
 			<DrawingGroup {editor} />
-			<ShapeFormatGroup {editor} section="colors" />
 		</div>
 		<span class="pptx-svelte-hometab-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.groupDrawing')}</span>
 	</div>
@@ -82,7 +80,7 @@
 			{#if !isActionHidden('mergeShapes', hiddenActions)}<MergeShapesButton {editor} />{/if}
 			{#if !isActionHidden('crop', hiddenActions)}<CropControls {editor} />{/if}
 			<ShapeFormatGroup {editor} section="width" />
-			<ArrangeGroup {editor} /><DuplicateDeleteControls {editor} />
+			<ArrangeHomeStrip {editor} strip="order" /><ArrangeHomeStrip {editor} strip="edit" />
 		</div>
 		<span class="pptx-svelte-hometab-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.arrange')}</span>
 	</div>

@@ -40,7 +40,13 @@ export interface ViewerEffectsDeps {
 	 * deck is never published into the doc); the per-load session seeding that
 	 * belongs to the new deck (the authored custom show) rides along.
 	 */
-	onContentApplied?(): void;
+	onContentApplied?(options?: { preserveSlides: boolean }): void;
+	/**
+	 * True when the load now committing must not replace the live slides or reset
+	 * the editing session: a collaboration joiner's bootstrap deck landing after
+	 * the room's slides synced in. Evaluated before the commit is applied.
+	 */
+	preservesLiveSession?(): boolean;
 }
 
 /**
@@ -59,7 +65,9 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 		untrack(() => {
 			if (!editable) {
 				if (deps.editor.editable) {
-					if (!deps.controller.retainAcceptedInlineText?.()) deps.commitPendingText?.();
+					if (!deps.controller.retainAcceptedInlineText?.()) {
+						deps.commitPendingText?.();
+					}
 				}
 				deps.controller.closeInline();
 				deps.editor.select(null);
@@ -96,10 +104,14 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 		const count = deps.loader.loadCount;
 		if (count > 0 && count !== announcedLoadCount) {
 			announcedLoadCount = count;
-			deps.viewer.reset(deps.loader.slides.length, deps.getInitialSlide());
+			const preserve = untrack(() => deps.preservesLiveSession?.() ?? false);
+			if (!preserve) {
+				deps.viewer.reset(deps.loader.slides.length, deps.getInitialSlide());
+			}
 			// Seed the editable slide array from the freshly-loaded presentation.
 			untrack(() => {
-				deps.editor.setSlides(
+				const seed = deps.editor[preserve ? 'adoptLoadedParts' : 'setSlides'].bind(deps.editor);
+				seed(
 					deps.loader.slides,
 					deps.loader.slideMasters,
 					deps.loader.notesMaster,
@@ -131,7 +143,7 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 				// Must run before this commit's effects flush: a live collab
 				// session re-adopts the shared doc's slides so the load cannot
 				// clobber (or publish over) already-synced room content.
-				deps.onContentApplied?.();
+				deps.onContentApplied?.({ preserveSlides: preserve });
 			});
 			deps.getOnload()?.({
 				slideCount: deps.loader.slides.length,

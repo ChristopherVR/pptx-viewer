@@ -112,4 +112,48 @@ describe('arrangeSection', () => {
 		const wrapper = mountArrange({ selectedElement: null });
 		expect(wrapper.get('input[aria-label="Stroke width"]').attributes('disabled')).toBeDefined();
 	});
+
+	it('maps each shared strip intent onto the native handler', async () => {
+		const handlers = {
+			onAlignElements: vi.fn(),
+			onDistributeElements: vi.fn(),
+			onFlip: vi.fn(),
+			onMoveLayer: vi.fn(),
+			onMoveLayerToEdge: vi.fn(),
+			onDuplicate: vi.fn(),
+			onDelete: vi.fn(),
+		};
+		const wrapper = mountArrange({ selectedCount: 3, canDistribute: true, ...handlers });
+		const press = (id: string) =>
+			wrapper.get<HTMLButtonElement>(`[data-ribbon-control="${id}"]`).trigger('click');
+		await press('home.arrange.flipVertical');
+		await press('home.arrange.sendBackward');
+		await press('home.arrange.bringToFront');
+		await press('home.arrange.duplicate');
+		await press('home.arrange.delete');
+		await wrapper.get('[data-part="centerH"]').trigger('click');
+		await wrapper.get('[data-part="distribute-vertical"]').trigger('click');
+		expect(handlers.onFlip).toHaveBeenCalledWith('vertical');
+		expect(handlers.onMoveLayer).toHaveBeenCalledWith('backward');
+		expect(handlers.onMoveLayerToEdge).toHaveBeenCalledWith('front');
+		expect(handlers.onDuplicate).toHaveBeenCalledOnce();
+		expect(handlers.onDelete).toHaveBeenCalledOnce();
+		expect(handlers.onAlignElements).toHaveBeenCalledWith('center');
+		expect(handlers.onDistributeElements).toHaveBeenCalledWith('vertical');
+	});
+
+	it('gates the strips on edit rights, a selection and canDistribute', async () => {
+		const onDelete = vi.fn();
+		const empty = mountArrange({ selectedElement: null, onDelete });
+		const del = empty.get<HTMLButtonElement>('[data-ribbon-control="home.arrange.delete"]');
+		expect(del.element.disabled).toBeTruthy();
+		await del.trigger('click');
+		expect(onDelete).not.toHaveBeenCalled();
+		const group = mountArrange();
+		const part = (w: typeof group, name: string) =>
+			w.get<HTMLButtonElement>(`[data-part="${name}"]`).element;
+		expect(part(group, 'distribute-horizontal').disabled).toBeTruthy();
+		expect(part(group, 'left').disabled).toBeFalsy();
+		expect(part(mountArrange({ canEdit: false }), 'left').disabled).toBeTruthy();
+	});
 });

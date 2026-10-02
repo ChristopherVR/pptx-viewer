@@ -16,7 +16,7 @@
 	import ThemeColorSwatchGrid from '../inspector/ThemeColorSwatchGrid.svelte';
 	import { anchoredPopup } from './anchored-popup';
 
-	const {
+	let {
 		value,
 		onselect,
 		disabled = false,
@@ -29,6 +29,8 @@
 		currentRef,
 		onselectTheme,
 		control,
+		anchor,
+		open = $bindable(false),
 	}: {
 		value: string;
 		onselect: (hex: string) => void;
@@ -58,6 +60,13 @@
 		onselectTheme?: (commit: ThemeColorPickerCommit) => void;
 		/** Catalogue id (`data-ribbon-control`) the host can hide this picker by. */
 		control?: RibbonControlId;
+		/**
+		 * Popover-only mode: the trigger is an external control (the shared Home
+		 * Drawing strip) this popover hangs from; no trigger is rendered and the
+		 * host drives `open`.
+		 */
+		anchor?: HTMLElement;
+		open?: boolean;
 	} = $props();
 
 	const t = useTranslator();
@@ -76,7 +85,6 @@
 	] as const;
 
 	const palette = $derived(swatches ?? DEFAULT_SWATCHES);
-	let open = $state(false);
 	// eslint-disable-next-line prefer-const
 	let triggerEl: HTMLElement | undefined = $state();
 
@@ -93,8 +101,13 @@
 	}
 </script>
 
-<div class="pptx-svelte-swatch" data-ribbon-control={control} onfocusout={onFocusOut}>
-	<button
+<div
+	class="pptx-svelte-swatch"
+	class:pptx-svelte-swatch-external={anchor !== undefined}
+	data-ribbon-control={anchor ? undefined : control}
+	onfocusout={anchor ? undefined : onFocusOut}
+>
+	{#if !anchor}<button
 		bind:this={triggerEl}
 		type="button"
 		class="pptx-svelte-swatch-trigger"
@@ -107,9 +120,9 @@
 	>
 		{#if control}<RibbonIcon name={control} />{:else}<span class="pptx-svelte-swatch-glyph">{glyph}</span>{/if}
 		<span class="pptx-svelte-swatch-swab" data-pptx-chrome="color-swatch" style={`background-color:${value}`}></span>
-	</button>
+	</button>{/if}
 	{#if open}
-		<div class="pptx-svelte-swatch-menu" role="menu" use:anchoredPopup={{ anchor: triggerEl }}>
+		<div class="pptx-svelte-swatch-menu" role="menu" use:anchoredPopup={{ anchor: anchor ?? triggerEl }}>
 			{#if themeColorMap && onselectTheme}
 				<ThemeColorSwatchGrid
 					{themeColorMap}
@@ -152,6 +165,10 @@
 	.pptx-svelte-swatch {
 		position: relative;
 		display: inline-flex;
+	}
+
+	.pptx-svelte-swatch-external {
+		display: contents;
 	}
 
 	.pptx-svelte-swatch-trigger {

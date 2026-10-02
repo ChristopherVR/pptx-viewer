@@ -8,10 +8,16 @@ import { definePptxRibbonDraw } from './ribbon-draw';
 import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
 import {
+	definePptxRibbonHomeArrangeAlign,
+	definePptxRibbonHomeArrangeEdit,
+	definePptxRibbonHomeArrangeFlip,
+	definePptxRibbonHomeArrangeOrder,
 	definePptxRibbonHomeClipboard,
+	definePptxRibbonHomeDrawing,
 	definePptxRibbonHomeEditing,
 	definePptxRibbonHomeFont,
 	definePptxRibbonHomeParagraph,
+	definePptxRibbonHomeSlides,
 } from './ribbon-home';
 import { definePptxRibbonInsert } from './ribbon-insert';
 import { definePptxRibbonSection } from './ribbon-section';
@@ -24,6 +30,7 @@ import { definePptxSlideShowOptions } from './slide-show-options';
 import { definePptxStatusBar } from './status-bar';
 import { definePptxSubtitleSettings } from './subtitle-settings';
 import { definePptxThemeEditor } from './theme-editor';
+import { definePptxTitleBar } from './title-bar';
 
 export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-editor';
 
@@ -51,6 +58,7 @@ export type {
 
 export type { PptxUiStatusBarElement, StatusBarRequestEvent } from './status-bar';
 export type { NotesToolbarRequestEvent, PptxUiNotesToolbarElement } from './notes-toolbar';
+export type { PptxUiTitleBarElement, TitleBarCommandSearchEvent, TitleBarEvent } from './title-bar';
 export type { PptxUiSelectElement } from './select-value';
 export type {
 	PptxUiSlideShowOptionsElement,
@@ -70,6 +78,12 @@ const controls = [
 	['pptx-ui-ribbon-home-font', definePptxRibbonHomeFont],
 	['pptx-ui-ribbon-home-paragraph', definePptxRibbonHomeParagraph],
 	['pptx-ui-ribbon-home-editing', definePptxRibbonHomeEditing],
+	['pptx-ui-ribbon-home-slides', definePptxRibbonHomeSlides],
+	['pptx-ui-ribbon-home-drawing', definePptxRibbonHomeDrawing],
+	['pptx-ui-ribbon-home-arrange-align', definePptxRibbonHomeArrangeAlign],
+	['pptx-ui-ribbon-home-arrange-flip', definePptxRibbonHomeArrangeFlip],
+	['pptx-ui-ribbon-home-arrange-order', definePptxRibbonHomeArrangeOrder],
+	['pptx-ui-ribbon-home-arrange-edit', definePptxRibbonHomeArrangeEdit],
 	['pptx-ui-ribbon-view', definePptxRibbonView],
 	['pptx-ui-ribbon-transitions', definePptxRibbonTransitions],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
@@ -80,6 +94,7 @@ const controls = [
 	['pptx-ui-notes-toolbar', definePptxNotesToolbar],
 	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
 	['pptx-ui-theme-editor', definePptxThemeEditor],
+	['pptx-ui-title-bar', definePptxTitleBar],
 ] as const;
 
 /** Idempotent browser-only registration. Safe to call from every viewer binding. */

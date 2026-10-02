@@ -14,6 +14,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { componentSource } from './component-source.test-support';
 import type { EditorStateService } from './editor-state.service';
 import { performResetSlide } from './ribbon-home-section.component';
 
@@ -56,5 +57,22 @@ describe('performResetSlide', () => {
 		performResetSlide(editor, 1);
 
 		expect(applyLayout).toHaveBeenCalledWith(1, 'ppt/slideLayouts/slideLayout2.xml');
+	});
+});
+
+describe('shared Slides group wiring', () => {
+	const source = componentSource(import.meta.dirname, 'ribbon-home-section.component.ts');
+
+	it('renders the group through the shared element and keeps the galleries native', () => {
+		expect(source).toContain('<pptx-ui-ribbon-home-slides');
+		expect(source).toContain('(home-request)="onSlidesRequest($event)"');
+		expect(source).toContain('pptxAnchoredPopup]="anchorOf(\'home.slides.layout\')"');
+		expect(source).toContain('pptxAnchoredPopup]="anchorOf(\'home.slides.newSlide\')"');
+		expect(source).not.toContain('data-ribbon-control="home.slides');
+	});
+
+	it('keeps New Slide, Reset and Section available on an empty deck as before', () => {
+		expect(source).toContain('newSlideNeedsLayout: false');
+		expect(source).toContain('resetNeedsSlide: false');
 	});
 });

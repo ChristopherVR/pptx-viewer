@@ -75,6 +75,7 @@ function SlideCardImpl({
 							: 'border-border bg-background/50 hover:border-border',
 				slide.hidden && 'opacity-40',
 			)}
+			data-pptx-chrome='sorter-tile'
 			data-pptx-slide-hidden={cue.marker}
 			aria-describedby={cue.labelId}
 			onClick={(e) => onSlideClick(e, index)}

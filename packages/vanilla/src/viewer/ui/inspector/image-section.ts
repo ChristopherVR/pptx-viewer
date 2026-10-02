@@ -34,6 +34,10 @@ export function createImageSection(
 	reset.textContent = t('pptx.image.resetImage');
 	reset.addEventListener('click', handlers.resetImage);
 	el.append(replace, reset);
+	const resetCrop = doc.createElement('button');
+	resetCrop.type = 'button';
+	resetCrop.textContent = t('pptx.image.resetCrop');
+	resetCrop.addEventListener('click', handlers.resetCrop);
 
 	const pct = (value: number): string => `${Math.round(value)}%`;
 
@@ -167,6 +171,7 @@ export function createImageSection(
 	const cropTop = cropField(t('pptx.image.cropTop'), 'top');
 	const cropRight = cropField(t('pptx.image.cropRight'), 'right');
 	const cropBottom = cropField(t('pptx.image.cropBottom'), 'bottom');
+	el.appendChild(resetCrop);
 
 	// Alt text (React's `ElementTransformControls`, Vue's `ImagePanel`,
 	// Angular's `image-properties-panel`): the accessibility description screen
@@ -220,7 +225,8 @@ export function createImageSection(
 			color1.disabled = !state.isImage;
 			color2.disabled = !state.isImage;
 			replace.disabled = !state.isImage;
-			reset.disabled = !state.isImage;
+			reset.disabled = !state.isImage || !state.imageResettable;
+			resetCrop.disabled = !state.isImage || !state.croppable;
 			wash.disabled = !state.isImage;
 			washColor.disabled = !state.isImage;
 			washOpacity.setDisabled(!state.isImage);

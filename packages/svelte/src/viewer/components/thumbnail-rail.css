@@ -105,28 +105,15 @@
 .pptx-svelte-section-caret.is-collapsed {
 	transform: rotate(-90deg);
 }
-.pptx-svelte-section-actions {
-	display: flex;
-}
-.pptx-svelte-section-actions button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 20px;
-	height: 20px;
-	padding: 0;
-	border: 0;
+.pptx-svelte-section-rename {
+	min-width: 0;
+	flex: 1;
+	padding: 0 4px;
+	border: 1px solid var(--pptx-primary, #3b82f6);
 	border-radius: 3px;
-	background: transparent;
-	color: inherit;
-	cursor: pointer;
-}
-.pptx-svelte-section-actions button:hover:not(:disabled) {
-	background: var(--pptx-accent, #33334d);
-	color: var(--pptx-accent-foreground, #f8fafc);
-}
-.pptx-svelte-section-actions button:disabled {
-	opacity: 0.3;
+	background: var(--pptx-card, #1e1e2e);
+	color: var(--pptx-card-foreground, #e2e8f0);
+	font: inherit;
 }
 .pptx-svelte-section-slides {
 	display: flex;

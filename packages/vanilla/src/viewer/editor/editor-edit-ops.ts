@@ -2,11 +2,14 @@
    (many independent short-lived `const`s per action); merging them isn't a
    style choice here. */
 import type { PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
-import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
+import { isImageLikeElement, MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
 import {
 	appendElementOnSlide,
+	canInteractWithElement,
 	createGuide,
+	cropResetPatch,
 	DEFAULT_INSERT_CHART_KIND,
+	imageResetPatch,
 	isElementIdInteractive,
 	shapeFillChange,
 	shapeOutlineChange,
@@ -143,6 +146,7 @@ export interface EditActions
 	toggleSpellCheck(): void;
 	replaceSelectedImage(): Promise<void>;
 	resetSelectedImage(): void;
+	resetSelectedCrop(): void;
 }
 
 export interface EditActionsDeps {
@@ -381,16 +385,10 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 			);
 		},
 		resetSelectedImage: () =>
+			applyToSelected((el) => (isImageLikeElement(el) ? imageResetPatch() : {})),
+		resetSelectedCrop: () =>
 			applyToSelected((el) =>
-				el.type === 'image'
-					? {
-							imageEffects: undefined,
-							cropLeft: undefined,
-							cropTop: undefined,
-							cropRight: undefined,
-							cropBottom: undefined,
-						}
-					: {},
+				isImageLikeElement(el) && canInteractWithElement(el, 'crop') ? cropResetPatch() : {},
 			),
 	};
 }

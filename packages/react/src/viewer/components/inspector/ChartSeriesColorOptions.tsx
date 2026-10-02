@@ -1,5 +1,5 @@
 import type { PptxChartData } from 'pptx-viewer-core';
-import { isSeriesUsingSecondaryAxis } from 'pptx-viewer-shared';
+import { isSeriesUsingSecondaryAxis, seriesColorClearState } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
@@ -75,11 +75,12 @@ export function ChartSeriesColorOptions({
 							className='h-6 w-8 cursor-pointer rounded border border-border bg-muted p-0'
 							onCommit={(hex) => onSetColor(i, hex)}
 						/>
-						{canEdit && s.color && (
+						{seriesColorClearState(s, canEdit).visible && (
 							<button
 								type='button'
 								className='text-muted-foreground hover:text-red-400 shrink-0'
 								title={t('pptx.chart.clearSeriesColor')}
+								aria-label={t('pptx.chart.clearSeriesColor')}
 								onClick={() => onSetColor(i, null)}
 							>
 								<LuX className='w-3 h-3' />

@@ -14,6 +14,7 @@ import {
 	getNonVisualDescriptionFields,
 	gradientStateOf,
 	hasGradientFill,
+	hasImageOverrides,
 	imageAdjustmentsStateOf,
 	imageCropStateOf,
 	isElementLocked,
@@ -91,6 +92,7 @@ export function buildInspectorState(
 		// G7: a:picLocks/@noCrop. G9: arrowheadsChangeable already existed on
 		// element-locks.ts but nothing consulted it in the vanilla inspector.
 		croppable: canInteractWithElement(el, 'crop'),
+		imageResettable: el !== undefined && isImageLikeElement(el) && hasImageOverrides(el),
 		arrowheadsChangeable: canInteractWithElement(el, 'changeArrowheads'),
 		canShape: canFormatShape(el),
 		canText: canFormatText(el),

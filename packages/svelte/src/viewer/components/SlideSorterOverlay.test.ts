@@ -5,11 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import SlideSorterOverlay from './SlideSorterOverlay.svelte';
 
 /**
- * Right-click context menu (duplicate / hide-show / delete an arbitrary
- * slide), previously missing entirely from Svelte's sorter: delete/duplicate
- * only fired via keyboard and only ever targeted the active slide, and
- * hide/show had no path here at all (React/Vue both have this via a context
- * menu). These cover the mouse path added to close that gap.
+ * Right-click context menu on an arbitrary slide. The command list is the
+ * shared sorter list (Copy, Paste, Duplicate, Hide/Show, Delete); these cover
+ * the mouse path, which targets the right-clicked slide and not the active one.
  */
 
 let cleanup: (() => void) | undefined;
@@ -68,9 +66,9 @@ function rightClick(article: Element): void {
 }
 
 function menuButton(target: HTMLElement, label: string): HTMLButtonElement {
-	const button = [...target.querySelectorAll<HTMLButtonElement>('.context-menu button')].find(
-		(b) => b.textContent?.trim() === label,
-	);
+	const button = [
+		...target.querySelectorAll<HTMLButtonElement>('[data-pptx-sorter-context-menu] button'),
+	].find((b) => b.textContent?.trim() === label);
 	if (!button) {
 		throw new Error(`no context menu button labelled "${label}"`);
 	}
@@ -82,28 +80,28 @@ describe('slideSorterOverlay context menu', () => {
 		const { target } = render({ current: 0 });
 		const articles = target.querySelectorAll('article');
 		rightClick(articles[2]); // slide 'c', not the active slide 'a'
-		expect(target.querySelector('.context-menu')).toBeTruthy();
+		expect(target.querySelector('[data-pptx-sorter-context-menu]')).toBeTruthy();
 	});
 
 	it('does not open when the sorter is not editable', () => {
 		const { target } = render({ canEdit: false });
 		rightClick(target.querySelectorAll('article')[1]);
-		expect(target.querySelector('.context-menu')).toBeNull();
+		expect(target.querySelector('[data-pptx-sorter-context-menu]')).toBeNull();
 	});
 
 	it('duplicate calls onduplicate with the right-clicked index and closes the menu', () => {
 		const { target, onduplicate } = render({ current: 0 });
 		rightClick(target.querySelectorAll('article')[2]);
-		menuButton(target, 'Duplicate slide').click();
+		menuButton(target, 'Duplicate').click();
 		flushSync();
 		expect(onduplicate).toHaveBeenCalledExactlyOnceWith(2);
-		expect(target.querySelector('.context-menu')).toBeNull();
+		expect(target.querySelector('[data-pptx-sorter-context-menu]')).toBeNull();
 	});
 
 	it('delete calls ondelete with the right-clicked index', () => {
 		const { target, ondelete } = render({ current: 0 });
 		rightClick(target.querySelectorAll('article')[1]);
-		menuButton(target, 'Delete slide').click();
+		menuButton(target, 'Delete').click();
 		flushSync();
 		expect(ondelete).toHaveBeenCalledExactlyOnceWith(1);
 	});
@@ -113,8 +111,8 @@ describe('slideSorterOverlay context menu', () => {
 		hiddenSlides[1].hidden = true;
 		const { target, ontogglehidden } = render({ slides: hiddenSlides, current: 0 });
 		rightClick(target.querySelectorAll('article')[1]);
-		expect(menuButton(target, 'Show slide')).toBeTruthy();
-		menuButton(target, 'Show slide').click();
+		expect(menuButton(target, 'Show Slides')).toBeTruthy();
+		menuButton(target, 'Show Slides').click();
 		flushSync();
 		expect(ontogglehidden).toHaveBeenCalledExactlyOnceWith(1);
 	});
@@ -122,15 +120,15 @@ describe('slideSorterOverlay context menu', () => {
 	it('shows Hide slide for a visible slide', () => {
 		const { target } = render({ current: 0 });
 		rightClick(target.querySelectorAll('article')[0]);
-		expect(menuButton(target, 'Hide slide')).toBeTruthy();
+		expect(menuButton(target, 'Hide Slides')).toBeTruthy();
 	});
 
 	it('clicking the backdrop closes the menu without firing any action', () => {
 		const { target, ondelete, onduplicate, ontogglehidden } = render({ current: 0 });
 		rightClick(target.querySelectorAll('article')[1]);
-		target.querySelector<HTMLButtonElement>('.menu-backdrop')?.click();
+		target.querySelector<HTMLElement>('.pptx-svelte-context-backdrop')?.click();
 		flushSync();
-		expect(target.querySelector('.context-menu')).toBeNull();
+		expect(target.querySelector('[data-pptx-sorter-context-menu]')).toBeNull();
 		expect(ondelete).not.toHaveBeenCalled();
 		expect(onduplicate).not.toHaveBeenCalled();
 		expect(ontogglehidden).not.toHaveBeenCalled();
@@ -141,6 +139,6 @@ describe('slideSorterOverlay context menu', () => {
 		rightClick(target.querySelectorAll('article')[1]);
 		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 		flushSync();
-		expect(target.querySelector('.context-menu')).toBeNull();
+		expect(target.querySelector('[data-pptx-sorter-context-menu]')).toBeNull();
 	});
 });

@@ -14,6 +14,7 @@ import { AutosaveRecoveryController } from './autosave-recovery.svelte';
 import { AutosaveController } from './autosave.svelte';
 import type { CreateViewerStateOptions } from './create-viewer-state-types';
 import type { PresentationLoader } from './presentation-loader.svelte';
+import { sourceBlocksEditing } from './stage-loading';
 import type { ViewerState } from './viewer-state.svelte';
 
 export interface CollabClusterDeps {
@@ -133,7 +134,12 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 			authorizedCanEdit: deps.getEditable(),
 			configured: Boolean(options.collaboration || collab.activeCollaboration),
 			readOnly: collab.readOnly,
-			sourcePending: Boolean(options.getSource()) && loader.loading,
+			sourcePending: sourceBlocksEditing(
+				Boolean(options.getSource()),
+				loader.loading,
+				loader.loadOrigin,
+				editor.slides.length > 0,
+			),
 			sourceError: Boolean(options.getSource()) && Boolean(loader.error || loader.isEncrypted),
 			status: collab.status,
 			remoteUsers: collab.remotePresences,

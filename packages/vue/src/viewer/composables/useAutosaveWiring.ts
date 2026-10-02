@@ -69,6 +69,8 @@ export interface UseAutosaveWiringResult {
 	toggleAutosave: () => void;
 	/** Why autosave is inactive, for the title bar's status message. */
 	autosaveDisabledReason: ComputedRef<AutosaveDisabledReason | undefined>;
+	/** False when the host forbade autosave: the title-bar switch renders inert. */
+	autosaveToggleAvailable: ComputedRef<boolean>;
 }
 
 export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosaveWiringResult {
@@ -83,6 +85,7 @@ export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosav
 	);
 	const autosaveActive = computed(() => activation.value.active);
 	const autosaveDisabledReason = computed(() => activation.value.reason);
+	const autosaveToggleAvailable = computed(() => activation.value.toggleAvailable);
 
 	function toggleAutosave(): void {
 		// Inert when the host passed `autosave={false}`: a preference cannot
@@ -128,5 +131,12 @@ export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosav
 		}
 	});
 
-	return { autosave, autosaveEnabled, autosaveActive, toggleAutosave, autosaveDisabledReason };
+	return {
+		autosave,
+		autosaveEnabled,
+		autosaveActive,
+		toggleAutosave,
+		autosaveDisabledReason,
+		autosaveToggleAvailable,
+	};
 }

@@ -69,6 +69,10 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 			onClick: () => void setOpen(!open),
 		});
 		toggle.btn.setAttribute('aria-expanded', 'false');
+		// The shared title bar projects host-owned parts through named slots.
+		if (host.localName === 'pptx-ui-title-bar') {
+			toggle.btn.slot = 'account';
+		}
 		host.appendChild(toggle.btn);
 		toggles.push(toggle);
 	};

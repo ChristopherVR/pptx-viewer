@@ -5,6 +5,7 @@ import {
 	canRequestHome,
 	clipboardHomeControls,
 	editingHomeControls,
+	homeControlKey,
 	homeFamilyControls,
 	paragraphHomeAction,
 	paragraphHomeAlign,
@@ -14,7 +15,9 @@ import {
 describe('home family specs', () => {
 	it('lists every control id once with a label and icon-ready id', () => {
 		const ids = Object.keys(RIBBON_HOME_FAMILIES).flatMap((family) =>
-			homeFamilyControls(family as keyof typeof RIBBON_HOME_FAMILIES).map((spec) => spec.id),
+			homeFamilyControls(family as keyof typeof RIBBON_HOME_FAMILIES).map((spec) =>
+				homeControlKey(spec),
+			),
 		);
 		expect(new Set(ids).size).toBe(ids.length);
 		expect(ids).toContain('home.paragraph.justify');
@@ -94,5 +97,23 @@ describe('editing state', () => {
 	it('reflects an open find panel on Find and Replace', () => {
 		expect(editingHomeControls({ findOpen: true })['home.editing.find']?.pressed).toBeTruthy();
 		expect(editingHomeControls()['home.editing.find']?.pressed).toBeUndefined();
+	});
+});
+
+describe('homeSnapshotTranslator', () => {
+	it('resolves every key of the families up front and falls back to the translator', async () => {
+		const { homeFamilyKeys, homeSnapshotTranslator } = await import('./ribbon-home-state');
+		const calls: string[] = [];
+		const t = (key: string) => {
+			calls.push(key);
+			return `de:${key}`;
+		};
+		const translate = homeSnapshotTranslator(['arrange-flip', 'slides'], t);
+		expect(calls).toStrictEqual(expect.arrayContaining(homeFamilyKeys('slides')));
+		expect(calls).toContain('pptx.arrange.flipH');
+		const before = calls.length;
+		expect(translate('pptx.arrange.flipH')).toBe('de:pptx.arrange.flipH');
+		expect(calls).toHaveLength(before);
+		expect(translate('other.key')).toBe('de:other.key');
 	});
 });

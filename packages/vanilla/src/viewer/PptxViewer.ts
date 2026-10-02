@@ -303,6 +303,10 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 				this.editor?.getEditActions().sections.deleteSection(sectionId),
 			onSectionMove: (sectionId, direction) =>
 				this.editor?.getEditActions().sections.moveSection(sectionId, direction),
+			onSectionAddAfter: (slideIndex) =>
+				this.editor
+					?.getEditActions()
+					.sections.addSection(this.t('pptx.sections.defaultName'), slideIndex),
 			onZoomClick: (target) => this.controls.navigateToZoomTarget(target),
 			onCommentMarkerClick: () => this.parityWorkflows.openComments(),
 			// Both on-canvas SmartArt commits reflow the cached drawing shapes when
@@ -511,6 +515,12 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 			setLocale: (locale) => this.setLocale(locale),
 			getThemeState: () => ({ key: this.currentThemeKey, catalog: this.availableThemes }),
 			getLocaleState: () => ({ code: this.currentLocale, catalog: this.availableLocales }),
+			slideOps: {
+				duplicateSlides: (indexes) => this.duplicateSlides(indexes),
+				deleteSlides: (indexes) => this.deleteSlides(indexes),
+				toggleHideSlides: (indexes) => this.toggleHideSlides(indexes),
+				moveSlide: (from, to) => this.moveSlide(from, to),
+			},
 			getAddinStatus: () => {
 				const rendering3D = !this.optionsController.getOptions().advanced.disable3DRendering;
 				return {

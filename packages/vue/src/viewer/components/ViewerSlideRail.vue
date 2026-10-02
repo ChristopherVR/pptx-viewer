@@ -10,6 +10,7 @@
  * Hidden on mobile by the parent, where it would otherwise collapse the slide
  * canvas to zero height; a phone navigates slides from the bottom bar instead.
  */
+import { Plus } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { EDITOR_THUMBNAIL_WIDTH } from 'pptx-viewer-shared';
 import { computed } from 'vue';
@@ -92,7 +93,12 @@ const mergedSlidesBySection = computed(() =>
 		@layout="(p) => onOpenLayoutForSlide(p.index, p.x, p.y)"
 		@add-section="(i) => sectionOps.addSection(t('pptx.sections.defaultName'), i)"
 	/>
-	<nav v-else class="pptx-vue-thumbnails" :aria-label="t('pptx.sections.slides')">
+	<nav
+		v-else
+		class="pptx-vue-thumbnails"
+		data-pptx-chrome="slides"
+		:aria-label="t('pptx.sections.slides')"
+	>
 		<SectionList
 			:groups="mergedSlidesBySection"
 			:canvas-size="canvasSize"
@@ -104,8 +110,28 @@ const mergedSlidesBySection = computed(() =>
 			@rename="sectionOps.renameSection"
 			@move-up="sectionOps.moveSectionUp"
 			@move-down="sectionOps.moveSectionDown"
-			@delete="sectionOps.deleteSection"
+			@delete-section="sectionOps.deleteSection"
 			@add-section="(idx) => sectionOps.addSection(t('pptx.sections.defaultName'), idx)"
+			@add-slide-after="(i) => slideOps.addSlide(i)"
+			@duplicate="duplicateSlides"
+			@delete="deleteSlides"
+			@toggle-hidden="toggleHideSlides"
+			@layout="(p) => onOpenLayoutForSlide(p.index, p.x, p.y)"
 		/>
+		<!-- The pinned Add Slide footer, the one persistent rail action in every binding. -->
+		<div
+			v-if="canEdit"
+			data-pptx-chrome="slide-footer"
+			class="sticky bottom-0 border-t border-border/60 bg-card px-2 py-1.5"
+		>
+			<button
+				type="button"
+				class="flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				@click="slideOps.addSlide()"
+			>
+				<Plus class="h-3 w-3" />
+				{{ t('pptx.sections.addSlide') }}
+			</button>
+		</div>
 	</nav>
 </template>

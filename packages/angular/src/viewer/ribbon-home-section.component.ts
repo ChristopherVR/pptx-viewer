@@ -8,24 +8,20 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	CUSTOM_ELEMENTS_SCHEMA,
 	effect,
+	ElementRef,
 	inject,
 	input,
 	output,
 	signal,
+	viewChild,
 } from '@angular/core';
-import {
-	LucideChevronDown,
-	LucideFolderPlus,
-	LucideLayoutGrid,
-	LucideLayoutTemplate,
-	LucidePlus,
-	LucideRotateCcw,
-} from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
-import { resetSlideLayoutPath } from '../internal/shared';
+import type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from '../internal/shared';
+import { resetSlideLayoutPath, slidesHomeControls } from '../internal/shared';
 import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
@@ -60,16 +56,11 @@ export function performResetSlide(
 	selector: 'pptx-ribbon-home-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	host: { class: 'contents' },
+	host: { class: 'contents', '(document:mousedown)': 'onDocumentMouseDown($event)' },
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [
 		TranslatePipe,
 		RibbonLayoutGalleryComponent,
-		LucidePlus,
-		LucideChevronDown,
-		LucideFolderPlus,
-		LucideLayoutGrid,
-		LucideLayoutTemplate,
-		LucideRotateCcw,
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
 		RibbonEditingSectionComponent,
@@ -98,6 +89,88 @@ export class RibbonHomeSectionComponent {
 	 * the parse, so reopening a menu costs nothing.
 	 */
 	protected readonly layoutPreviews = signal<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+
+	/** Native layout galleries opened from the shared Slides triggers. */
+	protected readonly newSlideMenuOpen = signal(false);
+	protected readonly layoutMenuOpen = signal(false);
+	private readonly strip = viewChild<ElementRef<PptxUiRibbonHomeElement>>('slidesStrip');
+	private readonly translation = inject(TranslateService, { optional: true });
+
+	/**
+	 * Shared Slides state. New Slide stays available without layouts (it adds a
+	 * blank slide) and Reset/Section stay available on an empty deck, as before.
+	 */
+	protected slidesView() {
+		return {
+			controls: slidesHomeControls({
+				editable: this.canEdit(),
+				hasLayouts: this.layoutOptions().length > 0,
+				hasSlides: this.editor.slides().length > 0,
+				showTemplates: true,
+				newSlideNeedsLayout: false,
+				resetNeedsSlide: false,
+				layoutOpen: this.layoutMenuOpen(),
+				newSlideOpen: this.newSlideMenuOpen(),
+			}),
+			translate: (key: string) => this.translation?.instant(key) ?? key,
+		};
+	}
+
+	protected anchorOf(id: string): HTMLElement | null {
+		return this.strip()?.nativeElement.anchor(id) ?? null;
+	}
+
+	protected onSlidesRequest(event: Event): void {
+		const { id, part } = (event as RibbonHomeRequestEvent).detail;
+		switch (id) {
+			case 'home.slides.newSlide':
+				if (part === 'caret') {
+					this.layoutMenuOpen.set(false);
+					this.newSlideMenuOpen.set(!this.newSlideMenuOpen());
+				} else {
+					this.closeMenus();
+					this.editor.addSlide(this.slideIndex());
+				}
+				break;
+			case 'home.slides.layout':
+				this.newSlideMenuOpen.set(false);
+				this.layoutMenuOpen.set(!this.layoutMenuOpen());
+				break;
+			case 'home.slides.slideTemplates':
+				this.closeMenus();
+				this.openTemplateGallery.emit();
+				break;
+			case 'home.slides.reset':
+				this.closeMenus();
+				this.onResetSlide();
+				break;
+			case 'home.slides.section':
+				this.closeMenus();
+				this.editor.addSection(this.slideIndex());
+		}
+	}
+
+	protected onNewSlideLayout(layoutPath: string): void {
+		this.closeMenus();
+		this.editor.addSlide(this.slideIndex(), layoutPath);
+	}
+
+	private closeMenus(): void {
+		this.newSlideMenuOpen.set(false);
+		this.layoutMenuOpen.set(false);
+	}
+
+	protected onDocumentMouseDown(event: MouseEvent): void {
+		const target = event.target as Node | null;
+		const element = target instanceof Element ? target : target?.parentElement;
+		if (
+			(this.newSlideMenuOpen() || this.layoutMenuOpen()) &&
+			!element?.closest('[data-pptx-home-popup]') &&
+			!this.strip()?.nativeElement.contains(element ?? null)
+		) {
+			this.closeMenus();
+		}
+	}
 
 	constructor() {
 		// The menus open on hover with no event to hang a lazy load off, so the
@@ -140,6 +213,7 @@ export class RibbonHomeSectionComponent {
 	 * so the output is a notification rather than the thing that performs it.
 	 */
 	protected onApplyLayout(layoutPath: string): void {
+		this.closeMenus();
 		void this.editor.applyLayout(this.slideIndex(), layoutPath);
 		this.applyLayout.emit(layoutPath);
 	}

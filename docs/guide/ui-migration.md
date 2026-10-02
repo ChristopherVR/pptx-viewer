@@ -231,7 +231,7 @@ screenshots are `<binding>-insert.png` in the baseline and after directories.
 
 ## Home
 
-Home (#373) is delivered in group families, one commit each, so the large tab
+Home (#373) is delivered in group families, so the large tab
 stays reviewable. PR #359 had already moved the Home icon artwork
 (`RIBBON_CONTROL_ICONS`), the catalogue ids and the editor-chrome layout CSS
 into shared code; the markup, gating and callbacks of every group were still
@@ -267,11 +267,30 @@ persistence and native popup. Public customization ids are unchanged.
   panel; Svelte mirrors an open panel as pressed). The Select menu and Select All
   stay native.
 
-Boundary: Slides, Drawing and Arrange are not migrated in this change. They are
-labelled split buttons, galleries, dialogs and colour pickers anchored natively
-by each binding, with different labels, order and gating per binding, so
-sharing them would change behaviour. They remain open under #373 as the next
-Home batches (see the shared README for the detail); the issue is not complete.
+- Slides: the whole `home.slides` group as `pptx-ui-ribbon-home-slides` (split
+  New Slide, Slide Templates, Layout, Reset, Section). The layout menus and the
+  template dialog stay native and anchor to the shared wrappers.
+- Drawing: the Shapes, Arrange, Shape Fill and Shape Outline triggers
+  (`pptx-ui-ribbon-home-drawing`); their menus and colour popovers stay native.
+  Quick Styles and Shape Effects were already shared galleries.
+- Arrange: Align and Distribute, Flip, z-order and Duplicate/Delete as four
+  strips (`pptx-ui-ribbon-home-arrange-*`).
+
+Behaviour changes to know: popover triggers now carry `aria-haspopup` and
+`aria-expanded`; Angular's layout, Fill and Outline popovers open on click
+instead of hover; Angular Arrange and Svelte Fill/Outline/z-order now follow
+read-only mode; the Fill/Outline colour bar under the icon is gone in the
+bindings that had it; a customization of `home.arrange.align` also hides
+Distribute (Angular already did, Vanilla and Svelte now do). Hosts keep their
+own empty-deck and layout rules for New Slide/Reset/Section through
+`slidesHomeControls` flags.
+
+Still native: the layout galleries, Shapes/Arrange menus, colour popovers and the
+template dialog (popovers that read deck data and run each binding's undo), the
+second Format Painter, Group/Ungroup, Merge Shapes, Crop and outline width in
+Arrange, and in Font/Paragraph the family and size selects, character spacing,
+change case, colour pickers, Bullets/Numbering galleries, line spacing, text
+direction, columns and the Select menu. See the shared README for the detail.
 
 `e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
 real copy/paste/cut with undo and redo, the Format Painter, customization,
@@ -303,7 +322,7 @@ can own its markup, gating and callbacks without changing behaviour.
 | Mobile bottom bar and mobile top toolbar                     | React, Vue, Angular, Vanilla; Svelte has no separate bottom bar                                                                      | No, differs by binding         | Keep native: not identical across bindings.                                                                                        |
 | File backstage navigation and cards                          | React, Angular, Svelte; Vue and Vanilla have no equivalent                                                                           | No, differs by binding         | Keep native: not present in all five bindings.                                                                                     |
 | Slide rail (thumbnails, drag reorder, section rows)          | All five bindings                                                                                                                    | Partly                         | Keep native. Hosts slide-content rendering and drag state, which the issue excludes.                                               |
-| Title bar and quick-access buttons                           | All five bindings                                                                                                                    | Yes                            | Keep native for now; the AutoSave switch and command search are interleaved with host state. Follow-up.                            |
+| Title bar and quick-access buttons                           | React `TitleBar.tsx`, Vue `TitleBar.vue`, Angular `title-bar.component.ts`, Svelte `TitleBar.svelte`, Vanilla `ui/title-bar.ts`      | Yes                            | **Migrate (#394)**: `pptx-ui-title-bar`. One order, tooltip rule and gating table; host-owned parts are slotted.                   |
 | Inspector panel actions                                      | React about 119 files, Vue 94, Svelte 74, Vanilla 63, Angular fewer, larger components                                               | Per panel                      | Keep native. Panel-by-panel owners; the generic contracts are the ribbon command, shared checkbox and select where they apply.     |
 | Compatibility toasts and collaboration status indicator      | All five bindings (the indicator is slotted into the status bar)                                                                     | Yes                            | Keep native; toast stacking and relay retry are host-owned. Follow-up.                                                             |
 | Notes toolbar and notes panel buttons                        | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Yes, with divergent behaviour  | **Migrated in #395**: `pptx-ui-notes-toolbar`; see the Notes toolbar section below. The collapse header and editor stay native.    |
@@ -358,8 +377,8 @@ projection and callback replacement for each binding.
 
 Not migrated, and to be split into owned follow-up issues before #386 closes:
 read-only banner, paste options toolbar, dialog footers with a shared dialog
-shell, context menus, presentation toolbars, title bar and quick access, and
-compatibility toasts. This is why the issue stays open.
+shell, context menus, presentation toolbars and compatibility toasts. This is why
+the issue stays open.
 
 ## Control primitives and tokens (#342)
 
@@ -509,3 +528,203 @@ plain mode, Print, theme tokens, forced colors and 44px touch targets on all
 five bindings; `mobile-notes.spec.ts` checks the default plain surface and its
 touch targets. Adapter unit tests cover state mapping, intent routing, gating and
 callback replacement in each binding.
+
+## Slide rail, section and sorter actions (#397)
+
+The rail itself (thumbnail rendering, virtualisation, drag state) stays native.
+What was decided is which actions the rail, a section header and a sorter tile
+expose, because the audit found a different product behind each in every
+binding. Evidence recorded before the change:
+
+- **Rail persistent row.** React, Svelte and Vanilla: an "Add Slide" footer.
+  Vue: the footer on flat decks only (none on sectioned decks), and
+  `SlidesPaneControls.vue` (Add, Duplicate, Delete) existed but was never
+  mounted. Angular: the footer plus a hover toolbar on every thumbnail
+  (Duplicate, Delete, Move up, Move down) and no drag reorder.
+- **Section header.** React: a popup menu (`pptx.sections.*`) with inline rename.
+  Vue: hover buttons (`pptx.sectionList.*`), a "+ Add section" button per group
+  and inline rename. Angular, Svelte, Vanilla: hover buttons and a
+  `window.prompt` rename.
+- **Sorter tile menu.** React: Copy, Paste (with a clipboard), Duplicate, Hide
+  and Show, Delete, with a count suffix. Vue, Angular, Svelte: Duplicate,
+  Hide/Show, Delete (`pptx.slideMenu.*`). Vanilla: no menu, inline Duplicate,
+  Hide/Show and Delete buttons per card.
+- **Thumbnail menu on a sectioned rail.** Present in React, Angular, Svelte and
+  Vanilla; absent in Vue (its section list had no right-click menu and no
+  multi-select).
+
+### Decision
+
+PowerPoint is the reference: its slide pane has no per-thumbnail buttons and no
+button strip, and its section header and sorter are right-click menus. So:
+
+- **Rail.** One persistent action, **Add Slide** (`pptx.sections.addSlide`), in
+  a pinned footer, in flat and sectioned decks. Everything else on a slide is on
+  the thumbnail right-click menu (already shared in `slide-pane-context-menu.ts`)
+  and the keyboard (Enter inserts after, Delete). Reordering is drag and drop in
+  all five bindings (Angular gained it; its per-thumbnail Move up/down buttons
+  are gone). Vue's sectioned rail gains the footer, the thumbnail menu and
+  Ctrl/Shift multi-select, and the unmounted `SlidesPaneControls.vue` is deleted.
+- **Section header.** A `role="menu"` popup on right-click or the keyboard
+  context-menu key with Rename, Delete, Move Up, Move Down and Add Section After
+  (React's list, which matches PowerPoint). Move Up is disabled on the first
+  section and Move Down on the last. Rename is an inline text field in the header
+  (Enter or blur commits a non-empty name, Escape cancels) in every binding; no
+  binding opens `window.prompt`. Add Section After starts the new section at the
+  slide following the section's last slide, clamped to the last slide. The hover
+  buttons, Vue's per-group "+ Add section" button and the `pptx.sectionList.*`
+  keys are no longer used by the rail; the label keys are `pptx.sections.*`
+  everywhere.
+- **Sorter tile.** A `role="menu"` popup on right-click with Copy, Paste (only
+  after a Copy), Duplicate, Hide or Show, Delete. Hide and Show are one toggle
+  entry like the rail menu (Show only when every selected slide is hidden);
+  Delete is disabled when it would remove every slide; a multi-selection appends
+  " (n)" to Copy, Duplicate, Hide/Show and Delete. The keys are
+  `pptx.slideSorter.contextMenu.*`. Vanilla's inline per-card buttons are
+  removed. Copy and Paste also answer Ctrl+C and Ctrl+V (the shared sorter
+  keymap).
+
+Shared logic lives in `pptx-viewer-shared`: `buildSectionContextMenuEntries` and
+`sectionAddAfterSlideIndex` (`section-context-menu.ts`),
+`buildSlideSorterContextMenuEntries`, `slideSorterContextMenuLabel`,
+`slideSorterPasteIndexes` and `SLIDE_RAIL_FOOTER_ACTIONS`
+(`slide-sorter-context-menu.ts`). Each binding renders the entries natively
+(React and Vue reuse their menu components, Angular has
+`pptx-section-context-menu`, Svelte `SectionContextMenu.svelte` and
+`SlideSorterContextMenu.svelte`, Vanilla `section-context-menu.ts` and
+`slide-sorter-context-menu.ts`); the menus join the shared context-menu element
+when that lands.
+
+Known limits, deliberately not changed here: only React's sorter has
+multi-selection, zoom and a slide clipboard of more than one slide, so in the
+other four bindings the sorter menu acts on one slide, and Paste (React's
+long-standing behaviour, ported) inserts a copy after each copied slide rather
+than at the pointer. Section colours, collapse and drag state stay native.
+
+`e2e/slide-rail-menus-parity.spec.ts` drives all five bindings through the Add
+Slide footer (flat and sectioned), the section menu (commands, role, no inline
+buttons), inline rename without a prompt, Move Up/Down gating and reordering, and
+the sorter menu (commands, Copy then Paste, Hide then Show).
+
+## Inspector reset and clear actions (#398)
+
+The inspector panels stay native (each commits through its own editor and
+history API). What the audit found was a parity gap in six actions, recorded by
+translation key before the change: Reset Picture (`image.resetImage`) was
+missing its label and gating contract in Svelte (hard-coded English) and was
+gated three different ways elsewhere; Reset Crop was missing in Svelte and
+Vanilla; Reset trim in Angular, Svelte and Vanilla; Clear series colour in
+Svelte and Vanilla; Clear Background in the Svelte and Vanilla inspectors (both
+had it only on the Format Background ribbon dock).
+
+`pptx-viewer-shared` now owns the contract in `inspector-reset-actions.ts`: the
+label keys, the gating (`imageResetState`, `cropResetState`,
+`mediaTrimResetState`, `seriesColorClearState`, `slideBackgroundClearState`) and
+the exact patch each action applies (`imageResetPatch`, `cropResetPatch`,
+`mediaTrimResetPatch`, `slideBackgroundClearPatch`). Canonical behaviour, which
+changed some bindings:
+
+- **Reset Picture** is shown for a picture and enabled only while the host can
+  edit and an effect or a crop-to-shape override exists. It clears
+  `imageEffects` and `cropShape` and keeps the crop (PowerPoint keeps it; Reset
+  Crop owns that). Vue, Angular, Svelte and Vanilla used to clear the crop too;
+  Vue hid the button until dirty and React never disabled it.
+- **Reset Crop** is shown for a picture, enabled when editable and the picture
+  is not `noCrop` locked, and zeroes the four insets. Added to Svelte and
+  Vanilla.
+- **Reset trim** is shown only for editable media that carries a trim. Added to
+  Angular, Svelte and Vanilla.
+- **Clear series colour** is shown per series only while editable and the series
+  has its own colour. Added to Svelte and Vanilla (which has one series
+  selector, so one button for the selected series). Every binding now exposes
+  the action by an accessible name (React, Vue and Angular had only a title or a
+  glyph). In Vanilla only the colour control writes a series colour now;
+  editing the trendline or error bars used to stamp the swatch colour onto the
+  series.
+- **Clear Background** is shown when the slide has a colour, picture, gradient
+  or pattern, enabled when editable, and clears all four (React, Vue and
+  Angular skipped the pattern). Svelte and Vanilla gain a Background card in the
+  no-selection inspector with the colour and this action, and the Svelte ribbon
+  dock's clear button now says "Clear Background" instead of "Default".
+- Each action is one undo step.
+
+The labels are the existing keys, already translated in German, Spanish, French
+and Simplified Chinese; no new key was needed. Svelte's Replace and Reset
+Picture labels now use `pptx.image.replaceImage` and `pptx.image.resetImage`.
+
+`e2e/inspector-reset-actions.spec.ts` (fixture `inspector-reset-actions.pptx`)
+checks the five actions, their gating and undo on all five bindings.
+
+### Title bar and quick access (#394)
+
+`pptx-ui-title-bar` is one controlled shared view for the top chrome row and the
+optional below-the-ribbon strip. Hosts supply a `TitleBarViewState` (built with
+`buildTitleBarState`) and route typed `toggle-autosave`, `save`, `undo`, `redo`,
+`quick-command` and `command-search` events to their native handlers. The
+collaboration indicator and account parts are host-owned and slotted through the
+named `collaboration` and `account` slots. The property, event and keyboard contract
+is in `packages/shared/src/web-components/README.md`.
+
+What the five bindings did before, as audited in this change:
+
+| Aspect                 | React                                                         | Vue                          | Angular                                                | Svelte                                                   | Vanilla                                                          |
+| ---------------------- | ------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------- | ---------------------------------------------------------------- |
+| Layout and tokens      | Tailwind `TITLE_BAR_CLASSES`                                  | Tailwind `TITLE_BAR_CLASSES` | Tailwind `TITLE_BAR_CLASSES`                           | Scoped CSS from `titleBarStyleAttr`; name max 200px      | CSS-in-TS from `TITLE_BAR_METRICS`; name max 180px, search 320px |
+| Buttons present        | Save only when `onSave` is passed; Undo, Redo, extras         | Same as React                | Save always; Undo, Redo, extras                        | Save always; hand-drawn Save, Undo, Redo glyphs          | Every configured id in configured order, so no fixed trio        |
+| Extras and tooltips    | Bare label, ignores `showCommandLabels`                       | ScreenTip resolver           | ScreenTip resolver; spellCheck drawn as a search glyph | Bare label; unknown icon falls back to Play              | ScreenTip resolver; spellCheck had no glyph; Undo no action text |
+| AutoSave switch        | Always enabled                                                | Always enabled               | Always enabled                                         | Always enabled; disabled-by-host status keys unreachable | Inert when the host forbids autosave (only binding)              |
+| Search field gate      | `mode` is edit or master                                      | `mode` is edit or master     | Editable                                               | Editable                                                 | Editable                                                         |
+| Search results         | Shared filter, cap 8, category, "find in slides" row          | Same as React                | Own component, same rows                               | Same as React, 120ms blur grace                          | Local three-item list; no category, cap or fallback row          |
+| User and presence area | None                                                          | None                         | None                                                   | None                                                     | AI toggle appended straight into the row                         |
+| Collaboration slot     | None (the indicator lives in the status bar)                  | None                         | None                                                   | None                                                     | None                                                             |
+| Window controls        | None (the viewer embeds in a host page; hosts own the window) | None                         | None                                                   | None                                                     | None                                                             |
+| Below the ribbon       | `TitleBarQuickExtras`                                         | `TitleBarQuickAccess`        | `QuickAccessStripComponent`                            | `QuickAccessToolbar.svelte`                              | Relocates the live strip node                                    |
+| Second separator       | When the strip is on                                          | When the strip is on         | Always                                                 | When the strip is on                                     | Hidden while the strip is docked below                           |
+| Narrow widths          | Hidden under 768px; no wrapping or overflow handling          | Same                         | Same                                                   | Also hidden on landscape phones                          | Also hidden on landscape phones                                  |
+
+Decisions now shared by all five:
+
+- One order: Save, Undo, Redo, then the configured extras in File > Options order.
+- One tooltip rule: `aria-label` is the label, `title` is `screenTip(...)`, and Undo
+  and Redo name the pending action when known. Extras honour `showCommandLabels`.
+- One gating table: AutoSave, strip, status and search show only while editing (edit
+  or master mode with an editable deck). `showSave`, `showUndo` and `showRedo` hide
+  single buttons. The second separator appears only when the strip has buttons.
+- One icon set for every catalog command, including spellCheck, drawn from the
+  shared trusted paths.
+- One search dropdown: shared filter, at most eight rows, a category column, and a
+  "Find in Slides" row where the host can search content. Arrow keys move through the
+  results.
+- The strip is a named toolbar with roving focus. Buttons are 44px on touch, and
+  forced colors use system colors. The row hides under 768px in every binding.
+
+Behaviour that changed:
+
+- React and Vue previously showed the search box in any edit-mode view; it now needs
+  an editable deck, as in the other three.
+- The AutoSave switch is inert (disabled, with the "disabled by host" tooltip) in all five
+  bindings when the host forbids autosave; before, only Vanilla did this.
+- Vanilla now always shows Save, Undo and Redo first; a configured list that omitted
+  them no longer hides them, which matches the other four. Its search box is now the
+  shared one, lists the shared command catalogue, runs every id through the ribbon's own
+  surfaces (SmartArt, Equation, Browse Themes and Slide Size open the matching ribbon
+  control) and offers the "Find in Slides" row, which toggles the Find & Replace panel.
+- The AI toggle is slotted into the `account` slot, and Vanilla's search box now shows
+  its placeholder (it assigned a property the field never read, so it rendered empty).
+- Hiding the `quickAccessToolbar` panel now removes Save, Undo and Redo too in React;
+  before, only the extras were hidden there.
+
+All five bindings now pass the pending Undo and Redo action to the tooltip (Vue, Svelte
+and Vanilla gained the plumbing; no editing action in any binding records a label yet, so
+today every tooltip reads plain "Undo" and "Redo"). Svelte also passes the autosave
+disabled reason, so a host `autosave: false` or a missing file path shows the same status
+text everywhere. `review.language` has no action in any binding.
+
+`e2e/title-bar-migration.spec.ts` covers the names, order, AutoSave switch, roving
+focus and tab order, search results, panel customization, narrow widths, theme
+tokens, touch targets and forced colors on all five bindings.
+`chrome-shell-parity.spec.ts` now measures the bar through its shadow root and compares
+the command-search rows across bindings. Adapter
+unit tests cover state mapping, event routing, gating, slots and the below-ribbon
+placement for each binding. Before and after screenshots are in
+`docs/public/assets/ui-migration/title-bar-before` and `title-bar-after`.

@@ -21,6 +21,7 @@
 	import DocumentPropertiesSection from './DocumentPropertiesSection.svelte';
 	import NotesHandoutSection from './NotesHandoutSection.svelte';
 	import PresentationSettingsSection from './PresentationSettingsSection.svelte';
+	import SlideBackgroundSection from './SlideBackgroundSection.svelte';
 	import SlideSizeSection from './SlideSizeSection.svelte';
 	import SlideTransitionSection from './SlideTransitionSection.svelte';
 	import TagsSection from './TagsSection.svelte';
@@ -111,6 +112,12 @@
 		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
 			<h4 data-pptx-chrome="inspector-heading">{t('pptx.slideInspector.slideTransition')}</h4>
 			<SlideTransitionSection {editor} />
+		</div>
+	{/if}
+	{#if activeSlide}
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">{t('pptx.viewer.background')}</h4>
+			<SlideBackgroundSection {editor} />
 		</div>
 	{/if}
 	{#if editor.editTemplateMode && activeSlide}

@@ -22,6 +22,8 @@ import { createThemeEditorLauncher } from './theme-editor-launcher';
 export interface DesignTab {
 	el: HTMLElement;
 	setEditable(editable: boolean): void;
+	/** Open or close the Browse Themes gallery (title-bar command search). */
+	toggleThemes(): void;
 }
 
 /** A ribbon button that toggles a swatch gallery docked underneath it. */
@@ -30,6 +32,7 @@ interface GalleryControl {
 	button: SharedRibbonCommandHandle;
 	gallery: HTMLElement;
 	close(): void;
+	toggle(): void;
 }
 
 function createGalleryControl(
@@ -65,7 +68,7 @@ function createGalleryControl(
 		}
 	});
 	el.append(button.el, gallery);
-	return { el, button, gallery, close: () => setOpen(false) };
+	return { el, button, gallery, close: () => setOpen(false), toggle: () => setOpen(!isOpen) };
 }
 
 /** Prepend the colour chip React's theme gallery shows beside each preset name. */
@@ -189,6 +192,7 @@ export function createDesignTab(
 
 	return {
 		el,
+		toggleThemes: () => browse.toggle(),
 		setEditable(editable) {
 			browse.button.setDisabled(!editable);
 			editTheme.button.setDisabled(!editable);

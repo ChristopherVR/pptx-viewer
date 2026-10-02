@@ -74,6 +74,7 @@ describe('master thumbnail rail', () => {
 			rename: vi.fn(),
 			delete: vi.fn(),
 			move: vi.fn(),
+			addAfter: vi.fn(),
 		};
 		const rail = createThumbnailRail(document, createTranslator(), vi.fn());
 		rail.render(

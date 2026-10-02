@@ -34,10 +34,14 @@ export interface SwatchPickerOptions {
 	 * no theme-ref concept on the model).
 	 */
 	onSelectTheme?(commit: ThemeColorPickerCommit): void;
+	/** As `DropdownOptions.external`: the trigger is a shared Home button. */
+	external?: { anchor(): HTMLElement | undefined; onOpenChange?(open: boolean): void };
 }
 
 export interface SwatchPickerHandle {
 	el: HTMLElement;
+	/** Open or close the menu (the only way to open an external-trigger picker). */
+	toggle(): void;
 	setValue(hex: string | undefined): void;
 	setDisabled(disabled: boolean): void;
 	/** B6: refresh the "Recent colours" row (most-recent-first); hidden when empty. */
@@ -68,7 +72,11 @@ export function makeSwatchPicker(
 	t: Translator,
 	options: SwatchPickerOptions,
 ): SwatchPickerHandle {
-	const el = createEl(doc, 'div', 'pptxv-swatch-picker');
+	const external = options.external;
+	const el = createEl(doc, 'div', external ? '' : 'pptxv-swatch-picker');
+	if (external) {
+		el.style.display = 'contents';
+	}
 
 	const trigger = createEl(doc, 'button', 'pptxv-dropdown-trigger pptxv-swatch-trigger');
 	trigger.type = 'button';
@@ -80,7 +88,9 @@ export function makeSwatchPicker(
 	const swab = createEl(doc, 'span', 'pptxv-swatch-swab');
 	swab.dataset.pptxChrome = 'color-swatch';
 	trigger.appendChild(swab);
-	el.appendChild(trigger);
+	if (!external) {
+		el.appendChild(trigger);
+	}
 
 	const menu = createEl(doc, 'div', 'pptxv-swatch-menu');
 	menu.hidden = true;
@@ -135,9 +145,10 @@ export function makeSwatchPicker(
 		menu.hidden = !open;
 		trigger.setAttribute('aria-expanded', String(open));
 		trigger.classList.toggle('is-active', open);
+		external?.onOpenChange?.(open);
 		if (open) {
 			popup?.destroy();
-			popup = attachAnchoredPopup(menu, trigger);
+			popup = attachAnchoredPopup(menu, external?.anchor() ?? trigger);
 		} else {
 			popup?.destroy();
 			popup = null;
@@ -172,7 +183,8 @@ export function makeSwatchPicker(
 		setOpen(!isOpen);
 	});
 	doc.addEventListener('pointerdown', (event) => {
-		if (isOpen && !el.contains(event.target as Node)) {
+		const inside = external ? (external.anchor() ?? el) : el;
+		if (isOpen && !inside.contains(event.target as Node)) {
 			setOpen(false);
 		}
 	});
@@ -181,6 +193,7 @@ export function makeSwatchPicker(
 
 	return {
 		el,
+		toggle: () => setOpen(!isOpen),
 		setValue(hex) {
 			value = toHex(hex, options.fallback);
 			customInput.value = value;

@@ -33,6 +33,7 @@ import { createCustomShowRunner } from './presenter/presentation-custom-show-run
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
+import { runTitleBarCommand } from './title-bar-commands';
 import type { PptxViewerOptions } from './types';
 import type { PresentationController, ViewerChrome } from './ui';
 import {
@@ -42,7 +43,6 @@ import {
 	createPresentationController,
 	mountPresentationContextMenu,
 } from './ui';
-import type { CommandSearchCommand } from './ui/command-search';
 
 /** The mutable pieces `PptxViewer` owns for one chrome mount lifecycle. */
 export interface ChromeLifecycle {
@@ -192,7 +192,20 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			save: () => deps.save(),
 			undo: () => deps.undo(),
 			redo: () => deps.redo(),
-			commands: buildTitleBarCommands(deps),
+			runCommand: (id) =>
+				runTitleBarCommand(id, {
+					edit: () => deps.getEditActions(),
+					ribbon: () => chrome.ribbon,
+					zoomToFit: () => deps.zoomToFit(),
+					openSlideSorter: () => deps.openSlideSorter(),
+					openAccessibility: () => deps.openAccessibility(),
+					openHyperlink: () => deps.openHyperlink(),
+					startPresentationFromBeginning: () => deps.startPresentationFromBeginning(),
+					togglePresenterView: deps.togglePresenterView
+						? () => deps.togglePresenterView?.()
+						: undefined,
+				}),
+			findInSlides: () => chrome.ribbon?.toggleFindReplace(),
 			hiddenActions: options.hiddenActions,
 			// Without this the strip fell back to a hardcoded Save/Undo/Redo trio
 			// and ignored File > Options entirely.
@@ -551,15 +564,6 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		resizeObserver,
 		appliedThemeVars,
 	};
-}
-
-/** The local command palette mirrors React's most useful quick actions. */
-function buildTitleBarCommands(deps: MountChromeDeps): readonly CommandSearchCommand[] {
-	return [
-		{ labelKey: 'pptx.titleBar.save', run: () => deps.save() },
-		{ labelKey: 'pptx.toolbar.undo', run: () => deps.undo() },
-		{ labelKey: 'pptx.toolbar.redo', run: () => deps.redo() },
-	];
 }
 
 /** Tear down everything `mountChrome` set up, in reverse order. */

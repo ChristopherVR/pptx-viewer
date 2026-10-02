@@ -80,6 +80,17 @@ export interface ParityWorkflowHost {
 	 * always-bundled dependencies), so they are left out and default active.
 	 */
 	getAddinStatus(): ViewerAddinStatus;
+	/**
+	 * The viewer's own slide operations (renumbering, fresh ids, history), read
+	 * live so the slide sorter acts on the current deck and not the snapshot it
+	 * was opened with.
+	 */
+	slideOps: {
+		duplicateSlides(indexes: number[]): void;
+		deleteSlides(indexes: number[]): void;
+		toggleHideSlides(indexes: number[]): void;
+		moveSlide(from: number, to: number): void;
+	};
 }
 
 export interface ParityWorkflows {
@@ -302,36 +313,39 @@ async function comparePresentation(host: ParityWorkflowHost): Promise<void> {
 	}
 }
 
-function openSorter(host: ParityWorkflowHost): void {
+/**
+ * Open the slide sorter. The overlay renders a static grid, so every deck edit
+ * re-opens it from the live store: before this the actions closed over the
+ * deck as it was when the sorter opened, which made a second action (Copy then
+ * Paste, Hide then Show) overwrite the first and left the grid showing stale
+ * slides. The Copy clipboard outlives the re-open.
+ */
+function openSorter(host: ParityWorkflowHost, clipboard: { ids: string[] } = { ids: [] }): void {
 	const current = host.store.get();
+	const refresh = (): void => openSorter(host, clipboard);
 	openSlideSorterOverlay(host.doc, host.root(), host.t, {
 		slides: current.slides,
 		current: current.currentSlide,
+		clipboard,
 		// Gates the sorter's Delete / Ctrl+D on the host being editable, the same
 		// way the ribbon's slide commands are.
 		canEdit: current.editable,
 		onSelect: host.goToSlide,
-		onReorder: (from, to) => reorderSlides(host, from, to),
-		onDelete: (index) => host.editor.commitSlides(current.slides.filter((_, i) => i !== index)),
-		onDuplicate: (index) => {
-			const next = [...current.slides];
-			next.splice(index + 1, 0, structuredClone(next[index]));
-			host.editor.commitSlides(next, index + 1);
+		onReorder: (from, to) => {
+			host.slideOps.moveSlide(from, to);
+			refresh();
 		},
-		onToggleHidden: (index) =>
-			host.editor.commitSlides(
-				current.slides.map((slide, i) =>
-					i === index ? { ...slide, hidden: !slide.hidden } : slide,
-				),
-			),
+		onDelete: (index) => {
+			host.slideOps.deleteSlides([index]);
+			refresh();
+		},
+		onDuplicate: (index) => {
+			host.slideOps.duplicateSlides([index]);
+			refresh();
+		},
+		onToggleHidden: (index) => {
+			host.slideOps.toggleHideSlides([index]);
+			refresh();
+		},
 	});
-}
-
-function reorderSlides(host: ParityWorkflowHost, from: number, to: number): void {
-	const next = [...host.store.get().slides];
-	const [slide] = next.splice(from, 1);
-	if (slide) {
-		next.splice(to, 0, slide);
-		host.editor.commitSlides(next, to);
-	}
 }

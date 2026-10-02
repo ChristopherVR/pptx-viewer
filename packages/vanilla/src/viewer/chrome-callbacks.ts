@@ -343,6 +343,7 @@ export function buildChromeCallbacks(
 		setImageEffects: (patch) => deps.getEditActions().setImageEffects(patch),
 		replaceImage: () => void deps.getEditActions().replaceSelectedImage(),
 		resetImage: () => deps.getEditActions().resetSelectedImage(),
+		resetCrop: () => deps.getEditActions().resetSelectedCrop(),
 		setElementAction: (trigger, action) => deps.getEditActions().setElementAction(trigger, action),
 		setAltText: (text) => deps.getEditActions().setAltText(text),
 		setTitle: (text) => deps.getEditActions().setTitle(text),

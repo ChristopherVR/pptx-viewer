@@ -140,6 +140,52 @@ describe('createArrangeGroup', () => {
 		expect(actions.alignElements).toHaveBeenCalledWith('centerH');
 	});
 
+	it('renders Align and Distribute under the one home.arrange.align id', () => {
+		const group = createArrangeGroup(document, createTranslator(), handlers());
+		const wrappers = group.el.querySelectorAll('[data-ribbon-control="home.arrange.align"]');
+		expect(wrappers).toHaveLength(1);
+		expect(wrappers[0].querySelectorAll('button')).toHaveLength(8);
+		for (const id of ['flipHorizontal', 'sendBackward', 'bringToFront', 'duplicate', 'delete']) {
+			expect(group.el.querySelectorAll(`[data-ribbon-control="home.arrange.${id}"]`)).toHaveLength(
+				1,
+			);
+		}
+	});
+
+	it('routes flip, order, duplicate and delete to their handlers', () => {
+		const t = createTranslator();
+		const actions = handlers();
+		const group = createArrangeGroup(document, t, actions);
+		group.update(selected);
+		for (const id of [
+			'flipHorizontal',
+			'flipVertical',
+			'sendBackward',
+			'bringForward',
+			'duplicate',
+			'delete',
+		]) {
+			group.el.querySelector<HTMLElement>(`[data-ribbon-control="home.arrange.${id}"]`)!.click();
+		}
+		expect(actions.flipHorizontal).toHaveBeenCalledOnce();
+		expect(actions.flipVertical).toHaveBeenCalledOnce();
+		expect(actions.sendBackward).toHaveBeenCalledOnce();
+		expect(actions.bringForward).toHaveBeenCalledOnce();
+		expect(actions.duplicate).toHaveBeenCalledOnce();
+		expect(actions.delete).toHaveBeenCalledOnce();
+	});
+
+	it('is inert until an editable selection exists', () => {
+		const t = createTranslator();
+		const actions = handlers();
+		const group = createArrangeGroup(document, t, actions);
+		group.update({ ...selected, hasSelection: false, selectedElement: undefined });
+		button(group, t('pptx.arrange.delete')).click();
+		button(group, 'Align center').click();
+		expect(actions.delete).not.toHaveBeenCalled();
+		expect(actions.alignElements).not.toHaveBeenCalled();
+	});
+
 	it('offers the format painter but no second clipboard trio', () => {
 		const t = createTranslator();
 		const actions = handlers();

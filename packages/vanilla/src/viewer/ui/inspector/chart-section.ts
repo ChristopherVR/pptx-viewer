@@ -203,6 +203,7 @@ export function createChartSection(
 		/** Read-only mode: disables the Chart Filters / Value From Cells controls. */
 		setEditable(editable: boolean) {
 			filteredSeries.setEditable(editable);
+			advanced.setEditable(editable);
 		},
 	};
 }
@@ -211,7 +212,9 @@ function input(doc: Document, type: string, text: string) {
 	const label = doc.createElement('label');
 	label.textContent = text;
 	const control = type === 'checkbox' ? createInspectorCheckbox(doc) : doc.createElement('input');
-	if (type !== 'checkbox') control.type = type;
+	if (type !== 'checkbox') {
+		control.type = type;
+	}
 	label.appendChild(control);
 	return { label, control };
 }

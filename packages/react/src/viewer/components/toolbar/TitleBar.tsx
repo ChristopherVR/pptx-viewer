@@ -1,23 +1,9 @@
-import {
-	filterCommands,
-	isPanelVisible,
-	resolveTitleBarStatusKey,
-	TITLE_BAR_CLASSES as TB,
-	TITLE_BAR_DEFAULT_FILE_KEY,
-} from 'pptx-viewer-shared';
-import type { CommandSearchEntry, ToolbarActionId } from 'pptx-viewer-shared';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { LuRedo, LuSave, LuSearch, LuUndo } from 'react-icons/lu';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+import React, { useMemo } from 'react';
 
 import type { AutosaveStatus } from '../../hooks/useAutosave';
-import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
-import { cn } from '../../utils';
-import { useViewerCustomizationContext } from '../viewer-customization-context';
-import { useViewerOptionsContext } from '../viewer-options-context';
-import { WebSearch } from '../WebControls';
-import { TitleBarQuickExtras } from './TitleBarQuickExtras';
+import { TitleBarElement } from './TitleBarElement';
 
 export interface TitleBarProps {
 	mode: ViewerMode;
@@ -27,6 +13,8 @@ export interface TitleBarProps {
 	isDirty: boolean;
 	autosaveStatus?: AutosaveStatus;
 	autosaveEnabled: boolean;
+	/** Default true. False renders the AutoSave switch inert (host policy). */
+	autosaveToggleAvailable?: boolean;
 	onToggleAutosave: () => void;
 	canUndo: boolean;
 	canRedo: boolean;
@@ -47,255 +35,70 @@ export interface TitleBarProps {
 	 * Save/Undo/Redo buttons (`presentFromStart`, `print`, ...), by catalog id.
 	 */
 	onQuickCommand?: (id: string) => void;
+	/** Host-owned collaboration indicator, projected into the `collaboration` slot. */
+	collaborationSlot?: React.ReactNode;
+	/** Host-owned account/presence area, projected into the `account` slot. */
+	accountSlot?: React.ReactNode;
 }
 
 /**
- * PowerPoint-style title bar: AutoSave toggle, quick-access Save/Undo/Redo,
- * file name + save-location status, and a centred search box that opens the
- * Find & Replace panel. Rendered above (outside) the ribbon toolbar.
+ * PowerPoint-style title bar: a thin adapter around the shared
+ * `pptx-ui-title-bar`. Rendered above (outside) the ribbon toolbar.
  */
 export function TitleBar(p: TitleBarProps): React.ReactElement {
-	const { t } = useTranslation();
-	const editing = (p.mode === 'edit' || p.mode === 'master') && p.canEdit;
-	const { isHidden } = useToolbarVisibility(p.hiddenActions);
-	const quickAccess = useViewerOptionsContext().quickAccess;
-	// Host customisation can remove the whole Quick Access strip.
-	const showQuickAccess = isPanelVisible(useViewerCustomizationContext(), 'quickAccessToolbar');
-
-	const [searchQuery, setSearchQuery] = useState('');
-	const [searchFocused, setSearchFocused] = useState(false);
-	const searchRef = useRef<HTMLDivElement>(null);
-
-	const commandResults = filterCommands(searchQuery, t);
-
-	const handleCommandSelect = useCallback(
-		(entry: CommandSearchEntry) => {
-			p.onCommandSearch?.(entry.command);
-			setSearchQuery('');
-			setSearchFocused(false);
-		},
-		[p],
+	const input = useMemo(
+		() => ({
+			editing: (p.mode === 'edit' || p.mode === 'master') && p.canEdit,
+			fileName: p.fileName,
+			isDirty: p.isDirty,
+			autosaveState: p.autosaveStatus?.state,
+			autosaveReason: p.autosaveStatus?.state === 'disabled' ? p.autosaveStatus.reason : undefined,
+			autosaveEnabled: p.autosaveEnabled,
+			autosaveToggleAvailable: p.autosaveToggleAvailable,
+			canUndo: p.canUndo,
+			canRedo: p.canRedo,
+			undoLabel: p.undoLabel,
+			redoLabel: p.redoLabel,
+			hiddenActions: p.hiddenActions,
+			showSave: Boolean(p.onSave),
+		}),
+		[
+			p.mode,
+			p.canEdit,
+			p.fileName,
+			p.isDirty,
+			p.autosaveStatus,
+			p.autosaveEnabled,
+			p.autosaveToggleAvailable,
+			p.canUndo,
+			p.canRedo,
+			p.undoLabel,
+			p.redoLabel,
+			p.hiddenActions,
+			p.onSave,
+		],
 	);
-
-	const handleSearchKeyDown = useCallback(
-		(e: KeyboardEvent) => {
-			if (e.key === 'Enter' && searchQuery.trim()) {
-				if (commandResults.length > 0) {
-					handleCommandSelect(commandResults[0]);
-				} else {
-					p.onToggleFindReplace();
-					setSearchFocused(false);
-				}
-			} else if (e.key === 'Escape') {
-				setSearchQuery('');
-				setSearchFocused(false);
-			}
-		},
-		[searchQuery, commandResults, handleCommandSelect, p],
-	);
-
-	useEffect(() => {
-		const handler = (e: MouseEvent) => {
-			if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-				setSearchFocused(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, []);
-
-	const statusKey = resolveTitleBarStatusKey({
-		autosaveState: p.autosaveStatus?.state ?? 'idle',
-		isDirty: p.isDirty,
-		autosaveEnabled: p.autosaveEnabled,
-		disabledReason: p.autosaveStatus?.state === 'disabled' ? p.autosaveStatus.reason : undefined,
-	});
-
 	return (
-		<div className={TB.container} data-pptx-title-bar=''>
-			<span className={TB.logo} aria-hidden='true'>
-				P
-			</span>
-
-			{editing && (
-				<>
-					<span className={TB.autosaveGroup}>
-						<span className={TB.autosaveLabel}>{t('pptx.titleBar.autoSave')}</span>
-						<button
-							type='button'
-							role='switch'
-							aria-checked={p.autosaveEnabled}
-							onClick={p.onToggleAutosave}
-							className={cn(
-								TB.toggleTrack,
-								p.autosaveEnabled ? TB.toggleTrackOn : TB.toggleTrackOff,
-							)}
-							title={t('pptx.titleBar.toggleAutoSave')}
-							aria-label={t('pptx.titleBar.toggleAutoSave')}
-						>
-							<span
-								className={cn(
-									TB.toggleKnob,
-									p.autosaveEnabled ? TB.toggleKnobOn : TB.toggleKnobOff,
-								)}
-							/>
-						</button>
-						<span className={TB.autosaveLabel}>
-							{t(p.autosaveEnabled ? 'pptx.titleBar.autoSaveOn' : 'pptx.titleBar.autoSaveOff')}
-						</span>
-					</span>
-
-					<div className={TB.separator} />
-
-					{showQuickAccess && p.onSave && (
-						<button
-							type='button'
-							onClick={p.onSave}
-							className={TB.quickButton}
-							title={t('pptx.titleBar.save')}
-							aria-label={t('pptx.titleBar.save')}
-						>
-							<LuSave className='w-3.5 h-3.5' />
-						</button>
-					)}
-					{showQuickAccess && !isHidden('undo') && (
-						<button
-							type='button'
-							onClick={p.onUndo}
-							disabled={!p.canUndo}
-							className={TB.quickButton}
-							title={
-								p.undoLabel
-									? t('pptx.toolbar.undoAction', { action: p.undoLabel })
-									: t('pptx.toolbar.undo')
-							}
-							aria-label={t('pptx.toolbar.undo')}
-						>
-							<LuUndo className='w-3.5 h-3.5' />
-						</button>
-					)}
-					{showQuickAccess && !isHidden('redo') && (
-						<button
-							type='button'
-							onClick={p.onRedo}
-							disabled={!p.canRedo}
-							className={TB.quickButton}
-							title={
-								p.redoLabel
-									? t('pptx.toolbar.redoAction', { action: p.redoLabel })
-									: t('pptx.toolbar.redo')
-							}
-							aria-label={t('pptx.toolbar.redo')}
-						>
-							<LuRedo className='w-3.5 h-3.5' />
-						</button>
-					)}
-					{/*
-					 * Everything else File > Options > Quick Access Toolbar asks for, in
-					 * configured order. Without this the strip was hardcoded to the three
-					 * buttons above and silently ignored the options model, so it showed
-					 * three commands where the shared default (and Angular) had four.
-					 *
-					 * Suppressed here when position is "below": the same commands then
-					 * render in a row under the ribbon (`Toolbar`'s own
-					 * `TitleBarQuickExtras` usage) instead, so they show in exactly one
-					 * place. The dedicated Save/Undo/Redo trio above always stays here,
-					 * matching Angular's `belowRibbonQuickAccess`.
-					 */}
-					{showQuickAccess && quickAccess.position !== 'below' && (
-						<TitleBarQuickExtras quickAccess={quickAccess} onCommand={p.onQuickCommand} />
-					)}
-
-					{showQuickAccess && <div className={TB.separator} />}
-				</>
-			)}
-
-			<span className={TB.fileGroup}>
-				<span className={TB.fileName}>{p.fileName || t(TITLE_BAR_DEFAULT_FILE_KEY)}</span>
-				{editing && (
-					<>
-						<span className={TB.statusDot} aria-hidden='true'>
-							&bull;
-						</span>
-						<span
-							className={cn(
-								TB.statusText,
-								p.autosaveStatus?.state === 'error' && p.autosaveEnabled && TB.statusError,
-								p.autosaveStatus?.state === 'saving' && p.autosaveEnabled && TB.statusSaving,
-							)}
-						>
-							{t(statusKey)}
-						</span>
-					</>
-				)}
-			</span>
-
-			<span className={TB.searchWrap}>
-				{(p.mode === 'edit' || p.mode === 'master') && (
-					<div ref={searchRef} className='relative w-full max-w-md'>
-						<WebSearch
-							data-pptx-search-surface
-							data-pptx-search-input
-							variant='titlebar'
-							value={searchQuery}
-							onInput={(e) =>
-								setSearchQuery((e.currentTarget as HTMLElement & { value: string }).value)
-							}
-							onFocus={() => setSearchFocused(true)}
-							onKeyDown={handleSearchKeyDown}
-							placeholder={t('pptx.titleBar.searchPlaceholder')}
-							aria-label={t('pptx.titleBar.search')}
-						/>
-						{searchFocused && searchQuery.trim() && (
-							<div className='absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto'>
-								{commandResults.length > 0 ? (
-									<>
-										<div className='px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider'>
-											{t('pptx.titleBar.searchCommands')}
-										</div>
-										{commandResults.slice(0, 8).map((entry) => (
-											<button
-												key={entry.command}
-												type='button'
-												className='flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors'
-												onMouseDown={() => handleCommandSelect(entry)}
-											>
-												<span className='truncate'>{t(entry.labelKey)}</span>
-												<span className='ml-auto text-[10px] text-muted-foreground capitalize'>
-													{entry.category}
-												</span>
-											</button>
-										))}
-									</>
-								) : (
-									<div className='px-3 py-2 text-xs text-muted-foreground'>
-										{t('pptx.titleBar.searchNoResults')}
-									</div>
-								)}
-								<div className='border-t border-border/60'>
-									<button
-										type='button'
-										className='flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors'
-										onMouseDown={() => {
-											p.onToggleFindReplace();
-											setSearchFocused(false);
-											setSearchQuery('');
-										}}
-									>
-										<LuSearch className='w-3 h-3 shrink-0' />
-										<span>
-											{t('pptx.titleBar.searchContent')} &ldquo;{searchQuery}&rdquo;
-										</span>
-									</button>
-								</div>
-							</div>
-						)}
-					</div>
-				)}
-			</span>
-
-			{/* Right block mirrors the left visually; kept minimal. */}
-			<span className={TB.rightSpacer} />
-		</div>
+		<TitleBarElement
+			input={input}
+			onToggleAutosave={p.onToggleAutosave}
+			onSave={p.onSave}
+			onUndo={p.onUndo}
+			onRedo={p.onRedo}
+			onQuickCommand={p.onQuickCommand}
+			onCommandSearch={p.onCommandSearch}
+			onToggleFindReplace={p.onToggleFindReplace}
+		>
+			{p.collaborationSlot ? (
+				<div slot='collaboration' style={{ display: 'contents' }}>
+					{p.collaborationSlot}
+				</div>
+			) : null}
+			{p.accountSlot ? (
+				<div slot='account' style={{ display: 'contents' }}>
+					{p.accountSlot}
+				</div>
+			) : null}
+		</TitleBarElement>
 	);
 }

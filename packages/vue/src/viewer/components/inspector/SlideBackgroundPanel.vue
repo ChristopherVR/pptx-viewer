@@ -11,7 +11,12 @@
  * PowerPointViewer) applies it to the active slide with history.
  */
 import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
-import { normalizeHexColor, resolveTemplateBackgroundRows } from 'pptx-viewer-shared';
+import {
+	normalizeHexColor,
+	resolveTemplateBackgroundRows,
+	slideBackgroundClearPatch,
+	slideBackgroundClearState,
+} from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -63,11 +68,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 const colorValue = computed(() => props.slide?.backgroundColor ?? '#ffffff');
 const backgroundImage = computed(() => props.slide?.backgroundImage);
-const hasBackground = computed(() =>
-	Boolean(
-		props.slide?.backgroundColor || props.slide?.backgroundImage || props.slide?.backgroundGradient,
-	),
-);
+const clearState = computed(() => slideBackgroundClearState(props.slide, props.canEdit));
 
 function onColorChange(event: Event): void {
 	const hex = (event.target as HTMLInputElement).value;
@@ -101,11 +102,7 @@ function removeImage(): void {
 }
 
 function clearBackground(): void {
-	emit('update', {
-		backgroundColor: undefined,
-		backgroundImage: undefined,
-		backgroundGradient: undefined,
-	});
+	emit('update', slideBackgroundClearPatch());
 }
 
 const hideBackgroundGraphics = computed(() => props.slide?.showMasterShapes === false);
@@ -183,10 +180,10 @@ function onToggleHideBackgroundGraphics(event: Event): void {
 		</div>
 
 		<button
-			v-if="hasBackground"
+			v-if="clearState.visible"
 			type="button"
 			class="w-full rounded border border-border bg-muted px-2 py-1 text-center text-[11px] text-red-400 hover:text-red-300 disabled:opacity-50"
-			:disabled="!canEdit"
+			:disabled="!clearState.enabled"
 			@click="clearBackground"
 		>
 			{{ t('pptx.slideBackground.clearBackground') }}

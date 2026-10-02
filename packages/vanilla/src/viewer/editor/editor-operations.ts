@@ -113,6 +113,9 @@ export interface EditorOps {
 	redo(): void;
 	canUndo(): boolean;
 	canRedo(): boolean;
+	/** Label of the step Undo / Redo would apply, when one was recorded. */
+	undoLabel(): string | undefined;
+	redoLabel(): string | undefined;
 	clearHistory(): void;
 	/** File > Options > Advanced > "Maximum number of undos". */
 	setHistoryDepth(depth: number): void;
@@ -443,6 +446,8 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		},
 		canUndo: () => history.canUndo,
 		canRedo: () => history.canRedo,
+		undoLabel: () => history.undoLabel,
+		redoLabel: () => history.redoLabel,
 		clearHistory() {
 			history.clear();
 			lastNudgeAt = 0;

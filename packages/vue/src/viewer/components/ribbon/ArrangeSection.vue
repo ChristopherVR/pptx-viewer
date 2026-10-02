@@ -1,9 +1,10 @@
 <!--
 	Arrange ribbon section: Vue port of React's `toolbar/ArrangeSection.tsx`.
-	Faithful, mechanical port for visual + behavioral parity: align cluster,
-	optional format-painter toggle, flip, group/ungroup + outline width
-	(`ShapeArrangeExtras.vue`), layer ordering, duplicate, and delete. Class
-	strings copied verbatim from React.
+	The align/distribute, flip, layer-order and duplicate/delete buttons are the
+	shared `pptx-ui-ribbon-home-arrange-*` strips (markup, icons and gating come
+	from shared code; this adapter maps their `home-request` intents onto the
+	handlers). The optional format-painter toggle, group/ungroup + outline width
+	(`ShapeArrangeExtras.vue`), Merge Shapes and Crop stay native.
 
 	This group deliberately does NOT repeat Cut / Copy / Paste. It used to, and
 	since the Home tab already renders the Clipboard group beside it, every one
@@ -12,10 +13,9 @@
 	name, by a user or by a test.
 -->
 <script setup lang="ts">
-import { ChevronDown, ChevronUp } from 'lucide-vue-next';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
+import type { RibbonHomeRequestEvent, ToolbarActionId } from 'pptx-viewer-shared';
+import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -23,7 +23,7 @@ import { cn } from '../../../utils';
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 import CropControls from './CropControls.vue';
 import MergeShapesMenu from './MergeShapesMenu.vue';
-import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './ribbon-constants';
+import { ic, pill } from './ribbon-constants';
 import RibbonIcon from './RibbonIcon';
 import ShapeArrangeExtras from './ShapeArrangeExtras.vue';
 
@@ -54,42 +54,63 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
-const hasSel = computed(() => Boolean(props.selectedElement));
-const canMut = computed(() => hasSel.value && props.canEdit);
+const state = computed(() => ({
+	// The locale is read so a language switch re-translates the shared labels.
+	locale: locale.value,
+	controls: arrangeHomeControls({
+		editable: props.canEdit,
+		hasSelection: Boolean(props.selectedElement),
+		canDistribute: props.canDistribute,
+	}),
+	translate: t,
+}));
+
+/** This binding's align handler names the horizontal centre `center`. */
+function requestAlign(event: RibbonHomeRequestEvent): void {
+	const action = arrangeAlignAction(event.detail.part);
+	if (action?.kind === 'align') {
+		props.onAlignElements(action.edge === 'centerH' ? 'center' : action.edge);
+	} else if (action?.kind === 'distribute') {
+		props.onDistributeElements(action.axis);
+	}
+}
+
+function requestFlip(event: RibbonHomeRequestEvent): void {
+	props.onFlip(event.detail.id === 'home.arrange.flipHorizontal' ? 'horizontal' : 'vertical');
+}
+
+function requestOrder(event: RibbonHomeRequestEvent): void {
+	switch (event.detail.id) {
+		case 'home.arrange.sendBackward':
+			props.onMoveLayer('backward');
+			break;
+		case 'home.arrange.bringForward':
+			props.onMoveLayer('forward');
+			break;
+		case 'home.arrange.sendToBack':
+			props.onMoveLayerToEdge('back');
+			break;
+		case 'home.arrange.bringToFront':
+			props.onMoveLayerToEdge('front');
+	}
+}
+
+function requestEdit(event: RibbonHomeRequestEvent): void {
+	if (event.detail.id === 'home.arrange.duplicate') {
+		props.onDuplicate();
+	} else if (event.detail.id === 'home.arrange.delete') {
+		props.onDelete();
+	}
+}
 </script>
 
 <template>
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.arrange">
 		<div data-pptx-chrome="arrange-controls">
-			<div :class="grp" data-ribbon-control="home.arrange.align" data-pptx-chrome="align-controls">
-				<button
-					v-for="(a, i) in ALIGN_BTNS"
-					:key="a.k"
-					type="button"
-					:class="i < ALIGN_BTNS.length - 1 ? gB : gL"
-					:disabled="!canMut"
-					:title="t(ALIGNMENT_LABEL_KEYS[a.k])"
-					@click="props.onAlignElements(a.k)"
-				>
-					<RibbonIcon :name="`home.arrange.align.${a.k}`" :class="ic" />
-				</button>
-			</div>
-			<div :class="grp" data-pptx-chrome="distribute-controls">
-				<button
-					v-for="(d, i) in DISTRIBUTE_BTNS"
-					:key="d.k"
-					type="button"
-					:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
-					:disabled="!props.canEdit || !props.canDistribute"
-					:title="t('pptx.arrange.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1))"
-					@click="props.onDistributeElements(d.k)"
-				>
-					<RibbonIcon :name="`home.arrange.distribute.${d.k}`" :class="ic" />
-				</button>
-			</div>
+			<pptx-ui-ribbon-home-arrange-align :state.prop="state" @home-request="requestAlign" />
 			<button
 				v-if="props.onToggleFormatPainter"
 				type="button"
@@ -108,28 +129,7 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 				<RibbonIcon name="home.clipboard.formatPainter" :class="ic" />
 				{{ t('pptx.arrange.format') }}
 			</button>
-			<div :class="grp" data-pptx-chrome="flip-controls">
-				<button
-					type="button"
-					data-ribbon-control="home.arrange.flipHorizontal"
-					:class="gB"
-					:disabled="!canMut"
-					:title="t('pptx.arrange.flipHorizontally')"
-					@click="props.onFlip('horizontal')"
-				>
-					{{ t('pptx.arrange.flipH') }}
-				</button>
-				<button
-					type="button"
-					data-ribbon-control="home.arrange.flipVertical"
-					:class="gL"
-					:disabled="!canMut"
-					:title="t('pptx.arrange.flipVertically')"
-					@click="props.onFlip('vertical')"
-				>
-					{{ t('pptx.arrange.flipV') }}
-				</button>
-			</div>
+			<pptx-ui-ribbon-home-arrange-flip :state.prop="state" @home-request="requestFlip" />
 			<ShapeArrangeExtras
 				:can-edit="props.canEdit"
 				:selected-element="props.selectedElement"
@@ -144,64 +144,8 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 				data-ribbon-control="home.arrange.mergeShapes"
 			/>
 			<CropControls v-if="!isHidden('crop')" data-ribbon-control="home.arrange.crop" />
-			<div :class="grp" data-pptx-chrome="order-controls">
-				<button
-					data-ribbon-control="home.arrange.sendBackward"
-					:class="gB"
-					:disabled="!canMut"
-					:title="t('pptx.arrange.sendBackward')"
-					@click="props.onMoveLayer('backward')"
-				>
-					<ChevronDown :class="ic" />
-				</button>
-				<button
-					data-ribbon-control="home.arrange.bringForward"
-					:class="gB"
-					:disabled="!canMut"
-					:title="t('pptx.arrange.bringForward')"
-					@click="props.onMoveLayer('forward')"
-				>
-					<ChevronUp :class="ic" />
-				</button>
-				<button
-					data-ribbon-control="home.arrange.sendToBack"
-					:class="gB"
-					:disabled="!canMut"
-					:title="t('pptx.arrange.sendToBack')"
-					@click="props.onMoveLayerToEdge('back')"
-				>
-					{{ t('pptx.arrange.back') }}
-				</button>
-				<button
-					data-ribbon-control="home.arrange.bringToFront"
-					:class="gL"
-					:disabled="!canMut"
-					:title="t('pptx.arrange.bringToFront')"
-					@click="props.onMoveLayerToEdge('front')"
-				>
-					{{ t('pptx.arrange.front') }}
-				</button>
-			</div>
-			<button
-				data-ribbon-control="home.arrange.duplicate"
-				:class="pill"
-				:disabled="!canMut"
-				:title="t('pptx.arrange.duplicate')"
-				@click="props.onDuplicate"
-			>
-				<RibbonIcon name="home.arrange.duplicate" :class="ic" />
-				{{ t('pptx.arrange.duplicate') }}
-			</button>
-			<button
-				data-ribbon-control="home.arrange.delete"
-				:disabled="!canMut"
-				class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors"
-				:title="t('pptx.arrange.delete')"
-				@click="props.onDelete"
-			>
-				<RibbonIcon name="home.arrange.delete" :class="ic" />
-				{{ t('pptx.arrange.delete') }}
-			</button>
+			<pptx-ui-ribbon-home-arrange-order :state.prop="state" @home-request="requestOrder" />
+			<pptx-ui-ribbon-home-arrange-edit :state.prop="state" @home-request="requestEdit" />
 		</div>
 		<span data-pptx-chrome="ribbon-group-label">{{ t('pptx.ribbon.arrange') }}</span>
 	</div>

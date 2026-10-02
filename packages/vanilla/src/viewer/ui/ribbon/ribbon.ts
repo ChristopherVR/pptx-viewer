@@ -299,6 +299,15 @@ export function createRibbon(
 		},
 		toggleFindReplace: () => findReplace.toggle(),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
+		toggleEquationPanel: () => equationPanel.toggle(),
+		openSmartArtDialog: () => insertTab?.openSmartArt(),
+		openSlideSize,
+		toggleThemeGallery: () => {
+			if (designTab) {
+				setActiveTab('design');
+				designTab.toggleThemes();
+			}
+		},
 		showDefaultTab: () => setActiveTab(defaultVisibleTab),
 		setHiddenOptionTabs,
 		applyScreenTips: (tip) => tabBar.applyScreenTips(tip),

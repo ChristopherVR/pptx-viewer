@@ -43,9 +43,13 @@ import ChartUserShapeOptions from './ChartUserShapeOptions.vue';
  * plumbing (clone-mutate-emit, `pptx-viewer-core` SDK ops) lives in the
  * `useChartEditing` composable.
  */
-const props = defineProps<{
-	element: PptxElement;
-}>();
+const props = withDefaults(
+	defineProps<{
+		element: PptxElement;
+		canEdit?: boolean;
+	}>(),
+	{ canEdit: true },
+);
 
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
@@ -246,6 +250,7 @@ const CONTROL =
 
 			<ChartSeriesColorOptions
 				:series="series"
+				:can-edit="props.canEdit"
 				@set-color="editing.setSeriesColor"
 				@clear-color="(si) => editing.setSeriesColor(si, null)"
 			/>

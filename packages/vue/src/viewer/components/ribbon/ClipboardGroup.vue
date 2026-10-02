@@ -5,7 +5,7 @@
  * adapter only maps its one `home-request` intent onto the existing handlers.
  */
 import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
-import { clipboardHomeControls } from 'pptx-viewer-shared';
+import { clipboardHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -36,7 +36,7 @@ const state = computed(() => ({
 		canFormatPaint: props.canActivateFormatPainter !== false,
 		showFormatPainter: Boolean(props.onToggleFormatPainter),
 	}),
-	translate: t,
+	translate: homeSnapshotTranslator(['clipboard'], t),
 }));
 
 function request(event: RibbonHomeRequestEvent): void {

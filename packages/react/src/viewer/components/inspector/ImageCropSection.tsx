@@ -11,7 +11,7 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
-import { canInteractWithElement } from 'pptx-viewer-shared';
+import { cropResetPatch, cropResetState } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -41,7 +41,7 @@ export function ImageCropSection({
 	}
 	// G7: `a:picLocks/@noCrop` forbids cropping this specific picture, even on
 	// an otherwise-editable deck.
-	const croppable = canEdit && canInteractWithElement(selectedElement, 'crop');
+	const croppable = cropResetState(selectedElement, canEdit, true).enabled;
 
 	return (
 		<div className='space-y-1.5' data-pptx-image-crop>
@@ -70,14 +70,7 @@ export function ImageCropSection({
 				type='button'
 				disabled={!croppable}
 				className={`${BTN_CLS} w-full`}
-				onClick={() =>
-					onUpdateElement({
-						cropLeft: 0,
-						cropTop: 0,
-						cropRight: 0,
-						cropBottom: 0,
-					} as Partial<PptxElement>)
-				}
+				onClick={() => onUpdateElement(cropResetPatch())}
 			>
 				{t('pptx.image.resetCrop')}
 			</button>

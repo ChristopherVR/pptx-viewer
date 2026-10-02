@@ -20,6 +20,8 @@ export class EditorHistoryState {
 	#depth = MAX_HISTORY_ENTRIES;
 	#canUndo = $state(false);
 	#canRedo = $state(false);
+	#undoLabel = $state<string | undefined>(undefined);
+	#redoLabel = $state<string | undefined>(undefined);
 
 	get canUndo(): boolean {
 		return this.#canUndo;
@@ -29,10 +31,22 @@ export class EditorHistoryState {
 		return this.#canRedo;
 	}
 
+	/** Description of the action Undo would revert, when one was recorded. */
+	get undoLabel(): string | undefined {
+		return this.#undoLabel;
+	}
+
+	/** Description of the action Redo would re-apply, when one was recorded. */
+	get redoLabel(): string | undefined {
+		return this.#redoLabel;
+	}
+
 	/** Re-read the stack's availability flags onto the reactive mirrors. */
 	sync(): void {
 		this.#canUndo = this.#history.canUndo;
 		this.#canRedo = this.#history.canRedo;
+		this.#undoLabel = this.#history.undoLabel || undefined;
+		this.#redoLabel = this.#history.redoLabel || undefined;
 	}
 
 	/**

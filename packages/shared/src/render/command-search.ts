@@ -12,8 +12,8 @@ export interface CommandSearchEntry {
 	command: string;
 	/** Optional icon hint (binding resolves to framework icon component). */
 	icon?: string;
-	/** Category grouping key. */
-	category: 'format' | 'insert' | 'view' | 'slideShow' | 'design' | 'arrange';
+	/** Category grouping key; hosts with their own short list may omit it. */
+	category?: 'format' | 'insert' | 'view' | 'slideShow' | 'design' | 'arrange';
 }
 
 /**
@@ -198,12 +198,11 @@ export const COMMAND_SEARCH_ENTRIES: readonly CommandSearchEntry[] = [
 export function filterCommands(
 	query: string,
 	resolveLabel: (key: string) => string,
+	entries: readonly CommandSearchEntry[] = COMMAND_SEARCH_ENTRIES,
 ): CommandSearchEntry[] {
 	if (!query.trim()) {
 		return [];
 	}
 	const lowerQuery = query.toLowerCase();
-	return COMMAND_SEARCH_ENTRIES.filter((entry) =>
-		resolveLabel(entry.labelKey).toLowerCase().includes(lowerQuery),
-	);
+	return entries.filter((entry) => resolveLabel(entry.labelKey).toLowerCase().includes(lowerQuery));
 }

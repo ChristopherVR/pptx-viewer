@@ -149,6 +149,48 @@ binding (React ref and listener, Vue `.prop` and event directive, Angular
 schema-enabled binding, Svelte `onnotes-request`, Vanilla direct property and
 listener).
 
+## Title bar and quick access (#394)
+
+`pptx-ui-title-bar` is the top chrome row: app mark, AutoSave switch, the Quick
+Access strip (Save, Undo, Redo and the configured extras), file name and save
+status, and the centred command search. It is controlled like the status bar.
+
+| Property, attribute or slot | Type and default                    | Meaning                                                                                                                                                                        |
+| --------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `state`                     | `TitleBarViewState`, nothing shown  | Structured DOM property, never an attribute. Replace the object after updates; `buildTitleBarState` maps the host values to it and owns the gating table and save-status rule. |
+| `placement`                 | `titleBar` (default), `belowRibbon` | `belowRibbon` renders only the extras row for Options > Quick Access Toolbar > "Show below the Ribbon". It hides itself (`data-empty`) when there is nothing to show.          |
+| `collaboration`, `account`  | named slots                         | Host-owned parts at the end of the row (presence indicator, account or AI button). The element never renders them itself.                                                      |
+
+`TitleBarViewState` fields: `editing` and `searchVisible`, `fileName`, `autosave`
+(`enabled`, `toggleAvailable`, translation key `statusKey`, `tone`), `history`
+(`canUndo`, `canRedo`, `undoLabel`, `redoLabel`, `showUndo`, `showRedo`), `showSave`,
+`quickAccess` (`visible`, `position`, `showCommandLabels`, `commandIds`), the search
+`commands` (default: the shared catalogue), `contentSearch` (default true), a
+`screenTip` function and `translate`.
+
+Decisions that apply to every binding: the strip is Save, Undo, Redo (catalog
+order, each gated by `showSave`, `showUndo`, `showRedo`) and then the other
+configured commands in the order File > Options lists them; AutoSave, strip, status
+and search appear only while `editing`; every strip button has `aria-label` = its
+label and `title` = `screenTip(tooltip)`, where Undo and Redo name the pending
+action when one is known. `resolveTitleBarStrip` is that ordering rule.
+
+Events are bubbling, composed `CustomEvent`s and are never emitted for programmatic
+updates: `toggle-autosave`, `save`, `undo`, `redo` (no detail), `quick-command`
+(`{ id }`) and `command-search` (`{ query, command? }`; no `command` means "find
+this text in the slides"). The switch is controlled: `aria-checked` follows
+`autosave.enabled`. When `toggleAvailable` is false it is disabled and silent.
+
+Keyboard and accessibility: the strip is a `role="toolbar"` named "Quick Access
+Toolbar" with one tab stop and roving focus (Left and Right wrap, Home and End jump,
+disabled buttons are skipped). Tab order is AutoSave, strip, search. Space, Enter,
+arrows and plain typing stay inside the control and never reach slide shortcuts. The
+search results are a listbox: Up and Down move, Enter commits, Escape clears. Buttons
+are 24px and grow to 44px on coarse pointers, forced colors use system colors, and
+the row hides below 768px (and on landscape phones) where the compact toolbar takes
+over. The shadow root exposes `part="bar"`; the host carries `data-pptx-title-bar`
+(`data-pptx-quick-access="below"` for the second placement).
+
 ## Registration and supported versions
 
 The controls are internal viewer UI, not separately published custom elements.
@@ -181,16 +223,17 @@ supplied by the host. Structured objects are DOM properties, never JSON strings.
 Replace presentation properties and label maps after updates rather than relying
 on mutation of the same object to trigger a refresh.
 
-| Family             | Default state                                                                                                    | Programmatic updates                                                                             | User events                                                                                       |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Search             | Empty value/placeholder, enabled; name falls back to placeholder or Search                                       | `value`, `disabled`; attributes placeholder, value, aria-label, disabled                         | Native `input` then `change` as the inner search input produces them; read host value             |
-| Checkbox           | Unchecked, enabled, value `on`; host supplies accessible name                                                    | `checked`, `disabled`, `value` properties or attributes                                          | `input` then `change` after activation; read host checked                                         |
-| Select             | First selected or eligible option, otherwise empty; enabled                                                      | `value`, `selectedIndex`, disabled; children define readonly options list                        | `input` then `change` only when a different eligible option is committed; read host value         |
-| Slide Show options | Timings/narration enabled by default; unsupported options unchecked/disabled; labels default to translation keys | DOM `presentationProperties`, `labels`, disabled                                                 | One `show-options-change` with a presentation-property patch; host commits before display changes |
-| Ribbon command     | Enabled, ordinary size, inactive; no pressed/expanded state                                                      | Attributes label, icon, title, disabled, active, compact, pressed, expanded and customization id | One `command-request` with `{ id }`; host owns action                                             |
-| Ribbon toggle      | Unchecked, enabled                                                                                               | Attributes label, title, checked, disabled and customization id                                  | One `toggle-request` with `{ id, checked }`; host commits before display changes                  |
-| Ribbon group       | Empty label and content                                                                                          | Label and optional group id; default slot                                                        | None                                                                                              |
-| Status bar         | Empty deck, no zoom cluster, notes hidden, no pressed view unless `viewMode` is set                              | DOM `state` (counter, save text, zoom, gating, pressed view), `collaboration` slot               | One `status-request` with `{ id }`; host owns every action                                        |
+| Family             | Default state                                                                                                    | Programmatic updates                                                                             | User events                                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Search             | Empty value/placeholder, enabled; name falls back to placeholder or Search                                       | `value`, `disabled`; attributes placeholder, value, aria-label, disabled                         | Native `input` then `change` as the inner search input produces them; read host value                                             |
+| Checkbox           | Unchecked, enabled, value `on`; host supplies accessible name                                                    | `checked`, `disabled`, `value` properties or attributes                                          | `input` then `change` after activation; read host checked                                                                         |
+| Select             | First selected or eligible option, otherwise empty; enabled                                                      | `value`, `selectedIndex`, disabled; children define readonly options list                        | `input` then `change` only when a different eligible option is committed; read host value                                         |
+| Slide Show options | Timings/narration enabled by default; unsupported options unchecked/disabled; labels default to translation keys | DOM `presentationProperties`, `labels`, disabled                                                 | One `show-options-change` with a presentation-property patch; host commits before display changes                                 |
+| Ribbon command     | Enabled, ordinary size, inactive; no pressed/expanded state                                                      | Attributes label, icon, title, disabled, active, compact, pressed, expanded and customization id | One `command-request` with `{ id }`; host owns action                                                                             |
+| Ribbon toggle      | Unchecked, enabled                                                                                               | Attributes label, title, checked, disabled and customization id                                  | One `toggle-request` with `{ id, checked }`; host commits before display changes                                                  |
+| Ribbon group       | Empty label and content                                                                                          | Label and optional group id; default slot                                                        | None                                                                                                                              |
+| Status bar         | Empty deck, no zoom cluster, notes hidden, no pressed view unless `viewMode` is set                              | DOM `state` (counter, save text, zoom, gating, pressed view), `collaboration` slot               | One `status-request` with `{ id }`; host owns every action                                                                        |
+| Title bar          | Nothing editable, no strip, default file name                                                                    | DOM `state`, `placement` attribute, `collaboration` and `account` slots                          | One typed event per intent (`toggle-autosave`, `save`, `undo`, `redo`, `quick-command`, `command-search`); host owns every action |
 
 All user events bubble and cross open shadow roots. Programmatic changes emit
 no edits. Use `event.currentTarget` for native value events and `event.detail`
@@ -508,26 +551,44 @@ host can report it (Svelte does); other hosts omit it and show no pressed state.
 The Select menu and its Select All command are app-owned popovers and stay
 native.
 
-### Home groups that stay native
+### Slides, Drawing and Arrange
 
-Slides (New Slide split button, Slide Templates dialog, Layout and Reset menus,
-Section), Drawing (Shapes, Arrange, Shape Fill/Outline, Quick Styles and Shape
-Effects galleries and colour popovers) and Arrange (align/distribute/flip/order
-selects, Group/Ungroup, Merge Shapes, Crop, outline width, Duplicate, Delete and
-the second Format Painter) still live in each binding. They are built from
-labelled split buttons, galleries, anchored popovers, dialogs and colour
-pickers that each binding anchors and focuses natively, and their labels,
-ordering and gating differ between bindings in ways a shared strip cannot
-unify without a behaviour change. They are tracked as the next Home batches.
-The font family and size selectors, character spacing, change case, font and
-highlight colour pickers stay native for the same reason.
+| Family          | Element                             | Controls                                                                                      |
+| --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `slides`        | `pptx-ui-ribbon-home-slides`        | The whole `home.slides` group: split New Slide, Slide Templates, Layout, Reset, Section       |
+| `drawing`       | `pptx-ui-ribbon-home-drawing`       | The Shapes, Arrange, Shape Fill and Shape Outline triggers inside `home.drawing`              |
+| `arrange-align` | `pptx-ui-ribbon-home-arrange-align` | The `home.arrange.align` wrapper: six Align edges plus Distribute Horizontally and Vertically |
+| `arrange-flip`  | `pptx-ui-ribbon-home-arrange-flip`  | Flip Horizontal and Flip Vertical                                                             |
+| `arrange-order` | `pptx-ui-ribbon-home-arrange-order` | Send Backward, Bring Forward, Send to Back, Bring to Front                                    |
+| `arrange-edit`  | `pptx-ui-ribbon-home-arrange-edit`  | Duplicate and Delete                                                                          |
 
-## Design tokens
+The intent is now `{ id, part? }`. `part` tells apart buttons that share one
+public id: the New Slide caret (`caret`) and the Align strip (an edge such as
+`centerH`, or `distribute-horizontal`/`distribute-vertical`; decode with
+`arrangeAlignAction`). Such buttons are keyed `id#part` in `state.controls`.
+Controls with visible text use it as their accessible name and keep the longer
+phrase as the tooltip. Popover triggers (`popup`) and the New Slide split sit in
+a `div.slot[data-ribbon-control]` wrapper, as the native split buttons and menu
+hosts did, so customization hides trigger and popover together; the inner button
+carries `aria-haspopup`, and `expanded` state reflects as `aria-expanded`.
+`element.anchor(id)` returns the wrapper (or button) so the host can position or
+mount its native popover.
 
-Search, select and checkbox read the tokens in `control-tokens.ts` (field,
-focus ring, density and checkbox groups) through `tok(name)`; the host
-stylesheet applies the same accent, size and focus ring to native checkboxes,
-radios and select borders inside viewer chrome and dialogs. See the control
-primitives section of `docs/guide/ui-migration.md` for the token table and the
-list of surfaces that keep a native `<select>`. `pptx-ui-search` also exposes
-`placeholder` as a property.
+Gating helpers: `slidesHomeControls` takes the host-specific rules that differ
+between bindings (`newSlideNeedsLayout`, `resetNeedsSlide`, `showTemplates`),
+`drawingHomeControls` (Shapes needs edit rights, the rest also a selection) and
+`arrangeHomeControls` (edit rights plus a selection; Distribute uses the host's
+own `canDistribute`).
+
+Still native, and why: the layout galleries (New Slide caret and Layout), the
+Shapes and Arrange menus, the Fill and Outline colour popovers and the Slide
+Templates dialog are anchored, focus-managed popovers that read each binding's
+deck data (layout previews, theme colours, recent colours) and run its undo
+path, so only their triggers are shared. In Drawing the Quick Styles and Shape
+Effects galleries are already the shared gallery element and the group wrapper
+sits with them. Arrange keeps its second Format Painter pill, Group/Ungroup,
+Merge Shapes, Crop and outline width (selects, spinners and menus tied to each
+binding's selection state). In Font and Paragraph the family and size
+selectors, character spacing, change case, font and highlight colour pickers,
+Bullets and Numbering (with their library galleries), line spacing, text
+direction, columns and the Select menu remain native for the same reason.

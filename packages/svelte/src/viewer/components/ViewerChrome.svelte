@@ -64,7 +64,9 @@
 	const openPrint = $derived(custom.isDialogAvailable('print') ? () => (parityUi.printSettingsOpen = true) : undefined);
 
 	const notesAvailable = $derived(showNotes && loader.slides.length > 0);
-	const autosaveStatus = $derived(vm.autosaveActive ? autosaveCtl.status : undefined);
+	const autosaveStatus = $derived(
+		vm.autosaveDisabledReason ? 'disabled' : vm.autosaveActive ? autosaveCtl.status : undefined,
+	);
 	// React parity: the full ribbon renders for read-only decks too (with a
 	// read-only badge and inert edits), so it is gated on a loaded deck, not on
 	// `editable`; the badge itself is what reflects the read-only state.
@@ -108,9 +110,13 @@
 	editable={vm.editingActive}
 	isDirty={editor.dirty}
 	autosaveEnabled={vm.autosaveEnabled}
+	autosaveToggleAvailable={vm.autosaveToggleAvailable}
 	{autosaveStatus}
+	autosaveDisabledReason={vm.autosaveDisabledReason}
 	canUndo={editor.canUndo}
 	canRedo={editor.canRedo}
+	undoLabel={editor.undoLabel}
+	redoLabel={editor.redoLabel}
 	findReplaceOpen={findReplace.open}
 	onautosavetoggle={() => vm.setAutosaveEnabled(!vm.autosaveEnabled)}
 	onsave={() => void vm.downloadPptx()}

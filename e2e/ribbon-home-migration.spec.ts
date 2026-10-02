@@ -292,6 +292,143 @@ test.describe('Home editing', () => {
 	});
 });
 
+const rows = (page: Page) => page.locator('[data-pptx-chrome="slide-row"]');
+const inner = (page: Page, id: string) => {
+	const host = control(page, id);
+	return host
+		.locator('button')
+		.first()
+		.or(host.and(page.locator('button')));
+};
+
+test.describe('Home slides', () => {
+	test('exposes the group and ids once; New Slide and Reset edit the deck with undo', async ({
+		page,
+	}) => {
+		await openHome(page);
+		await expect(page.locator('[data-ribbon-group="home.slides"]')).toHaveCount(1);
+		for (const id of ['newSlide', 'slideTemplates', 'layout', 'reset', 'section']) {
+			await expect(page.locator(`[data-ribbon-control="home.slides.${id}"]`)).toHaveCount(1);
+		}
+		const before = await rows(page).count();
+		await page
+			.locator('[data-ribbon-control="home.slides.newSlide"] [data-pptx-chrome="split-main"]')
+			.click();
+		await expect(rows(page)).toHaveCount(before + 1);
+		await page.keyboard.press('Control+z');
+		await expect(rows(page)).toHaveCount(before);
+	});
+
+	test('the Layout and New Slide caret open native menus and Escape or a second press closes them', async ({
+		page,
+	}) => {
+		await openHome(page);
+		const layout = inner(page, 'home.slides.layout');
+		await expect(layout).toBeEnabled();
+		await layout.click();
+		await expect(layout).toHaveAttribute('aria-expanded', 'true');
+		await layout.click();
+		await expect(layout).toHaveAttribute('aria-expanded', 'false');
+		const caret = page.locator(
+			'[data-ribbon-control="home.slides.newSlide"] [data-pptx-chrome="split-caret"]',
+		);
+		await caret.click();
+		await expect(caret).toHaveAttribute('aria-expanded', 'true');
+	});
+
+	test('retains public customization ids', async ({ page }) => {
+		const customization = {
+			ribbon: { hiddenButtons: ['home.slides.reset', 'home.slides.layout'] },
+		};
+		await openHome(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
+		await expect(control(page, 'home.slides.reset')).toBeHidden();
+		await expect(control(page, 'home.slides.layout')).toBeHidden();
+		await expect(control(page, 'home.slides.section')).toBeVisible();
+	});
+});
+
+test.describe('Home drawing and arrange', () => {
+	test('gates the Drawing triggers and Arrange strips on a selection', async ({ page }) => {
+		await openHome(page);
+		await expect(page.locator('[data-ribbon-group="home.drawing"]')).toHaveCount(1);
+		await expect(inner(page, 'home.drawing.shapes')).toBeEnabled();
+		for (const id of ['arrange', 'shapeFill', 'shapeOutline']) {
+			await expect(page.locator(`[data-ribbon-control="home.drawing.${id}"]`)).toHaveCount(1);
+			await expect(inner(page, `home.drawing.${id}`)).toBeDisabled();
+		}
+		const arrangeIds = [
+			'flipHorizontal',
+			'flipVertical',
+			'sendBackward',
+			'bringForward',
+			'sendToBack',
+			'bringToFront',
+			'duplicate',
+			'delete',
+		];
+		for (const id of arrangeIds) {
+			await expect(page.locator(`[data-ribbon-control="home.arrange.${id}"]`)).toHaveCount(1);
+			await expect(control(page, `home.arrange.${id}`)).toBeDisabled();
+		}
+		await expect(page.locator('[data-ribbon-control="home.arrange.align"]')).toHaveCount(1);
+		await selectSubtitle(page);
+		for (const id of arrangeIds) {
+			await expect(control(page, `home.arrange.${id}`)).toBeEnabled();
+		}
+		for (const id of ['arrange', 'shapeFill', 'shapeOutline']) {
+			await expect(inner(page, `home.drawing.${id}`)).toBeEnabled();
+		}
+	});
+
+	test('Duplicate, Delete and z-order edit the deck and undo', async ({ page }) => {
+		await openHome(page);
+		const count = () => slideElements(page).count();
+		const before = await count();
+		await selectSubtitle(page);
+		await control(page, 'home.arrange.duplicate').click();
+		await expect.poll(count).toBe(before + 1);
+		await page.keyboard.press('Control+z');
+		await expect.poll(count).toBe(before);
+		await selectSubtitle(page);
+		await control(page, 'home.arrange.delete').click();
+		await expect.poll(count).toBe(before - 1);
+		await page.keyboard.press('Control+z');
+		await expect.poll(count).toBe(before);
+		await selectSubtitle(page);
+		await control(page, 'home.arrange.bringToFront').focus();
+		await page.keyboard.press('Space');
+		await expect
+			.poll(async () => (await slideElements(page).last().textContent()) ?? '')
+			.toContain('Product Overview');
+	});
+
+	test('Shapes opens a native menu and inserts a shape', async ({ page }) => {
+		await openHome(page);
+		const before = await slideElements(page).count();
+		await inner(page, 'home.drawing.shapes').click();
+		await expect(inner(page, 'home.drawing.shapes')).toHaveAttribute('aria-expanded', 'true');
+		await page
+			.getByText('Rectangle', { exact: true })
+			.or(page.getByLabel('Rectangle', { exact: true }))
+			.first()
+			.click();
+		await expect.poll(() => slideElements(page).count()).toBe(before + 1);
+	});
+
+	test('retains public customization ids', async ({ page }) => {
+		const customization = {
+			ribbon: {
+				hiddenButtons: ['home.arrange.align', 'home.arrange.delete', 'home.drawing.shapeFill'],
+			},
+		};
+		await openHome(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
+		await expect(control(page, 'home.arrange.align')).toBeHidden();
+		await expect(control(page, 'home.arrange.delete')).toBeHidden();
+		await expect(control(page, 'home.drawing.shapeFill')).toBeHidden();
+		await expect(control(page, 'home.arrange.duplicate')).toBeVisible();
+	});
+});
+
 test.describe('touch Home controls', () => {
 	test.use({ hasTouch: true });
 	test('targets, theme tokens and forced colors remain usable', async ({ page }) => {
@@ -306,7 +443,13 @@ test.describe('touch Home controls', () => {
 			);
 		});
 		await expect(copy).toHaveCSS('color', 'rgb(18, 52, 86)');
-		for (const button of [copy, pressed(page, 'bold'), para(page, 'alignLeft')]) {
+		for (const button of [
+			copy,
+			pressed(page, 'bold'),
+			para(page, 'alignLeft'),
+			control(page, 'home.arrange.sendToBack'),
+			inner(page, 'home.slides.reset'),
+		]) {
 			const box = await button.boundingBox();
 			expect(box!.width).toBeGreaterThanOrEqual(44);
 			expect(box!.height).toBeGreaterThanOrEqual(44);

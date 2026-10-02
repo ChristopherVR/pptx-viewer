@@ -19,6 +19,7 @@ import {
 	DISPLAY_UNITS_OPTIONS,
 	ERROR_BAR_VALTYPE_OPTIONS,
 	schemaLabel,
+	seriesColorClearState,
 	TRENDLINE_TYPE_OPTIONS,
 	upsertDataPoint,
 } from 'pptx-viewer-shared';
@@ -41,6 +42,8 @@ import { createChartPointIndexField } from './chart-point-index';
 export interface ChartAdvancedSection {
 	el: HTMLElement;
 	update(data: PptxChartData): void;
+	/** Read-only mode hides the Clear series colour action. */
+	setEditable(editable: boolean): void;
 }
 
 export function createChartAdvancedSection(
@@ -92,6 +95,10 @@ export function createChartAdvancedSection(
 	);
 	const markerSize = number(doc, t('pptx.chart.markerSize'));
 	const seriesColor = color(doc, t('pptx.chart.seriesColor'), pushRecentColor);
+	const clearSeriesColor = doc.createElement('button');
+	clearSeriesColor.type = 'button';
+	clearSeriesColor.className = 'pptxv-chart-clear-series-color';
+	clearSeriesColor.textContent = t('pptx.chart.clearSeriesColor');
 	const pointColor = color(doc, t('pptx.chart.dataPointColor'), pushRecentColor);
 	const pointExplosion = number(doc, t('pptx.chart.pointExplosion'));
 	el.append(
@@ -112,12 +119,14 @@ export function createChartAdvancedSection(
 		marker.label,
 		markerSize.label,
 		seriesColor.label,
+		clearSeriesColor,
 		pointIndex.label,
 		pointColor.label,
 		pointExplosion.label,
 	);
 
 	let current: PptxChartData | undefined;
+	let editable = true;
 	const axisIndex = (): number => Math.max(0, axisSelect.control.selectedIndex);
 	const seriesIndex = (): number => Math.max(0, seriesSelect.control.selectedIndex);
 	const commitAxis = (): void => {
@@ -158,7 +167,6 @@ export function createChartAdvancedSection(
 		});
 		series[seriesIndex()] = {
 			...previous,
-			color: seriesColor.control.value,
 			trendlines: trendlineType
 				? [
 						{
@@ -198,12 +206,29 @@ export function createChartAdvancedSection(
 		errorAmount.control,
 		marker.control,
 		markerSize.control,
-		seriesColor.control,
 		pointColor.control,
 		pointExplosion.control,
 	]) {
 		control.addEventListener('change', commitSeries);
 	}
+	// Only the colour control writes `color`: any other series edit must leave an
+	// unset (cleared) series colour unset instead of stamping the swatch value.
+	seriesColor.control.addEventListener('change', () => {
+		const target = current?.series[seriesIndex()];
+		if (current && target) {
+			const series = [...current.series];
+			series[seriesIndex()] = { ...target, color: seriesColor.control.value };
+			onChange({ ...current, series });
+		}
+	});
+	clearSeriesColor.addEventListener('click', () => {
+		const target = current?.series[seriesIndex()];
+		if (current && target && seriesColorClearState(target, editable).visible) {
+			const series = [...current.series];
+			series[seriesIndex()] = { ...target, color: undefined };
+			onChange({ ...current, series });
+		}
+	});
 	axisSelect.control.addEventListener('change', () => current && sync(current));
 	seriesSelect.control.addEventListener('change', () => current && sync(current));
 	// Picking a different point RE-READS it; it must not commit, or the colour
@@ -244,9 +269,19 @@ export function createChartAdvancedSection(
 		marker.control.value = item?.marker?.symbol ?? 'none';
 		set(markerSize.control, item?.marker?.size);
 		seriesColor.control.value = item?.color ?? '#4472c4';
+		clearSeriesColor.hidden = !seriesColorClearState(item, editable).visible;
 		const point = item?.dataPoints?.find(({ idx }) => idx === pointIndex.selected());
 		pointColor.control.value = point?.spPr?.fillColor ?? item?.color ?? '#4472c4';
 		set(pointExplosion.control, point?.explosion);
 	};
-	return { el, update: sync };
+	return {
+		el,
+		update: sync,
+		setEditable(next) {
+			editable = next;
+			if (current) {
+				sync(current);
+			}
+		},
+	};
 }

@@ -196,6 +196,7 @@ export function SlideSorterOverlay({
 					x={state.contextMenu.x}
 					y={state.contextMenu.y}
 					selectedCount={state.selectedSlideIds.length}
+					totalSlides={slides.length}
 					hasClipboard={state.clipboardSlideIds.length > 0}
 					hasHiddenInSelection={state.hasHiddenInSelection}
 					hasVisibleInSelection={state.hasVisibleInSelection}

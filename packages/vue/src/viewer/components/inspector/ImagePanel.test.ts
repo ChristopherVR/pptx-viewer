@@ -76,9 +76,11 @@ describe('imagePanel', () => {
 		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: { contrast: 10, grayscale: true } });
 	});
 
-	it('hides Reset Picture until an effect or crop exists and clears everything when clicked', async () => {
+	it('disables Reset Picture until an effect override exists and clears effects when clicked', async () => {
 		const clean = mount(ImagePanel, { props: { element: imageEl() } });
-		expect(clean.find('.pptx-vue-image-panel__reset-picture').exists()).toBeFalsy();
+		expect(
+			(clean.get('.pptx-vue-image-panel__reset-picture').element as HTMLButtonElement).disabled,
+		).toBeTruthy();
 
 		const dirty = mount(ImagePanel, {
 			props: { element: imageEl({ imageEffects: { brightness: 5 } } as Partial<PptxElement>) },
@@ -86,12 +88,6 @@ describe('imagePanel', () => {
 		const reset = dirty.get('.pptx-vue-image-panel__reset-picture');
 		await reset.trigger('click');
 		const events = dirty.emitted('update');
-		expect(events?.at(-1)?.[0]).toStrictEqual({
-			imageEffects: undefined,
-			cropLeft: 0,
-			cropTop: 0,
-			cropRight: 0,
-			cropBottom: 0,
-		});
+		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: undefined, cropShape: 'none' });
 	});
 });

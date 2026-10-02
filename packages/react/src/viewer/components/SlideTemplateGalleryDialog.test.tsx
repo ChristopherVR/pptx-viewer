@@ -11,7 +11,6 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 }));
 
 const { SlideTemplateGalleryDialog } = await import('./SlideTemplateGalleryDialog');
-const { SlidesGroup } = await import('./toolbar/SlidesGroup');
 
 describe('slide template gallery dialog', () => {
 	it('renders nothing when closed', () => {
@@ -45,26 +44,5 @@ describe('slide template gallery dialog', () => {
 			/>,
 		);
 		expect(html.toLowerCase()).toContain('#ba0021');
-	});
-});
-
-describe('slides group template affordance', () => {
-	const base = {
-		canEdit: true,
-		layoutOptions: [],
-		onInsertSlideFromLayout: vi.fn<() => void>(),
-	};
-
-	it('shows the Slide Templates button when the insert handler is wired', () => {
-		const html = renderToStaticMarkup(
-			<SlidesGroup {...base} onInsertSlideFromTemplate={vi.fn()} />,
-		);
-		expect(html).toContain('title="Slide Templates"');
-		expect(html).toContain('Slide Templates');
-	});
-
-	it('omits the button when no template handler is provided', () => {
-		const html = renderToStaticMarkup(<SlidesGroup {...base} />);
-		expect(html).not.toContain('title="Slide Templates"');
 	});
 });

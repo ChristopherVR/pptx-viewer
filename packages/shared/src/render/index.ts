@@ -588,6 +588,7 @@ export * from './group-ops';
 // Slide-background style cascade: resolved background fields -> CSS map
 // (image -> gradient -> pattern -> solid colour precedence).
 export * from './slide-background';
+export * from './slide-background-patch';
 // Legacy PowerPoint 97-2003 `shadeToTitle` background hint: anchors a slide's
 // gradient background as a rectangular path gradient on its title
 // placeholder's bounds (COM-measured against real PowerPoint).
@@ -1233,6 +1234,8 @@ export * from './slide-show-start-keymap';
 export * from './slide-sorter-keymap';
 export * from './slide-pane-selection';
 export * from './slide-pane-context-menu';
+export * from './section-context-menu';
+export * from './slide-sorter-context-menu';
 // Focus repair for bindings whose canvas gesture preventDefault()s the click,
 // which would otherwise park focus on document.body and kill their keymap.
 export * from './editor-keyboard-focus';
@@ -1365,6 +1368,7 @@ export * from './gradient-picker';
 // merge patches, plus the four crop-inset (left/top/right/bottom) reader +
 // clamped patch builder. Used by the image inspector panel.
 export * from './image-adjustments';
+export * from './inspector-reset-actions';
 // Table-level inspector model: header-row / banded-rows / banded-columns
 // toggle state + merge patches, plus a uniform default-cell-padding patch
 // builder (this binding has no per-cell selection model; see module docs).
@@ -1743,3 +1747,4 @@ export * from './ribbon-view-state';
 export * from './ribbon-transitions-state';
 export * from './status-bar-state';
 export * from './notes-toolbar-state';
+export * from './title-bar-state';

@@ -23,7 +23,12 @@ import {
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import { normalizeHexColor, resolveTemplateBackgroundRows } from '../internal/shared';
+import {
+	normalizeHexColor,
+	resolveTemplateBackgroundRows,
+	slideBackgroundClearPatch,
+	slideBackgroundClearState,
+} from '../internal/shared';
 import type { TemplateBackgroundRow } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
@@ -101,11 +106,11 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 					</div>
 				}
 
-				@if (hasBackground()) {
+				@if (clearState().visible) {
 					<button
 						type="button"
 						class="icard__btn icard__btn--danger"
-						[disabled]="!canEdit()"
+						[disabled]="!clearState().enabled"
 						(click)="onClear()"
 					>
 						{{ 'pptx.slideBackground.clearBackground' | translate }}
@@ -246,10 +251,9 @@ export class SlideBackgroundCardComponent {
 		normalizeHexColor(this.slide()?.backgroundColor, '#ffffff'),
 	);
 
-	protected readonly hasBackground = computed(() => {
-		const sl = this.slide();
-		return Boolean(sl?.backgroundColor || sl?.backgroundImage || sl?.backgroundGradient);
-	});
+	protected readonly clearState = computed(() =>
+		slideBackgroundClearState(this.slide(), this.canEdit()),
+	);
 
 	protected readonly hideBackgroundGraphics = computed(
 		() => this.slide()?.showMasterShapes === false,
@@ -326,11 +330,7 @@ export class SlideBackgroundCardComponent {
 	}
 
 	protected onClear(): void {
-		this.patch({
-			backgroundColor: undefined,
-			backgroundImage: undefined,
-			backgroundGradient: undefined,
-		});
+		this.patch(slideBackgroundClearPatch());
 	}
 
 	protected onToggleHideBackgroundGraphics(event: Event): void {

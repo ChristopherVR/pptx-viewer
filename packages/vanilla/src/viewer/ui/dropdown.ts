@@ -30,10 +30,18 @@ export interface DropdownOptions<T> {
 	onSelect(value: T): void;
 	/** Trailing chevron icon; defaults to `'chevron-down'`. */
 	icon?: IconName;
+	/**
+	 * Use a trigger the host already renders (a shared Home button): no trigger
+	 * is built, `el` holds only the menu and is appended inside `anchor`'s
+	 * wrapper, and the menu opens through `toggle()`.
+	 */
+	external?: { anchor(): HTMLElement | undefined; onOpenChange?(open: boolean): void };
 }
 
 export interface DropdownHandle<T> {
 	el: HTMLElement;
+	/** Open or close the menu (the only way to open an external-trigger menu). */
+	toggle(): void;
 	setDisabled(disabled: boolean): void;
 	setTriggerText(text: string): void;
 	/** Replace the whole item list (the font dropdown regroups per deck). */
@@ -50,7 +58,11 @@ export interface DropdownHandle<T> {
  * spacing, character spacing, change case, ...).
  */
 export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): DropdownHandle<T> {
-	const el = createEl(doc, 'div', 'pptxv-dropdown');
+	const external = options.external;
+	const el = createEl(doc, 'div', external ? '' : 'pptxv-dropdown');
+	if (external) {
+		el.style.display = 'contents';
+	}
 
 	const trigger = createEl(doc, 'button', 'pptxv-dropdown-trigger');
 	trigger.type = 'button';
@@ -62,7 +74,9 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 	textEl.textContent = options.triggerText;
 	trigger.appendChild(textEl);
 	trigger.appendChild(createIcon(doc, options.icon ?? 'chevron-down'));
-	el.appendChild(trigger);
+	if (!external) {
+		el.appendChild(trigger);
+	}
 
 	const menu = createEl(doc, 'div', 'pptxv-dropdown-menu');
 	menu.setAttribute('role', 'listbox');
@@ -80,9 +94,10 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 		menu.hidden = !open;
 		trigger.setAttribute('aria-expanded', String(open));
 		trigger.classList.toggle('is-active', open);
+		external?.onOpenChange?.(open);
 		if (open) {
 			popup?.destroy();
-			popup = attachAnchoredPopup(menu, trigger);
+			popup = attachAnchoredPopup(menu, external?.anchor() ?? trigger);
 		} else {
 			popup?.destroy();
 			popup = null;
@@ -160,13 +175,16 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 		setOpen(!isOpen);
 	});
 	doc.addEventListener('pointerdown', (event) => {
-		if (isOpen && !el.contains(event.target as Node)) {
+		// An external menu lives inside its trigger's wrapper, which counts as inside.
+		const inside = external ? (external.anchor() ?? el) : el;
+		if (isOpen && !inside.contains(event.target as Node)) {
 			setOpen(false);
 		}
 	});
 
 	return {
 		el,
+		toggle: () => setOpen(!isOpen),
 		setDisabled(disabled) {
 			trigger.disabled = disabled;
 			if (disabled) {

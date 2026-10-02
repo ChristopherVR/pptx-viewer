@@ -1182,6 +1182,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										fileName={fileName}
 										autosaveStatus={autosaveStatus}
 										autosaveEnabled={autosaveActivation.active}
+										autosaveToggleAvailable={autosaveActivation.toggleAvailable}
 										onToggleAutosave={() => {
 											// Inert when the host passed `autosave={false}`: a preference
 											// cannot exceed the policy, so the switch must not move.

@@ -10,20 +10,20 @@
  * left. One command, one place per tab.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
-	LucideAlignHorizontalSpaceAround,
-	LucideAlignVerticalSpaceAround,
-	LucideChevronDown,
-	LucideChevronUp,
-	LucideTextAlignCenter,
-	LucideTextAlignEnd,
-	LucideTextAlignStart,
-} from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import type { ToolbarActionId } from '../internal/shared';
+import type { RibbonHomeRequestEvent, ToolbarActionId } from '../internal/shared';
+import { arrangeAlignAction, arrangeHomeControls } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { RibbonCropComponent } from './ribbon-crop.component';
 import { RibbonIconDirective } from './ribbon-icon.directive';
@@ -40,17 +40,11 @@ import { toolbarVisibility } from './toolbar-visibility';
 		RibbonIconDirective,
 		NgClass,
 		TranslatePipe,
-		LucideTextAlignStart,
-		LucideTextAlignCenter,
-		LucideTextAlignEnd,
-		LucideChevronUp,
-		LucideChevronDown,
-		LucideAlignHorizontalSpaceAround,
-		LucideAlignVerticalSpaceAround,
 		RibbonShapeExtrasComponent,
 		RibbonMergeShapesComponent,
 		RibbonCropComponent,
 	],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	templateUrl: './ribbon-arrange-section.component.html',
 })
 export class RibbonArrangeSectionComponent {
@@ -68,6 +62,62 @@ export class RibbonArrangeSectionComponent {
 	protected readonly toolbar = toolbarVisibility(computed(() => this.hiddenActions()));
 
 	readonly toggleFormatPainter = output<void>();
+
+	private readonly translation = inject(TranslateService, { optional: true });
+
+	/** Shared strip state: one selection and edit-rights gate for align, flip, order and edit. */
+	protected arrangeView() {
+		return {
+			controls: arrangeHomeControls({
+				editable: this.canEdit(),
+				hasSelection: this.hasSel(),
+				canDistribute: this.canDistribute(),
+			}),
+			translate: (key: string) => this.translation?.instant(key) ?? key,
+		};
+	}
+
+	protected onAlign(event: Event): void {
+		const action = arrangeAlignAction((event as RibbonHomeRequestEvent).detail.part);
+		if (action?.kind === 'align') {
+			this.editor.alignSelected(this.slideIndex(), action.edge);
+		} else if (action?.kind === 'distribute') {
+			this.editor.distributeSelected(this.slideIndex(), action.axis);
+		}
+	}
+
+	protected onFlip(event: Event): void {
+		this.flipSelected(
+			(event as RibbonHomeRequestEvent).detail.id === 'home.arrange.flipHorizontal'
+				? 'horizontal'
+				: 'vertical',
+		);
+	}
+
+	protected onOrder(event: Event): void {
+		const slide = this.slideIndex();
+		switch ((event as RibbonHomeRequestEvent).detail.id) {
+			case 'home.arrange.sendBackward':
+				this.editor.sendSelectedBackward(slide);
+				break;
+			case 'home.arrange.bringForward':
+				this.editor.bringSelectedForward(slide);
+				break;
+			case 'home.arrange.sendToBack':
+				this.editor.sendSelectedToBack(slide);
+				break;
+			case 'home.arrange.bringToFront':
+				this.editor.bringSelectedToFront(slide);
+		}
+	}
+
+	protected onEdit(event: Event): void {
+		if ((event as RibbonHomeRequestEvent).detail.id === 'home.arrange.duplicate') {
+			this.editor.duplicateSelected(this.slideIndex());
+		} else {
+			this.editor.deleteSelected(this.slideIndex());
+		}
+	}
 
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;

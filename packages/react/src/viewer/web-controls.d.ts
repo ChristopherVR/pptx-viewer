@@ -13,6 +13,7 @@ type WebControlProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElemen
 	compact?: boolean;
 	pressed?: string;
 	expanded?: string;
+	placement?: string;
 };
 
 declare module 'react' {
@@ -29,6 +30,12 @@ declare module 'react' {
 			'pptx-ui-ribbon-home-editing': WebControlProps;
 			'pptx-ui-ribbon-home-font': WebControlProps;
 			'pptx-ui-ribbon-home-paragraph': WebControlProps;
+			'pptx-ui-ribbon-home-slides': WebControlProps;
+			'pptx-ui-ribbon-home-drawing': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-align': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-flip': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-order': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-edit': WebControlProps;
 			'pptx-ui-ribbon-transitions': WebControlProps;
 			'pptx-ui-ribbon-insert': WebControlProps;
 			'pptx-ui-ribbon-view': WebControlProps;
@@ -40,6 +47,7 @@ declare module 'react' {
 			'pptx-ui-notes-toolbar': WebControlProps;
 			'pptx-ui-subtitle-settings': WebControlProps;
 			'pptx-ui-theme-editor': WebControlProps;
+			'pptx-ui-title-bar': WebControlProps;
 		}
 	}
 }

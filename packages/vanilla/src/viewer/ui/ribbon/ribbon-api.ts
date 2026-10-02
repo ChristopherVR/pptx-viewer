@@ -38,6 +38,11 @@ export interface Ribbon {
 	 */
 	toggleFindReplace(): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
+	/** Title-bar command search: the Insert > Equation panel, SmartArt dialog, Design > Slide Size and Browse Themes. */
+	toggleEquationPanel(): void;
+	openSmartArtDialog(): void;
+	openSlideSize(): void;
+	toggleThemeGallery(): void;
 	/**
 	 * Hide ribbon tabs unticked in Options > Customize Ribbon. The File tab
 	 * always survives; a hidden active tab falls back to Home (or the first

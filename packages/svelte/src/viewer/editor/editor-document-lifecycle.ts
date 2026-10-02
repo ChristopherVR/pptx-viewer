@@ -59,8 +59,33 @@ export type LoadDocumentArgs = [
  * and the editing session (selection, history, dirty flag, ink tool) is reset.
  */
 export function loadEditorDocument(state: EditorState, ...args: LoadDocumentArgs): void {
+	const [slides] = args;
+	const partition = partitionTemplateElements(slides);
+	state.slides = partition.slides;
+	state.templateElementsBySlideId = partition.templateElementsBySlideId;
+	adoptDocumentParts(state, ...args);
+	// Written in the same synchronous block as the content above so anything
+	// watching the slides for edits (the autosave controller) sees "this is a
+	// freshly seeded document" and the new slide array together, never one
+	// without the other. See `EditorState.seedNonce`.
+	state.seedNonce += 1;
+	resetEditorSession(state);
+}
+
+/**
+ * Install everything a load carries EXCEPT the slides (masters, sections,
+ * properties, header/footer, custom shows) and leave the editing session
+ * untouched: no selection, history, inline-editor or slide reset.
+ *
+ * A collaboration joiner's own bootstrap deck finishes parsing after the room's
+ * slides have already synced in and may be edited. The room's slides win over
+ * the bootstrap deck, so only its surrounding document parts are adopted; a
+ * full {@link loadEditorDocument} would reset the session under the user's
+ * open inline editor and discard any edit not yet published to the room.
+ */
+export function adoptDocumentParts(state: EditorState, ...args: LoadDocumentArgs): void {
 	const [
-		slides,
+		,
 		slideMasters = [],
 		notesMaster,
 		handoutMaster,
@@ -72,9 +97,6 @@ export function loadEditorDocument(state: EditorState, ...args: LoadDocumentArgs
 		presentationProperties = {},
 		customShows = [],
 	] = args;
-	const partition = partitionTemplateElements(slides);
-	state.slides = partition.slides;
-	state.templateElementsBySlideId = partition.templateElementsBySlideId;
 	state.slideMasters = structuredClone(slideMasters);
 	state.notesMaster = structuredClone(notesMaster);
 	state.handoutMaster = structuredClone(handoutMaster);
@@ -86,12 +108,6 @@ export function loadEditorDocument(state: EditorState, ...args: LoadDocumentArgs
 	// parsed the tag parts; a freshly created deck legitimately has none.
 	state.tagCollections = [];
 	state.presentationMetadata.set(headerFooter, presentationProperties, customShows);
-	// Written in the same synchronous block as the content above so anything
-	// watching the slides for edits (the autosave controller) sees "this is a
-	// freshly seeded document" and the new slide array together, never one
-	// without the other. See `EditorState.seedNonce`.
-	state.seedNonce += 1;
-	resetEditorSession(state);
 }
 
 /** Clear the editing session (selection, history, dirty flag) without touching content. */

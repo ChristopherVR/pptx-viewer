@@ -8,22 +8,27 @@
  * section is expanded. Headers support:
  *  - click to toggle collapse,
  *  - double-click to start an inline rename (Enter commits, Escape cancels),
- *  - up/down/delete affordances on hover.
- *  - an "Add section" button at the foot of each group's first slide.
+ *  - a right-click (or context-menu key) section menu: Rename, Delete, Move Up,
+ *    Move Down and Add Section After, from the shared
+ *    buildSectionContextMenuEntries (replaces the old hover buttons),
+ *  - the same thumbnail right-click menu and Ctrl/Shift multi-select as the
+ *    flat rail (useSlidePaneRailMenu).
  *
  * Presentational only: all state lives in the host. It receives the
  * `slidesBySection` grouping from `useSectionOperations` and emits the
  * operations back: `toggle-collapse`, `rename`, `move-up`, `move-down`,
  * `delete`, `add-section` (after a slide index), and `select` (a slide).
  */
-import { ChevronDown, ChevronUp, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useSectionContextMenu } from '../composables/useSectionContextMenu';
 import type { SectionGroup } from '../composables/useSectionOperations';
+import { useSlidePaneRailMenu } from '../composables/useSlidePaneRailMenu';
 import type { CanvasSize } from '../types';
+import ContextMenu from './ContextMenu.vue';
 import SlideStage from './SlideStage.vue';
 
 const props = defineProps<{
@@ -50,10 +55,15 @@ const emit = defineEmits<{
 	'move-up': [sectionId: string];
 	/** Move a section one position later. */
 	'move-down': [sectionId: string];
-	/** Delete a section. */
-	delete: [sectionId: string];
-	/** Add a new section after the given slide index. */
-	'add-section': [afterSlideIndex: number];
+	/** Delete a section (named apart from the thumbnail menu's slide `delete`). */
+	'delete-section': [sectionId: string];
+	/** Add a new section at the given slide index. */
+	'add-section': [slideIndex: number];
+	'add-slide-after': [index: number];
+	duplicate: [indexes: number[]];
+	delete: [indexes: number[]];
+	'toggle-hidden': [indexes: number[]];
+	layout: [payload: { index: number; x: number; y: number }];
 }>();
 
 const { t } = useI18n();
@@ -68,8 +78,6 @@ const stageWrapStyle = computed<CSSProperties>(() => ({
 	width: `${TILE_WIDTH}px`,
 	height: `${tileHeight.value}px`,
 }));
-
-const sectionCount = computed(() => props.groups.filter((g) => g.section !== undefined).length);
 
 /** The section id currently being renamed, or `null` when idle. */
 const renamingId = ref<string | null>(null);
@@ -89,9 +97,51 @@ function isCollapsed(group: SectionGroup): boolean {
 	return group.section?.collapsed === true;
 }
 
-function onSelect(index: number): void {
-	emit('select', index);
-}
+/** Every slide in deck order, so the thumbnail menu's indexes are deck indexes. */
+const deckSlides = computed<PptxSlide[]>(() => {
+	const ordered: PptxSlide[] = [];
+	for (const group of props.groups) {
+		group.slides.forEach((slide, offset) => {
+			ordered[group.slideIndexes[offset]] = slide;
+		});
+	}
+	return ordered;
+});
+
+const {
+	isSelected,
+	onSlideClick,
+	onPaneKeydown,
+	menu: slideMenu,
+	menuItems: slideMenuItems,
+	onContextMenu: onSlideContextMenu,
+	onMenuSelect: onSlideMenuSelect,
+} = useSlidePaneRailMenu(
+	() => deckSlides.value,
+	() => props.activeIndex,
+	() => props.canEdit !== false,
+	// This list emits more events than the rail menu uses, so the strict
+	// per-event overload of the composable cannot take `emit` directly.
+	(event, ...args) => (emit as (name: string, ...rest: unknown[]) => void)(event, ...args),
+);
+
+const {
+	menu: sectionMenu,
+	items: sectionMenuItems,
+	openFor: openSectionMenu,
+	onSelect: onSectionMenuSelect,
+} = useSectionContextMenu(
+	() => props.groups,
+	() => deckSlides.value.length,
+	() => props.canEdit !== false,
+	{
+		rename: (sectionId, name) => void startRename(sectionId, name),
+		moveUp: (sectionId) => emit('move-up', sectionId),
+		moveDown: (sectionId) => emit('move-down', sectionId),
+		remove: (sectionId) => emit('delete-section', sectionId),
+		addAfter: (slideIndex) => emit('add-section', slideIndex),
+	},
+);
 
 function onHeaderClick(group: SectionGroup): void {
 	if (group.section && renamingId.value !== group.section.id) {
@@ -137,17 +187,13 @@ function onRenameKeydown(event: KeyboardEvent): void {
 	event.stopPropagation();
 }
 
-function lastSlideIndex(group: SectionGroup): number {
-	return group.slideIndexes[group.slideIndexes.length - 1] ?? -1;
-}
-
 function slideLabel(slide: PptxSlide, index: number): string {
 	return t('pptx.notes.slideN', { n: slide.slideNumber || index + 1 });
 }
 </script>
 
 <template>
-	<div class="pptx-vue-section-list flex flex-col gap-0.5 p-1">
+	<div class="pptx-vue-section-list flex flex-col gap-0.5 p-1" @keydown="onPaneKeydown">
 		<div
 			v-for="(group, gi) in props.groups"
 			:key="group.section?.id ?? `__nosection-${gi}`"
@@ -157,6 +203,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 			<div
 				v-if="group.section"
 				class="pptx-vue-section-header group flex items-center gap-1 px-1 py-0.5"
+				data-pptx-chrome="section-header"
 			>
 				<button
 					type="button"
@@ -166,6 +213,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						isCollapsed(group) ? t('pptx.sectionList.expand') : t('pptx.sectionList.collapse')
 					"
 					@click="onHeaderClick(group)"
+					@contextmenu="openSectionMenu($event, group.section.id)"
 					@dblclick.stop="startRename(group.section.id, group.section.name)"
 				>
 					<!-- Section colour from `p15:sectionPr/@clr`. Core parses and
@@ -217,42 +265,6 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						}}</span>
 					</template>
 				</button>
-
-				<div
-					v-if="props.canEdit !== false && renamingId !== group.section.id"
-					class="pptx-vue-section-actions inline-flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-				>
-					<button
-						type="button"
-						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
-						data-pptx-compact
-						:title="t('pptx.sectionList.moveUp')"
-						:aria-label="t('pptx.sectionList.moveUp')"
-						@click="emit('move-up', group.section.id)"
-					>
-						<ChevronUp class="h-3 w-3" aria-hidden="true" />
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
-						data-pptx-compact
-						:title="t('pptx.sectionList.moveDown')"
-						:aria-label="t('pptx.sectionList.moveDown')"
-						@click="emit('move-down', group.section.id)"
-					>
-						<ChevronDown class="h-3 w-3" aria-hidden="true" />
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-section-action pptx-vue-section-action--danger inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
-						data-pptx-compact
-						:title="t('pptx.sectionList.deleteSection')"
-						:aria-label="t('pptx.sectionList.deleteSection')"
-						@click="emit('delete', group.section.id)"
-					>
-						<X class="h-3 w-3" aria-hidden="true" />
-					</button>
-				</div>
 			</div>
 
 			<!-- Slide thumbnails for this group (hidden while collapsed). -->
@@ -272,11 +284,14 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						:class="
 							group.slideIndexes[si] === props.activeIndex
 								? 'border-primary bg-accent'
-								: 'border-transparent hover:bg-muted'
+								: isSelected(slide.id)
+									? 'border-primary/50 bg-accent/30'
+									: 'border-transparent hover:bg-muted'
 						"
 						:title="slideLabel(slide, group.slideIndexes[si])"
-						:aria-label="slideLabel(slide, group.slideIndexes[si])"
-						@click="onSelect(group.slideIndexes[si])"
+						:aria-label="t('pptx.slidesPanel.goToSlide', { n: group.slideIndexes[si] + 1 })"
+						@click="onSlideClick($event, group.slideIndexes[si])"
+						@contextmenu="onSlideContextMenu($event, group.slideIndexes[si])"
 					>
 						<span
 							class="pptx-vue-section-thumb-num w-[18px] flex-shrink-0 text-right text-[10px] text-muted-foreground"
@@ -296,21 +311,24 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					</button>
 				</li>
 			</ul>
-
-			<!-- Add-section affordance at the foot of each group. -->
-			<button
-				v-if="props.canEdit !== false && lastSlideIndex(group) >= 0"
-				type="button"
-				class="pptx-vue-section-add mb-1 ml-7 mr-1 mt-0 cursor-pointer self-start rounded border border-dashed border-border bg-transparent px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-foreground"
-				:title="
-					sectionCount === 0
-						? t('pptx.sectionList.addSection')
-						: t('pptx.sectionList.addSectionHere')
-				"
-				@click="emit('add-section', lastSlideIndex(group))"
-			>
-				+ {{ t('pptx.sectionList.addSection') }}
-			</button>
 		</div>
+
+		<ContextMenu
+			:open="sectionMenu.open"
+			:x="sectionMenu.x"
+			:y="sectionMenu.y"
+			:items="sectionMenuItems"
+			:aria-label="t('pptx.sections.sectionButtonLabel')"
+			@select="onSectionMenuSelect"
+			@close="sectionMenu.open = false"
+		/>
+		<ContextMenu
+			:open="slideMenu.open"
+			:x="slideMenu.x"
+			:y="slideMenu.y"
+			:items="slideMenuItems"
+			@select="onSlideMenuSelect"
+			@close="slideMenu.open = false"
+		/>
 	</div>
 </template>

@@ -79,7 +79,7 @@ function mountSection(
 }
 
 describe('imageSection', () => {
-	it('resets crop and advanced image effects', () => {
+	it('resets advanced image effects and keeps the crop (Reset Crop owns that)', () => {
 		const editor = makeEditor(
 			imageEl({
 				cropLeft: 0.2,
@@ -92,12 +92,12 @@ describe('imageSection', () => {
 		);
 		const { target } = mountSection(editor, currentEl(editor));
 		const reset = [...target.querySelectorAll('button')].find((button) =>
-			button.textContent?.includes('Reset picture'),
+			button.textContent?.includes('Reset Picture'),
 		) as HTMLButtonElement;
 		reset.click();
 		flushSync();
 		const current = currentEl(editor) as ImageShape;
-		expect(current.cropLeft).toBe(0);
+		expect(current.cropLeft).toBe(0.2);
 		expect(current.imageEffects).toBeUndefined();
 	});
 

@@ -170,91 +170,18 @@ const CHROME_CSS = `
 .pptxv-autosave-recovery-message { margin: 0; overflow-wrap: anywhere; line-height: 1.45; }
 .pptxv-autosave-recovery-age { margin: 0; color: var(--pptx-muted-foreground); font-size: 11px; }
 
-/* ── PowerPoint-style title bar ─────────────────────────────────────── */
-.pptxv-titlebar {
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: ${TB.gap}px;
-	height: ${TB.height}px;
-	padding: 0 ${TB.paddingX}px;
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-	color: var(--pptx-card-foreground);
-	font-size: ${TB.fontSize}px;
-	user-select: none;
-}
-.pptxv-titlebar-logo {
-	display: inline-grid;
-	width: ${TB.logoSize}px;
-	height: ${TB.logoSize}px;
-	place-items: center;
-	border-radius: ${TB.logoRadius}px;
-	background: ${TB.logoBackground};
-	color: #fff;
-	font-size: ${TB.logoFontSize}px;
-	font-weight: 700;
-}
-.pptxv-titlebar-autosave, .pptxv-titlebar-file { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
-.pptxv-titlebar-autosave-label, .pptxv-titlebar-status { color: var(--pptx-muted-foreground); white-space: nowrap; }
-.pptxv-titlebar-switch {
-	position: relative;
-	width: ${TB.switchTrackWidth}px;
-	height: ${TB.switchTrackHeight}px;
-	padding: 0;
-	border: 0;
-	border-radius: 999px;
-	background: var(--pptx-muted-foreground);
-	cursor: pointer;
-}
-.pptxv-titlebar-switch.is-on { background: var(--pptx-primary); }
-/* The host passed \`autosave: false\`: the switch is a policy the user cannot
-   override, so it reads as unavailable instead of silently doing nothing. */
-.pptxv-titlebar-switch.is-disabled { opacity: .45; cursor: not-allowed; }
-.pptxv-titlebar-switch-knob { position: absolute; top: ${TB.switchKnobOffsetOff}px; left: ${TB.switchKnobOffsetOff}px; width: ${TB.switchKnobSize}px; height: ${TB.switchKnobSize}px; border-radius: 50%; background: #fff; transition: transform 120ms ease; }
-/* The knob is parked at its "off" offset, so the travel is the difference
-   between the two offsets, not the "on" offset itself. */
-.pptxv-titlebar-switch.is-on .pptxv-titlebar-switch-knob { transform: translateX(${TB.switchKnobOffsetOn - TB.switchKnobOffsetOff}px); }
-.pptxv-titlebar-switch:focus-visible, .pptxv-titlebar-btn:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
+/* ── PowerPoint-style title bar ───────────────────────────────────────
+   The shared pptx-ui-title-bar owns its own layout, metrics and responsive rules;
+   only host-owned slotted parts (the AI toggle) are styled here. */
+.pptxv-titlebar, .pptxv-qat-strip { display: block; }
 .pptxv-titlebar-btn { width: 24px; height: 24px; }
 .pptxv-titlebar-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-titlebar-sep { width: 1px; height: ${TB.separatorHeight}px; background: var(--pptx-border); }
-.pptxv-titlebar-filename { overflow: hidden; max-width: 180px; text-overflow: ellipsis; white-space: nowrap; font-size: ${TB.fileNameFontSize}px; font-weight: ${TB.fileNameFontWeight}; }
-.pptxv-titlebar-dot { color: var(--pptx-muted-foreground); }
-.pptxv-titlebar-status.is-error { color: #dc2626; }
-.pptxv-titlebar-status.is-saving { color: #ca8a04; }
-/*
- * Flex-based centering (not position:absolute + left:50%): an absolutely
- * positioned box centers on the FULL bar width regardless of how much room
- * the file name / status text on the left actually uses, so a longer status
- * message (e.g. "Saved to this PC") gets visually covered by the search box
- * instead of the two ever sharing space. flex:1 here reserves the real
- * remaining width between the file group and the bar's end, and centers the
- * search box within that.
- */
-.pptxv-titlebar-search { flex: 1 1 auto; display: flex; justify-content: center; min-width: 20px; }
-.pptxv-cmdsearch { position: relative; width: min(320px, 30vw); }
-.pptxv-cmdsearch-box { width: 100%; }
-.pptxv-cmdsearch-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pptx-foreground); font: inherit; }
-.pptxv-cmdsearch-menu { position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-card); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); }
-.pptxv-cmdsearch-item, .pptxv-cmdsearch-empty { display: block; width: 100%; padding: 7px 9px; border: 0; background: transparent; color: var(--pptx-foreground); font: inherit; text-align: left; }
-.pptxv-cmdsearch-item { cursor: pointer; }
-.pptxv-cmdsearch-item:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-cmdsearch-empty { color: var(--pptx-muted-foreground); }
-@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptxv-titlebar, .pptxv-qat-row { display: none; } }
+.pptxv-titlebar-btn:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptxv-qat-row { display: none; } }
 
 /* Quick Access Toolbar docked below the Ribbon (Options > Quick Access
    Toolbar > position); hidden and empty until the strip is moved in. */
-.pptxv-qat-row {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	min-height: ${TB.height}px;
-	padding: 0 ${TB.paddingX}px;
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-}
-.pptxv-qat-row .pptxv-qat { display: flex; align-items: center; gap: 4px; }
+.pptxv-qat-row[hidden] { display: none; }
 
 /* Trust Center > Protected View banner: PowerPoint's persistent "this file
    is read-only until you Enable Editing" bar under the Ribbon. */
@@ -402,19 +329,16 @@ const CHROME_CSS = `
 }
 /* React's SectionBlock paints the same 10px p15:sectionPr/@clr dot. */
 .pptxv-thumb-section-color { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; }
-.pptxv-thumb-section-actions { display: flex; gap: 1px; }
-.pptxv-thumb-section-actions button {
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	border: 0;
+.pptxv-thumb-section-rename {
+	min-width: 0;
+	flex: 1;
+	padding: 0 4px;
+	border: 1px solid var(--pptx-primary, #3b82f6);
 	border-radius: 3px;
-	background: transparent;
-	color: var(--pptx-muted-foreground);
-	cursor: pointer;
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+	font: inherit;
 }
-.pptxv-thumb-section-actions button:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-thumb-section-actions button:disabled { opacity: .35; cursor: default; }
 .pptxv-thumb-section-slides { display: flex; flex-direction: column; gap: 8px; }
 
 /* ── Viewport / stage ────────────────────────────────────────────────── */

@@ -177,6 +177,8 @@ export interface ViewerToolbarSectionProps {
 	fileName?: string;
 	autosaveStatus?: AutosaveStatus;
 	autosaveEnabled?: boolean;
+	/** False when the host forbade autosave: the title-bar switch renders inert. */
+	autosaveToggleAvailable?: boolean;
 	onToggleAutosave?: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: ToolbarActionId[];
@@ -248,6 +250,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		fileName,
 		autosaveStatus,
 		autosaveEnabled = true,
+		autosaveToggleAvailable,
 		onToggleAutosave,
 		hiddenActions,
 		recentPresentationsCount,
@@ -549,6 +552,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 					isDirty={s.isDirty}
 					autosaveStatus={autosaveStatus}
 					autosaveEnabled={autosaveEnabled}
+					autosaveToggleAvailable={autosaveToggleAvailable}
 					onToggleAutosave={onToggleAutosave ?? (() => {})}
 					canUndo={history.canUndo}
 					canRedo={history.canRedo}

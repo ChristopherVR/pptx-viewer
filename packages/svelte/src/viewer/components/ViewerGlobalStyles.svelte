@@ -107,7 +107,6 @@
 	}
 
 	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
-		:global(.pptx-svelte-titlebar),
 		:global(.pptx-svelte-ribbon),
 		:global(.pptx-svelte-toolbar),
 		:global(.pptx-svelte-statusbar),

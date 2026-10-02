@@ -1,49 +1,50 @@
 /**
  * title-bar.component.ts: PowerPoint-style top chrome row for the Angular
- * editor, at parity with React's `viewer/components/toolbar/TitleBar.tsx`.
+ * editor.
  *
- * Renders (left to right): the square "P" app mark, an AutoSave label + switch
- * toggle + On/Off text, quick-access Save/Undo/Redo icon buttons, the open
- * document's name + a save-location status (resolved via the shared
- * {@link resolveTitleBarStatusKey}), and a centred search button that opens
- * Find & Replace. Rendered ABOVE and OUTSIDE the ribbon's `role="toolbar"`
- * container so the toolbar height stays measurable for the e2e parity spec.
- * Purely presentational + `OnPush`: every action is an `output()` the
- * {@link PowerPointViewerComponent} already has handlers for. Class tokens come
- * verbatim from the shared {@link TITLE_BAR_CLASSES} so the three bindings stay
- * pixel-identical. The host is a plain block (no `display:contents`) so the row
- * renders as one 36px flex strip.
+ * A thin adapter around the shared `pptx-ui-title-bar` element: the logo,
+ * AutoSave switch, Save/Undo/Redo + configured quick-access commands, file name
+ * and status, and the command search are rendered by the shared view. This
+ * component maps viewer state onto the element's controlled state
+ * (`buildTitleBarState`) and re-emits its typed events as the outputs
+ * {@link PowerPointViewerComponent} already has handlers for.
  *
- * The search box and its command palette live in
- * {@link TitleBarSearchComponent}: they are the only stateful part of this row,
- * and keeping them here pushed the file past the repo's 300 LOC ceiling.
+ * `placement="belowRibbon"` renders the same element as the options-driven
+ * extras row under the ribbon. Host-owned parts are projected with
+ * `slot="collaboration"` and `slot="account"`.
  */
-import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { LucideRedo, LucideSave, LucideUndo } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { TranslateService } from '@ngx-translate/core';
+import { map, merge, startWith } from 'rxjs';
 
 import {
+	buildTitleBarState,
 	DEFAULT_VIEWER_OPTIONS,
 	extraQuickAccessCommands,
-	resolveTitleBarStatusKey,
-	TITLE_BAR_CLASSES,
-	TITLE_BAR_DEFAULT_FILE_KEY,
 } from '../internal/shared';
-import type { ToolbarActionId, ViewerQuickAccessOptions } from '../internal/shared';
+import type {
+	TitleBarCommandSearchEvent,
+	TitleBarEvent,
+	TitleBarPlacement,
+	TitleBarViewState,
+	ToolbarActionId,
+	ViewerQuickAccessOptions,
+} from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
-import { QuickAccessStripComponent } from './quick-access-strip.component';
-import { TitleBarSearchComponent } from './title-bar-search.component';
-import { toolbarVisibility } from './toolbar-visibility';
+import { ViewerOptionsService } from './viewer-options.service';
 
 /**
  * Narrow the Quick Access options to the commands rendered BEYOND the dedicated
- * Save/Undo/Redo buttons (which keep their own gating + labels), so the
- * remainder can be handed to {@link QuickAccessStripComponent} as-is.
- *
- * Exported (and pure) because this package has no TestBed: the template's
- * `@if (extraQat().commandIds.length > 0)` is exactly this list, so asserting
- * it asserts what the strip renders.
+ * Save/Undo/Redo buttons. Exported (and pure) because this package has no
+ * TestBed.
  */
 export function narrowToExtraQuickAccess(
 	options: ViewerQuickAccessOptions,
@@ -59,12 +60,8 @@ export function narrowToExtraQuickAccess(
 /**
  * The below-ribbon strip's options, or `null` when nothing renders there:
  * hidden, position `above`, or no commands beyond the dedicated trio.
- *
- * Single source of truth for BOTH sides of the "below the ribbon" placement:
- * {@link PowerPointViewerComponent} renders the strip precisely when this is
- * non-null, and this component's own inline strip below suppresses itself
- * under the identical condition, so the two can never disagree about where
- * the configured commands show up.
+ * {@link PowerPointViewerComponent} renders the row precisely when this is
+ * non-null.
  */
 export function resolveBelowRibbonQuickAccess(
 	options: ViewerQuickAccessOptions,
@@ -80,120 +77,22 @@ export function resolveBelowRibbonQuickAccess(
 	selector: 'pptx-title-bar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [
-		NgClass,
-		TranslatePipe,
-		LucideSave,
-		LucideUndo,
-		LucideRedo,
-		QuickAccessStripComponent,
-		TitleBarSearchComponent,
-	],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { class: 'contents' },
 	template: `
-		<div [class]="tb.container" data-pptx-title-bar>
-			<span [class]="tb.logo" aria-hidden="true">P</span>
-
-			@if (canEdit()) {
-				<span [class]="tb.autosaveGroup">
-					<span [class]="tb.autosaveLabel">{{ 'pptx.titleBar.autoSave' | translate }}</span>
-					<button
-						type="button"
-						role="switch"
-						[attr.aria-checked]="autosaveEnabled()"
-						[class]="tb.toggleTrack"
-						[ngClass]="autosaveEnabled() ? tb.toggleTrackOn : tb.toggleTrackOff"
-						[title]="'pptx.titleBar.toggleAutoSave' | translate"
-						[attr.aria-label]="'pptx.titleBar.toggleAutoSave' | translate"
-						(click)="toggleAutosave.emit()"
-					>
-						<span
-							[class]="tb.toggleKnob"
-							[ngClass]="autosaveEnabled() ? tb.toggleKnobOn : tb.toggleKnobOff"
-						></span>
-					</button>
-					<span [class]="tb.autosaveLabel">{{
-						(autosaveEnabled() ? 'pptx.titleBar.autoSaveOn' : 'pptx.titleBar.autoSaveOff')
-							| translate
-					}}</span>
-				</span>
-
-				<div [class]="tb.separator"></div>
-
-				@if (qat().visible) {
-					<button
-						type="button"
-						[class]="tb.quickButton"
-						[title]="'pptx.titleBar.save' | translate"
-						[attr.aria-label]="'pptx.titleBar.save' | translate"
-						(click)="save.emit()"
-					>
-						<svg lucideSave class="h-3.5 w-3.5"></svg>
-					</button>
-					@if (!toolbar.isHidden('undo')) {
-						<button
-							type="button"
-							[class]="tb.quickButton"
-							[disabled]="!canUndo()"
-							[title]="
-								undoLabel()
-									? ('pptx.toolbar.undoAction' | translate: { action: undoLabel() })
-									: ('pptx.toolbar.undo' | translate)
-							"
-							[attr.aria-label]="'pptx.toolbar.undo' | translate"
-							(click)="undo.emit()"
-						>
-							<svg lucideUndo class="h-3.5 w-3.5"></svg>
-						</button>
-					}
-					@if (!toolbar.isHidden('redo')) {
-						<button
-							type="button"
-							[class]="tb.quickButton"
-							[disabled]="!canRedo()"
-							[title]="
-								redoLabel()
-									? ('pptx.toolbar.redoAction' | translate: { action: redoLabel() })
-									: ('pptx.toolbar.redo' | translate)
-							"
-							[attr.aria-label]="'pptx.toolbar.redo' | translate"
-							(click)="redo.emit()"
-						>
-							<svg lucideRedo class="h-3.5 w-3.5"></svg>
-						</button>
-					}
-					@if (extraQat().commandIds.length > 0 && !belowRibbonActive()) {
-						<pptx-quick-access-strip
-							[quickAccess]="extraQat()"
-							(command)="onQuickCommand($event)"
-						/>
-					}
-				}
-
-				<div [class]="tb.separator"></div>
-			}
-
-			<span [class]="tb.fileGroup">
-				<span [class]="tb.fileName">{{ fileName() || (defaultFileKey | translate) }}</span>
-				@if (canEdit()) {
-					<span [class]="tb.statusDot" aria-hidden="true">&bull;</span>
-					<span [class]="tb.statusText" [ngClass]="statusStateClass()">{{
-						statusKey() | translate
-					}}</span>
-				}
-			</span>
-
-			<span [class]="tb.searchWrap">
-				@if (canEdit()) {
-					<pptx-title-bar-search
-						[findReplaceOpen]="findReplaceOpen()"
-						(commandSearch)="commandSearch.emit($event)"
-						(toggleFindReplace)="toggleFindReplace.emit()"
-					/>
-				}
-			</span>
-
-			<span [class]="tb.rightSpacer"></span>
-		</div>
+		<pptx-ui-title-bar
+			[state]="view()"
+			[attr.placement]="placement()"
+			(toggle-autosave)="onToggleAutosave($event)"
+			(save)="onEvent('save', $event)"
+			(undo)="onEvent('undo', $event)"
+			(redo)="onEvent('redo', $event)"
+			(quick-command)="onQuickCommand($event)"
+			(command-search)="onCommandSearch($event)"
+		>
+			<ng-content select="[slot=collaboration]"></ng-content>
+			<ng-content select="[slot=account]"></ng-content>
+		</pptx-ui-title-bar>
 	`,
 })
 export class TitleBarComponent {
@@ -207,16 +106,20 @@ export class TitleBarComponent {
 	readonly autosaveStatus = input<AutosaveStatus | undefined>(undefined);
 	/** Whether the AutoSave toggle is on. */
 	readonly autosaveEnabled = input<boolean>(true);
+	/** False when the host forbade autosave: the switch renders inert. */
+	readonly autosaveToggleAvailable = input<boolean>(true);
 	readonly canUndo = input<boolean>(false);
 	readonly canRedo = input<boolean>(false);
 	readonly undoLabel = input<string | undefined>(undefined);
 	readonly redoLabel = input<string | undefined>(undefined);
-	/** Whether the Find & Replace panel is open (search-button active state). */
+	/** Whether the Find & Replace panel is open (kept for API compatibility). */
 	readonly findReplaceOpen = input<boolean>(false);
 	/** Toolbar buttons the host wants hidden (gates Undo/Redo independently). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
 	/** Live Quick Access Toolbar options (File > Options > Quick Access). */
 	readonly quickAccess = input<ViewerQuickAccessOptions | null>(null);
+	/** `titleBar` renders the whole row; `belowRibbon` only the extras row. */
+	readonly placement = input<TitleBarPlacement>('titleBar');
 
 	readonly toggleAutosave = output<void>();
 	readonly save = output<void>();
@@ -227,71 +130,73 @@ export class TitleBarComponent {
 	readonly toggleFindReplace = output<void>();
 	readonly commandSearch = output<string>();
 
-	protected readonly tb = TITLE_BAR_CLASSES;
-	protected readonly defaultFileKey = TITLE_BAR_DEFAULT_FILE_KEY;
-	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
-
-	/** Resolved Quick Access options (host-supplied, or the default trio+). */
-	protected readonly qat = computed<ViewerQuickAccessOptions>(
-		() => this.quickAccess() ?? DEFAULT_VIEWER_OPTIONS.quickAccess,
+	private readonly translate = inject(TranslateService);
+	/** Optional so the bar renders outside a full viewer host too. */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
+	/** Changes on language/dictionary updates so OnPush re-translates the view. */
+	private readonly translations = toSignal(
+		merge(this.translate.onLangChange, this.translate.onTranslationChange).pipe(
+			map(() => Date.now()),
+			startWith(0),
+		),
+		{ initialValue: 0 },
 	);
 
-	/**
-	 * The Quick Access options narrowed to the commands beyond the dedicated
-	 * save/undo/redo buttons. Reusing {@link QuickAccessStripComponent} for the
-	 * remainder means those buttons carry real icons rather than a letter glyph.
-	 */
-	protected readonly extraQat = computed(() => narrowToExtraQuickAccess(this.qat()));
-
-	/**
-	 * Whether the below-ribbon strip is the one rendering the configured extra
-	 * commands right now, so this component's OWN inline strip stands down
-	 * instead of showing the same commands twice.
-	 */
-	protected readonly belowRibbonActive = computed(
-		() => resolveBelowRibbonQuickAccess(this.qat()) !== null,
-	);
-
-	/**
-	 * Route a Quick Access press: keep the dedicated save/undo/redo outputs
-	 * (existing host wiring, `hiddenActions` gating) and forward everything
-	 * else through the generic {@link quickCommand} output.
-	 */
-	protected onQuickCommand(id: string): void {
-		if (id === 'save') {
-			this.save.emit();
-		} else if (id === 'undo' && !this.toolbar.isHidden('undo')) {
-			this.undo.emit();
-		} else if (id === 'redo' && !this.toolbar.isHidden('redo')) {
-			this.redo.emit();
-		} else if (id !== 'undo' && id !== 'redo') {
-			this.quickCommand.emit(id);
-		}
+	protected view(): TitleBarViewState {
+		this.translations();
+		const status = this.autosaveStatus();
+		return buildTitleBarState({
+			editing: this.canEdit(),
+			fileName: this.fileName(),
+			isDirty: this.isDirty(),
+			autosaveState: status?.state,
+			autosaveReason: status?.state === 'disabled' ? status.reason : undefined,
+			autosaveEnabled: this.autosaveEnabled(),
+			autosaveToggleAvailable: this.autosaveToggleAvailable(),
+			canUndo: this.canUndo(),
+			canRedo: this.canRedo(),
+			undoLabel: this.undoLabel(),
+			redoLabel: this.redoLabel(),
+			hiddenActions: this.hiddenActions(),
+			quickAccess: this.quickAccess() ?? DEFAULT_VIEWER_OPTIONS.quickAccess,
+			screenTip: (label) =>
+				this.viewerOpts ? (this.viewerOpts.screenTip(label) ?? undefined) : label,
+			translate: (key, params) => this.translate.instant(key, params),
+		});
 	}
 
-	/** The i18n key for the save-location status text (next to the file name). */
-	protected readonly statusKey = computed(() => {
-		const status = this.autosaveStatus();
-		return resolveTitleBarStatusKey({
-			autosaveState: status?.state ?? 'idle',
-			isDirty: this.isDirty(),
-			autosaveEnabled: this.autosaveEnabled(),
-			disabledReason: status?.state === 'disabled' ? status.reason : undefined,
-		});
-	});
+	/**
+	 * The element's events bubble, composed, and `save`, `undo` and `redo` share
+	 * their names with this component's outputs. Angular would run a host's
+	 * `(undo)` binding for the DOM event as well as for the output (twice in all),
+	 * so each event is consumed here.
+	 */
+	private consume(event?: Event): void {
+		event?.stopPropagation();
+	}
 
-	/** Colour override for the status text on saving/error (when autosave is on). */
-	protected readonly statusStateClass = computed(() => {
-		const state = this.autosaveStatus()?.state;
-		if (!this.autosaveEnabled()) {
-			return '';
+	protected onToggleAutosave(event?: Event): void {
+		this.consume(event);
+		this.toggleAutosave.emit();
+	}
+
+	protected onEvent(id: 'save' | 'undo' | 'redo', event?: Event): void {
+		this.consume(event);
+		this[id].emit();
+	}
+
+	protected onQuickCommand(event: Event): void {
+		this.consume(event);
+		this.quickCommand.emit((event as TitleBarEvent<'quick-command'>).detail.id);
+	}
+
+	protected onCommandSearch(event: Event): void {
+		this.consume(event);
+		const { command } = (event as TitleBarCommandSearchEvent).detail;
+		if (command) {
+			this.commandSearch.emit(command);
+		} else {
+			this.toggleFindReplace.emit();
 		}
-		if (state === 'error') {
-			return this.tb.statusError;
-		}
-		if (state === 'saving') {
-			return this.tb.statusSaving;
-		}
-		return '';
-	});
+	}
 }
