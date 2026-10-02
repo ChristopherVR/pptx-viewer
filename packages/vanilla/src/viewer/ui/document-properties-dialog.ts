@@ -4,10 +4,12 @@ import type {
 	PptxCustomProperty,
 	PptxSlide,
 } from 'pptx-viewer-core';
+import type { DialogFooterAction, PptxUiDialogFooterElement } from 'pptx-viewer-shared';
 import { computeDocumentStatistics } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogFooter } from './dialog-footer';
 
 export interface DocumentPropertiesDialogOptions {
 	slides: readonly PptxSlide[];
@@ -55,10 +57,19 @@ export function openDocumentPropertiesDialog(
 	tabs.setAttribute('aria-label', t('pptx.documentProperties.dialogTitle'));
 	const body = createEl(doc, 'div', 'pptxv-props-body');
 	let activeTab: DialogTab = 'summary';
-	const save = createEl(doc, 'button', 'is-primary');
+	const footerRef: { element?: PptxUiDialogFooterElement } = {};
+	const footerActions = (): DialogFooterAction[] => [
+		{ id: 'cancel', label: t('pptx.common.cancel') },
+		{
+			id: 'save',
+			label: t('pptx.common.save'),
+			variant: 'primary',
+			disabled: !options.editable || JSON.stringify({ core, app, custom }) === original,
+		},
+	];
 	const refreshSave = (): void => {
-		if (save) {
-			save.disabled = !options.editable || JSON.stringify({ core, app, custom }) === original;
+		if (footerRef.element) {
+			footerRef.element.state = { actions: footerActions() };
 		}
 	};
 
@@ -238,18 +249,12 @@ export function openDocumentPropertiesDialog(
 	tabDefinitions.forEach(appendTab);
 
 	const footer = createEl(doc, 'footer');
-	const cancel = createEl(doc, 'button');
-	cancel.type = 'button';
-	cancel.textContent = t('pptx.common.cancel');
-	cancel.addEventListener('click', close);
-	save.type = 'button';
-	save.textContent = t('pptx.common.save');
-	refreshSave();
-	save.addEventListener('click', () => {
-		options.onSave(core, app, custom);
+	footerRef.element = appendDialogFooter(doc, footer, footerActions(), (id) => {
+		if (id === 'save') {
+			options.onSave(core, app, custom);
+		}
 		close();
 	});
-	footer.append(cancel, save);
 	dialog.append(header, tabs, body, footer);
 	overlay.append(scrim, dialog);
 	render();

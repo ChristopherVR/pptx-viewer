@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
+import { allButtons } from './dialog-footer.test-support';
 import { openDocumentPropertiesDialog } from './document-properties-dialog';
 
 afterEach(() => {
@@ -33,7 +34,7 @@ describe('openDocumentPropertiesDialog', () => {
 		title!.value = 'Updated';
 		title!.dispatchEvent(new Event('input', { bubbles: true }));
 
-		const buttons = Array.from(dialog!.querySelectorAll('button'));
+		const buttons = allButtons(dialog!);
 		buttons.find((button) => button.textContent === 'Statistics')?.click();
 		expect(dialog!.textContent).toContain('1');
 		buttons.find((button) => button.textContent === 'Custom')?.click();
@@ -58,9 +59,7 @@ describe('openDocumentPropertiesDialog', () => {
 		});
 
 		expect(overlay.querySelector<HTMLInputElement>('input')?.disabled).toBeTruthy();
-		const save = Array.from(overlay.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Save',
-		);
+		const save = allButtons(overlay).find((button) => button.textContent === 'Save');
 		expect(save?.disabled).toBeTruthy();
 	});
 });

@@ -57,16 +57,4 @@ export const EXPORT_PROGRESS_CSS = `
 	display: flex;
 	justify-content: flex-end;
 }
-.pptxv-export-progress-actions button {
-	border: 1px solid var(--pptx-border, #33334d);
-	border-radius: var(--pptx-radius, 6px);
-	background: var(--pptx-muted, #1f2937);
-	color: var(--pptx-foreground, #f3f4f6);
-	padding: 6px 16px;
-	font-size: 12px;
-	font-family: inherit;
-	cursor: pointer;
-	transition: background 0.15s;
-}
-.pptxv-export-progress-actions button:hover { background: var(--pptx-accent, #33334d); }
 `;

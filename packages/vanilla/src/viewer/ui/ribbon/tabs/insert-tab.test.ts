@@ -2,6 +2,7 @@ import { CATEGORIES, INSERT_CHART_TYPES, PRESETS, SHAPE_PRESET_DEFS } from 'pptx
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../../i18n';
+import { allButtons } from '../../dialog-footer.test-support';
 import type { RibbonInsertHandlers } from '../ribbon-types';
 import { createInsertTab } from './insert-tab';
 
@@ -43,9 +44,8 @@ function dialog(): HTMLElement | null {
 	return document.querySelector<HTMLElement>('[role="dialog"][aria-label="Insert SmartArt"]');
 }
 function dialogButton(name: string): HTMLButtonElement | undefined {
-	return Array.from(dialog()?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
-		(button) => button.textContent === name,
-	);
+	const root = dialog();
+	return (root ? allButtons(root) : []).find((button) => button.textContent === name);
 }
 
 describe('createInsertTab', () => {

@@ -1,9 +1,15 @@
 import type { SmartArtLayout } from 'pptx-viewer-core';
-import type { SmartArtCategory, SmartArtPreset } from 'pptx-viewer-shared';
-import { CATEGORIES, PRESETS } from 'pptx-viewer-shared';
+import type { DialogFooterAction, SmartArtCategory, SmartArtPreset } from 'pptx-viewer-shared';
+import {
+	CATEGORIES,
+	modalActiveElement,
+	modalFocusableElements,
+	PRESETS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../../i18n';
 import { createEl } from '../../../../render';
+import { appendDialogFooter } from '../../../dialog-footer';
 import { buildSmartArtGalleryPreview } from './smartart-gallery-preview';
 
 export interface SmartArtDialog {
@@ -52,14 +58,17 @@ export function createSmartArtDialog(
 	body.append(categories, gallery);
 
 	const footer = createEl(doc, 'div', 'pptxv-smartart-dialog-footer');
-	const cancelButton = createEl(doc, 'button', 'pptxv-smartart-dialog-cancel');
-	cancelButton.type = 'button';
-	cancelButton.textContent = t('pptx.smartart.cancel');
-	const insertButton = createEl(doc, 'button', 'pptxv-smartart-dialog-insert');
-	insertButton.type = 'button';
-	insertButton.textContent = t('pptx.smartart.insert');
-	insertButton.disabled = true;
-	footer.append(cancelButton, insertButton);
+	const footerActions = (canInsert: boolean): DialogFooterAction[] => [
+		{ id: 'cancel', label: t('pptx.smartart.cancel') },
+		{ id: 'insert', label: t('pptx.smartart.insert'), variant: 'primary', disabled: !canInsert },
+	];
+	const footerElement = appendDialogFooter(doc, footer, footerActions(false), (id) => {
+		if (id === 'insert') {
+			commitPreset(selectedPreset);
+		} else {
+			close();
+		}
+	});
 
 	panel.append(header, body, footer);
 	layer.append(backdrop, panel);
@@ -71,7 +80,7 @@ export function createSmartArtDialog(
 
 	function selectPreset(preset: SmartArtPreset): void {
 		selectedPreset = preset;
-		insertButton.disabled = false;
+		footerElement.state = { actions: footerActions(true) };
 		for (const option of listbox.querySelectorAll<HTMLElement>('[role="option"]')) {
 			const selected = option.dataset.layout === preset.layout;
 			option.setAttribute('aria-selected', String(selected));
@@ -110,7 +119,7 @@ export function createSmartArtDialog(
 	function activateCategory(category: SmartArtCategory): void {
 		activeCategory = category;
 		selectedPreset = undefined;
-		insertButton.disabled = true;
+		footerElement.state = { actions: footerActions(false) };
 		for (const button of categories.querySelectorAll<HTMLButtonElement>('button')) {
 			const active = button.dataset.category === category;
 			button.classList.toggle('is-active', active);
@@ -152,18 +161,18 @@ export function createSmartArtDialog(
 		if (event.key !== 'Tab') {
 			return;
 		}
-		const focusable = Array.from(
-			panel.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex]:not([tabindex="-1"])'),
-		);
+		// The footer buttons live in the shared element's open shadow root.
+		const focusable = modalFocusableElements(panel);
 		if (focusable.length === 0) {
 			return;
 		}
 		const first = focusable[0];
 		const last = focusable[focusable.length - 1];
-		if (event.shiftKey && doc.activeElement === first) {
+		const active = modalActiveElement(doc);
+		if (event.shiftKey && active === first) {
 			event.preventDefault();
 			last.focus();
-		} else if (!event.shiftKey && doc.activeElement === last) {
+		} else if (!event.shiftKey && active === last) {
 			event.preventDefault();
 			first.focus();
 		}
@@ -171,8 +180,6 @@ export function createSmartArtDialog(
 
 	backdrop.addEventListener('click', close);
 	closeButton.addEventListener('click', close);
-	cancelButton.addEventListener('click', close);
-	insertButton.addEventListener('click', () => commitPreset(selectedPreset));
 	layer.addEventListener('keydown', handleKeydown);
 
 	return {

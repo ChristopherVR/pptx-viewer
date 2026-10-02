@@ -1,5 +1,6 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogActions } from './dialog-footer';
 
 export interface FileInfoDialogShell {
 	overlay: HTMLElement;
@@ -47,9 +48,7 @@ export function appendInfoDoneButton(
 	t: Translator,
 	shell: FileInfoDialogShell,
 ): void {
-	const done = createEl(doc, 'button', 'is-primary');
-	done.type = 'button';
-	done.textContent = t('pptx.common.done');
-	done.addEventListener('click', shell.close);
-	shell.footer.appendChild(done);
+	appendDialogActions(doc, shell.footer, [
+		{ id: 'done', label: t('pptx.common.done'), variant: 'primary', run: shell.close },
+	]);
 }

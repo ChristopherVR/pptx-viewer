@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
+import { allButtons } from './dialog-footer.test-support';
 import { openDigitalSignaturesDialog } from './digital-signatures-dialog';
 import { openFontEmbeddingDialog } from './font-embedding-dialog';
 import { openPasswordProtectionDialog } from './password-protection-dialog';
@@ -73,9 +74,7 @@ describe('file info dialogs', () => {
 		inputs[1].value = 'Safe123!';
 		// "Set Password" (`pptx.security.setPassword`), the label all five bindings
 		// now share; it used to be a generic "Save" here.
-		const save = Array.from(protection.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Set Password',
-		)!;
+		const save = allButtons(protection).find((button) => button.textContent === 'Set Password')!;
 		save.click();
 		expect(onSet).toHaveBeenCalledWith('Safe123!');
 	});

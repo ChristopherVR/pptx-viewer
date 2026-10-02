@@ -2,6 +2,7 @@ import { clampPercent } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogFooter } from '../ui/dialog-footer';
 
 /**
  * ExportProgressModal: a centered, non-dismissable overlay shown while a
@@ -54,11 +55,9 @@ export function createExportProgressModal(deps: ExportProgressModalDeps): Export
 		percentLine = createEl(doc, 'span', 'pptxv-export-progress-pct');
 		statusRow.append(statusLine, percentLine);
 		const actions = createEl(doc, 'div', 'pptxv-export-progress-actions');
-		const cancel = createEl(doc, 'button');
-		cancel.type = 'button';
-		cancel.textContent = t('pptx.export.cancel');
-		cancel.addEventListener('click', () => deps.onCancel());
-		actions.appendChild(cancel);
+		appendDialogFooter(doc, actions, [{ id: 'cancel', label: t('pptx.export.cancel') }], () =>
+			deps.onCancel(),
+		);
 		panel.append(heading, track, statusRow, actions);
 		backdrop.appendChild(panel);
 		doc.body.appendChild(backdrop);

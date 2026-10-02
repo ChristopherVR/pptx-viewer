@@ -1,8 +1,9 @@
-import { SLIDE_TEMPLATES } from 'pptx-viewer-shared';
-import type { SlideTemplateId } from 'pptx-viewer-shared';
+import type { DialogFooterAction, SlideTemplateId } from 'pptx-viewer-shared';
+import { modalActiveElement, modalFocusableElements, SLIDE_TEMPLATES } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
+import { appendDialogFooter } from '../../dialog-footer';
 import { renderSlideTemplatePreview } from './slide-template-preview';
 
 export interface SlideTemplateDialog {
@@ -63,14 +64,22 @@ export function createSlideTemplateDialog(
 	body.appendChild(listbox);
 
 	const footer = createEl(doc, 'div', 'pptxv-tpl-dialog-footer');
-	const cancelButton = createEl(doc, 'button', 'pptxv-tpl-dialog-cancel');
-	cancelButton.type = 'button';
-	cancelButton.textContent = t('pptx.slideTemplates.cancel');
-	const insertButton = createEl(doc, 'button', 'pptxv-tpl-dialog-insert');
-	insertButton.type = 'button';
-	insertButton.textContent = t('pptx.slideTemplates.insert');
-	insertButton.disabled = true;
-	footer.append(cancelButton, insertButton);
+	const footerActions = (canInsert: boolean): DialogFooterAction[] => [
+		{ id: 'cancel', label: t('pptx.slideTemplates.cancel') },
+		{
+			id: 'insert',
+			label: t('pptx.slideTemplates.insert'),
+			variant: 'primary',
+			disabled: !canInsert,
+		},
+	];
+	const footerElement = appendDialogFooter(doc, footer, footerActions(false), (id) => {
+		if (id === 'insert') {
+			commitTemplate(selected);
+		} else {
+			close();
+		}
+	});
 
 	panel.append(header, body, footer);
 	layer.append(backdrop, panel);
@@ -80,7 +89,7 @@ export function createSlideTemplateDialog(
 
 	function selectTemplate(templateId: SlideTemplateId): void {
 		selected = templateId;
-		insertButton.disabled = false;
+		footerElement.state = { actions: footerActions(true) };
 		for (const option of listbox.querySelectorAll<HTMLElement>('[role="option"]')) {
 			const isSelected = option.dataset.templateId === templateId;
 			option.setAttribute('aria-selected', String(isSelected));
@@ -137,18 +146,18 @@ export function createSlideTemplateDialog(
 		if (event.key !== 'Tab') {
 			return;
 		}
-		const focusable = Array.from(
-			panel.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex]:not([tabindex="-1"])'),
-		);
+		// The footer buttons live in the shared element's open shadow root.
+		const focusable = modalFocusableElements(panel);
 		if (focusable.length === 0) {
 			return;
 		}
 		const first = focusable[0];
 		const last = focusable[focusable.length - 1];
-		if (event.shiftKey && doc.activeElement === first) {
+		const active = modalActiveElement(doc);
+		if (event.shiftKey && active === first) {
 			event.preventDefault();
 			last.focus();
-		} else if (!event.shiftKey && doc.activeElement === last) {
+		} else if (!event.shiftKey && active === last) {
 			event.preventDefault();
 			first.focus();
 		}
@@ -156,8 +165,6 @@ export function createSlideTemplateDialog(
 
 	backdrop.addEventListener('click', close);
 	closeButton.addEventListener('click', close);
-	cancelButton.addEventListener('click', close);
-	insertButton.addEventListener('click', () => commitTemplate(selected));
 	layer.addEventListener('keydown', handleKeydown);
 
 	return {

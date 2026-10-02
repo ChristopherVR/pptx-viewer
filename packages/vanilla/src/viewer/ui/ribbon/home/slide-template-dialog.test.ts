@@ -36,7 +36,9 @@ describe('createSlideTemplateDialog', () => {
 		const dialog = createSlideTemplateDialog(document, createTranslator(), { onInsert });
 		dialog.open(document.body);
 
-		const insertButton = dialog.el.querySelector<HTMLButtonElement>('.pptxv-tpl-dialog-insert');
+		const insertButton = dialog.el
+			.querySelector('pptx-ui-dialog-footer')!
+			.shadowRoot!.querySelector<HTMLButtonElement>('[data-action="insert"]');
 		expect(insertButton!.disabled).toBeTruthy();
 
 		const options = dialog.el.querySelectorAll<HTMLButtonElement>('[role="option"]');

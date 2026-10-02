@@ -2,10 +2,10 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogActions } from './dialog-footer';
 import { createInspectorRadio, createInspectorSelect } from './inspector/controls-extra';
 import {
 	appendCheckRow,
-	appendDialogButton,
 	appendRadioControl,
 	createParityDialogShell,
 } from './parity-dialog-shell';
@@ -155,17 +155,18 @@ export function openSlideShowDialog(
 			(draft as Record<string, unknown>)[key] = inverse ? !input.checked : input.checked;
 		});
 	}
-	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
-	appendDialogButton(
-		doc,
-		shell.footer,
-		t('pptx.common.ok'),
-		() => {
-			draft.showSlidesFrom = Number(from.value);
-			draft.showSlidesTo = Number(to.value);
-			onSave(draft);
-			shell.close();
+	appendDialogActions(doc, shell.footer, [
+		{ id: 'cancel', label: t('pptx.common.cancel'), run: shell.close },
+		{
+			id: 'ok',
+			label: t('pptx.common.ok'),
+			variant: 'primary',
+			run: () => {
+				draft.showSlidesFrom = Number(from.value);
+				draft.showSlidesTo = Number(to.value);
+				onSave(draft);
+				shell.close();
+			},
 		},
-		true,
-	);
+	]);
 }

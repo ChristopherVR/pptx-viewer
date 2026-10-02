@@ -91,18 +91,6 @@ export const SLIDE_TEMPLATE_DIALOG_CSS = `
 	gap: 8px;
 	border-top: 1px solid var(--pptx-border);
 }
-.pptxv-tpl-dialog-cancel,
-.pptxv-tpl-dialog-insert {
-	padding: 6px 12px;
-	border: 0;
-	border-radius: var(--pptx-radius);
-	font: inherit;
-	font-size: 12px;
-	cursor: pointer;
-}
-.pptxv-tpl-dialog-cancel { background: var(--pptx-muted); color: inherit; }
-.pptxv-tpl-dialog-insert { background: var(--pptx-primary); color: #fff; }
-.pptxv-tpl-dialog-insert:disabled { background: var(--pptx-muted); color: var(--pptx-muted-foreground); cursor: not-allowed; }
 .pptxv-tpl-dialog button:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
 
 @media (max-width: 767px) {

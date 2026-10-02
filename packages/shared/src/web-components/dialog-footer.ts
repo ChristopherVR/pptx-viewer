@@ -75,7 +75,14 @@ export function definePptxDialogFooter(registry: CustomElementRegistry): void {
 		}
 		private patch(button: HTMLButtonElement, action: DialogFooterAction): void {
 			button.className = action.variant === 'secondary' ? '' : (action.variant ?? '');
-			button.disabled = action.disabled === true;
+			button.disabled = action.disabled === true || action.busy === true;
+			button.classList.toggle('start', action.align === 'start');
+			button.classList.toggle('busy', action.busy === true);
+			if (action.busy) {
+				button.setAttribute('aria-busy', 'true');
+			} else {
+				button.removeAttribute('aria-busy');
+			}
 			if (action.testId) {
 				button.dataset.testid = action.testId;
 			} else {

@@ -8,7 +8,7 @@ import {
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
-import { makeButton } from '../controls';
+import { appendDialogFooter } from '../dialog-footer';
 
 export interface EquationPanel {
 	el: HTMLElement;
@@ -116,27 +116,36 @@ export function createEquationPanel(
 	let editingId: string | undefined;
 
 	const footer = createEl(doc, 'footer', 'pptxv-eqdlg-footer');
-	const cancelBtn = makeButton(doc, {
-		label: t('pptx.equation.cancel'),
-		text: t('pptx.equation.cancel'),
-		onClick: () => setOpen(false),
-	});
-	const insertBtn = makeButton(doc, {
-		label: t('pptx.equation.insert'),
-		text: t('pptx.equation.insert'),
-		onClick: () => {
-			const omml = compileOmml();
-			if (!omml) {
-				return;
-			}
-			onSubmit(omml, editingId);
-			textarea.value = '';
-			onLatexChanged();
-			setOpen(false);
-		},
-	});
-	insertBtn.btn.classList.add('is-primary');
-	footer.append(cancelBtn.btn, insertBtn.btn);
+	let insertLabel = t('pptx.equation.insert');
+	let insertDisabled = true;
+	const submit = (): void => {
+		const omml = compileOmml();
+		if (!omml) {
+			return;
+		}
+		onSubmit(omml, editingId);
+		textarea.value = '';
+		onLatexChanged();
+		setOpen(false);
+	};
+	const footerElement = appendDialogFooter(
+		doc,
+		footer,
+		[
+			{ id: 'cancel', label: t('pptx.equation.cancel') },
+			{ id: 'insert', label: insertLabel, variant: 'primary', disabled: insertDisabled },
+		],
+		(id) => (id === 'insert' ? submit() : setOpen(false)),
+	);
+	const syncFooter = (): void => {
+		insertDisabled = !editable || compileOmml() === null;
+		footerElement.state = {
+			actions: [
+				{ id: 'cancel', label: t('pptx.equation.cancel') },
+				{ id: 'insert', label: insertLabel, variant: 'primary', disabled: insertDisabled },
+			],
+		};
+	};
 
 	dialog.append(header, preview, field, templates, footer);
 	el.append(backdrop, dialog);
@@ -155,7 +164,7 @@ export function createEquationPanel(
 		for (const [index, tile] of tiles.entries()) {
 			tile.classList.toggle('is-active', EQUATION_TEMPLATES[index]?.latex === latex);
 		}
-		insertBtn.setDisabled(!editable || compileOmml() === null);
+		syncFooter();
 	};
 
 	textarea.addEventListener('input', onLatexChanged);
@@ -165,7 +174,9 @@ export function createEquationPanel(
 			setOpen(false);
 		} else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault();
-			insertBtn.btn.click();
+			if (!insertDisabled) {
+				submit();
+			}
 		}
 	});
 	backdrop.addEventListener('click', () => setOpen(false));
@@ -187,9 +198,8 @@ export function createEquationPanel(
 		const action = t(editing ? 'pptx.equation.update' : 'pptx.equation.insert');
 		dialog.setAttribute('aria-label', title);
 		heading.textContent = title;
-		insertBtn.btn.textContent = action;
-		insertBtn.btn.title = action;
-		insertBtn.btn.setAttribute('aria-label', action);
+		insertLabel = action;
+		syncFooter();
 	};
 	onLatexChanged();
 
@@ -210,7 +220,7 @@ export function createEquationPanel(
 		setEditable(next) {
 			editable = next;
 			textarea.disabled = !next;
-			insertBtn.setDisabled(!next || compileOmml() === null);
+			syncFooter();
 		},
 		openEdit(id, omml) {
 			editingId = id;

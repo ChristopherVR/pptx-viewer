@@ -1,5 +1,8 @@
+import type { DialogFooterAction } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { appendDialogFooter } from '../../ui/dialog-footer';
 import type { BroadcastConfig, BroadcastDefaults } from '../broadcast-helpers';
 import {
 	buildBroadcastConfig,
@@ -103,22 +106,29 @@ export function createBroadcastDialog(
 
 	modal.bodyEl.append(idleView, activeView);
 
-	const closeBtn = createEl(doc, 'button', 'pptxv-modal-btn');
-	closeBtn.type = 'button';
-	closeBtn.textContent = t('pptx.common.close');
-	closeBtn.addEventListener('click', () => modal.setOpen(false));
-	modal.footerEl.appendChild(closeBtn);
-
-	const startBtn = createEl(doc, 'button', 'pptxv-modal-btn pptxv-modal-btn-primary');
-	startBtn.type = 'button';
-	startBtn.textContent = t('pptx.broadcast.startBroadcast');
-	startBtn.addEventListener('click', () => {
+	const footerActions = (): DialogFooterAction[] => [
+		{ id: 'close', label: t('pptx.common.close') },
+		...(active
+			? []
+			: [
+					{
+						id: 'start',
+						label: t('pptx.broadcast.startBroadcast'),
+						variant: 'primary' as const,
+						disabled: !canStartBroadcast(fields),
+					},
+				]),
+	];
+	const footer = appendDialogFooter(doc, modal.footerEl, footerActions(), (id) => {
+		if (id === 'close') {
+			modal.setOpen(false);
+			return;
+		}
 		const config = buildBroadcastConfig(fields);
 		if (config) {
 			handlers.onStart(config);
 		}
 	});
-	modal.footerEl.appendChild(startBtn);
 
 	async function copyLink(): Promise<void> {
 		if (!canUseClipboard(typeof navigator === 'undefined' ? undefined : navigator)) {
@@ -136,8 +146,7 @@ export function createBroadcastDialog(
 		modal.setTitle(active ? t('pptx.broadcast.broadcastingTitle') : t('pptx.broadcast.startTitle'));
 		idleView.hidden = active;
 		activeView.hidden = !active;
-		startBtn.hidden = active;
-		startBtn.disabled = !canStartBroadcast(fields);
+		footer.state = { actions: footerActions() };
 		p2pIdleHint.hidden = resolveTransportForServerUrl(fields.serverUrl) !== 'webrtc';
 		roomField.input.value = fields.roomId;
 		serverField.input.value = fields.serverUrl;

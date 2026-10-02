@@ -2,6 +2,7 @@ import { getPasswordStrength, validatePasswordPair } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogActions } from './dialog-footer';
 import { openFileInfoDialogShell } from './file-info-dialog-shell';
 
 export interface PasswordProtectionDialogOptions {
@@ -36,29 +37,7 @@ export function openPasswordProtectionDialog(
 	confirmation.input.addEventListener('input', () => (error.textContent = ''));
 	shell.body.append(description, password.label, meter, confirmation.label, error);
 
-	if (options.protected) {
-		const remove = createEl(doc, 'button', 'is-danger');
-		remove.type = 'button';
-		remove.textContent = t('pptx.security.removePassword');
-		remove.addEventListener('click', () => {
-			options.onRemove();
-			shell.close();
-		});
-		shell.footer.appendChild(remove);
-	}
-	const spacer = createEl(doc, 'span', 'pptxv-info-spacer');
-	const cancel = createEl(doc, 'button');
-	cancel.type = 'button';
-	cancel.textContent = t('pptx.common.cancel');
-	cancel.addEventListener('click', shell.close);
-	const save = createEl(doc, 'button', 'is-primary');
-	save.type = 'button';
-	// `pptx.security.*`, the same keys the other four bindings use: a generic
-	// "Save" here made the submit control read differently per binding.
-	save.textContent = t(
-		options.protected ? 'pptx.security.updatePassword' : 'pptx.security.setPassword',
-	);
-	save.addEventListener('click', () => {
+	const submit = (): void => {
 		const validation = validatePasswordPair(password.input.value, confirmation.input.value);
 		if (validation) {
 			error.textContent = t(
@@ -72,8 +51,32 @@ export function openPasswordProtectionDialog(
 		}
 		options.onSet(password.input.value);
 		shell.close();
-	});
-	shell.footer.append(spacer, cancel, save);
+	};
+	appendDialogActions(doc, shell.footer, [
+		...(options.protected
+			? [
+					{
+						id: 'remove',
+						label: t('pptx.security.removePassword'),
+						variant: 'danger' as const,
+						align: 'start' as const,
+						run: () => {
+							options.onRemove();
+							shell.close();
+						},
+					},
+				]
+			: []),
+		{ id: 'cancel', label: t('pptx.common.cancel'), run: shell.close },
+		{
+			id: 'save',
+			// `pptx.security.*`, the same keys the other four bindings use: a generic
+			// "Save" here made the submit control read differently per binding.
+			label: t(options.protected ? 'pptx.security.updatePassword' : 'pptx.security.setPassword'),
+			variant: 'primary',
+			run: submit,
+		},
+	]);
 	return shell.overlay;
 }
 

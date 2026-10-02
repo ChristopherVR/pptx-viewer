@@ -153,7 +153,10 @@ describe('createExportProgressModal', () => {
 		);
 		expect(dialog?.querySelector('.pptxv-export-progress-pct')?.textContent).toBe('45%');
 
-		dialog?.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		dialog
+			?.querySelector('pptx-ui-dialog-footer')
+			?.shadowRoot?.querySelector('button')
+			?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		expect(onCancel).toHaveBeenCalledOnce();
 
 		modal.close();

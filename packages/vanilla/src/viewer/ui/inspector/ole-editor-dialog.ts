@@ -12,7 +12,8 @@ import { buildOleContentUpdatePatch, buildOleEditDialogDescriptor } from 'pptx-v
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
-import { appendDialogButton, createParityDialogShell } from '../parity-dialog-shell';
+import { appendDialogActions } from '../dialog-footer';
+import { createParityDialogShell } from '../parity-dialog-shell';
 import {
 	renderOleDeckEditor,
 	renderOleDocumentEditor,
@@ -193,8 +194,18 @@ export function openOleEditorDialog(
 		})();
 	});
 	shell.footer.appendChild(fileInput);
-	appendDialogButton(doc, shell.footer, t('pptx.ole.editDialog.replaceFile'), () =>
-		fileInput.click(),
-	);
-	appendDialogButton(doc, shell.footer, t('pptx.ole.editDialog.save'), () => shell.close(), true);
+	appendDialogActions(doc, shell.footer, [
+		{
+			id: 'replace',
+			label: t('pptx.ole.editDialog.replaceFile'),
+			align: 'start',
+			run: () => fileInput.click(),
+		},
+		{
+			id: 'save',
+			label: t('pptx.ole.editDialog.save'),
+			variant: 'primary',
+			run: () => shell.close(),
+		},
+	]);
 }

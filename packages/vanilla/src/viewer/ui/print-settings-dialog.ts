@@ -1,8 +1,9 @@
 import type { PrintOptions } from '../export/export-print';
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendDialogActions } from './dialog-footer';
 import { createInspectorSelect } from './inspector/controls-extra';
-import { appendCheckRow, appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
+import { appendCheckRow, createParityDialogShell } from './parity-dialog-shell';
 
 export function openPrintSettingsDialog(
 	doc: Document,
@@ -84,26 +85,28 @@ export function openPrintSettingsDialog(
 		t('pptx.print.frameSlides'),
 		defaultSettings?.frameSlides ?? false,
 	);
-	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
-	appendDialogButton(
-		doc,
-		shell.footer,
-		t('pptx.print.title'),
-		() => {
-			onPrint({
-				slideRange: range.value as PrintOptions['slideRange'],
-				customRangeFrom: Number(from.value),
-				customRangeTo: Number(to.value),
-				printWhat: what.value as PrintOptions['printWhat'],
-				orientation: orientation.value as PrintOptions['orientation'],
-				colorMode: color.value as PrintOptions['colorMode'],
-				frameSlides: frame.checked,
-				// Options > Advanced > "Print scale to fit"; no dialog control of its
-				// own (PowerPoint keeps this an Options default, not a per-job choice).
-				scaleToFit: defaultSettings?.scaleToFit ?? true,
-			});
-			shell.close();
+	appendDialogActions(doc, shell.footer, [
+		{ id: 'cancel', label: t('pptx.common.cancel'), run: shell.close },
+		{
+			id: 'print',
+			label: t('pptx.print.title'),
+			variant: 'primary',
+			icon: 'print',
+			run: () => {
+				onPrint({
+					slideRange: range.value as PrintOptions['slideRange'],
+					customRangeFrom: Number(from.value),
+					customRangeTo: Number(to.value),
+					printWhat: what.value as PrintOptions['printWhat'],
+					orientation: orientation.value as PrintOptions['orientation'],
+					colorMode: color.value as PrintOptions['colorMode'],
+					frameSlides: frame.checked,
+					// Options > Advanced > "Print scale to fit"; no dialog control of its
+					// own (PowerPoint keeps this an Options default, not a per-job choice).
+					scaleToFit: defaultSettings?.scaleToFit ?? true,
+				});
+				shell.close();
+			},
 		},
-		true,
-	);
+	]);
 }

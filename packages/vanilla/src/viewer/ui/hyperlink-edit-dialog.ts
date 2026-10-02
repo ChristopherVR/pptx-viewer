@@ -7,7 +7,8 @@ import {
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
+import { appendDialogActions } from './dialog-footer';
+import { createParityDialogShell } from './parity-dialog-shell';
 
 export function openHyperlinkEditDialog(
 	doc: Document,
@@ -31,19 +32,25 @@ export function openHyperlinkEditDialog(
 	const url = field(t('pptx.hyperlink.urlLabel'), draft.url);
 	url.placeholder = t('pptx.hyperlink.urlPlaceholder');
 	const tooltip = field(t('pptx.hyperlink.tooltipLabel'), draft.tooltip);
-	appendDialogButton(doc, shell.footer, t('pptx.hyperlinkDialog.removeLink'), () => {
-		onApply(buildClearHyperlinkPatch());
-		shell.close();
-	});
-	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
-	appendDialogButton(
-		doc,
-		shell.footer,
-		t('pptx.hyperlinkDialog.apply'),
-		() => {
-			onApply(buildHyperlinkPatch(element, { url: url.value, tooltip: tooltip.value }));
-			shell.close();
+	appendDialogActions(doc, shell.footer, [
+		{
+			id: 'remove',
+			label: t('pptx.hyperlinkDialog.removeLink'),
+			align: 'start',
+			run: () => {
+				onApply(buildClearHyperlinkPatch());
+				shell.close();
+			},
 		},
-		true,
-	);
+		{ id: 'cancel', label: t('pptx.common.cancel'), run: shell.close },
+		{
+			id: 'apply',
+			label: t('pptx.hyperlinkDialog.apply'),
+			variant: 'primary',
+			run: () => {
+				onApply(buildHyperlinkPatch(element, { url: url.value, tooltip: tooltip.value }));
+				shell.close();
+			},
+		},
+	]);
 }

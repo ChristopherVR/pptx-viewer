@@ -118,18 +118,6 @@ export const SMARTART_DIALOG_CSS = `
 	gap: 8px;
 	border-top: 1px solid var(--pptx-border);
 }
-.pptxv-smartart-dialog-cancel,
-.pptxv-smartart-dialog-insert {
-	padding: 6px 12px;
-	border: 0;
-	border-radius: var(--pptx-radius);
-	font: inherit;
-	font-size: 12px;
-	cursor: pointer;
-}
-.pptxv-smartart-dialog-cancel { background: var(--pptx-muted); color: inherit; }
-.pptxv-smartart-dialog-insert { background: var(--pptx-primary); color: #fff; }
-.pptxv-smartart-dialog-insert:disabled { background: var(--pptx-muted); color: var(--pptx-muted-foreground); cursor: not-allowed; }
 .pptxv-smartart-dialog button:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
 
 @media (max-width: 767px) {

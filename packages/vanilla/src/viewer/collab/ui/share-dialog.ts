@@ -1,5 +1,10 @@
 /* oxlint-disable eslint/one-var -- pre-existing throughout this file; independent concerns, not one statement */
-import type { CollaborationConfig, ConnectionStatus, SanitizedPresence } from 'pptx-viewer-shared';
+import type {
+	CollaborationConfig,
+	ConnectionStatus,
+	DialogFooterAction,
+	SanitizedPresence,
+} from 'pptx-viewer-shared';
 import {
 	buildActiveSessionUsers,
 	buildCollaborationShareUrl,
@@ -8,6 +13,7 @@ import {
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { appendDialogFooter } from '../../ui/dialog-footer';
 import type { ShareDefaults, ShareFormFields } from '../share-helpers';
 import {
 	buildJoinConfig,
@@ -207,15 +213,31 @@ export function createShareDialog(
 
 	modal.bodyEl.append(form, activeView);
 
-	const cancelBtn = createEl(doc, 'button', 'pptxv-modal-btn');
-	cancelBtn.type = 'button';
-	cancelBtn.addEventListener('click', () => modal.setOpen(false));
-	modal.footerEl.appendChild(cancelBtn);
-
-	const startBtn = createEl(doc, 'button', 'pptxv-modal-btn pptxv-modal-btn-primary');
-	startBtn.type = 'button';
-	startBtn.textContent = t('pptx.share.startSharing');
-	startBtn.addEventListener('click', () => {
+	const footerActions = (): DialogFooterAction[] => [
+		{ id: 'cancel', label: active ? t('pptx.share.close') : t('pptx.share.cancel') },
+		...(active
+			? []
+			: [
+					{
+						id: 'start',
+						label: t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing'),
+						variant: 'primary' as const,
+						disabled:
+							mode === 'join'
+								? !canJoinShare({
+										invitation,
+										userName: fields.userName,
+										serverUrl: fields.serverUrl,
+									})
+								: !canStartShare(fields),
+					},
+				]),
+	];
+	const footer = appendDialogFooter(doc, modal.footerEl, footerActions(), (id) => {
+		if (id === 'cancel') {
+			modal.setOpen(false);
+			return;
+		}
 		const config =
 			mode === 'join'
 				? buildJoinConfig({ invitation, userName: fields.userName, serverUrl: fields.serverUrl })
@@ -224,7 +246,6 @@ export function createShareDialog(
 			handlers.onStart(config);
 		}
 	});
-	modal.footerEl.appendChild(startBtn);
 
 	/** Paint the active-session view from the current `session` snapshot. */
 	function renderSession(): void {
@@ -306,8 +327,7 @@ export function createShareDialog(
 		modal.setTitle(active ? t('pptx.share.collaborationActive') : t('pptx.toolbar.share'));
 		form.hidden = active;
 		activeView.hidden = !active;
-		startBtn.hidden = active;
-		cancelBtn.textContent = active ? t('pptx.share.close') : t('pptx.share.cancel');
+		footer.state = { actions: footerActions() };
 		createTab.setAttribute('aria-selected', String(mode === 'create'));
 		joinTab.setAttribute('aria-selected', String(mode === 'join'));
 		desc.textContent = t(
@@ -315,13 +335,6 @@ export function createShareDialog(
 		);
 		invitationField.el.hidden = mode !== 'join';
 		roomField.el.hidden = mode === 'join';
-		startBtn.textContent = t(
-			mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing',
-		);
-		startBtn.disabled =
-			mode === 'join'
-				? !canJoinShare({ invitation, userName: fields.userName, serverUrl: fields.serverUrl })
-				: !canStartShare(fields);
 		p2pHint.hidden = resolveTransportForServerUrl(fields.serverUrl) !== 'webrtc';
 		roomField.input.value = fields.roomId;
 		nameField.input.value = fields.userName;

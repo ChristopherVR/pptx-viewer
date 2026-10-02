@@ -3,7 +3,8 @@ import { cloneHeaderFooterDraft } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { appendCheckRow, appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
+import { appendDialogActions } from './dialog-footer';
+import { appendCheckRow, createParityDialogShell } from './parity-dialog-shell';
 
 export interface HeaderFooterDialogOptions {
 	value: PptxHeaderFooter;
@@ -57,12 +58,13 @@ export function openHeaderFooterDialog(
 		);
 		shell.close();
 	};
-	appendDialogButton(doc, shell.footer, t('pptx.headerFooter.applyToAll'), () => apply('all'));
-	appendDialogButton(
-		doc,
-		shell.footer,
-		t('pptx.headerFooter.applyToCurrent'),
-		() => apply('current'),
-		true,
-	);
+	appendDialogActions(doc, shell.footer, [
+		{ id: 'applyAll', label: t('pptx.headerFooter.applyToAll'), run: () => apply('all') },
+		{
+			id: 'applyCurrent',
+			label: t('pptx.headerFooter.applyToCurrent'),
+			variant: 'primary',
+			run: () => apply('current'),
+		},
+	]);
 }

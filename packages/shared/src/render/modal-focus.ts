@@ -142,3 +142,13 @@ export function activateModalFocus(
 		}
 	};
 }
+
+/** Tabbable elements of `panel` in tree order, reaching into open shadow roots. */
+export function modalFocusableElements(panel: HTMLElement): HTMLElement[] {
+	return focusableElements(panel);
+}
+
+/** The focused element of `doc`, resolved through nested open shadow roots. */
+export function modalActiveElement(doc: Document): Element | null {
+	return deepActiveElement(doc);
+}

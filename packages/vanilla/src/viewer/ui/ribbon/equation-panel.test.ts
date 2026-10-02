@@ -28,7 +28,9 @@ function typeLatex(root: HTMLElement, latex: string): HTMLTextAreaElement {
 }
 
 function insertButton(root: HTMLElement): HTMLButtonElement {
-	const btn = root.querySelector<HTMLButtonElement>('.pptxv-eqdlg-footer .is-primary');
+	const btn = root
+		.querySelector('.pptxv-eqdlg-footer pptx-ui-dialog-footer')
+		?.shadowRoot?.querySelector<HTMLButtonElement>('button[data-action="insert"]');
 	if (!btn) {
 		throw new Error('insert button not found');
 	}

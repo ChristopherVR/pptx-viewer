@@ -2,8 +2,9 @@ import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { createInspectorSelect, createInspectorCheckbox } from './inspector/controls-extra';
-import { appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
+import { appendDialogActions } from './dialog-footer';
+import { createInspectorCheckbox, createInspectorSelect } from './inspector/controls-extra';
+import { createParityDialogShell } from './parity-dialog-shell';
 
 export interface CustomShowsDialogOptions {
 	shows: readonly PptxCustomShow[];
@@ -126,29 +127,35 @@ export function openCustomShowsDialog(
 		});
 	};
 
-	appendDialogButton(doc, shell.footer, t('pptx.customShows.createNew'), () => {
-		draft.push({
-			id: crypto.randomUUID(),
-			name: t('pptx.customShows.createNew'),
-			slideRIds: slides.map(({ rId }) => rId),
-		});
-		render();
-		renderPicker();
-	});
-	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
-	appendDialogButton(
-		doc,
-		shell.footer,
-		t('pptx.common.ok'),
-		() => {
-			onSave(draft);
-			// A show deleted in this session must not leave the slide show pinned to
-			// an id nothing resolves: that would silently present the whole deck.
-			onSetActive(draft.some(({ id }) => id === activeShowId) ? activeShowId : null);
-			shell.close();
+	appendDialogActions(doc, shell.footer, [
+		{
+			id: 'create',
+			label: t('pptx.customShows.createNew'),
+			align: 'start',
+			run: () => {
+				draft.push({
+					id: crypto.randomUUID(),
+					name: t('pptx.customShows.createNew'),
+					slideRIds: slides.map(({ rId }) => rId),
+				});
+				render();
+				renderPicker();
+			},
 		},
-		true,
-	);
+		{ id: 'cancel', label: t('pptx.common.cancel'), run: shell.close },
+		{
+			id: 'ok',
+			label: t('pptx.common.ok'),
+			variant: 'primary',
+			run: () => {
+				onSave(draft);
+				// A show deleted in this session must not leave the slide show pinned to
+				// an id nothing resolves: that would silently present the whole deck.
+				onSetActive(draft.some(({ id }) => id === activeShowId) ? activeShowId : null);
+				shell.close();
+			},
+		},
+	]);
 	render();
 	renderPicker();
 }

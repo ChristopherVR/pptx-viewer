@@ -26,3 +26,23 @@ export function appendDialogFooter(
 	parent.append(footer);
 	return footer;
 }
+
+/** A footer action together with the handler the dialog runs for it. */
+export interface DialogFooterButton extends DialogFooterAction {
+	run(): void;
+}
+
+/**
+ * `appendDialogFooter` for dialogs whose handlers are inline closures: each
+ * action carries its own `run`. Order is the visual order; `align: 'start'`
+ * pins a tertiary action to the left edge.
+ */
+export function appendDialogActions(
+	doc: Document,
+	parent: HTMLElement,
+	buttons: readonly DialogFooterButton[],
+): PptxUiDialogFooterElement {
+	return appendDialogFooter(doc, parent, buttons, (id) =>
+		buttons.find((button) => button.id === id)?.run(),
+	);
+}

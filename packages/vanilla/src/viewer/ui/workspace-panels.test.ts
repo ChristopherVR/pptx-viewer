@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTranslator } from '../i18n';
 import { openCommentsPanel } from './comments-panel';
 import { openCustomShowsDialog } from './custom-shows-dialog';
+import { allButtons } from './dialog-footer.test-support';
 import { openHyperlinkEditDialog } from './hyperlink-edit-dialog';
 import { openSelectionPane } from './selection-pane';
 import { openSlideSorterOverlay } from './slide-sorter-overlay';
@@ -261,7 +262,7 @@ describe('workspace parity panels', () => {
 		);
 		const draft = document.querySelector('textarea')!;
 		draft.value = 'Review this';
-		Array.from(document.querySelectorAll('button'))
+		allButtons(document)
 			.find((button) => button.textContent === 'Add Comment')!
 			.click();
 		expect(addComment).toHaveBeenCalledWith('Review this', undefined, []);
@@ -299,9 +300,7 @@ describe('workspace parity panels', () => {
 		// (shared `createCommentThreadView`), so it offers a Reply affordance.
 		expect(document.querySelectorAll('.pptxv-inspector-comment')).toHaveLength(1);
 		expect(document.querySelector('.pptxv-inspector-comment.is-resolved')).toBeNull();
-		const replyButton = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Reply',
-		);
+		const replyButton = allButtons(document).find((button) => button.textContent === 'Reply');
 		expect(replyButton, 'the workspace pane offers a Reply affordance').toBeDefined();
 		// A resolve replaces the comment array; the notified pane re-renders.
 		comments = [{ id: 'c1', text: 'First pass', author: 'Alice', resolved: true }];
@@ -334,9 +333,7 @@ describe('workspace parity panels', () => {
 		// (submit it) both read "Reply", so the submit is the LAST match, which
 		// is also how the neutral e2e helper picks it.
 		const replyButtons = (): HTMLButtonElement[] =>
-			Array.from(document.querySelectorAll('button')).filter(
-				(button) => button.textContent === 'Reply',
-			);
+			allButtons(document).filter((button) => button.textContent === 'Reply');
 		replyButtons()[0].click();
 		const replyBox = document.querySelector<HTMLTextAreaElement>(
 			'.pptxv-inspector-comment-reply-form textarea',
@@ -357,10 +354,10 @@ describe('workspace parity panels', () => {
 			onSetActive: vi.fn(),
 			onRun: vi.fn(),
 		});
-		Array.from(document.querySelectorAll('button'))
+		allButtons(document)
 			.find((button) => button.textContent === 'Create New Show')!
 			.click();
-		Array.from(document.querySelectorAll('button'))
+		allButtons(document)
 			.find((button) => button.textContent === 'OK')!
 			.click();
 		expect(onSave.mock.calls[0][0]).toHaveLength(1);
@@ -370,7 +367,7 @@ describe('workspace parity panels', () => {
 		const inputs = document.querySelectorAll<HTMLInputElement>('input');
 		inputs[0].value = 'https://example.com';
 		inputs[1].value = 'Example';
-		Array.from(document.querySelectorAll('button'))
+		allButtons(document)
 			.find((button) => button.textContent === 'Apply')!
 			.click();
 		expect(onApply).toHaveBeenCalledWith(

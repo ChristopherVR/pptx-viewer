@@ -26,10 +26,5 @@ export const EQUATION_DIALOG_CSS = `
 .pptxv-eqdlg-template-math { display: flex; align-items: center; justify-content: center; height: 28px; overflow: hidden; font-size: 13px; font-family: 'Cambria Math', 'STIX Two Math', serif; }
 .pptxv-eqdlg-template-label { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 9px; color: var(--pptx-muted-foreground); }
 .pptxv-eqdlg-footer { display: flex; justify-content: flex-end; gap: 7px; }
-.pptxv-eqdlg-footer button { padding: 7px 11px; border: 1px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-muted); color: inherit; cursor: pointer; font: inherit; font-size: 12px; }
-.pptxv-eqdlg-footer button:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-eqdlg-footer button:disabled { opacity: 0.35; cursor: default; }
-.pptxv-eqdlg-footer button.is-primary { border-color: var(--pptx-primary); background: var(--pptx-primary); color: #fff; }
-.pptxv-eqdlg-footer button.is-primary:hover:not(:disabled) { background: var(--pptx-primary); color: #fff; filter: brightness(1.1); }
 @media (max-width: 767px) { .pptxv-eqdlg { top: auto; bottom: 0; width: 100%; max-height: 88dvh; transform: translateX(-50%); border-radius: 16px 16px 0 0; } }
 `;

@@ -81,7 +81,7 @@ export type CompatToastsIntent = { id: 'dismissAll' } | { id: 'dismiss'; toastId
 // Dialog footer
 // ---------------------------------------------------------------------------
 
-export type DialogFooterVariant = 'secondary' | 'primary' | 'warning';
+export type DialogFooterVariant = 'secondary' | 'primary' | 'warning' | 'danger';
 export type DialogFooterIcon = 'trash' | 'pen' | 'restore' | 'print' | 'check';
 
 export interface DialogFooterAction {
@@ -92,6 +92,10 @@ export interface DialogFooterAction {
 	variant?: DialogFooterVariant;
 	icon?: DialogFooterIcon;
 	disabled?: boolean;
+	/** Work in flight: the button is disabled, `aria-busy` and shows a spinner. */
+	busy?: boolean;
+	/** `start` pins a tertiary action (Remove link, Reset all) to the left edge. */
+	align?: 'start' | 'end';
 	/** Optional `data-testid` stamped on the button. */
 	testId?: string;
 }

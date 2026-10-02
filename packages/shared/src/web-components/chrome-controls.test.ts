@@ -206,6 +206,29 @@ describe('pptx-ui-dialog-footer', () => {
 		expect(spy).toHaveBeenCalledWith({ id: 'ok' });
 	});
 
+	it('pins a start action left and shows a busy action as disabled and aria-busy', () => {
+		const host = document.createElement('pptx-ui-dialog-footer');
+		host.state = {
+			actions: [
+				{ id: 'remove', label: 'Remove link', align: 'start' },
+				{ id: 'ok', label: 'Apply', variant: 'primary', busy: true },
+			],
+		};
+		document.body.append(host);
+		const [remove, ok] = Array.from(host.shadowRoot!.querySelectorAll('button'));
+		expect(remove.classList.contains('start')).toBeTruthy();
+		expect(ok.disabled).toBeTruthy();
+		expect(ok.getAttribute('aria-busy')).toBe('true');
+		host.state = {
+			actions: [
+				{ id: 'remove', label: 'Remove link' },
+				{ id: 'ok', label: 'Apply' },
+			],
+		};
+		expect(remove.classList.contains('start')).toBeFalsy();
+		expect(ok.hasAttribute('aria-busy')).toBeFalsy();
+	});
+
 	it('keeps the focused action when the actions change around it', () => {
 		const host = document.createElement('pptx-ui-dialog-footer');
 		const actions = [

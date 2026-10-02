@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
 import { openComparePanel } from './compare-panel';
+import { allButtons } from './dialog-footer.test-support';
 import { openHeaderFooterDialog } from './header-footer-dialog';
 import { openPrintSettingsDialog } from './print-settings-dialog';
 import { openSettingsDialog } from './settings-dialog';
@@ -34,9 +35,7 @@ describe('remaining parity dialogs', () => {
 		});
 		// The Customize Ribbon pane carries the keyboard-shortcut reference.
 		expect(document.body.textContent).toContain('Ctrl/Cmd+C');
-		const advanced = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Advanced',
-		)!;
+		const advanced = allButtons(document).find((button) => button.textContent === 'Advanced')!;
 		advanced.click();
 		const grid = Array.from(document.querySelectorAll('label'))
 			.find((label) => label.textContent === 'Show grid')!
@@ -70,9 +69,7 @@ describe('remaining parity dialogs', () => {
 			.querySelector<HTMLInputElement>('pptx-ui-radio')!;
 		kiosk.checked = true;
 		kiosk.dispatchEvent(new Event('change'));
-		const ok = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'OK',
-		)!;
+		const ok = allButtons(document).find((button) => button.textContent === 'OK')!;
 		ok.click();
 		expect(onSave).toHaveBeenCalledWith(
 			expect.objectContaining({ showType: 'kiosk', loopContinuously: true }),
@@ -94,9 +91,7 @@ describe('remaining parity dialogs', () => {
 		expect(radio).not.toBeNull();
 		radio!.checked = true;
 		radio!.dispatchEvent(new Event('change'));
-		const ok = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'OK',
-		)!;
+		const ok = allButtons(document).find((button) => button.textContent === 'OK')!;
 		ok.click();
 		expect(onSave).toHaveBeenCalledWith(
 			expect.objectContaining({ showSlidesMode: 'customShow', showSlidesCustomShowId: '0' }),
@@ -117,9 +112,7 @@ describe('remaining parity dialogs', () => {
 			onAcceptAll: vi.fn(),
 		});
 		expect(document.body.textContent).toContain('1 changed');
-		const accept = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Accept',
-		)!;
+		const accept = allButtons(document).find((button) => button.textContent === 'Accept')!;
 		accept.click();
 		expect(onAccept).toHaveBeenCalledWith(result.diffs[0]);
 	});
@@ -132,9 +125,7 @@ describe('remaining parity dialogs', () => {
 		selects[1].value = 'notes';
 		selects[2].value = 'portrait';
 		selects[3].value = 'grayscale';
-		const print = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Print',
-		)!;
+		const print = allButtons(document).find((button) => button.textContent === 'Print')!;
 		print.click();
 		expect(onPrint).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -155,9 +146,7 @@ describe('remaining parity dialogs', () => {
 		footer.click();
 		const text = document.querySelector<HTMLInputElement>('input[type="text"]')!;
 		text.value = 'Confidential';
-		const apply = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Apply to All',
-		)!;
+		const apply = allButtons(document).find((button) => button.textContent === 'Apply to All')!;
 		apply.click();
 		expect(onApply).toHaveBeenCalledWith(
 			expect.objectContaining({ hasFooter: true, footerText: 'Confidential' }),

@@ -13,6 +13,7 @@ import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n';
+import { allButtons } from '../dialog-footer.test-support';
 import { openOleEditorDialog } from './ole-editor-dialog';
 
 afterEach(() => {
@@ -198,7 +199,7 @@ describe('openOleEditorDialog', () => {
 			oleObjectType: 'pdf',
 		};
 		openOleEditorDialog(document, createTranslator(), element, { onUpdateElement: vi.fn() });
-		const button = Array.from(document.querySelectorAll('button')).find(
+		const button = allButtons(document).find(
 			(b) => b.textContent === translationsEn['pptx.ole.editDialog.replaceFile'],
 		);
 		expect(button).toBeDefined();
@@ -216,7 +217,7 @@ describe('openOleEditorDialog', () => {
 		};
 		openOleEditorDialog(document, createTranslator(), element, { onUpdateElement: vi.fn() });
 		expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-		const saveButton = Array.from(document.querySelectorAll('button')).find(
+		const saveButton = allButtons(document).find(
 			(b) => b.textContent === translationsEn['pptx.ole.editDialog.save'],
 		);
 		saveButton?.click();
