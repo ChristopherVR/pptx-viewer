@@ -76,13 +76,11 @@ describe('insertTab', () => {
 		const target = mountTab(editor);
 		vi.useFakeTimers();
 		// A gallery pick stages the type, then inserts it once the host has applied it.
-		const pick = (control: string, value: string) => {
-			target
-				.querySelector<HTMLButtonElement>(`[data-ribbon-control="${control}"] .trigger`)!
-				.click();
+		const pick = (id: string, value: string) => {
+			target.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] .trigger`)!.click();
 			target
 				.querySelector<HTMLButtonElement>(
-					`[data-ribbon-control="${control}"] [data-insert-item="${value}"]`,
+					`[data-ribbon-control="${id}"] [data-insert-item="${value}"]`,
 				)!
 				.click();
 			flushSync();
@@ -103,7 +101,9 @@ describe('insertTab', () => {
 		}
 		target.querySelector<HTMLButtonElement>('[data-insert-item="slidenum"]')!.click();
 		target
-			.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.links.action"] [data-insert-item]')!
+			.querySelector<HTMLButtonElement>(
+				'[data-ribbon-control="insert.links.action"] [data-insert-item]',
+			)!
 			.click();
 		flushSync();
 		expect(editor.slides[0]?.elements.length).toBeGreaterThanOrEqual(1);

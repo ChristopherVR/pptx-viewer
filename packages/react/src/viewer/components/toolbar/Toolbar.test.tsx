@@ -585,16 +585,12 @@ describe('toolbar - Home tab', () => {
 
 	it('renders the shared font picker group host', () => {
 		const html = render(
-			React.createElement(HomeSection, {
+			React.createElement(TextSection, {
 				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
 				onUpdateTextStyle: vi.fn<() => void>(),
+				onToggleBullets: vi.fn<() => void>(),
+				onTransformTextCase: vi.fn<() => void>(),
 			}),
 		);
 		// Default family, point size and the Font caption are asserted in FontPickerGroup.test.tsx.

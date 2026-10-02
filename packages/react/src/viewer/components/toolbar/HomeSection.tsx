@@ -64,7 +64,6 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 				onResetSlide={p.onResetSlide}
 				onAddSection={p.onAddSection}
 			/>
-
 		</>
 	);
 }

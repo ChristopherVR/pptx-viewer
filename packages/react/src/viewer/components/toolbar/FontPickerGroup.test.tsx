@@ -7,7 +7,7 @@ import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FontPickerGroup } from './FontPickerGroup';
-import { HomeSection } from './HomeSection';
+import { TextSection } from './TextSection';
 
 registerPptxWebControls();
 
@@ -47,10 +47,8 @@ describe('shared font picker group', () => {
 		act(() => void field('size').dispatchEvent(new Event('change', { bubbles: true })));
 		expect(onSize).toHaveBeenCalledExactlyOnceWith(24);
 		expect(onFamily).not.toHaveBeenCalled();
-		expect(container.querySelector('[data-ribbon-group="home.font"]')).not.toBeNull();
-		expect(container.querySelector('[data-pptx-chrome="ribbon-group-label"]')?.textContent).toBe(
-			'Font',
-		);
+		// The fields belong to the Font group the Text section draws, not a group of their own.
+		expect(container.querySelector('[data-ribbon-group]')).toBeNull();
 	});
 
 	it('names the fields after the control and resyncs when the selection changes', () => {
@@ -70,16 +68,12 @@ describe('home font pickers', () => {
 	const mount = (selectedElement: PptxElement | null, canEdit = true) =>
 		act(() =>
 			root.render(
-				<HomeSection
+				<TextSection
 					canEdit={canEdit}
-					clipboardPayload={null}
-					onCopy={vi.fn()}
-					onCut={vi.fn()}
-					onPaste={vi.fn()}
-					layoutOptions={[]}
-					onInsertSlideFromLayout={vi.fn()}
 					selectedElement={selectedElement}
 					onUpdateTextStyle={vi.fn()}
+					onToggleBullets={vi.fn()}
+					onTransformTextCase={vi.fn()}
 				/>,
 			),
 		);

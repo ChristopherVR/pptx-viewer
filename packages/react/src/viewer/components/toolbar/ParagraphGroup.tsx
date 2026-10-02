@@ -104,9 +104,7 @@ export function ParagraphGroup(p: ParagraphGroupProps): React.ReactElement {
 			<div className='flex items-center gap-1' data-pptx-chrome='paragraph-controls'>
 				<WebHomeControls family='paragraph' controls={controls} onRequest={request} />
 			</div>
-			<span data-pptx-chrome='ribbon-group-label'>
-				{t('pptx.ribbon.paragraph')}
-			</span>
+			<span data-pptx-chrome='ribbon-group-label'>{t('pptx.ribbon.paragraph')}</span>
 		</div>
 	);
 }

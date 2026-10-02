@@ -54,13 +54,14 @@ describe('shared font controls in Svelte', () => {
 		target.remove();
 	});
 
-	it('renders the pickers on the shared select with the group caption and hooks', async () => {
+	it('renders the pickers on the shared select and hooks, inside the Font group the tab draws', async () => {
 		const target = document.createElement('div');
 		document.body.append(target);
 		const editor = { editable: true, selectedElement: text } as unknown as EditorState;
 		const instance = mount(FontPickerGroup, { target, props: { editor } });
 		flushSync();
-		expect(target.querySelectorAll('[data-ribbon-group="home.font"]')).toHaveLength(1);
+		// The fields are the first row of the Font group the tab draws, not a group of their own.
+		expect(target.querySelectorAll('[data-ribbon-group]')).toHaveLength(0);
 		expect(picker(target, 'family').dataset.ribbonControl).toBe('home.font.fontFamily');
 		expect(picker(target, 'size').dataset.ribbonControl).toBe('home.font.fontSize');
 		expect(picker(target, 'family').getAttribute('variant')).toBe('ribbon-font');

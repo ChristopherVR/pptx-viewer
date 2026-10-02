@@ -31,9 +31,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 				<div className='flex items-center gap-1' data-pptx-chrome='editing-controls'>
 					<WebHomeControls family='editing' controls={controls} onRequest={request} />
 				</div>
-				<span data-pptx-chrome='ribbon-group-label'>
-					{t('pptx.ribbon.editing')}
-				</span>
+				<span data-pptx-chrome='ribbon-group-label'>{t('pptx.ribbon.editing')}</span>
 			</div>
 		</>
 	);

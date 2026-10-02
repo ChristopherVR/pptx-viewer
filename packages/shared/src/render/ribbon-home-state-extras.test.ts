@@ -217,7 +217,7 @@ describe('locale keys of the new strips', () => {
 		expect(keys).toContain('pptx.shape.mergeShapesHint');
 		expect(keys).toContain('pptx.image.cropFill');
 		expect(keys).toContain('pptx.image.cropSquare');
-		expect(homeFamilyKeys('font-picker')).toContain('pptx.ribbon.font');
+		expect(homeFamilyKeys('font-picker')).toContain('pptx.ribbon.fontFamily');
 		expect(homeFamilyKeys('slides')).toContain('pptx.layoutGallery.empty');
 	});
 });

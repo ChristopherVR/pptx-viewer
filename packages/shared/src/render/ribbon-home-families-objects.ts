@@ -216,13 +216,8 @@ export const RIBBON_HOME_OBJECT_FAMILIES: Readonly<
 			),
 		],
 	},
+	// No group of its own: the fields are the first row of the Font group the host draws.
 	'font-picker': {
-		group: {
-			id: 'home.font',
-			captionKey: 'pptx.ribbon.font',
-			fallback: 'Font',
-			rowChrome: 'font-picker-controls',
-		},
 		clusters: [
 			{
 				free: true,

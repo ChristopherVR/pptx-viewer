@@ -114,9 +114,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						onTransformTextCase={p.onTransformTextCase}
 					/>
 				</div>
-				<span data-pptx-chrome='ribbon-group-label'>
-					{t('pptx.ribbon.font')}
-				</span>
+				<span data-pptx-chrome='ribbon-group-label'>{t('pptx.ribbon.font')}</span>
 			</div>
 
 			{sep}

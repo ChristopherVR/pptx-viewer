@@ -57,7 +57,8 @@ describe('home select controls', () => {
 		expect(family.dataset.fontPicker).toBe('family');
 		expect(family.getAttribute('variant')).toBe('ribbon-font');
 		expect(family.getAttribute('aria-label')).toBe('Font family');
-		expect(host.querySelector('[data-ribbon-group="home.font"]')).toBeTruthy();
+		// The fields are the first row of the Font group the host draws, so no group of their own.
+		expect(host.querySelector('[data-ribbon-group]')).toBeNull();
 		const read = intents(host);
 		const size = control(host, 'home.font.fontSize') as HTMLElement & { value: string };
 		expect(size.value).toBe('24');

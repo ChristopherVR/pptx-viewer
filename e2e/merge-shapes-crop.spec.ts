@@ -33,7 +33,8 @@ import { downloadBytes } from './support/exports';
 import { pressShortcut } from './support/keyboard';
 import { extractElementBlock, readZipPartText } from './support/pptx-xml';
 
-test.use({ viewport: { width: 1440, height: 900 } });
+// Wide enough that the Home Arrange extras (Merge, Crop, align) have not collapsed into a popup.
+test.use({ viewport: { width: 2600, height: 900 } });
 
 const DECK = fixture('merge-crop.pptx');
 const MERGE_LABELS = [

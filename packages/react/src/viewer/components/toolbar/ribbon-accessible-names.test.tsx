@@ -36,7 +36,6 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	}),
 }));
 
-const { HomeSection } = await import('./HomeSection');
 const { HelpSection } = await import('./HelpSection');
 const { TextSection } = await import('./TextSection');
 
@@ -185,16 +184,12 @@ describe('list command state', () => {
 describe('home tab font controls', () => {
 	const mountHome = () =>
 		mountInto(
-			React.createElement(HomeSection, {
+			React.createElement(TextSection, {
 				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
 				onUpdateTextStyle: vi.fn<() => void>(),
+				onToggleBullets: vi.fn<() => void>(),
+				onTransformTextCase: vi.fn<() => void>(),
 			}),
 		);
 
