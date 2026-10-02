@@ -3,6 +3,7 @@ import { SHORTCUT_REFERENCE_ITEMS, TOOLBAR_TABS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createInspectorCheckbox } from '../inspector/controls-extra';
 import { appendOptionsAction } from './options-controls';
 
 /**
@@ -29,8 +30,7 @@ export function renderRibbonPane(
 	for (const tab of TOOLBAR_TABS) {
 		const isFile = tab.id === 'file';
 		const row = createEl(doc, 'label', `pptxv-parity-check${isFile ? ' is-locked' : ''}`);
-		const input = doc.createElement('input');
-		input.type = 'checkbox';
+		const input = createInspectorCheckbox(doc);
 		input.checked = isFile || !hidden.has(tab.id);
 		input.disabled = isFile;
 		input.addEventListener('change', () => {

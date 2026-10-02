@@ -4,6 +4,7 @@ import { collectUsedFonts, scanAvailableFontFamilies } from 'pptx-viewer-shared'
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { appendInfoDoneButton, openFileInfoDialogShell } from './file-info-dialog-shell';
+import { createInspectorCheckbox } from './inspector/controls-extra';
 
 export interface FontEmbeddingDialogOptions {
 	slides: readonly PptxSlide[];
@@ -30,8 +31,7 @@ export function openFontEmbeddingDialog(
 	description.textContent = t('pptx.fonts.embedDescription');
 	const canEmbed = options.canEmbed !== false;
 	const toggle = createEl(doc, 'label', 'pptxv-info-toggle');
-	const checkbox = createEl(doc, 'input');
-	checkbox.type = 'checkbox';
+	const checkbox = createInspectorCheckbox(doc);
 	checkbox.checked = options.enabled;
 	checkbox.disabled = !canEmbed;
 	checkbox.addEventListener('change', () => options.onToggle(checkbox.checked));

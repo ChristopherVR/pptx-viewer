@@ -1,5 +1,6 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createInspectorCheckbox } from './inspector/controls-extra';
 
 export interface DialogShell {
 	backdrop: HTMLButtonElement;
@@ -73,8 +74,7 @@ export function appendCheckRow(
 	checked: boolean,
 ): HTMLInputElement {
 	const row = createEl(doc, 'label', 'pptxv-parity-check');
-	const input = doc.createElement('input');
-	input.type = 'checkbox';
+	const input = createInspectorCheckbox(doc);
 	input.checked = checked;
 	row.append(input, doc.createTextNode(label));
 	parent.appendChild(row);

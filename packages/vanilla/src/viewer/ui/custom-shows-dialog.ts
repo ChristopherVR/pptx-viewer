@@ -2,6 +2,7 @@ import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createInspectorSelect, createInspectorCheckbox } from './inspector/controls-extra';
 import { appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
 
 export interface CustomShowsDialogOptions {
@@ -41,7 +42,7 @@ export function openCustomShowsDialog(
 	const picker = createEl(doc, 'label', 'pptxv-custom-shows-active');
 	const pickerLabel = createEl(doc, 'span');
 	pickerLabel.textContent = t('pptx.customShows.selectCustomShow');
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	select.setAttribute('aria-label', t('pptx.customShows.selectCustomShow'));
 	select.addEventListener('change', () => {
 		activeShowId = select.value || null;
@@ -109,8 +110,7 @@ export function openCustomShowsDialog(
 			const slideList = createEl(doc, 'div');
 			slides.forEach((slide) => {
 				const label = createEl(doc, 'label', 'pptxv-parity-check');
-				const check = doc.createElement('input');
-				check.type = 'checkbox';
+				const check = createInspectorCheckbox(doc);
 				check.checked = show.slideRIds.includes(slide.rId);
 				check.addEventListener('change', () => {
 					show.slideRIds = check.checked

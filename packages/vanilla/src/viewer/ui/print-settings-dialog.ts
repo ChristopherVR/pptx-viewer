@@ -1,6 +1,7 @@
 import type { PrintOptions } from '../export/export-print';
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createInspectorSelect } from './inspector/controls-extra';
 import { appendCheckRow, appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
 
 export function openPrintSettingsDialog(
@@ -23,7 +24,7 @@ export function openPrintSettingsDialog(
 		const row = createEl(doc, 'label', 'pptxv-parity-select');
 		const caption = createEl(doc, 'span');
 		caption.textContent = label;
-		const select = doc.createElement('select');
+		const select = createInspectorSelect(doc);
 		for (const [value, text] of entries) {
 			const option = doc.createElement('option');
 			option.value = value;

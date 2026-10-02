@@ -41,7 +41,7 @@ describe('shared Vanilla Draw adapter', () => {
 
 	it('routes 16px width choices to the native handler', () => {
 		const { tab, handlers } = mount();
-		const select = tab.el.querySelector('select')!;
+		const select = tab.el.querySelector('pptx-ui-select')!;
 		select.value = '16';
 		select.dispatchEvent(new Event('change'));
 		expect(handlers.setWidth).toHaveBeenCalledExactlyOnceWith(16);
@@ -51,7 +51,7 @@ describe('shared Vanilla Draw adapter', () => {
 		const { tab, handlers, button } = mount();
 		tab.update({ tool: 'highlighter', color: '#123456', width: 8, recentColors: ['#112233'] });
 		expect(button('highlighter').getAttribute('aria-pressed')).toBe('true');
-		expect(tab.el.querySelector('select')!.value).toBe('8');
+		expect(tab.el.querySelector('pptx-ui-select')!.value).toBe('8');
 		expect(
 			tab.el.querySelector('[data-testid="pptx-color-recent"] [data-draw-color="#112233"]'),
 		).toBeTruthy();
@@ -64,7 +64,7 @@ describe('shared Vanilla Draw adapter', () => {
 		button('pen').click();
 		expect(handlers.setTool).not.toHaveBeenCalled();
 		expect(button('pen').disabled).toBeTruthy();
-		expect(tab.el.querySelector('select')!.disabled).toBeTruthy();
+		expect(tab.el.querySelector('pptx-ui-select')!.disabled).toBeTruthy();
 		tab.setEditable(true);
 		button('pen').click();
 		expect(handlers.setTool).toHaveBeenCalledExactlyOnceWith('pen');

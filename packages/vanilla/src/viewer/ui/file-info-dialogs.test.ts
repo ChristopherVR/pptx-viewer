@@ -38,7 +38,7 @@ describe('file info dialogs', () => {
 		});
 		await Promise.resolve();
 		expect(overlay.textContent).toContain('Brand Font');
-		const checkbox = overlay.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+		const checkbox = overlay.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 		checkbox.checked = true;
 		checkbox.dispatchEvent(new Event('change', { bubbles: true }));
 		expect(onToggle).toHaveBeenCalledWith(true);
@@ -54,9 +54,7 @@ describe('file info dialogs', () => {
 			unavailableKey: 'pptx.fonts.embedUnavailable',
 			onToggle: vi.fn(),
 		});
-		expect(
-			overlay.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled,
-		).toBeTruthy();
+		expect(overlay.querySelector<HTMLInputElement>('pptx-ui-checkbox')!.disabled).toBeTruthy();
 		expect(overlay.textContent).toContain(t('pptx.fonts.embedUnavailable'));
 		expect(overlay.textContent).not.toContain(t('pptx.fonts.embedKeepsExisting'));
 	});

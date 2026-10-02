@@ -23,9 +23,9 @@ function handlers() {
 
 /** A timeline control (light DOM), found by its explicit accessible name. */
 function control(tab: { el: HTMLElement }, label: string): HTMLElement {
-	const match = [...tab.el.querySelectorAll<HTMLElement>('button, input, select')].find(
-		(node) => node.getAttribute('aria-label') === label,
-	);
+	const match = [
+		...tab.el.querySelectorAll<HTMLElement>('button, input, select, pptx-ui-select'),
+	].find((node) => node.getAttribute('aria-label') === label);
 	if (!match) {
 		throw new Error(`missing animations control: ${label}`);
 	}

@@ -162,17 +162,18 @@ describe('vanilla custom-shows dialog picker', () => {
 			onSetActive,
 			onRun,
 		});
-		const select = document.querySelector<HTMLSelectElement>('.pptxv-custom-shows-active select')!;
+		const select = document.querySelector<HTMLSelectElement>(
+			'.pptxv-custom-shows-active pptx-ui-select',
+		)!;
 		return { select, onSetActive, onRun };
 	}
 
 	it('offers All Slides plus every defined show, at React parity labels', () => {
 		const { select } = open(null);
 		expect(select.getAttribute('aria-label')).toBe('Select custom show');
-		expect(Array.from(select.options).map((option) => option.textContent)).toStrictEqual([
-			'All Slides',
-			'Short',
-		]);
+		expect(
+			Array.from(select.querySelectorAll('option')).map((option) => option.textContent),
+		).toStrictEqual(['All Slides', 'Short']);
 	});
 
 	it('reflects the show already selected', () => {

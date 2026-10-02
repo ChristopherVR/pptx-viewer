@@ -93,7 +93,7 @@ describe('createInsertTab', () => {
 		]) {
 			expect(tab.el.querySelectorAll(`[data-ribbon-group="${id}"]`)).toHaveLength(1);
 		}
-		const selects = tab.el.querySelectorAll<HTMLSelectElement>('select');
+		const selects = tab.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		expect(selects).toHaveLength(2);
 		expect(selects[0].options).toHaveLength(SHAPE_PRESET_DEFS.length);
 		expect(selects[1].options).toHaveLength(INSERT_CHART_TYPES.length);
@@ -129,7 +129,7 @@ describe('createInsertTab', () => {
 	it('inserts the shape type parked in the picker select', () => {
 		const insert = vi.fn();
 		const tab = make({ insert });
-		const select = tab.el.querySelector<HTMLSelectElement>('select')!;
+		const select = tab.el.querySelector<HTMLSelectElement>('pptx-ui-select')!;
 		select.value = SHAPE_PRESET_DEFS[2].type;
 		select.dispatchEvent(new Event('change'));
 		pick(tab, 'insert.illustrations.shapes').click();
@@ -149,7 +149,7 @@ describe('createInsertTab', () => {
 	it('inserts the chart kind parked in the picker select, including Bar and Pareto', () => {
 		const insertChart = vi.fn();
 		const tab = make({ insertChart });
-		const chartSelect = tab.el.querySelectorAll<HTMLSelectElement>('select')[1];
+		const chartSelect = tab.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[1];
 		pick(tab, 'insert.illustrations.chart').click();
 		expect(insertChart).toHaveBeenLastCalledWith(INSERT_CHART_TYPES[0].id);
 		// The dropdown carries the entry id: Column and Bar share the 'bar' family.
@@ -243,7 +243,7 @@ describe('createInsertTab', () => {
 		const editing = ['insert.text.textBox', 'insert.tables.table', 'insert.media.media'];
 		tab.setEditable(false);
 		expect(editing.every((id) => control(tab, id).disabled)).toBeTruthy();
-		expect(tab.el.querySelector<HTMLSelectElement>('select')!.disabled).toBeTruthy();
+		expect(tab.el.querySelector<HTMLSelectElement>('pptx-ui-select')!.disabled).toBeTruthy();
 		expect(tab.el.querySelector<HTMLButtonElement>('.trigger')!.disabled).toBeTruthy();
 		tab.setEditable(true);
 		expect(editing.every((id) => !control(tab, id).disabled)).toBeTruthy();

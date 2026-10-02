@@ -2,6 +2,7 @@ import type { FindReplaceActions } from '../../editor/editor-find-replace-action
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { makeButton } from '../controls';
+import { createInspectorCheckbox } from '../inspector/controls-extra';
 
 export interface FindReplacePanel {
 	el: HTMLElement;
@@ -41,8 +42,7 @@ export function createFindReplacePanel(
 	replaceInput.setAttribute('aria-label', t('pptx.findReplace.replacementText'));
 
 	const matchCaseLabel = createEl(doc, 'label', 'pptxv-findreplace-checkbox');
-	const matchCaseInput = doc.createElement('input');
-	matchCaseInput.type = 'checkbox';
+	const matchCaseInput = createInspectorCheckbox(doc);
 	matchCaseInput.setAttribute('aria-label', t('pptx.findReplace.toggleMatchCase'));
 	matchCaseLabel.append(matchCaseInput, doc.createTextNode(t('pptx.findReplace.matchCase')));
 
