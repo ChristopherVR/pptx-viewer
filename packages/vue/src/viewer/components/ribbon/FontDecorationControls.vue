@@ -6,7 +6,7 @@
  * style into it and re-emits the one intent as the existing typed events.
  */
 import type { TextStyle } from 'pptx-viewer-core';
-import { fontHomeControls } from 'pptx-viewer-shared';
+import { fontHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -30,7 +30,7 @@ const state = computed(() => ({
 		strikethrough: Boolean(props.textStyle?.strikethrough),
 		shadow: Boolean(props.textStyle?.textShadowColor),
 	}),
-	translate: t,
+	translate: homeSnapshotTranslator(['font'], t),
 }));
 
 function request(event: RibbonHomeRequestEvent): void {

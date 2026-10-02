@@ -3,7 +3,7 @@
  * EditingSection: Find, Replace, and Select controls for the Home ribbon tab.
  * Vue port matching the React EditingSection component.
  */
-import { editingHomeControls } from 'pptx-viewer-shared';
+import { editingHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -20,7 +20,10 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-const editingState = computed(() => ({ controls: editingHomeControls(), translate: t }));
+const editingState = computed(() => ({
+	controls: editingHomeControls(),
+	translate: homeSnapshotTranslator(['editing'], t),
+}));
 
 const selectMenu = useDropdown();
 
