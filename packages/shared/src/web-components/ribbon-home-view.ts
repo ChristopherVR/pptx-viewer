@@ -1,108 +1,85 @@
-import {
-	RIBBON_HOME_FAMILIES,
-	createRibbonControlIcon,
-	homeControlKey,
-	homeLabel,
-} from '../render';
+import { RIBBON_HOME_FAMILIES, homeControlKey, homeLabel } from '../render';
 import type {
 	RibbonHomeControlSpec,
-	RibbonHomeControlState,
 	RibbonHomeFamily,
 	RibbonHomeIntent,
 	RibbonHomeViewState,
 } from '../render';
+import { addButtonContent, makeHomeButton, syncHomeButton } from './ribbon-home-button';
+import { buildNumberControl, buildPopupControl, buildSelectControl } from './ribbon-home-controls';
+import type { HomeControl, HomeControlContext } from './ribbon-home-controls';
+import { buildGalleryControl, buildListToggleControl } from './ribbon-home-gallery';
+import type { HomeLayoutArtwork } from './ribbon-home-layout';
 
-/** All Home button markup lives here; the host only reflects state and routes intents. */
+/** A plain command button (or one button of a shared id, like an Align edge). */
+function buildButtonControl(ctx: HomeControlContext, control: RibbonHomeControlSpec): HomeControl {
+	const button = makeHomeButton(ctx.doc, control, ctx.request);
+	addButtonContent(ctx.doc, button, control);
+	if (control.part) {
+		button.dataset.part = control.part;
+	} else {
+		button.dataset.ribbonControl = control.id;
+	}
+	const key = homeControlKey(control);
+	return {
+		node: button,
+		anchor: button,
+		buttons: [[key, button]],
+		sync: (state) => syncHomeButton(button, control, state, state.controls[key]),
+	};
+}
+
+function buildControl(ctx: HomeControlContext, control: RibbonHomeControlSpec): HomeControl {
+	switch (control.kind) {
+		case 'select':
+			return buildSelectControl(ctx, control);
+		case 'number':
+			return buildNumberControl(ctx, control);
+		case 'gallery':
+			return buildGalleryControl(ctx, control);
+		case 'menu':
+		case 'colour':
+		case 'layout':
+			return buildPopupControl(ctx, control);
+		default:
+			return control.gallery
+				? buildListToggleControl(ctx, control)
+				: buildButtonControl(ctx, control);
+	}
+}
+
+/** All Home markup lives here; the host only reflects state and routes intents. */
 export function createRibbonHomeView(
 	doc: Document,
 	family: RibbonHomeFamily,
 	request: (intent: RibbonHomeIntent) => void,
+	popupChange: (id: string, open: boolean) => void,
+	artwork: () => HomeLayoutArtwork | undefined,
 ) {
 	const spec = RIBBON_HOME_FAMILIES[family];
 	const root = doc.createElement('div');
 	root.className = 'home';
-	const buttons = new Map<string, HTMLButtonElement>();
-	/** Elements the host anchors a native popover to (the control's wrapper or button). */
+	const buttons = new Map<string, HTMLElement>();
+	/** Elements the host anchors to (the control's wrapper or button). */
 	const anchors = new Map<string, HTMLElement>();
-	const labelled: Array<{ button: HTMLButtonElement; spec: RibbonHomeControlSpec }> = [];
-
-	const makeButton = (control: RibbonHomeControlSpec, part?: string): HTMLButtonElement => {
-		const button = doc.createElement('button');
-		button.type = 'button';
-		button.className = 'b';
-		if (control.testId) {
-			button.dataset.testid = control.testId;
-		}
-		if (control.danger) {
-			button.dataset.tone = 'danger';
-		}
-		// Keep the text selection and caret in the slide while a format is applied.
-		button.addEventListener('mousedown', (event) => event.preventDefault());
-		button.addEventListener('keydown', (event) => {
-			// Native activation must not reach the viewer's slide shortcuts.
-			if (event.key === ' ' || event.key === 'Enter') {
-				event.stopPropagation();
-			}
-		});
-		button.addEventListener('click', () => {
-			if (!button.disabled) {
-				const intent: RibbonHomeIntent = { id: control.id };
-				if (part ?? control.part) {
-					intent.part = part ?? control.part;
-				}
-				request(intent);
-			}
-		});
-		return button;
-	};
-
-	const buildControl = (control: RibbonHomeControlSpec): HTMLElement => {
-		const button = makeButton(control);
-		if (control.icon !== false) {
-			button.append(createRibbonControlIcon(doc, control.icon ?? control.id));
-		}
-		if (control.text) {
-			const caption = doc.createElement('span');
-			caption.className = 'text';
-			button.append(caption);
-		}
-		buttons.set(homeControlKey(control), button);
-		labelled.push({ button, spec: control });
-		if (control.part) {
-			button.dataset.part = control.part;
-			return button;
-		}
-		if (!control.popup && !control.caret) {
-			button.dataset.ribbonControl = control.id;
-			anchors.set(control.id, button);
-			return button;
-		}
-		const slot = doc.createElement('div');
-		slot.className = 'slot';
-		slot.dataset.ribbonControl = control.id;
-		if (control.popup) {
-			button.setAttribute('aria-haspopup', 'menu');
-		}
-		slot.append(button);
-		if (control.caret) {
-			slot.dataset.pptxChrome = 'split-button';
-			button.dataset.pptxChrome = 'split-main';
-			const caret = makeButton(control, 'caret');
-			caret.dataset.pptxChrome = 'split-caret';
-			caret.setAttribute('aria-haspopup', 'menu');
-			caret.append(createRibbonControlIcon(doc, 'home.slides.caret'));
-			buttons.set(`${control.id}#caret`, caret);
-			slot.append(caret);
-		}
-		anchors.set(control.id, slot);
-		return slot;
-	};
+	const built: HomeControl[] = [];
+	const ctx: HomeControlContext = { doc, request, popupChange, artwork };
 
 	const clusters = spec.clusters.map((cluster) => {
 		const strip = doc.createElement('div');
 		strip.className = cluster.free ? 'free' : 'cluster';
 		strip.dataset.pptxChrome = cluster.chrome ?? 'control-cluster';
-		strip.append(...cluster.controls.map(buildControl));
+		for (const control of cluster.controls) {
+			const item = buildControl(ctx, control);
+			built.push(item);
+			for (const [key, button] of item.buttons) {
+				buttons.set(key, button);
+			}
+			if (!anchors.has(control.id)) {
+				anchors.set(control.id, item.anchor);
+			}
+			strip.append(item.node);
+		}
 		return strip;
 	});
 	let content: HTMLElement[] = clusters;
@@ -136,61 +113,14 @@ export function createRibbonHomeView(
 		root.append(...content);
 	}
 
-	function applyState(
-		button: HTMLButtonElement,
-		current: RibbonHomeControlState | undefined,
-		control: RibbonHomeControlSpec,
-		isCaret: boolean,
-	) {
-		button.disabled = Boolean(current?.disabled);
-		const slot = button.parentElement?.classList.contains('slot') ? button.parentElement : null;
-		if (slot && !control.caret) {
-			// A popup slot hides as a whole so a hidden control leaves no gap.
-			slot.hidden = Boolean(current?.hidden);
-		} else {
-			button.hidden = Boolean(current?.hidden);
-		}
-		if (current?.pressed === undefined) {
-			button.removeAttribute('aria-pressed');
-			delete button.dataset.active;
-		} else {
-			button.setAttribute('aria-pressed', String(current.pressed));
-			if (control.testId && !isCaret) {
-				button.dataset.active = String(current.pressed);
-			}
-		}
-		if (current?.expanded === undefined) {
-			button.removeAttribute('aria-expanded');
-		} else {
-			button.setAttribute('aria-expanded', String(current.expanded));
-		}
-	}
-
 	const sync = (state: RibbonHomeViewState) => {
 		if (group && spec.group) {
 			const label = homeLabel(state, spec.group.captionKey, spec.group.fallback);
 			caption.textContent = label;
 			group.setAttribute('aria-label', label);
 		}
-		for (const { button, spec: control } of labelled) {
-			const label = homeLabel(state, control.labelKey, control.fallback);
-			const visible = control.text
-				? homeLabel(state, control.text.key, control.text.fallback)
-				: undefined;
-			button.title = label;
-			button.setAttribute('aria-label', visible ?? label);
-			const textEl = button.querySelector('.text');
-			if (textEl && visible !== undefined) {
-				textEl.textContent = visible;
-			}
-			applyState(button, state.controls[homeControlKey(control)], control, false);
-			const caret = control.caret ? buttons.get(`${control.id}#caret`) : undefined;
-			if (caret && control.caret) {
-				const name = homeLabel(state, control.caret.labelKey, control.caret.fallback);
-				caret.title = name;
-				caret.setAttribute('aria-label', name);
-				applyState(caret, state.controls[`${control.id}#caret`], control, true);
-			}
+		for (const item of built) {
+			item.sync(state);
 		}
 	};
 

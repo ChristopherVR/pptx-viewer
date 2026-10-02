@@ -58,12 +58,9 @@ describe('shared Slides group', () => {
 	it('emits the caret as a part of the New Slide id and rejects gated intents', () => {
 		const host = mount('slides', slidesHomeControls(slides));
 		const read = intents(host);
-		host.querySelector<HTMLElement>('[data-pptx-chrome="split-caret"]')!.click();
 		host.querySelector<HTMLElement>('[data-ribbon-control="home.slides.reset"]')!.click();
-		expect(read()).toStrictEqual([
-			{ id: 'home.slides.newSlide', part: 'caret' },
-			{ id: 'home.slides.reset' },
-		]);
+		host.querySelector<HTMLElement>('[data-pptx-chrome="split-main"]')!.click();
+		expect(read()).toStrictEqual([{ id: 'home.slides.reset' }, { id: 'home.slides.newSlide' }]);
 		host.state = {
 			controls: slidesHomeControls({ ...slides, editable: false, hasLayouts: false }),
 		};
@@ -75,14 +72,11 @@ describe('shared Slides group', () => {
 	});
 
 	it('hides templates, mirrors popover state and keeps the visible text as the name', () => {
-		const host = mount(
-			'slides',
-			slidesHomeControls({ ...slides, showTemplates: false, layoutOpen: true }),
-		);
+		const host = mount('slides', slidesHomeControls({ ...slides, showTemplates: false }));
 		expect(control(host, 'home.slides.slideTemplates').hidden).toBeTruthy();
 		const layout = control(host, 'home.slides.layout').querySelector('button')!;
-		expect(layout.getAttribute('aria-expanded')).toBe('true');
-		expect(layout.getAttribute('aria-haspopup')).toBe('menu');
+		expect(layout.getAttribute('aria-expanded')).toBe('false');
+		expect(layout.getAttribute('aria-haspopup')).toBe('dialog');
 		const reset = control(host, 'home.slides.reset');
 		expect(reset.getAttribute('aria-label')).toBe('Reset');
 		expect(reset.title).toBe('Reset slide');
@@ -103,20 +97,57 @@ describe('shared Slides group', () => {
 });
 
 describe('shared Drawing triggers', () => {
-	it('gates by selection and reflects the open popover', () => {
-		const host = mount(
-			'drawing',
-			drawingHomeControls({ editable: true, hasSelection: false, open: { shapes: true } }),
-		);
+	it('gates by selection and opens its own shapes menu', () => {
+		const host = mount('drawing', drawingHomeControls({ editable: true, hasSelection: false }));
 		const shapes = control(host, 'home.drawing.shapes').querySelector('button')!;
 		expect(shapes.disabled).toBeFalsy();
-		expect(shapes.getAttribute('aria-expanded')).toBe('true');
+		expect(shapes.getAttribute('aria-expanded')).toBe('false');
 		for (const id of ['arrange', 'shapeFill', 'shapeOutline']) {
 			expect(control(host, `home.drawing.${id}`).querySelector('button')!.disabled).toBeTruthy();
 		}
 		const read = intents(host);
+		const popup = vi.fn();
+		host.addEventListener('home-popup', popup);
 		shapes.click();
-		expect(read()).toStrictEqual([{ id: 'home.drawing.shapes' }]);
+		expect(shapes.getAttribute('aria-expanded')).toBe('true');
+		expect(popup.mock.calls[0][0].detail).toStrictEqual({ id: 'home.drawing.shapes', open: true });
+		const rows = control(host, 'home.drawing.shapes').querySelectorAll<HTMLElement>(
+			'[role="menuitem"]',
+		);
+		expect(rows).toHaveLength(12);
+		rows[2].click();
+		expect(shapes.getAttribute('aria-expanded')).toBe('false');
+		expect(read()).toStrictEqual([{ id: 'home.drawing.shapes', value: 'ellipse' }]);
+	});
+
+	it('offers the colour popover with theme, standard and recent colours', () => {
+		const host = mount(
+			'drawing',
+			drawingHomeControls({
+				editable: true,
+				hasSelection: true,
+				fill: {
+					value: '#ff0000',
+					themeColors: { dk1: '#000000', lt1: '#ffffff', accent1: '#4472c4' },
+					recent: ['#123456'],
+				},
+			}),
+		);
+		const read = intents(host);
+		const slot = control(host, 'home.drawing.shapeFill');
+		slot.querySelector('button')!.click();
+		expect(slot.querySelector('[data-theme-swatch]')).toBeTruthy();
+		expect(slot.querySelector('[data-testid="pptx-color-recent"]')).toBeTruthy();
+		slot.querySelector<HTMLElement>('.std-grid button')!.click();
+		expect(read()[0]).toMatchObject({ id: 'home.drawing.shapeFill', value: '#ffffff' });
+		expect(read()[0].ref).toBeUndefined();
+	});
+
+	it('rejects a colour that is not a hex value', () => {
+		const host = mount('drawing', drawingHomeControls({ editable: true, hasSelection: true }));
+		const read = intents(host);
+		host.dispatchEvent(new CustomEvent('x'));
+		expect(read()).toHaveLength(0);
 	});
 });
 

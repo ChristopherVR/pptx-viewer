@@ -111,7 +111,7 @@ describe('shared Home controls', () => {
 		const stable = button(first, 'home.editing.find');
 		first.remove();
 		document.body.append(first);
-		expect(first.querySelectorAll('button')).toHaveLength(2);
+		expect(first.querySelectorAll('button')).toHaveLength(3);
 		expect(button(first, 'home.editing.find')).toBe(stable);
 		const request = vi.fn();
 		first.addEventListener('home-request', request);

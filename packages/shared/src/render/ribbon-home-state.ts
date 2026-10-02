@@ -1,6 +1,29 @@
+import type { PptxThemeColorRef } from 'pptx-viewer-core';
+
 import type { RibbonHomeViewState } from './ribbon-home-spec';
 
 export * from './ribbon-home-spec';
+export * from './ribbon-home-state-objects';
+export * from './ribbon-home-state-extras';
+export * from './ribbon-home-menus';
+
+/** A colour trigger's current value and the data its popover shows. */
+export interface HomeColourInput {
+	value: string;
+	ref?: PptxThemeColorRef;
+	/** Deck theme colour map; omit to hide the theme palette. */
+	themeColors?: Readonly<Record<string, string>>;
+	/** Recently used colours, newest first. */
+	recent?: readonly string[];
+}
+
+export function homeColourState(disabled: boolean, input: HomeColourInput) {
+	return {
+		disabled,
+		value: input.value,
+		colour: { themeColors: input.themeColors, selectedRef: input.ref, recent: input.recent },
+	};
+}
 
 export interface ClipboardHomeInput {
 	editable: boolean;
@@ -35,6 +58,12 @@ export interface FontHomeInput {
 	underline: boolean;
 	strikethrough: boolean;
 	shadow: boolean;
+	/** Font colour popover; omit when the host offers no colour picker. */
+	fontColor?: HomeColourInput;
+	/** Highlight popover (no theme palette). */
+	highlight?: HomeColourInput;
+	/** Current character spacing in 1/100 pt, marked in the menu. */
+	characterSpacing?: number;
 }
 
 export function fontHomeControls(input: FontHomeInput): RibbonHomeViewState['controls'] {
@@ -48,6 +77,18 @@ export function fontHomeControls(input: FontHomeInput): RibbonHomeViewState['con
 		'home.font.increaseFontSize': { disabled },
 		'home.font.decreaseFontSize': { disabled },
 		'home.font.clearFormatting': { disabled },
+		'home.font.characterSpacing': {
+			disabled,
+			value: String(input.characterSpacing ?? 0),
+		},
+		'home.font.changeCase': { disabled },
+		...(input.fontColor && { 'home.font.fontColor': homeColourState(disabled, input.fontColor) }),
+		...(input.highlight && {
+			'home.font.highlightColor': homeColourState(disabled, {
+				...input.highlight,
+				themeColors: undefined,
+			}),
+		}),
 	};
 }
 
@@ -57,6 +98,12 @@ export interface ParagraphHomeInput {
 	enabled: boolean;
 	/** Omit when the binding cannot read the alignment, so no pressed state is reflected. */
 	align?: RibbonHomeAlign;
+	/** The selection's list kind: reflected as the Bullets or Numbering toggle being pressed. */
+	list?: 'bullet' | 'numbered' | 'none';
+	/** Current line spacing multiplier, columns and text direction, marked in their menus. */
+	lineSpacing?: number;
+	columns?: number;
+	textDirection?: string;
 }
 
 export function paragraphHomeControls(input: ParagraphHomeInput): RibbonHomeViewState['controls'] {
@@ -70,6 +117,23 @@ export function paragraphHomeControls(input: ParagraphHomeInput): RibbonHomeView
 		'home.paragraph.alignCenter': { disabled, pressed: pressed('center') },
 		'home.paragraph.alignRight': { disabled, pressed: pressed('right') },
 		'home.paragraph.justify': { disabled, pressed: pressed('justify') },
+		'home.paragraph.bullets': {
+			disabled,
+			pressed: input.list === undefined ? undefined : input.list === 'bullet',
+		},
+		'home.paragraph.numbering': {
+			disabled,
+			pressed: input.list === undefined ? undefined : input.list === 'numbered',
+		},
+		'home.paragraph.lineSpacing': {
+			disabled,
+			value: String(input.lineSpacing ?? 1),
+		},
+		'home.paragraph.textDirection': { disabled, value: input.textDirection ?? 'horizontal' },
+		'home.paragraph.columns': {
+			disabled,
+			value: String(input.columns ?? 1),
+		},
 	};
 }
 
@@ -112,118 +176,12 @@ export function paragraphHomeAlign(value: unknown): RibbonHomeAlign | undefined 
  * both buttons reflect it as pressed; omit it to show no pressed state.
  */
 export function editingHomeControls(
-	input: { findOpen?: boolean } = {},
+	input: { findOpen?: boolean; selectAll?: boolean } = {},
 ): RibbonHomeViewState['controls'] {
 	const state = { pressed: input.findOpen };
-	return { 'home.editing.find': { ...state }, 'home.editing.replace': { ...state } };
-}
-
-export interface SlidesHomeInput {
-	editable: boolean;
-	/** The deck offers at least one layout to choose from. */
-	hasLayouts: boolean;
-	hasSlides: boolean;
-	/** False hides Slide Templates for hosts that cannot insert a template. */
-	showTemplates: boolean;
-	/** New Slide inserts the first layout, so some hosts disable it without layouts. */
-	newSlideNeedsLayout: boolean;
-	/** Reset and Section need an existing slide in hosts that cannot add one to an empty deck. */
-	resetNeedsSlide: boolean;
-	/** Native popovers currently open, mirrored as `aria-expanded`. */
-	layoutOpen?: boolean;
-	newSlideOpen?: boolean;
-}
-
-/** Slides group gating; the host still opens the layout popovers and runs every edit. */
-export function slidesHomeControls(input: SlidesHomeInput): RibbonHomeViewState['controls'] {
-	const locked = !input.editable;
-	const noSlide = input.resetNeedsSlide && !input.hasSlides;
 	return {
-		'home.slides.newSlide': {
-			disabled: locked || (input.newSlideNeedsLayout && !input.hasLayouts),
-		},
-		'home.slides.newSlide#caret': {
-			disabled: locked,
-			hidden: !input.hasLayouts,
-			expanded: Boolean(input.newSlideOpen),
-		},
-		'home.slides.slideTemplates': { disabled: locked, hidden: !input.showTemplates },
-		'home.slides.layout': {
-			disabled: locked || !input.hasLayouts,
-			expanded: Boolean(input.layoutOpen),
-		},
-		'home.slides.reset': { disabled: locked || noSlide },
-		'home.slides.section': { disabled: locked || noSlide },
+		'home.editing.find': { ...state },
+		'home.editing.replace': { ...state },
+		'home.editing.select': { disabled: input.selectAll === false },
 	};
-}
-
-export interface DrawingHomeInput {
-	editable: boolean;
-	hasSelection: boolean;
-	/** Native popovers currently open, mirrored as `aria-expanded`. */
-	open?: Partial<Record<'shapes' | 'arrange' | 'fill' | 'outline', boolean>>;
-}
-
-/** Shapes inserts, so it needs only edit rights; the other triggers act on the selection. */
-export function drawingHomeControls(input: DrawingHomeInput): RibbonHomeViewState['controls'] {
-	const noTarget = !input.editable || !input.hasSelection;
-	const open = input.open ?? {};
-	return {
-		'home.drawing.shapes': { disabled: !input.editable, expanded: Boolean(open.shapes) },
-		'home.drawing.arrange': { disabled: noTarget, expanded: Boolean(open.arrange) },
-		'home.drawing.shapeFill': { disabled: noTarget, expanded: Boolean(open.fill) },
-		'home.drawing.shapeOutline': { disabled: noTarget, expanded: Boolean(open.outline) },
-	};
-}
-
-export interface ArrangeHomeInput {
-	editable: boolean;
-	hasSelection: boolean;
-	/** The selection holds enough elements to distribute (host-specific threshold). */
-	canDistribute: boolean;
-}
-
-/** Arrange, flip, order, duplicate and delete act on a selection the user may edit. */
-export function arrangeHomeControls(input: ArrangeHomeInput): RibbonHomeViewState['controls'] {
-	const disabled = !input.editable || !input.hasSelection;
-	const distribute = { disabled: !input.editable || !input.canDistribute };
-	const controls: Record<string, { disabled: boolean }> = {
-		'home.arrange.flipHorizontal': { disabled },
-		'home.arrange.flipVertical': { disabled },
-		'home.arrange.sendBackward': { disabled },
-		'home.arrange.bringForward': { disabled },
-		'home.arrange.sendToBack': { disabled },
-		'home.arrange.bringToFront': { disabled },
-		'home.arrange.duplicate': { disabled },
-		'home.arrange.delete': { disabled },
-		'home.arrange.align#distribute-horizontal': distribute,
-		'home.arrange.align#distribute-vertical': distribute,
-	};
-	for (const edge of ['left', 'centerH', 'right', 'top', 'middle', 'bottom']) {
-		controls[`home.arrange.align#${edge}`] = { disabled };
-	}
-	return controls;
-}
-
-/** Decode an Align strip intent: an alignment edge, or a distribute axis. */
-export function arrangeAlignAction(
-	part: string | undefined,
-):
-	| { kind: 'align'; edge: 'left' | 'centerH' | 'right' | 'top' | 'middle' | 'bottom' }
-	| { kind: 'distribute'; axis: 'horizontal' | 'vertical' }
-	| undefined {
-	if (part === 'distribute-horizontal') {
-		return { kind: 'distribute', axis: 'horizontal' };
-	}
-	if (part === 'distribute-vertical') {
-		return { kind: 'distribute', axis: 'vertical' };
-	}
-	return part === 'left' ||
-		part === 'centerH' ||
-		part === 'right' ||
-		part === 'top' ||
-		part === 'middle' ||
-		part === 'bottom'
-		? { kind: 'align', edge: part }
-		: undefined;
 }

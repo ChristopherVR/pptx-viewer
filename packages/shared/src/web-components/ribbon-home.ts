@@ -1,12 +1,17 @@
 import { canRequestHome } from '../render';
 import type { RibbonHomeFamily, RibbonHomeIntent, RibbonHomeViewState } from '../render';
+import type { HomeLayoutArtwork } from './ribbon-home-layout';
 import { attachRibbonHomeStyles } from './ribbon-home-styles';
 import { createRibbonHomeView } from './ribbon-home-view';
 
 export type RibbonHomeRequestEvent = CustomEvent<RibbonHomeIntent>;
+/** Emitted when one of the element's own popovers opens or closes. */
+export type RibbonHomePopupEvent = CustomEvent<{ id: string; open: boolean }>;
 export interface PptxUiRibbonHomeElement extends HTMLElement {
 	state: RibbonHomeViewState;
-	/** Wrapper (or button) of a control id, where a host mounts or anchors its native popover. */
+	/** Draws a layout's real artwork inside a gallery tile; the host owns element rendering. */
+	layoutArtwork: HomeLayoutArtwork | undefined;
+	/** Wrapper (or button) of a control id. */
 	anchor(id: string): HTMLElement | undefined;
 }
 declare global {
@@ -21,6 +26,9 @@ declare global {
 		'pptx-ui-ribbon-home-arrange-flip': PptxUiRibbonHomeElement;
 		'pptx-ui-ribbon-home-arrange-order': PptxUiRibbonHomeElement;
 		'pptx-ui-ribbon-home-arrange-edit': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-font-picker': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-arrange-painter': PptxUiRibbonHomeElement;
+		'pptx-ui-ribbon-home-arrange-shape': PptxUiRibbonHomeElement;
 	}
 }
 
@@ -35,13 +43,23 @@ export function definePptxRibbonHome(
 	}
 	class RibbonHome extends HTMLElement implements PptxUiRibbonHomeElement {
 		private model: RibbonHomeViewState = { controls: {} };
-		private readonly view = createRibbonHomeView(this.ownerDocument, family, (intent) => {
-			if (canRequestHome(family, this.model, intent)) {
+		layoutArtwork: HomeLayoutArtwork | undefined;
+		private readonly view = createRibbonHomeView(
+			this.ownerDocument,
+			family,
+			(intent) => {
+				if (canRequestHome(family, this.model, intent)) {
+					this.dispatchEvent(
+						new CustomEvent('home-request', { detail: intent, bubbles: true, composed: true }),
+					);
+				}
+			},
+			(id, open) =>
 				this.dispatchEvent(
-					new CustomEvent('home-request', { detail: intent, bubbles: true, composed: true }),
-				);
-			}
-		});
+					new CustomEvent('home-popup', { detail: { id, open }, bubbles: true, composed: true }),
+				),
+			() => this.layoutArtwork,
+		);
 		anchor(id: string): HTMLElement | undefined {
 			return this.view.anchor(id);
 		}
@@ -86,3 +104,9 @@ export const definePptxRibbonHomeArrangeOrder = (registry: CustomElementRegistry
 	definePptxRibbonHome(registry, 'arrange-order');
 export const definePptxRibbonHomeArrangeEdit = (registry: CustomElementRegistry) =>
 	definePptxRibbonHome(registry, 'arrange-edit');
+export const definePptxRibbonHomeFontPicker = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'font-picker');
+export const definePptxRibbonHomeArrangePainter = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'arrange-painter');
+export const definePptxRibbonHomeArrangeShape = (registry: CustomElementRegistry) =>
+	definePptxRibbonHome(registry, 'arrange-shape');

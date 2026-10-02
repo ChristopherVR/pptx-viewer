@@ -21,6 +21,9 @@ import {
 	definePptxRibbonHomeArrangeEdit,
 	definePptxRibbonHomeArrangeFlip,
 	definePptxRibbonHomeArrangeOrder,
+	definePptxRibbonHomeArrangePainter,
+	definePptxRibbonHomeArrangeShape,
+	definePptxRibbonHomeFontPicker,
 	definePptxRibbonHomeClipboard,
 	definePptxRibbonHomeDrawing,
 	definePptxRibbonHomeEditing,
@@ -60,7 +63,12 @@ export type {
 	RibbonAnimationsRequestEvent,
 } from './ribbon-animations';
 export type { PptxUiRibbonDrawElement, RibbonDrawRequestEvent } from './ribbon-draw';
-export type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from './ribbon-home';
+export type {
+	PptxUiRibbonHomeElement,
+	RibbonHomePopupEvent,
+	RibbonHomeRequestEvent,
+} from './ribbon-home';
+export type { HomeLayoutArtwork } from './ribbon-home-layout';
 export type {
 	PptxUiRibbonTransitionsElement,
 	RibbonTransitionsRequestEvent,
@@ -130,6 +138,9 @@ const controls = [
 	['pptx-ui-ribbon-home-arrange-flip', definePptxRibbonHomeArrangeFlip],
 	['pptx-ui-ribbon-home-arrange-order', definePptxRibbonHomeArrangeOrder],
 	['pptx-ui-ribbon-home-arrange-edit', definePptxRibbonHomeArrangeEdit],
+	['pptx-ui-ribbon-home-font-picker', definePptxRibbonHomeFontPicker],
+	['pptx-ui-ribbon-home-arrange-painter', definePptxRibbonHomeArrangePainter],
+	['pptx-ui-ribbon-home-arrange-shape', definePptxRibbonHomeArrangeShape],
 	['pptx-ui-ribbon-view', definePptxRibbonView],
 	['pptx-ui-ribbon-transitions', definePptxRibbonTransitions],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
