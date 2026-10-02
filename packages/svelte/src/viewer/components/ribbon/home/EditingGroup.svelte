@@ -12,7 +12,7 @@
 	 * name, so this binding had no control called "Select All" at all: the
 	 * cross-binding effects spec had to skip it. Same shape as the others now.
 	 */
-	import { editingHomeControls } from 'pptx-viewer-shared';
+	import { editingHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
@@ -27,7 +27,7 @@
 	// Find and Replace are the shared strip; both toggle the docked panel.
 	const stripState = $derived({
 		controls: editingHomeControls({ findOpen: findReplace.open }),
-		translate: t,
+		translate: homeSnapshotTranslator(['editing'], t),
 	});
 
 	let selectMenuOpen = $state(false);

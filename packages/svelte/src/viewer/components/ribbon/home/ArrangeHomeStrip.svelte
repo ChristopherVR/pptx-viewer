@@ -5,7 +5,7 @@
 	 * shared element; every mutation still routes through `EditorState` so
 	 * history, selection and read-only rules are unchanged.
 	 */
-	import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
+	import { arrangeAlignAction, arrangeHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -24,7 +24,7 @@
 			hasSelection: editor.selection.size >= 1,
 			canDistribute: editor.selection.size >= 3,
 		}),
-		translate: t,
+		translate: homeSnapshotTranslator([`arrange-${strip}`], t),
 	});
 
 	function request(event: RibbonHomeRequestEvent): void {

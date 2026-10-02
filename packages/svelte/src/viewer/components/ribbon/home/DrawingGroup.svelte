@@ -8,7 +8,7 @@
 	 * descriptors (`FIXED_TAB_GALLERIES`) rendered by `RibbonGallery`.
 	 */
 	import { hasShapeProperties } from 'pptx-viewer-core';
-	import { SHAPE_PRESET_DEFS, drawingHomeControls } from 'pptx-viewer-shared';
+	import { SHAPE_PRESET_DEFS, drawingHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 	import type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -72,7 +72,7 @@
 				'home.drawing.shapeFill': { ...controls['home.drawing.shapeFill'], disabled: noShape },
 				'home.drawing.shapeOutline': { ...controls['home.drawing.shapeOutline'], disabled: noShape },
 			},
-			translate: t,
+			translate: homeSnapshotTranslator(['drawing'], t),
 		};
 	});
 

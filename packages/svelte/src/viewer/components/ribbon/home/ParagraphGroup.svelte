@@ -13,6 +13,7 @@
 		paragraphHomeAction,
 		paragraphHomeAlign,
 		paragraphHomeControls,
+		homeSnapshotTranslator,
 	} from 'pptx-viewer-shared';
 	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
@@ -45,7 +46,7 @@
 	// Indent and alignment are the shared Paragraph strip; edits stay native.
 	const state = $derived({
 		controls: paragraphHomeControls({ enabled: active, align: paragraphHomeAlign(style.align) }),
-		translate: t,
+		translate: homeSnapshotTranslator(['paragraph'], t),
 	});
 	function request(event: RibbonHomeRequestEvent): void {
 		const action = paragraphHomeAction(event.detail.id);
