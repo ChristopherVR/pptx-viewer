@@ -221,6 +221,10 @@ function validPick(
 	current: RibbonHomeControlState | undefined,
 	value: string | number,
 ): boolean {
+	if (spec.gallery) {
+		// Gallery tiles are validated by the gallery module that applies them.
+		return typeof value === 'string' && value !== '';
+	}
 	switch (spec.kind) {
 		case 'menu':
 		case 'select':

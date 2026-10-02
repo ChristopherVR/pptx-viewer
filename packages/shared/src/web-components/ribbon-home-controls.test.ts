@@ -8,9 +8,12 @@ import {
 	fontHomeControls,
 	fontPickerHomeControls,
 	homeFamilyKeys,
+	homeGalleryControls,
 	homeSnapshotTranslator,
 	paragraphHomeControls,
 	slidesHomeControls,
+	drawingHomeControls,
+	withHomeGalleries,
 } from '../render';
 import type { RibbonHomeFamily } from '../render';
 import { registerPptxWebControls } from './index';
@@ -184,6 +187,46 @@ describe('home menus, colours and numbers', () => {
 			{ id: 'home.arrange.mergeShapes', value: 'union' },
 		]);
 		expect(control(host, 'home.arrange.ungroup').hasAttribute('disabled')).toBeTruthy();
+	});
+});
+
+describe('home galleries', () => {
+	it('embeds the library gallery after the Bullets toggle and forwards tile picks', () => {
+		const host = mount(
+			'paragraph',
+			withHomeGalleries(
+				paragraphHomeControls({ enabled: true, list: 'bullet' }),
+				homeGalleryControls('paragraph', { element: null }, true),
+				true,
+			),
+		);
+		const slot = control(host, 'home.paragraph.bullets');
+		expect(slot.querySelector('button')!.getAttribute('aria-pressed')).toBe('true');
+		const gallery = slot.querySelector('pptx-ui-ribbon-gallery')!;
+		expect(gallery.hasAttribute('chevron-only')).toBeTruthy();
+		const read = intents(host);
+		gallery.dispatchEvent(
+			new CustomEvent('gallery-pick', {
+				detail: { gallery: 'bullets', itemId: 'none' },
+				bubbles: true,
+				composed: true,
+			}),
+		);
+		expect(read()).toStrictEqual([{ id: 'home.paragraph.bullets', value: 'none' }]);
+	});
+
+	it('makes Quick Styles the whole control with its own customization id', () => {
+		const host = mount(
+			'drawing',
+			withHomeGalleries(
+				drawingHomeControls({ editable: true, hasSelection: true }),
+				homeGalleryControls('drawing', { element: null }, true),
+				true,
+			),
+		);
+		const gallery = control(host, 'home.drawing.quickStyles');
+		expect(gallery.tagName).toBe('PPTX-UI-RIBBON-GALLERY');
+		expect(control(host, 'home.drawing.shapeEffects')).toBeTruthy();
 	});
 });
 

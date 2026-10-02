@@ -534,9 +534,7 @@ carried over.
 and reflects `aria-pressed` for the four decorations and Text Shadow. Native
 hosts keep how each edit is made: React reads the run-level tri-state at click
 time, Angular and Svelte patch the element's text style, and Vanilla uses the
-format mutations. The font family and size pickers, character spacing, change
-case and the colour pickers are native or app-owned popovers and stay outside
-the strip. Bindings still differ on the size ladder (React and Vue add 2pt,
+format mutations. Character spacing, change case and the font and highlight colour pickers are part of the same element (see below). Bindings still differ on the size ladder (React and Vue add 2pt,
 Angular steps through the preset list), which is an existing editing difference
 this change does not unify. The old React Font buttons stayed live for
 non-text selections; they now disable like the other four bindings.
@@ -544,17 +542,15 @@ non-text selections; they now disable like the other four bindings.
 `paragraphHomeAction` decodes the indent and alignment ids (the shared
 24-model-pixel indent step, or an alignment) and `paragraphHomeAlign` narrows a
 stored alignment to the four values the strip can show; alignment is reflected
-as `aria-pressed` only when the host can read an explicit alignment. The Bullets
-and Numbering toggles keep their library galleries, and line spacing, text
-direction and columns stay native selects, so they sit outside the strip.
+as `aria-pressed` only when the host can read an explicit alignment. Bullets, Numbering (with their library galleries), line spacing,
+text direction and columns are part of the same element (see below).
 Svelte keeps its own indent step (`adjustIndentPatch` by one level) because the
 shared indent id only tells it which direction to go.
 
 Find and Replace both open the host's find panel (the host owns that panel).
 `editingHomeControls({ findOpen })` mirrors an open panel on both buttons when a
 host can report it (Svelte does); other hosts omit it and show no pressed state.
-The Select menu and its Select All command are app-owned popovers and stay
-native.
+The Select menu (Select All) is rendered by the same element.
 
 ### Slides, Drawing and Arrange
 
@@ -575,9 +571,8 @@ Controls with visible text use it as their accessible name and keep the longer
 phrase as the tooltip. Popover triggers (`popup`) and the New Slide split sit in
 a `div.slot[data-ribbon-control]` wrapper, as the native split buttons and menu
 hosts did, so customization hides trigger and popover together; the inner button
-carries `aria-haspopup`, and `expanded` state reflects as `aria-expanded`.
-`element.anchor(id)` returns the wrapper (or button) so the host can position or
-mount its native popover.
+carries `aria-haspopup` and `aria-expanded`. `element.anchor(id)` returns the
+wrapper (or button).
 
 Gating helpers: `slidesHomeControls` takes the host-specific rules that differ
 between bindings (`newSlideNeedsLayout`, `resetNeedsSlide`, `showTemplates`),
@@ -585,18 +580,63 @@ between bindings (`newSlideNeedsLayout`, `resetNeedsSlide`, `showTemplates`),
 `arrangeHomeControls` (edit rights plus a selection; Distribute uses the host's
 own `canDistribute`).
 
-Still native, and why: the layout galleries (New Slide caret and Layout), the
-Shapes and Arrange menus, the Fill and Outline colour popovers and the Slide
-Templates dialog are anchored, focus-managed popovers that read each binding's
-deck data (layout previews, theme colours, recent colours) and run its undo
-path, so only their triggers are shared. In Drawing the Quick Styles and Shape
-Effects galleries are already the shared gallery element and the group wrapper
-sits with them. Arrange keeps its second Format Painter pill, Group/Ungroup,
-Merge Shapes, Crop and outline width (selects, spinners and menus tied to each
-binding's selection state). In Font and Paragraph the family and size
-selectors, character spacing, change case, font and highlight colour pickers,
-Bullets and Numbering (with their library galleries), line spacing, text
-direction, columns and the Select menu remain native for the same reason.
+### Menus, selects, colours, galleries and numbers (#373)
+
+The remaining Home controls render inside the same elements. Three families are
+new: `font-picker` (`pptx-ui-ribbon-home-font-picker`, the Font family and size
+fields with the `Font` caption inside `home.font`), `arrange-painter` (the
+second Format Painter pill in Arrange, `data-testid="format-painter-toggle"`)
+and `arrange-shape` (Group, Ungroup, Merge Shapes, Crop and outline width). The
+`font`, `paragraph`, `editing`, `slides` and `drawing` specs gained the controls
+below. Spec fields: `kind` (`select`, `menu`, `colour`, `layout`, `number`,
+`gallery`), static `items`, `colour`, `select`, `number`, `gallery`, `attrs`
+(preserved hooks such as `data-pptx-ribbon-control`), `hintKey` (the tooltip of
+a disabled control) and `chevron`.
+
+| Kind      | Controls                                                                                           | Rendered by                                        |
+| --------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `select`  | Font family and size (field), character spacing, line spacing, text direction, columns (icon only) | `pptx-ui-select` (`ribbon-font` and `ribbon-icon`) |
+| `menu`    | Change Case, Select, Drawing > Shapes and Arrange, Merge Shapes, Crop (split: main + caret)        | the element's own popover (`role="menu"`)          |
+| `colour`  | Font Color, Text Highlight Color, Shape Fill, Shape Outline                                        | the element's colour popover (`role="dialog"`)     |
+| `layout`  | New Slide caret and Layout                                                                         | the element's layout tile gallery                  |
+| `gallery` | Quick Styles, Shape Effects; the Bullets and Numbering chevrons                                    | an embedded `pptx-ui-ribbon-gallery`               |
+| `number`  | Outline width                                                                                      | a number input                                     |
+
+Intent: `{ id, part?, value?, ref? }`. A picked menu row, select option, hex
+colour (`ref` carries the theme reference of a theme swatch), number or layout
+path arrives as `value`; a plain click has none. `canRequestHome` rejects a value
+the control does not offer (not in `items`, not `#rrggbb`, outside the number
+range, not a listed layout) and disabled or hidden controls. State additions per
+control: `value` (selected option, shown colour bar, number), `items` (replace
+the static rows; the Font family rows come from `fontFamilyItems`), `colour`
+(`themeColors` map, `selectedRef`, `recent`), `layouts` (`layouts`, `current`,
+`previews`) and `gallery` (descriptor). Builders: `fontPickerHomeControls`,
+`arrangeShapeHomeControls`, `arrangePainterHomeControls`, `homeGalleryControls`
+and `withHomeGalleries` plus `homeGalleryApply` for tile picks, `parseCropValue`
+for the crop menu and the `HOME_*_ITEMS` menu data.
+
+Popovers belong to the element and need no host code: open state is internal,
+`aria-expanded` and `aria-haspopup` are reflected on the trigger, Escape or a
+press outside closes them and returns focus when the keyboard was used, ArrowDown
+opens a menu and arrows, Home and End move between rows. The element emits a
+bubbling `home-popup` event (`{ id, open }`) so a host can load data on demand.
+Colour popovers show the deck palette (when the host passes `themeColors`), a
+standard swatch row (`office`, `shape` or `highlight`), recents and, for text,
+a Custom colour input. Hosts push recents when they handle the colour intent.
+
+The layout gallery shell (grid, current tile, empty text, keyboard, geometry) is
+shared; the artwork inside each thumbnail is element rendering that every binding
+owns. A host sets the `layoutArtwork` property
+(`(preview, geometry, container) => (() => void) | void`) to draw into the
+already-scaled surface and returns a disposer; tiles show name and frames until
+`previews` arrive. The Slide Templates dialog is a modal dialog owned by the
+dialog migration (#342 and #396) and stays native: its button is shared.
+
+State is controlled. Each binding's thin adapter keeps its own undo path, as
+before: React and Angular update from effects, Vue and Svelte derive `state` and
+translate through `homeSnapshotTranslator` over every family they render so a
+runtime language change re-translates, and Vanilla re-assigns on its locale
+path.
 
 ## Context menu
 

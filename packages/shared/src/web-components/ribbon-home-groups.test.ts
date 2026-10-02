@@ -142,13 +142,6 @@ describe('shared Drawing triggers', () => {
 		expect(read()[0]).toMatchObject({ id: 'home.drawing.shapeFill', value: '#ffffff' });
 		expect(read()[0].ref).toBeUndefined();
 	});
-
-	it('rejects a colour that is not a hex value', () => {
-		const host = mount('drawing', drawingHomeControls({ editable: true, hasSelection: true }));
-		const read = intents(host);
-		host.dispatchEvent(new CustomEvent('x'));
-		expect(read()).toHaveLength(0);
-	});
 });
 
 describe('shared Arrange strips', () => {

@@ -29,7 +29,6 @@ export function createHomePopup(
 	const el = doc.createElement('div');
 	el.className = 'popup';
 	el.hidden = true;
-	el.setAttribute('role', role);
 	let opened = false;
 	let keyboard = false;
 	el.addEventListener('click', (event) => (keyboard = event.detail === 0), true);
@@ -76,6 +75,8 @@ export function createHomePopup(
 		}
 		opened = false;
 		el.hidden = true;
+		// The role only exists while open, so a closed popup never matches dialog queries.
+		el.removeAttribute('role');
 		trigger.setAttribute('aria-expanded', 'false');
 		listen(false);
 		if (focusTrigger) {
@@ -89,6 +90,7 @@ export function createHomePopup(
 		}
 		opened = true;
 		el.hidden = false;
+		el.setAttribute('role', role);
 		el.setAttribute('aria-label', label());
 		trigger.setAttribute('aria-expanded', 'true');
 		listen(true);
