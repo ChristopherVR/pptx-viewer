@@ -7,6 +7,44 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.18.0) - 2026-10-02
+
+### Features
+
+- **shared:** Add pptx-ui-status-bar element for the bottom bar (by @ChristopherVR) ([71020c5](https://github.com/ChristopherVR/pptx-viewer/commit/71020c578554bfe19c6454b2d3780af8c356e6de))
+- **shared:** Add canonical control tokens for field, focus, checkbox (by @ChristopherVR) ([63be0fb](https://github.com/ChristopherVR/pptx-viewer/commit/63be0fb550e6a1a00d012624a4fc5a6fff737d4c))
+- **ui:** Add inspector reset and clear actions to every binding (by @ChristopherVR) ([6618e04](https://github.com/ChristopherVR/pptx-viewer/commit/6618e040017faa22daf2763896a7febaef01e7e2))
+- **ui:** Share the section, sorter and slide rail menus across bindings (by @ChristopherVR) ([e25816b](https://github.com/ChristopherVR/pptx-viewer/commit/e25816b24205d50a39f1179baa64ed11f14f079a))
+- **shared:** Add Home slides, drawing and arrange shared strips (by @ChristopherVR) ([2ba2053](https://github.com/ChristopherVR/pptx-viewer/commit/2ba2053d1ad6093c8b323255d12a66f6bed78df8))
+- **shared:** Add the pptx-ui-title-bar element (by @ChristopherVR) ([e8d07ad](https://github.com/ChristopherVR/pptx-viewer/commit/e8d07ad469b2da306642b1576ed80a3760d3d1fe))
+- **ui:** Align history labels, autosave reason and command search (by @ChristopherVR) ([5f7efa1](https://github.com/ChristopherVR/pptx-viewer/commit/5f7efa1575279a5ec4993f34e78a6aadb0b48464))
+- **shared:** Add read-only banner, paste options, toast, footer and mobile elements (by @ChristopherVR) ([1b59e08](https://github.com/ChristopherVR/pptx-viewer/commit/1b59e08dec576dd369950be8ef767b74317eb7b0))
+- **shared:** Page keys, switch tokens and primitive ribbon pickers (by @ChristopherVR) ([9cdbe51](https://github.com/ChristopherVR/pptx-viewer/commit/9cdbe51a103f2189ac7ce511e4c4e518dbc5e159))
+
+### Bug Fixes
+
+- **shared:** Keep modal open when Escape closes a select popup (by @ChristopherVR) ([c17d694](https://github.com/ChristopherVR/pptx-viewer/commit/c17d694815539df72df7c16aa9146c8e8d847c1a))
+- **bindings:** Drop local checkbox and search overrides of the primitives (by @ChristopherVR) ([2422862](https://github.com/ChristopherVR/pptx-viewer/commit/2422862ef3b84dabf7f29b3f3e523e12009614fe))
+- **shared:** Scope Home strip button styles to shared buttons (by @ChristopherVR) ([0abb22c](https://github.com/ChristopherVR/pptx-viewer/commit/0abb22c36326981cadd27aa59e77c72a8888a095))
+- **svelte:** Re-translate shared Home strips on locale change (by @ChristopherVR) ([43ac2de](https://github.com/ChristopherVR/pptx-viewer/commit/43ac2de1ae0f44e4668b7aafca52baf0531f64e3))
+
+### Refactor
+
+- **vanilla:** Use the shared status bar element (by @ChristopherVR) ([c6803ad](https://github.com/ChristopherVR/pptx-viewer/commit/c6803ad28f3906a1cf8b021445734feca09c47ab))
+- **ui:** Share the notes toolbar across the five bindings (by @ChristopherVR) ([ec28b7e](https://github.com/ChristopherVR/pptx-viewer/commit/ec28b7ee08f59c4a87abbdad7f2113870ba4489c))
+- **vanilla:** Use shared Home slides, drawing and arrange strips (by @ChristopherVR) ([9037baf](https://github.com/ChristopherVR/pptx-viewer/commit/9037baf796e22cca73cc85f269bf3af5e72b79eb))
+- **ui:** Adopt the shared title bar in all five bindings (by @ChristopherVR) ([bb68dec](https://github.com/ChristopherVR/pptx-viewer/commit/bb68deca58d4198c2a8cd5d8e498f1014f385fcb))
+- **ui:** Share the context menu rendering layer (by @ChristopherVR) ([7b63502](https://github.com/ChristopherVR/pptx-viewer/commit/7b63502bb5c16e08238e488582fea85118571845))
+- **ui:** Share the mobile bottom bar and top toolbar (by @ChristopherVR) ([a84241b](https://github.com/ChristopherVR/pptx-viewer/commit/a84241b2849c49115f35f506cfabb1ab177efb5f))
+- **ui:** Share the read-only banner, paste options, toasts and dialog footer (by @ChristopherVR) ([8d2233b](https://github.com/ChristopherVR/pptx-viewer/commit/8d2233b7c8788e4848ae44294a6174744357ab33))
+- **ui:** Share the slide-show toolbar and presenter console strip (by @ChristopherVR) ([a937cf5](https://github.com/ChristopherVR/pptx-viewer/commit/a937cf58da8c8c6d80dd38bc36a0da64285f1431))
+- **vanilla:** Use the shared select and checkbox in dialogs and panels (by @ChristopherVR) ([0bff3ae](https://github.com/ChristopherVR/pptx-viewer/commit/0bff3ae19724620c511c109c7c05757e5f3a2375))
+
+### Testing
+
+- **vanilla:** Look for the quick-access strip in the shared title bar (by @ChristopherVR) ([d6a7711](https://github.com/ChristopherVR/pptx-viewer/commit/d6a7711c531398016f16bdf6bb9a30c433cbf775))
+- Guard SmartArt inline edit and contextual tabs on all bindings (by @ChristopherVR) ([c467945](https://github.com/ChristopherVR/pptx-viewer/commit/c46794514859ae2dfa56578bf735fd2f9fc5db07))
+
 ## [3.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.17.1) - 2026-10-02
 
 ### Bug Fixes
