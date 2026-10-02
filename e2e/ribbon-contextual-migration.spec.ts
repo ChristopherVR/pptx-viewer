@@ -29,9 +29,10 @@ test('every contextual tab uses shared groups and gallery views', async ({ page 
 		await expect(button).toBeVisible();
 		await button.click();
 		const groups = page.locator(`pptx-ui-ribbon-group[data-ribbon-group^="${tab}."]`);
-		expect(await groups.count()).toBeGreaterThan(0);
+		// Rendering the tab's groups can lag the click by a frame (Angular), so wait for them.
+		await expect(groups.first()).toBeAttached();
 		const galleries = groups.locator('pptx-ui-ribbon-gallery');
-		expect(await galleries.count()).toBeGreaterThan(0);
+		await expect(galleries.first()).toBeAttached();
 		for (const group of await groups.all()) {
 			await expect(group).toHaveAttribute('role', 'group');
 			await expect(group).toHaveAttribute('aria-label', /.+/u);
