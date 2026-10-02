@@ -7,6 +7,25 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.20.0) - 2026-10-02
+
+### Features
+
+- **ui:** Align Home, Insert, Draw and Design ribbons with PowerPoint (by @ChristopherVR) ([0b12b7c](https://github.com/ChristopherVR/pptx-viewer/commit/0b12b7c78c2ecd7bf41045cdd9de71873631ec36))
+
+### Bug Fixes
+
+- **vanilla:** Stop popups pinning a destroyed viewer and fix the OOM in tests (by @ChristopherVR) ([5f7cb7e](https://github.com/ChristopherVR/pptx-viewer/commit/5f7cb7e7633d41838041e0fbd455bf9c36c02d0e))
+- **ui:** Size dialog footer buttons for phone width and fix three stale specs (by @ChristopherVR) ([f67add0](https://github.com/ChristopherVR/pptx-viewer/commit/f67add0515711bcaff80d0bbbc3f2876ab4fa73f))
+- **ui:** Port the ribbon layout onto the shared Home controls (by @ChristopherVR) ([9c483d9](https://github.com/ChristopherVR/pptx-viewer/commit/9c483d9a6cd329d69791ae9ae2471a7c97f57a42))
+- **ui:** Keep the font pickers in one Font group and widen Arrange specs (by @ChristopherVR) ([39916a9](https://github.com/ChristopherVR/pptx-viewer/commit/39916a9c80b82a95938b1eee630737d7769bb482))
+- **ui:** Keep Office's three-row column in stacked ribbon groups (by @ChristopherVR) ([9834995](https://github.com/ChristopherVR/pptx-viewer/commit/983499540e56ee5d1f92c9b4e3c10902048231f0))
+
+### Testing
+
+- **shared:** Cover the command caret after merging the Transitions pass (by @ChristopherVR) ([fd140a3](https://github.com/ChristopherVR/pptx-viewer/commit/fd140a34d4ce1efa40dd6651e98170bc77d95958))
+- **e2e:** Give the localization spec room for French Home labels (by @ChristopherVR) ([0608e07](https://github.com/ChristopherVR/pptx-viewer/commit/0608e07b2a26cd9a95c81578e870244e1b5006d5))
+
 ## [4.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.19.1) - 2026-10-02
 
 ### Bug Fixes

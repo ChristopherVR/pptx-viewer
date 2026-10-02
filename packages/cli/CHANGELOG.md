@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.37.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.37.0) - 2026-10-02
+
+### Features
+
+- **ui:** Align Home, Insert, Draw and Design ribbons with PowerPoint (by @ChristopherVR) ([0b12b7c](https://github.com/ChristopherVR/pptx-viewer/commit/0b12b7c78c2ecd7bf41045cdd9de71873631ec36))
+
+### Bug Fixes
+
+- **ui:** Port the ribbon layout onto the shared Home controls (by @ChristopherVR) ([9c483d9](https://github.com/ChristopherVR/pptx-viewer/commit/9c483d9a6cd329d69791ae9ae2471a7c97f57a42))
+- **ui:** Keep the font pickers in one Font group and widen Arrange specs (by @ChristopherVR) ([39916a9](https://github.com/ChristopherVR/pptx-viewer/commit/39916a9c80b82a95938b1eee630737d7769bb482))
+
 ## [2.36.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.36.0) - 2026-10-02
 
 ### Features
