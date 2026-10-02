@@ -110,9 +110,8 @@
 </div>
 
 <style>
+	/* The shared Home layout places Shapes, Arrange, Quick Styles and the fill stack directly. */
 	.pptx-svelte-drawgrp {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
+		display: contents;
 	}
 </style>

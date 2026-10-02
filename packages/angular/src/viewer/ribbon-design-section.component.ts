@@ -36,7 +36,6 @@ import { RibbonGalleryComponent } from './ribbon-gallery.component';
 							[attr.label]="command.labelKey | translate"
 							[attr.title]="command.titleKey | translate"
 							[attr.icon]="command.icon"
-							compact
 							[attr.disabled]="view(command.id).disabled ? '' : null"
 							[attr.active]="view(command.id).active ? '' : null"
 							[attr.expanded]="view(command.id).expanded"

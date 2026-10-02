@@ -129,9 +129,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 				<div className='flex items-center gap-1' data-pptx-chrome='drawing-controls'>
 					<WebHomeControls family='drawing' controls={controls} onRequest={request} />
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>
-					{t('pptx.ribbon.groupDrawing')}
-				</span>
+				<span data-pptx-chrome='ribbon-group-label'>{t('pptx.ribbon.groupDrawing')}</span>
 			</div>
 
 			{sep}

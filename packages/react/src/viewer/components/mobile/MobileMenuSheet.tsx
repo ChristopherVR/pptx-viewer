@@ -152,8 +152,6 @@ function MobileSectionBody({
 						onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
 						templateScheme={p.templateScheme}
 						selectedElement={p.selectedElement}
-						tableEditorState={p.tableEditorState}
-						onUpdateTextStyle={p.onUpdateTextStyle}
 					/>
 				</div>
 			);
@@ -189,6 +187,9 @@ function MobileSectionBody({
 						onUpdateTextStyle={p.onUpdateTextStyle}
 						onToggleBullets={p.onToggleBullets}
 						onTransformTextCase={p.onTransformTextCase}
+						themeFonts={p.themeFonts}
+						embeddedFontFamilies={p.embeddedFontFamilies}
+						customFontFamilies={p.customFontFamilies}
 					/>
 				</div>
 			);

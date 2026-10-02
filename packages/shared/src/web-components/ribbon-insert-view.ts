@@ -10,7 +10,6 @@ import {
 	insertLabel,
 } from '../render';
 import type { InsertLabel, RibbonInsertIntent, RibbonInsertState } from '../render';
-import { createInsertCluster } from './ribbon-insert-cluster';
 import { createInsertMenu } from './ribbon-insert-dom';
 import {
 	INSERT_SHAPE_GLYPH_PATHS,
@@ -63,25 +62,33 @@ export function createRibbonInsertView(
 		spec,
 		el: command(
 			spec.icon,
-			true,
+			false,
 			() => request({ kind: 'command', value: spec.command }),
 			spec.control,
 		),
 	}));
 	const byCommand = (name: string) => commands.find(({ spec }) => spec.command === name)!.el;
-	let shapeType = '';
-	let chartKind = '';
-	const shapes = createInsertCluster(
+	/**
+	 * A gallery pick stages the type and then inserts it, as Office does. The host applies the
+	 * staged type on its next render, so the insert follows after it has settled.
+	 */
+	const stageThenInsert = (stage: RibbonInsertIntent, insert: RibbonInsertIntent) => {
+		request(stage);
+		setTimeout(() => request(insert), 50);
+	};
+	const shapes = createInsertMenu(
 		doc,
 		'insert.illustrations.shapes',
-		(value) => request({ kind: 'shapeType', value }),
-		() => request({ kind: 'shape', value: shapeType }),
+		'shapes',
+		(value) => stageThenInsert({ kind: 'shapeType', value }, { kind: 'shape', value }),
+		{ large: true, grid: true },
 	);
-	const charts = createInsertCluster(
+	const charts = createInsertMenu(
 		doc,
 		'insert.illustrations.chart',
-		(value) => request({ kind: 'chartType', value }),
-		() => request({ kind: 'chart', value: chartKind }),
+		'chart',
+		(value) => stageThenInsert({ kind: 'chartType', value }, { kind: 'chart', value }),
+		{ large: true },
 	);
 	let armed: string | null = null;
 	const freeform = FREEFORM_TOOL_IDS.map((tool) => {
@@ -92,25 +99,31 @@ export function createRibbonInsertView(
 		return { tool, el };
 	});
 	const freeformStack = stack(...freeform.map(({ el }) => el));
-	const actions = createInsertMenu(doc, 'insert.links.action', 'action', (value) =>
-		request({ kind: 'actionButton', value }),
+	const actions = createInsertMenu(
+		doc,
+		'insert.links.action',
+		'action',
+		(value) => request({ kind: 'actionButton', value }),
+		{ large: true },
 	);
-	const fields = createInsertMenu(doc, 'insert.text.field', 'field', (value) =>
-		request({ kind: 'field', value: value as 'slidenum' }),
+	const fields = createInsertMenu(
+		doc,
+		'insert.text.field',
+		'field',
+		(value) => request({ kind: 'field', value: value as 'slidenum' }),
+		{ large: true },
 	);
 	const root = [
 		group('insert.tables', byCommand('table')),
 		group('insert.images', byCommand('image')),
-		group('insert.illustrations', shapes.el, freeformStack, charts.el, byCommand('smartArt')),
-		group('insert.links', stack(byCommand('link'), actions.el)),
-		group('insert.text', stack(byCommand('textBox'), fields.el, byCommand('headerFooter'))),
+		group('insert.illustrations', shapes.el, freeformStack, byCommand('smartArt'), charts.el),
+		group('insert.links', byCommand('link'), actions.el),
+		group('insert.text', byCommand('textBox'), byCommand('headerFooter'), fields.el),
 		group('insert.symbols', byCommand('equation')),
 		group('insert.media', byCommand('media')),
 	];
 	const sync = (state: RibbonInsertState) => {
 		const text = (label: InsertLabel) => insertLabel(state, label);
-		shapeType = state.shapeType;
-		chartKind = state.chartKind;
 		armed = state.activeFreeformTool ?? null;
 		const disabled = !state.editable;
 		for (const [id, el] of groups) {
@@ -122,37 +135,34 @@ export function createRibbonInsertView(
 			el.toggleAttribute('disabled', spec.command === 'link' ? !state.hasSelection : disabled);
 		}
 		byCommand('headerFooter').toggleAttribute('hidden', state.headerFooterAvailable === false);
-		const preset =
-			SHAPE_PRESET_DEFS.find((item) => item.type === state.shapeType) ?? SHAPE_PRESET_DEFS[0];
-		shapes.sync({
-			choices: SHAPE_PRESET_DEFS.map((item) => ({
-				value: item.type,
+		const shapeTitle = text(['pptx.insert.addShape', 'Add shape']);
+		shapes.sync(
+			text(['pptx.drawing.shapes', 'Shapes']),
+			shapeTitle,
+			SHAPE_PRESET_DEFS.map((item) => ({
+				id: item.type,
 				label: text([item.i18nKey, item.label]),
-			})),
-			value: preset.type,
-			selectLabel: text(['pptx.insert.shapeType', 'Shape type']),
-			buttonLabel: text(['pptx.insert.shape', 'Shape']),
-			buttonTitle: text(['pptx.insert.addShape', 'Add shape']),
-			disabled,
-			glyph: {
-				path: INSERT_SHAPE_GLYPH_PATHS[preset.glyph],
+				glyph: INSERT_SHAPE_GLYPH_PATHS[item.glyph],
 				viewBox: '0 0 16 16',
-				transform: insertGlyphTransform(preset.glyphClass),
-			},
-		});
-		charts.el.hidden = state.chartAvailable === false;
-		charts.sync({
-			choices: INSERT_CHART_TYPES.map((item) => ({
-				value: item.id,
-				label: text([item.labelKey, item.label]),
+				transform: insertGlyphTransform(item.glyphClass),
 			})),
-			value: state.chartKind,
-			selectLabel: text(['pptx.ribbon.chartType', 'Chart type']),
-			buttonLabel: text(['pptx.ribbon.chart', 'Chart']),
-			buttonTitle: text(['pptx.ribbon.insertChart', 'Insert chart']),
 			disabled,
-			glyph: { path: RIBBON_INSERT_ICON_PATHS.chart, viewBox: '0 0 20 20', transform: 'none' },
-		});
+			text(['pptx.insert.shapeType', 'Shape type']),
+		);
+		charts.el.hidden = state.chartAvailable === false;
+		const chartTitle = text(['pptx.ribbon.insertChart', 'Insert chart']);
+		charts.sync(
+			text(['pptx.ribbon.chart', 'Chart']),
+			chartTitle,
+			INSERT_CHART_TYPES.map((item) => ({
+				id: item.id,
+				label: text([item.labelKey, item.label]),
+				glyph: RIBBON_INSERT_ICON_PATHS.chart,
+				viewBox: '0 0 20 20',
+			})),
+			disabled,
+			text(['pptx.ribbon.chartType', 'Chart type']),
+		);
 		const visible = state.freeformTools ?? [];
 		freeformStack.hidden = visible.length === 0;
 		for (const { tool, el } of freeform) {
@@ -186,5 +196,5 @@ export function createRibbonInsertView(
 			fieldTitle,
 		);
 	};
-	return { root, sync, menus: [actions, fields] };
+	return { root, sync, menus: [shapes, charts, actions, fields] };
 }

@@ -66,7 +66,7 @@
     {#if !view.hidden}
      {#if command.id === 'design.themes.browseThemes'}
       <div class="pptx-svelte-designtab-menu" bind:this={galleryAnchor} onfocusout={onFocusOut}>
-       <pptx-ui-ribbon-command data-ribbon-control={command.id} label={t(command.labelKey)} title={t(command.titleKey)} icon={command.icon} compact
+       <pptx-ui-ribbon-command data-ribbon-control={command.id} label={t(command.labelKey)} title={t(command.titleKey)} icon={command.icon}
         disabled={view.disabled || undefined} active={view.active || undefined} expanded={String(galleryOpen)} oncommand-request={() => (galleryOpen = !galleryOpen)}></pptx-ui-ribbon-command>
        {#if galleryOpen}
         <div class="pptx-svelte-designtab-pop" role="menu" aria-label={t('pptx.themes.gallery.ariaLabel')} use:anchoredPopup={{ anchor: galleryAnchor }}>
@@ -75,7 +75,7 @@
        {/if}
       </div>
      {:else}
-      <pptx-ui-ribbon-command data-ribbon-control={command.id} label={t(command.labelKey)} title={t(command.titleKey)} icon={command.icon} compact
+      <pptx-ui-ribbon-command data-ribbon-control={command.id} label={t(command.labelKey)} title={t(command.titleKey)} icon={command.icon}
        disabled={view.disabled || undefined} active={view.active || undefined} expanded={view.expanded === undefined ? undefined : String(view.expanded)}
        oncommand-request={() => { if (command.id === 'design.themes.editTheme') { toggleThemeEditor(); }
         else if (command.id === 'design.customize.slideSize') { onslidesize?.(); }

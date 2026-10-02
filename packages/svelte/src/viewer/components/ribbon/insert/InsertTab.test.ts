@@ -74,23 +74,25 @@ describe('insertTab', () => {
 	it('inserts the staged shape and chart, keeping the picked types', () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
-		const [shape, chart] = [...target.querySelectorAll('pptx-ui-select')];
-		shape.value = 'ellipse';
-		shape.dispatchEvent(new Event('change'));
-		chart.value = 'pie';
-		chart.dispatchEvent(new Event('change'));
-		flushSync();
-		target
-			.querySelector<HTMLButtonElement>(
-				'[data-ribbon-control="insert.illustrations.shapes"] .pick',
-			)!
-			.click();
-		target
-			.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.illustrations.chart"] .pick')!
-			.click();
+		vi.useFakeTimers();
+		// A gallery pick stages the type, then inserts it once the host has applied it.
+		const pick = (control: string, value: string) => {
+			target
+				.querySelector<HTMLButtonElement>(`[data-ribbon-control="${control}"] .trigger`)!
+				.click();
+			target
+				.querySelector<HTMLButtonElement>(
+					`[data-ribbon-control="${control}"] [data-insert-item="${value}"]`,
+				)!
+				.click();
+			flushSync();
+		};
+		pick('insert.illustrations.shapes', 'ellipse');
+		pick('insert.illustrations.chart', 'pie');
+		vi.runAllTimers();
+		vi.useRealTimers();
 		flushSync();
 		expect(editor.slides[0]?.elements.map((el) => el.type)).toStrictEqual(['shape', 'chart']);
-		expect(target.querySelectorAll('pptx-ui-select')[0].value).toBe('ellipse');
 	});
 
 	it('inserts action buttons and fields from the shared menus', () => {
@@ -100,7 +102,9 @@ describe('insertTab', () => {
 			target.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] .trigger`)!.click();
 		}
 		target.querySelector<HTMLButtonElement>('[data-insert-item="slidenum"]')!.click();
-		target.querySelector<HTMLButtonElement>('[data-insert-item]')!.click();
+		target
+			.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.links.action"] [data-insert-item]')!
+			.click();
 		flushSync();
 		expect(editor.slides[0]?.elements.length).toBeGreaterThanOrEqual(1);
 	});

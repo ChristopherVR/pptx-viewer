@@ -1,6 +1,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { AccountAuthConfig, RibbonContextualTabId, ToolbarActionId } from 'pptx-viewer-shared';
 import {
+	attachRibbonOverflow,
+	homeLaunchers,
 	filterVisibleTabs,
 	isActionHidden,
 	resolveActiveRibbonTab,
@@ -163,6 +165,15 @@ export function createRibbon(
 		view: viewTab?.el,
 		help: helpTab ?? undefined,
 	};
+	// Font, Paragraph and Drawing launchers open the Properties pane (there are no modal dialogs).
+	const launchers = homeLaunchers(
+		() => t('pptx.inspector.properties'),
+		() => {
+			if (!inspectorOpen) {
+				openInspector();
+			}
+		},
+	);
 	const visibleTabs = filterVisibleTabs(RIBBON_TABS, hiddenActions);
 	for (const tab of visibleTabs) {
 		const pane = panes[tab.id];
@@ -170,6 +181,8 @@ export function createRibbon(
 			pane.hidden = true;
 			pane.dataset.pptxChrome = 'ribbon-content';
 			el.appendChild(pane);
+			// Groups collapse into popup buttons when the window is too narrow, as in Office.
+			attachRibbonOverflow(pane, { launchers });
 		}
 	}
 
@@ -178,6 +191,7 @@ export function createRibbon(
 	const contextualPanes = createContextualTabPanes(doc, t, galleryHub);
 	for (const [id, pane] of contextualPanes) {
 		pane.hidden = true;
+		attachRibbonOverflow(pane, { launchers });
 		panes[id] = pane;
 	}
 

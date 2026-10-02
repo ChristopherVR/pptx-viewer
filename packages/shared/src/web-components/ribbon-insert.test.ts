@@ -80,31 +80,48 @@ describe('shared Insert view', () => {
 		expect(button(host, 'insert.tables.table').disabled).toBeTruthy();
 		button(host, 'insert.tables.table').click();
 		host.querySelector<HTMLElement>('[data-pptx-drawing-tool="curve"]')!.click();
-		expect(host.querySelector('pptx-ui-select')!.disabled).toBeTruthy();
-		expect(host.querySelector<HTMLButtonElement>('.trigger')!.disabled).toBeTruthy();
+		for (const control of ['insert.illustrations.shapes', 'insert.illustrations.chart']) {
+			expect(
+				host.querySelector<HTMLButtonElement>(`[data-ribbon-control="${control}"] .trigger`)!
+					.disabled,
+			).toBeTruthy();
+		}
 		expect(requests).not.toHaveBeenCalled();
 	});
 
-	it('routes shape and chart pickers through controlled selects', () => {
+	it('stages a gallery pick and then inserts it, as Office does', () => {
+		vi.useFakeTimers();
 		const { host, requests } = mount();
-		const [shape, chart] = [...host.querySelectorAll('pptx-ui-select')];
-		expect(shape.value).toBe('ellipse');
-		expect(chart.value).toBe('pie');
-		shape.value = 'star5';
-		shape.dispatchEvent(new Event('change'));
-		host
-			.querySelector<HTMLButtonElement>(
-				'[data-ribbon-control="insert.illustrations.shapes"] .pick',
-			)!
-			.click();
-		host
-			.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.illustrations.chart"] .pick')!
-			.click();
+		const pick = (control: string, value: string) => {
+			const menu = host.querySelector(`[data-ribbon-control="${control}"]`)!;
+			menu.querySelector<HTMLButtonElement>('.trigger')!.click();
+			menu.querySelector<HTMLButtonElement>(`[data-insert-item="${value}"]`)!.click();
+		};
+		pick('insert.illustrations.shapes', 'star5');
+		pick('insert.illustrations.chart', 'pie');
+		vi.runAllTimers();
+		vi.useRealTimers();
 		expect(requests.mock.calls.map(([detail]) => detail)).toStrictEqual([
 			{ kind: 'shapeType', value: 'star5' },
-			{ kind: 'shape', value: 'ellipse' },
+			{ kind: 'chartType', value: 'pie' },
+			{ kind: 'shape', value: 'star5' },
 			{ kind: 'chart', value: 'pie' },
 		]);
+	});
+
+	it('lays the insert controls out as large Office commands', () => {
+		const { host } = mount();
+		for (const id of ['insert.tables.table', 'insert.images.pictures', 'insert.media.media']) {
+			expect(
+				host.querySelector(`[data-ribbon-control="${id}"]`)!.hasAttribute('compact'),
+			).toBeFalsy();
+		}
+		for (const id of ['insert.illustrations.shapes', 'insert.links.action', 'insert.text.field']) {
+			expect(host.querySelector(`[data-ribbon-control="${id}"] .trigger.large`)).not.toBeNull();
+		}
+		expect(
+			host.querySelector('[data-ribbon-control="insert.illustrations.shapes"] .grid'),
+		).not.toBeNull();
 	});
 
 	it('reflects the armed Freeform tool and toggles it off on a second press', () => {

@@ -53,7 +53,6 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 									label={t(command.labelKey)}
 									title={t(command.titleKey)}
 									icon={command.icon}
-									compact
 									disabled={view.disabled}
 									active={view.active}
 									expanded={view.expanded}

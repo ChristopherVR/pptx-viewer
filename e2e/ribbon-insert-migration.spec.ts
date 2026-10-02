@@ -7,7 +7,6 @@ import type { Page } from '@playwright/test';
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture, loadDeck, ribbonTab, selectElement, slideElements } from './support/deck';
 import { downloadBytes } from './support/exports';
-import { chooseSelectValue, expectSelectValue } from './support/select-control';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -55,8 +54,8 @@ test('shared Insert ribbon exposes every canonical group and control id once', a
 	for (const id of CONTROLS) {
 		await expect(insert.locator(`[data-ribbon-control="${id}"]`)).toHaveCount(1);
 	}
-	await expect(insert.getByRole('combobox', { name: 'Shape type', exact: true })).toBeVisible();
-	await expect(insert.getByRole('combobox', { name: 'Chart type', exact: true })).toBeVisible();
+	await expect(insert.getByRole('button', { name: 'Shapes', exact: true })).toBeVisible();
+	await expect(insert.getByRole('button', { name: 'Chart', exact: true })).toBeVisible();
 });
 
 test('Text Box, Shape and Table insert into the deck, undo and survive save and reload', async ({
@@ -68,16 +67,10 @@ test('Text Box, Shape and Table insert into the deck, undo and survive save and 
 	await insert.getByRole('button', { name: 'Text Box', exact: true }).focus();
 	await page.keyboard.press('Enter');
 	await expect(slideElements(page)).toHaveCount(before + 1);
-	await chooseSelectValue(
-		page,
-		insert.getByRole('combobox', { name: 'Shape type', exact: true }),
-		'star5',
-	);
-	await expectSelectValue(
-		insert.getByRole('combobox', { name: 'Shape type', exact: true }),
-		'star5',
-	);
-	await insert.getByRole('button', { name: 'Shape', exact: true }).click();
+	await insert.getByRole('button', { name: 'Shapes', exact: true }).click();
+	await insert
+		.locator('[data-ribbon-control="insert.illustrations.shapes"] [data-insert-item="star5"]')
+		.click();
 	await expect(slideElements(page)).toHaveCount(before + 2);
 	await insert.getByRole('button', { name: 'Table', exact: true }).click();
 	await expect(slideElements(page)).toHaveCount(before + 3);
@@ -96,12 +89,10 @@ test('Chart, Action and Field menus insert native elements and dismiss from the 
 }) => {
 	const insert = await openInsert(page);
 	const before = await slideElements(page).count();
-	await chooseSelectValue(
-		page,
-		insert.getByRole('combobox', { name: 'Chart type', exact: true }),
-		'pie',
-	);
 	await insert.getByRole('button', { name: 'Chart', exact: true }).click();
+	await insert
+		.locator('[data-ribbon-control="insert.illustrations.chart"] [data-insert-item="pie"]')
+		.click();
 	await expect(slideElements(page)).toHaveCount(before + 1);
 
 	const action = insert.getByRole('button', { name: 'Action', exact: true });
@@ -181,7 +172,7 @@ test.describe('touch Insert controls', () => {
 		await page.setViewportSize({ width: 900, height: 900 });
 		const table = insert.getByRole('button', { name: 'Table', exact: true });
 		expect((await table.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-		const shape = insert.getByRole('combobox', { name: 'Shape type', exact: true });
+		const shape = insert.getByRole('button', { name: 'Shapes', exact: true });
 		expect((await shape.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 		await table.focus();
 		await expect(table).toBeFocused();

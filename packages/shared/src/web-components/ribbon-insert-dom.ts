@@ -20,8 +20,18 @@ export function insertIcon(doc: Document, name: string): SVGSVGElement {
 export interface InsertMenuItem {
 	id: string;
 	label: string;
-	/** Optional 24px-grid glyph, as used by the shared action button catalogue. */
+	/** Optional glyph path, 24px grid unless {@link viewBox} says otherwise. */
 	glyph?: string;
+	viewBox?: string;
+	/** CSS transform applied to the glyph (rotated or skewed shape presets). */
+	transform?: string;
+}
+
+export interface InsertMenuOptions {
+	/** Office "large" command: a 32px glyph over the label, chevron below. */
+	large?: boolean;
+	/** Lay the entries out as an icon gallery instead of a list. */
+	grid?: boolean;
 }
 
 export interface InsertMenu {
@@ -45,20 +55,22 @@ export function createInsertMenu(
 	control: string,
 	icon: string,
 	pick: (id: string) => void,
+	options: InsertMenuOptions = {},
 ): InsertMenu {
 	const el = doc.createElement('div');
 	el.className = 'menu';
 	el.dataset.ribbonControl = control;
 	const trigger = doc.createElement('button');
 	trigger.type = 'button';
-	trigger.className = 'trigger';
+	trigger.className = options.large ? 'trigger large' : 'trigger';
 	trigger.dataset.pptxCompact = '';
 	trigger.setAttribute('aria-haspopup', 'menu');
 	trigger.setAttribute('aria-expanded', 'false');
 	const text = doc.createElement('span');
+	text.className = 'label';
 	trigger.append(insertIcon(doc, icon), text, insertIcon(doc, 'chevronDown'));
 	const list = doc.createElement('div');
-	list.className = 'list';
+	list.className = options.grid ? 'list grid' : 'list';
 	list.setAttribute('role', 'menu');
 	list.hidden = true;
 	el.append(trigger, list);
@@ -135,9 +147,18 @@ export function createInsertMenu(
 						button.dataset.pptxCompact = '';
 						button.dataset.insertItem = item.id;
 						if (item.glyph) {
-							button.append(insertSvg(doc, item.glyph, '0 0 24 24'));
+							const glyph = insertSvg(doc, item.glyph, item.viewBox ?? '0 0 24 24');
+							if (item.transform && item.transform !== 'none') {
+								glyph.style.transform = item.transform;
+							}
+							button.append(glyph);
 						}
-						button.append(doc.createTextNode(item.label));
+						if (options.grid) {
+							button.title = item.label;
+							button.setAttribute('aria-label', item.label);
+						} else {
+							button.append(doc.createTextNode(item.label));
+						}
 						button.addEventListener('click', () => {
 							close();
 							trigger.focus();

@@ -17,7 +17,16 @@
  * the public `<pptx-ribbon>` API (and `PowerPointViewerComponent`'s bindings
  * to it) unchanged.
  */
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	inject,
+	Injector,
+	input,
+	output,
+	signal,
+} from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_INSERT_CHART_KIND } from '../internal/shared';
@@ -27,8 +36,10 @@ import type {
 	ShapePresetType,
 	ToolbarActionId,
 } from '../internal/shared';
+import { EditorStateService } from './editor-state.service';
 import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
 import { RibbonDrawingGroupComponent } from './ribbon-drawing-group.component';
+import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
 import { RibbonFileSectionComponent } from './ribbon-file-section.component';
 import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
 import { RibbonHomeSectionComponent } from './ribbon-home-section.component';
@@ -49,6 +60,8 @@ import type { RibbonTab } from './ribbon-types';
 		RibbonParagraphControlsComponent,
 		RibbonArrangeSectionComponent,
 		RibbonDrawingGroupComponent,
+		RibbonEditingSectionComponent,
+		TranslatePipe,
 	],
 	template: `
 		@switch (activeTab()) {
@@ -100,6 +113,17 @@ import type { RibbonTab } from './ribbon-types';
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 				/>
+				<span class="pptx-rb-sep"></span>
+				<!-- Editing follows Drawing, as in Office. -->
+				<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
+					<pptx-ribbon-editing-section
+						(toggleFindReplace)="find.emit()"
+						(selectAll)="onSelectAll()"
+					/>
+					<span data-pptx-chrome="ribbon-group-label">
+						{{ 'pptx.shortcuts.group.editing' | translate }}
+					</span>
+				</div>
 				<span class="pptx-rb-sep"></span>
 				<!--
 					React parity (Toolbar.tsx: sArr = sHome || toolbarSection === 'arrange'):
@@ -157,6 +181,13 @@ import type { RibbonTab } from './ribbon-types';
 	`,
 })
 export class RibbonContentComponent {
+	private readonly injector = inject(Injector);
+
+	/** Home > Editing > Select > Select All (resolved lazily: only Home needs the editor). */
+	protected onSelectAll(): void {
+		this.injector.get(EditorStateService).selectAll(this.slideIndex());
+	}
+
 	readonly activeTab = input.required<RibbonTab>();
 	readonly slideIndex = input<number>(0);
 	readonly slideCount = input<number>(0);

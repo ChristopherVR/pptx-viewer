@@ -31,18 +31,7 @@
 			[selectedElement]="selectedElement()"
 		/>
 	</div>
-	<span class="text-[9px] leading-none text-muted-foreground">
+	<span data-pptx-chrome="ribbon-group-label">
 		{{ 'pptx.ribbon.paragraph' | translate }}
-	</span>
-</div>
-<span class="pptx-rb-sep"></span>
-<!-- Editing -->
-<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
-	<pptx-ribbon-editing-section
-		(toggleFindReplace)="findReplace.emit()"
-		(selectAll)="onSelectAll()"
-	/>
-	<span class="text-[9px] leading-none text-muted-foreground">
-		{{ 'pptx.shortcuts.group.editing' | translate }}
 	</span>
 </div>

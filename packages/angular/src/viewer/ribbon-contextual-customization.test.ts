@@ -216,6 +216,8 @@ describe('ribbon group/control customisation', () => {
 			'ribbon-font-controls.component.ts',
 			'ribbon-drawing-group.component.ts',
 			'ribbon-arrange-section.component.ts',
+			// Editing follows Drawing, so its group wrapper lives in the content switch.
+			'ribbon-content.component.ts',
 		]
 			.map((file) => componentSource(import.meta.dirname, file))
 			.join('\n');

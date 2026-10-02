@@ -14,11 +14,13 @@
  */
 import {
 	RIBBON_CONTEXTUAL_TABS,
+	attachRibbonOverflow,
+	homeLaunchers,
 	resolveActiveRibbonTab,
 	visibleContextualTabs,
 } from 'pptx-viewer-shared';
 import type { RibbonContextualTabId } from 'pptx-viewer-shared';
-import { computed, inject, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
@@ -82,6 +84,23 @@ const { visibleTabs } = useToolbarVisibility(
 	() => props.hiddenActions,
 	() => viewerOptions?.value,
 );
+
+// Groups collapse into popup buttons when the window is too narrow, as in Office.
+// Font, Paragraph and Drawing launchers open the Properties pane (there are no modal dialogs).
+const launchers = homeLaunchers(
+	() => t('pptx.inspector.properties'),
+	() => {
+		if (!props.isInspectorPaneOpen) {
+			props.onToggleInspector?.();
+		}
+	},
+);
+let detachOverflow: (() => void) | null = null;
+function setRibbonContent(el: unknown): void {
+	detachOverflow?.();
+	detachOverflow = el instanceof HTMLElement ? attachRibbonOverflow(el, { launchers }) : null;
+}
+onBeforeUnmount(() => detachOverflow?.());
 </script>
 
 <template>
@@ -114,6 +133,7 @@ const { visibleTabs } = useToolbarVisibility(
 
 		<!-- Ribbon Content (collapsible via the ribbon toggle) -->
 		<div
+			:ref="setRibbonContent"
 			data-pptx-chrome="ribbon-content"
 			v-if="showRibbon"
 			v-show="props.isCompactToolbarOpen"
@@ -162,9 +182,6 @@ const { visibleTabs } = useToolbarVisibility(
 				:layout-options="props.layoutOptions"
 				:current-layout-path="props.currentLayoutPath"
 				:load-layout-previews="props.loadLayoutPreviews"
-				:theme-fonts="props.themeFonts"
-				:embedded-font-families="props.embeddedFontFamilies"
-				:custom-font-families="props.customFontFamilies"
 				:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
 				:on-insert-slide-from-template="props.onInsertSlideFromTemplate"
 				:template-scheme="props.templateScheme"
@@ -172,8 +189,6 @@ const { visibleTabs } = useToolbarVisibility(
 				:on-reset-slide="props.onResetSlide"
 				:on-add-section="props.onAddSection"
 				:selected-element="props.selectedElement"
-				:table-editor-state="props.tableEditorState"
-				:on-update-text-style="props.onUpdateTextStyle"
 			/>
 
 			<InsertSection
@@ -203,12 +218,9 @@ const { visibleTabs } = useToolbarVisibility(
 				:table-editor-state="props.tableEditorState"
 				:on-update-text-style="props.onUpdateTextStyle"
 				:on-transform-text-case="props.onTransformTextCase"
-			/>
-
-			<EditingSection
-				v-if="s === 'home'"
-				:on-toggle-find-replace="props.onToggleFindReplace"
-				:on-select-all="props.onSelectAll"
+				:theme-fonts="props.themeFonts"
+				:embedded-font-families="props.embeddedFontFamilies"
+				:custom-font-families="props.customFontFamilies"
 			/>
 
 			<DrawingGroup
@@ -221,6 +233,12 @@ const { visibleTabs } = useToolbarVisibility(
 				:on-move-layer="props.onMoveLayer"
 				:on-move-layer-to-edge="props.onMoveLayerToEdge"
 				:on-update-element-style="props.onUpdateElementStyle"
+			/>
+
+			<EditingSection
+				v-if="s === 'home'"
+				:on-toggle-find-replace="props.onToggleFindReplace"
+				:on-select-all="props.onSelectAll"
 			/>
 
 			<DrawSection

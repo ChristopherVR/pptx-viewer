@@ -17,7 +17,9 @@ Changes to the editor chrome must reach React, Vue, Angular, Svelte and Vanilla.
 ## Layout
 
 - Title bar: existing shared 36px metrics.
-- Ribbon: 32px primary row, 35px tabs, at least 82px content, 1px bottom border.
+- Ribbon: 32px primary row, 35px tabs, at least 92px content, 1px bottom border. Groups follow
+  Office: large 66px tiles (32px glyph over the caption), 22-24px small rows, an 11px caption and an
+  inset hairline between groups. See `docs/guide/ribbon-parity.md`.
 - Labelled controls: 6px icon-to-label spacing. Split buttons have joined inner
   edges. Font family and size fields reserve 120px and 64px, respectively, so
   selection changes never move neighboring controls.
@@ -49,7 +51,7 @@ React. This is an explicit exception to the React visual baseline. Widths remain
 shared `pptx-ui-select` owns their trigger, popup, option groups and keyboard
 interaction; only binding event handlers apply formatting.
 
-Joined font, paragraph, clipboard and layer-order controls paint one continuous
-muted background. Disabled opacity belongs to their buttons, preserving the
-group background. Home ribbon artwork belongs to the shared ribbon icon
-catalogue; bindings render those nodes where local icon-library versions differ.
+Home buttons are flat like Office's: transparent until hovered, an accent tint when pressed, 0.4
+opacity when disabled. Font and Paragraph are two rows. Home ribbon artwork belongs to the shared
+ribbon icon catalogue; bindings render those nodes where local icon-library versions differ.
+Narrow windows collapse Home, Insert, Draw and Design groups into popup buttons.

@@ -8,6 +8,8 @@ export function createSharedRibbonCommand(
 		label: string;
 		title?: string;
 		icon: string;
+		/** Row layout (icon beside the label); Office's default is a large command. */
+		compact?: boolean;
 		onCommand(): void;
 	},
 ) {
@@ -16,7 +18,7 @@ export function createSharedRibbonCommand(
 	el.setAttribute('label', options.label);
 	el.setAttribute('title', options.title ?? options.label);
 	el.setAttribute('icon', options.icon);
-	el.setAttribute('compact', '');
+	el.toggleAttribute('compact', options.compact ?? false);
 	el.addEventListener('command-request', options.onCommand);
 	const btn = el.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
 	return {

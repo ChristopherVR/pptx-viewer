@@ -21,14 +21,13 @@
  *
  * Framework-neutral by construction: every binding renders the same `<svg>`
  * chart view-model straight out of `pptx-viewer-shared`, and the ribbon
- * "Insert > Chart" control exposes the identical ARIA "Chart type" combobox +
- * "Chart" button in all five demos.
+ * "Insert > Chart" control is the identical "Chart" menu button
+ * (a gallery of chart types) in all five demos.
  */
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import { openRibbonTab, resetTabSession, viewport } from './support/deck';
-import { chooseSelectValue } from './support/select-control';
 
 async function newBlankPresentation(page: Page): Promise<void> {
 	// Forget any restored session first, or the deck reopens straight into the
@@ -48,8 +47,8 @@ test('a freshly inserted Bar chart keeps its category labels inside the chart sv
 	await newBlankPresentation(page);
 	await openRibbonTab(page, 'Insert');
 
-	await chooseSelectValue(page, page.getByRole('combobox', { name: /chart type/iu }), 'bar');
 	await page.getByRole('button', { name: 'Chart', exact: true }).click();
+	await page.getByRole('menuitem', { name: 'Bar', exact: true }).click();
 
 	// Sanity: the chart actually rendered as data marks, not an empty/broken
 	// insert (which would make the label check below pass for the wrong

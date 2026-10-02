@@ -1,5 +1,5 @@
-import { isPanelVisible } from 'pptx-viewer-shared';
-import React, { useCallback, useMemo } from 'react';
+import { attachRibbonOverflow, homeLaunchers, isPanelVisible } from 'pptx-viewer-shared';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
@@ -47,6 +47,30 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	);
 	const fallBackHome = useCallback(() => onSetToolbarSection('home'), [onSetToolbarSection]);
 	const contextual = useContextualRibbonTab(p.selectedElement, customization, fallBackHome);
+	// Groups collapse into popup buttons when the window is too narrow, as in Office.
+	const detachOverflow = useRef<(() => void) | null>(null);
+	// Font, Paragraph and Drawing launchers open the Properties pane (there are no modal dialogs).
+	const inspector = useRef({ open: p.isInspectorPaneOpen, toggle: p.onToggleInspector });
+	inspector.current = { open: p.isInspectorPaneOpen, toggle: p.onToggleInspector };
+	const launchers = useMemo(
+		() =>
+			homeLaunchers(
+				() => t('pptx.inspector.properties'),
+				() => {
+					if (!inspector.current.open) {
+						inspector.current.toggle();
+					}
+				},
+			),
+		[t],
+	);
+	const attachOverflow = useCallback(
+		(node: HTMLDivElement | null) => {
+			detachOverflow.current?.();
+			detachOverflow.current = node ? attachRibbonOverflow(node, { launchers }) : null;
+		},
+		[launchers],
+	);
 
 	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
 	// top bar plus a slide-up sheet exposing every section. The bottom action
@@ -141,6 +165,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 			{/* Ribbon Content */}
 			{showRibbon && (
 				<div
+					ref={attachOverflow}
 					data-pptx-chrome='ribbon-content'
 					className={cn(
 						// Plain controls stay compact; labelled RibbonGroups opt into stretching.
@@ -195,16 +220,11 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							layoutOptions={p.layoutOptions}
 							currentLayoutPath={p.currentLayoutPath}
 							loadLayoutPreviews={p.loadLayoutPreviews}
-							themeFonts={p.themeFonts}
-							embeddedFontFamilies={p.embeddedFontFamilies}
-							customFontFamilies={p.customFontFamilies}
 							onInsertSlideFromLayout={p.onInsertSlideFromLayout}
 							onApplyLayout={p.onApplyLayout}
 							onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
 							templateScheme={p.templateScheme}
 							selectedElement={p.selectedElement}
-							tableEditorState={p.tableEditorState}
-							onUpdateTextStyle={p.onUpdateTextStyle}
 							onResetSlide={p.onResetSlide}
 							onAddSection={p.onAddSection}
 						/>
@@ -241,13 +261,9 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onUpdateTextStyle={p.onUpdateTextStyle}
 							onToggleBullets={p.onToggleBullets}
 							onTransformTextCase={p.onTransformTextCase}
-						/>
-					)}
-
-					{sHome && (
-						<EditingSection
-							onToggleFindReplace={p.onToggleFindReplace}
-							onSelectAll={p.onSelectAll}
+							themeFonts={p.themeFonts}
+							embeddedFontFamilies={p.embeddedFontFamilies}
+							customFontFamilies={p.customFontFamilies}
 						/>
 					)}
 
@@ -261,6 +277,13 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onMoveLayer={p.onMoveLayer}
 							onMoveLayerToEdge={p.onMoveLayerToEdge}
 							onUpdateElementStyle={p.onUpdateElementStyle}
+						/>
+					)}
+
+					{sHome && (
+						<EditingSection
+							onToggleFindReplace={p.onToggleFindReplace}
+							onSelectAll={p.onSelectAll}
 						/>
 					)}
 

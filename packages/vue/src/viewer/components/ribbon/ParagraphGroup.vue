@@ -150,8 +150,6 @@ function request(event: RibbonHomeRequestEvent): void {
 		<div class="flex items-center gap-1" data-pptx-chrome="paragraph-controls">
 			<pptx-ui-ribbon-home-paragraph :state.prop="paragraphState" @home-request="request" />
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.ribbon.paragraph')
-		}}</span>
+		<span data-pptx-chrome="ribbon-group-label">{{ t('pptx.ribbon.paragraph') }}</span>
 	</div>
 </template>

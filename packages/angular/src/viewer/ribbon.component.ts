@@ -10,15 +10,17 @@
  * here is unchanged from before the split, so `PowerPointViewerComponent`'s
  * bindings to `<pptx-ribbon>` did not need to change.
  */
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { homeLaunchers } from '../internal/shared';
 import type { AccountAuthConfig, ToolbarActionId } from '../internal/shared';
 import { RibbonContentSecondaryComponent } from './ribbon-content-secondary.component';
 import { RibbonContentComponent } from './ribbon-content.component';
 import { createRibbonTabState } from './ribbon-contextual-tabs';
 import type { DrawToolState } from './ribbon-draw-section.component';
+import { RibbonOverflowDirective } from './ribbon-overflow.directive';
 import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
 import { RibbonTabListComponent } from './ribbon-tab-list.component';
 import { injectResolvedCustomization } from './viewer-customization.service';
@@ -33,6 +35,7 @@ import { injectResolvedCustomization } from './viewer-customization.service';
 		RibbonTabListComponent,
 		RibbonContentComponent,
 		RibbonContentSecondaryComponent,
+		RibbonOverflowDirective,
 	],
 	template: `
 		<div
@@ -93,6 +96,7 @@ import { injectResolvedCustomization } from './viewer-customization.service';
 			/>
 
 			<div
+				[pptxRibbonOverflow]="launchers"
 				data-pptx-chrome="ribbon-content"
 				class="flex min-h-[82px] flex-nowrap items-center gap-0 overflow-x-auto px-1 py-0.5 [&>*]:shrink-0"
 				[style.display]="ribbonExpanded() ? null : 'none'"
@@ -317,6 +321,16 @@ export class RibbonComponent {
 	readonly replace = output<void>();
 	/** Design/Transitions/Animations tabs want the right-docked Inspector panel opened. */
 	readonly toggleInspector = output<void>();
+	private readonly translation = inject(TranslateService, { optional: true });
+	/** Font, Paragraph and Drawing launchers open the Properties pane (there are no modal dialogs). */
+	protected readonly launchers = homeLaunchers(
+		() => this.translation?.instant('pptx.inspector.properties') ?? 'Properties',
+		() => {
+			if (!this.inspectorOpen()) {
+				this.toggleInspector.emit();
+			}
+		},
+	);
 	/** Animations tab "Animation Panel": open the Inspector with its Animation section expanded. */
 	readonly openAnimationPanel = output<void>();
 	/** Draw tab tool state changed (tool/colour/width); UI-only, no ink back-end yet. */

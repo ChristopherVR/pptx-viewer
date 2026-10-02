@@ -21,7 +21,6 @@ vi.mock(import('react-i18next'), () => ({
 }));
 
 const { DesignSection } = await import('./DesignTransitionsReviewSection');
-const { HomeSection } = await import('./HomeSection');
 const { TextSection } = await import('./TextSection');
 const { TransitionsSection } = await import('./TransitionsSection');
 const { TRANSITION_PREVIEW_ATTR } = await import('pptx-viewer-shared');
@@ -102,14 +101,10 @@ describe('home > font size', () => {
 		['fontSize', 'deselection'],
 		['fontSize', 'read-only mode'],
 	] as const)('closes %s on %s and re-enables without reopening', async (control, reason) => {
-		const props: import('./HomeSection').HomeSectionProps = {
+		const props: import('./TextSection').TextSectionProps = {
 			canEdit: true,
-			clipboardPayload: null,
-			onCopy: vi.fn(),
-			onCut: vi.fn(),
-			onPaste: vi.fn(),
-			layoutOptions: [],
-			onInsertSlideFromLayout: vi.fn(),
+			onToggleBullets: vi.fn(),
+			onTransformTextCase: vi.fn(),
 			selectedElement: {
 				type: 'text',
 				id: 'text',
@@ -124,7 +119,7 @@ describe('home > font size', () => {
 		const render = async (enabled: boolean) =>
 			act(async () =>
 				root.render(
-					<HomeSection
+					<TextSection
 						{...props}
 						canEdit={reason === 'read-only mode' ? enabled : true}
 						selectedElement={reason === 'deselection' && !enabled ? null : props.selectedElement}
@@ -153,14 +148,10 @@ describe('home > font size', () => {
 		const onUpdateTextStyle = vi.fn();
 		await act(async () => {
 			root.render(
-				<HomeSection
+				<TextSection
 					canEdit
-					clipboardPayload={null}
-					onCopy={() => {}}
-					onCut={() => {}}
-					onPaste={() => {}}
-					layoutOptions={[]}
-					onInsertSlideFromLayout={() => {}}
+					onToggleBullets={() => {}}
+					onTransformTextCase={() => {}}
 					selectedElement={
 						{
 							type: 'text',
@@ -195,14 +186,10 @@ describe('home > font size', () => {
 		const onUpdateTextStyle = vi.fn();
 		await act(async () => {
 			root.render(
-				<HomeSection
+				<TextSection
 					canEdit
-					clipboardPayload={null}
-					onCopy={() => {}}
-					onCut={() => {}}
-					onPaste={() => {}}
-					layoutOptions={[]}
-					onInsertSlideFromLayout={() => {}}
+					onToggleBullets={() => {}}
+					onTransformTextCase={() => {}}
 					selectedElement={
 						{
 							type: 'table',

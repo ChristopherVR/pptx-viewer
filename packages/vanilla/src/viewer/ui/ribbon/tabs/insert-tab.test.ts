@@ -37,8 +37,15 @@ function control(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
 		.querySelector(`[data-ribbon-control="${id}"]`)!
 		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
 }
-function pick(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
-	return tab.el.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] .pick`)!;
+/** Open a gallery menu (Shapes, Chart) and choose an entry; the pick stages, then inserts. */
+function choose(tab: { el: HTMLElement }, id: string, value: string): void {
+	tab.el.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] .trigger`)!.click();
+	tab.el
+		.querySelector<HTMLButtonElement>(
+			`[data-ribbon-control="${id}"] [data-insert-item="${value}"]`,
+		)!
+		.click();
+	vi.runAllTimers();
 }
 function dialog(): HTMLElement | null {
 	return document.querySelector<HTMLElement>('[role="dialog"][aria-label="Insert SmartArt"]');
@@ -93,11 +100,13 @@ describe('createInsertTab', () => {
 		]) {
 			expect(tab.el.querySelectorAll(`[data-ribbon-group="${id}"]`)).toHaveLength(1);
 		}
-		const selects = tab.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
-		expect(selects).toHaveLength(2);
-		expect(selects[0].options).toHaveLength(SHAPE_PRESET_DEFS.length);
-		expect(selects[1].options).toHaveLength(INSERT_CHART_TYPES.length);
-		expect(tab.el.querySelectorAll('.trigger')).toHaveLength(2);
+		const items = (id: string) =>
+			tab.el.querySelectorAll(`[data-ribbon-control="${id}"] [data-insert-item]`);
+		expect(items('insert.illustrations.shapes')).toHaveLength(SHAPE_PRESET_DEFS.length);
+		expect(items('insert.illustrations.chart')).toHaveLength(INSERT_CHART_TYPES.length);
+		// Shapes, Chart, Action and Field are large dropdowns, not selects beside a button.
+		expect(tab.el.querySelectorAll('select')).toHaveLength(0);
+		expect(tab.el.querySelectorAll('.trigger.large')).toHaveLength(4);
 	});
 
 	it('opens the hyperlink editor and needs a selection to be usable', () => {
@@ -126,13 +135,12 @@ describe('createInsertTab', () => {
 		expect(insert).toHaveBeenCalledWith('table');
 	});
 
-	it('inserts the shape type parked in the picker select', () => {
+	it('inserts the shape chosen from the Shapes gallery', () => {
+		vi.useFakeTimers();
 		const insert = vi.fn();
 		const tab = make({ insert });
-		const select = tab.el.querySelector<HTMLSelectElement>('pptx-ui-select')!;
-		select.value = SHAPE_PRESET_DEFS[2].type;
-		select.dispatchEvent(new Event('change'));
-		pick(tab, 'insert.illustrations.shapes').click();
+		choose(tab, 'insert.illustrations.shapes', SHAPE_PRESET_DEFS[2].type);
+		vi.useRealTimers();
 		expect(insert).toHaveBeenCalledWith('shape', SHAPE_PRESET_DEFS[2].type);
 	});
 
@@ -146,19 +154,16 @@ describe('createInsertTab', () => {
 		expect(insertMedia).toHaveBeenCalledOnce();
 	});
 
-	it('inserts the chart kind parked in the picker select, including Bar and Pareto', () => {
+	it('inserts the chart chosen from the Chart gallery, including Bar and Pareto', () => {
+		vi.useFakeTimers();
 		const insertChart = vi.fn();
 		const tab = make({ insertChart });
-		const chartSelect = tab.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[1];
-		pick(tab, 'insert.illustrations.chart').click();
-		expect(insertChart).toHaveBeenLastCalledWith(INSERT_CHART_TYPES[0].id);
-		// The dropdown carries the entry id: Column and Bar share the 'bar' family.
-		for (const id of ['bar', 'pareto']) {
-			chartSelect.value = id;
-			chartSelect.dispatchEvent(new Event('change'));
-			pick(tab, 'insert.illustrations.chart').click();
+		// The gallery carries the entry id: Column and Bar share the 'bar' family.
+		for (const id of [INSERT_CHART_TYPES[0].id, 'bar', 'pareto']) {
+			choose(tab, 'insert.illustrations.chart', id);
 			expect(insertChart).toHaveBeenLastCalledWith(id);
 		}
+		vi.useRealTimers();
 	});
 
 	it('opens the Header & Footer dialog and the equation panel', () => {
@@ -243,8 +248,9 @@ describe('createInsertTab', () => {
 		const editing = ['insert.text.textBox', 'insert.tables.table', 'insert.media.media'];
 		tab.setEditable(false);
 		expect(editing.every((id) => control(tab, id).disabled)).toBeTruthy();
-		expect(tab.el.querySelector<HTMLSelectElement>('pptx-ui-select')!.disabled).toBeTruthy();
-		expect(tab.el.querySelector<HTMLButtonElement>('.trigger')!.disabled).toBeTruthy();
+		for (const trigger of tab.el.querySelectorAll<HTMLButtonElement>('.trigger')) {
+			expect(trigger.disabled).toBeTruthy();
+		}
 		tab.setEditable(true);
 		expect(editing.every((id) => !control(tab, id).disabled)).toBeTruthy();
 	});

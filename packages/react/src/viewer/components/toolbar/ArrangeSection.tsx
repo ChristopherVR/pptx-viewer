@@ -137,9 +137,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 				<WebHomeControls family='arrange-order' controls={controls} onRequest={requestOrder} />
 				<WebHomeControls family='arrange-edit' controls={controls} onRequest={requestEdit} />
 			</div>
-			<span className='text-[9px] text-muted-foreground leading-none'>
-				{t('pptx.arrange.groupLabel')}
-			</span>
+			<span data-pptx-chrome='ribbon-group-label'>{t('pptx.arrange.groupLabel')}</span>
 		</div>
 	);
 }

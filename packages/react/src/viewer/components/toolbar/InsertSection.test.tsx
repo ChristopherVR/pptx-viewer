@@ -90,28 +90,29 @@ describe('insertSection', () => {
 	it('routes the shape and chart pickers, the Freeform tools and the Action menu', () => {
 		const props = baseProps({ activeFreeformTool: 'curve' });
 		act(() => root.render(React.createElement(InsertSection, props)));
-		const [shape, chart] = [...container.querySelectorAll('pptx-ui-select')];
-		act(() => {
-			shape.value = 'star5';
-			shape.dispatchEvent(new Event('change'));
-			chart.value = 'pie';
-			chart.dispatchEvent(new Event('change'));
-		});
+		vi.useFakeTimers();
+		// A gallery pick stages the type, then inserts it once the host has applied it.
+		const pick = (control: string, value: string) => {
+			act(() =>
+				container
+					.querySelector<HTMLButtonElement>(`[data-ribbon-control="${control}"] .trigger`)!
+					.click(),
+			);
+			act(() =>
+				container
+					.querySelector<HTMLButtonElement>(
+						`[data-ribbon-control="${control}"] [data-insert-item="${value}"]`,
+					)!
+					.click(),
+			);
+		};
+		pick('insert.illustrations.shapes', 'star5');
 		expect(props.onSetNewShapeType).toHaveBeenCalledExactlyOnceWith('star5');
-		act(() =>
-			container
-				.querySelector<HTMLButtonElement>(
-					'[data-ribbon-control="insert.illustrations.shapes"] .pick',
-				)!
-				.click(),
-		);
-		act(() =>
-			container
-				.querySelector<HTMLButtonElement>(
-					'[data-ribbon-control="insert.illustrations.chart"] .pick',
-				)!
-				.click(),
-		);
+		pick('insert.illustrations.chart', 'pie');
+		act(() => {
+			vi.runAllTimers();
+		});
+		vi.useRealTimers();
 		expect(props.onAddShape).toHaveBeenCalledOnce();
 		expect(props.onAddChart).toHaveBeenCalledExactlyOnceWith('pie');
 		const curve = container.querySelector<HTMLElement>('[data-pptx-drawing-tool="curve"]')!;
@@ -123,7 +124,13 @@ describe('insertSection', () => {
 				.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.links.action"] .trigger')!
 				.click(),
 		);
-		act(() => container.querySelector<HTMLButtonElement>('[data-insert-item]')!.click());
+		act(() =>
+			container
+				.querySelector<HTMLButtonElement>(
+					'[data-ribbon-control="insert.links.action"] [data-insert-item]',
+				)!
+				.click(),
+		);
 		expect(props.onAddActionButton).toHaveBeenCalledOnce();
 	});
 

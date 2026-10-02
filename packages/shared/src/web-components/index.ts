@@ -59,6 +59,11 @@ export type {
 } from './presenter-console';
 export type { PptxUiReadOnlyBannerElement, ReadOnlyBannerRequestEvent } from './read-only-banner';
 
+export { attachRibbonOverflow, reflowRibbon } from './ribbon-overflow';
+export type { RibbonRowOptions } from './ribbon-overflow';
+export { HOME_LAUNCHER_GROUPS, homeLaunchers } from './ribbon-launchers';
+export type { RibbonLauncher, RibbonLaunchers } from './ribbon-launchers';
+
 export type { RibbonCommandRequestEvent } from './ribbon-command';
 export type {
 	PptxUiRibbonAnimationsElement,

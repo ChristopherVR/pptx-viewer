@@ -6,7 +6,9 @@
 	 * off the shell's own props.
 	 */
 	import type { RibbonContextualTabId } from 'pptx-viewer-shared';
-	import { RIBBON_CONTEXTUAL_TABS } from 'pptx-viewer-shared';
+	import { RIBBON_CONTEXTUAL_TABS, homeLaunchers } from 'pptx-viewer-shared';
+
+	import { useTranslator } from '../../../i18n/context';
 
 	import AnimationsTab from './animations/AnimationsTab.svelte';
 	import DesignTab from './design/DesignTab.svelte';
@@ -17,6 +19,7 @@
 	import InsertTab from './insert/InsertTab.svelte';
 	import RecordTab from './record/RecordTab.svelte';
 	import ReviewTab from './review/ReviewTab.svelte';
+	import { ribbonOverflow } from './ribbon-overflow';
 	import type { RibbonTabId } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
 	import SlideShowTab from './slideshow/SlideShowTab.svelte';
@@ -35,12 +38,23 @@
 		onslidesize: () => void;
 	} = $props();
 
+	const t = useTranslator();
+	// Font, Paragraph and Drawing launchers open the Properties pane (there are no modal dialogs).
+	const launchers = homeLaunchers(
+		() => t('pptx.inspector.properties'),
+		() => {
+			if (ribbon.chromeUi && !ribbon.chromeUi.inspectorOpen) {
+				ribbon.chromeUi.toggleInspector();
+			}
+		},
+	);
+
 	function isContextualTab(id: string): id is RibbonContextualTabId {
 		return RIBBON_CONTEXTUAL_TABS.some((entry) => entry.id === id);
 	}
 </script>
 
-<div class="pptx-svelte-ribbon-content" data-pptx-chrome="ribbon-content">
+<div class="pptx-svelte-ribbon-content" data-pptx-chrome="ribbon-content" use:ribbonOverflow={launchers}>
 	{#if tab === 'home'}
 		<HomeTab editor={ribbon.editor} findReplace={ribbon.findReplace} onnavigateslide={ribbon.onnavigateslide} hiddenActions={ribbon.hiddenActions} />
 	{:else if tab === 'insert'}

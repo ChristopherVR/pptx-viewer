@@ -25,7 +25,6 @@ import { resetSlideLayoutPath, slidesHomeControls } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { RibbonClipboardGroupComponent } from './ribbon-clipboard-group.component';
-import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
 import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
 import { homeLanguage, homeTranslator } from './ribbon-home-lang';
 import { createLayoutArtwork } from './ribbon-layout-artwork';
@@ -62,7 +61,6 @@ export function performResetSlide(
 		TranslatePipe,
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
-		RibbonEditingSectionComponent,
 		RibbonClipboardGroupComponent,
 	],
 	templateUrl: './ribbon-home-section.component.html',
@@ -188,9 +186,5 @@ export class RibbonHomeSectionComponent {
 	protected onResetSlide(): void {
 		performResetSlide(this.editor, this.slideIndex());
 		this.resetSlide.emit();
-	}
-
-	protected onSelectAll(): void {
-		this.editor.selectAll(this.slideIndex());
 	}
 }

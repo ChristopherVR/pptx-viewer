@@ -25,6 +25,7 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 			'badge',
 			'icon-only',
 			'caret',
+			'tall',
 		];
 		private readonly button: HTMLButtonElement;
 		private readonly text: HTMLSpanElement;

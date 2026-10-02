@@ -191,7 +191,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		deps.hiddenActions,
 	);
 
-	el.append(clipboard.el, slides.el, font.el, paragraph.el, editing.el, drawing.el, arrange.el);
+	el.append(clipboard.el, slides.el, font.el, paragraph.el, drawing.el, editing.el, arrange.el);
 
 	return {
 		el,

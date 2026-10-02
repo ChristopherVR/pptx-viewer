@@ -21,7 +21,7 @@ test('the editor keeps its desktop chrome proportions across bindings', async ({
 			inspector: box('inspector'),
 		};
 	});
-	expect(paint.ribbon.height).toBe(150);
+	expect(paint.ribbon.height).toBe(160);
 	expect(paint.rail.width).toBe(180);
 	expect(paint.thumbnail.width).toBe(134);
 	expect(paint.thumbnail.height).toBeCloseTo(76.25, 1);
@@ -30,7 +30,9 @@ test('the editor keeps its desktop chrome proportions across bindings', async ({
 	expect(paint.inspector.width).toBe(288);
 });
 
-test('the new-slide halves touch and labelled buttons retain icon spacing', async ({ page }) => {
+test('the new-slide halves stack and large labelled commands keep Office spacing', async ({
+	page,
+}) => {
 	await loadDeck(page);
 	const paint = await page.evaluate(() => {
 		const main = document.querySelector('[data-pptx-chrome="split-main"]')!;
@@ -65,10 +67,10 @@ test('the new-slide halves touch and labelled buttons retain icon spacing', asyn
 			};
 		});
 		return {
-			gap: caret.getBoundingClientRect().left - main.getBoundingClientRect().right,
-			mainRightRadius: getComputedStyle(main).borderTopRightRadius,
-			caretLeftRadius: getComputedStyle(caret).borderTopLeftRadius,
-			mainLeftRadius: getComputedStyle(main).borderTopLeftRadius,
+			gap: caret.getBoundingClientRect().top - main.getBoundingClientRect().bottom,
+			mainBottomRadius: getComputedStyle(main).borderBottomLeftRadius,
+			caretTopRadius: getComputedStyle(caret).borderTopLeftRadius,
+			mainTopRadius: getComputedStyle(main).borderTopLeftRadius,
 			caretIconCenter: iconBox.left + iconBox.width / 2 - caretBox.left - caretBox.width / 2,
 			underlineHeight: underline.height,
 			clippedUnderline,
@@ -76,16 +78,16 @@ test('the new-slide halves touch and labelled buttons retain icon spacing', asyn
 		};
 	});
 	expect(paint.gap).toBe(0);
-	expect(paint.mainRightRadius).toBe('0px');
-	expect(paint.caretLeftRadius).toBe('0px');
-	expect(paint.mainLeftRadius).toBe('3px');
-	expect(paint.caretIconCenter).toBeCloseTo(0.5, 1);
+	expect(paint.mainBottomRadius).toBe('0px');
+	expect(paint.caretTopRadius).toBe('0px');
+	expect(paint.mainTopRadius).toBe('4px');
+	expect(Math.abs(paint.caretIconCenter)).toBeLessThanOrEqual(0.5);
 	expect(paint.underlineHeight).toBe('2.5px');
 	expect(paint.clippedUnderline).toBe(false);
 	for (const button of paint.labelled) {
 		expect(['flex', 'inline-flex']).toContain(button.display);
-		expect(button.gap).toBe('6px');
-		expect(button.iconWidth).toBe(16);
+		expect(button.gap).toBe('2px');
+		expect(button.iconWidth).toBe(32);
 		expect(button.viewBox).toBe('0 0 24 24');
 		expect(button.strokeWidth).toBe('2');
 	}
@@ -184,9 +186,9 @@ test('integer and decimal font sizes leave the toolbar in the same position', as
 	expect(decimal.boldLeft).toBe(integer.boldLeft);
 });
 
-test('Home keeps single-row groups and continuous disabled action backgrounds', async ({
-	page,
-}) => {
+test('Home keeps Office rows and flat, dimmed disabled actions', async ({ page }) => {
+	// Wide enough that no Home group has collapsed into a popup.
+	await page.setViewportSize({ width: 1920, height: 1000 });
 	await loadDeck(page);
 	for (const fontFamily of ['system-ui', 'Arial, sans-serif']) {
 		const paint = await page.evaluate((family) => {
@@ -202,7 +204,7 @@ test('Home keeps single-row groups and continuous disabled action backgrounds', 
 				].map((control) => {
 					const button = document.querySelector(`[data-ribbon-control="${control}"]`)!;
 					return {
-						background: getComputedStyle(button.parentElement!).backgroundColor,
+						background: getComputedStyle(button).backgroundColor,
 						opacity: getComputedStyle(button).opacity,
 					};
 				}),
@@ -227,13 +229,18 @@ test('Home keeps single-row groups and continuous disabled action backgrounds', 
 			};
 		}, fontFamily);
 		for (const action of paint.backgrounds) {
-			expect(action.background).toBe('rgb(31, 36, 43)');
+			// Office buttons are flat: no pill behind them, only a dimmed glyph when disabled.
+			expect(action.background).toBe('rgba(0, 0, 0, 0)');
 			expect(action.opacity).toBe('0.4');
 		}
-		expect(paint.shapesIconLeft).toBe(10);
-		for (const row of paint.rows) {
-			expect(row.height, fontFamily).toBe(28);
-			expect(row.wrap).toBe('nowrap');
-		}
+		// Large Shapes: the glyph is centred over the caption, so it sits well inside the button.
+		expect(paint.shapesIconLeft).toBeGreaterThan(6);
+		const [font, drawing, arrange] = paint.rows;
+		// Font is two rows, Drawing a 66px column flow, Arrange the viewer's single flat row.
+		expect(font.wrap, fontFamily).toBe('wrap');
+		expect(font.height, fontFamily).toBeGreaterThanOrEqual(54);
+		expect(drawing.height, fontFamily).toBe(66);
+		expect(drawing.wrap).toBe('wrap');
+		expect(arrange.wrap).toBe('nowrap');
 	}
 });

@@ -36,6 +36,8 @@ import {
 } from './support/deck';
 
 test.describe.configure({ timeout: 120_000 });
+// Home groups collapse into popups below about 1900px; these specs drive the expanded controls.
+test.use({ viewport: { width: 1920, height: 1000 } });
 
 test.describe('paragraph list commands render their edits', () => {
 	for (const [name, marker] of [

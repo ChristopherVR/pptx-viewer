@@ -9,7 +9,8 @@ import { savePptxViaBackstage } from './save-pptx';
 import { elementWithText, loadDeck, ribbonTab, selectElement, slideElements } from './support/deck';
 import { downloadBytes } from './support/exports';
 
-test.use({ viewport: { width: 1440, height: 900 } });
+// Wide enough for every Home group; narrower windows collapse the right-hand groups to popups.
+test.use({ viewport: { width: 1920, height: 1000 } });
 
 const control = (page: Page, id: string) => page.locator(`[data-ribbon-control="${id}"]`).first();
 

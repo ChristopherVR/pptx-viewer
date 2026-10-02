@@ -40,6 +40,20 @@ describe('shared Home controls', () => {
 		expect(button(host, 'home.clipboard.paste').getAttribute('aria-label')).toBe('Paste');
 	});
 
+	it('lays Paste out as a large command beside a stacked Cut, Copy and Format Painter', () => {
+		const host = mount('clipboard', clipboardHomeControls(clipboard));
+		expect(button(host, 'home.clipboard.paste').dataset.size).toBe('large');
+		for (const id of ['cut', 'copy', 'formatPainter']) {
+			expect(button(host, `home.clipboard.${id}`).dataset.size).toBeUndefined();
+			// Small rows carry a visible caption beside the glyph.
+			expect(button(host, `home.clipboard.${id}`).querySelector('.text')!.textContent).not.toBe('');
+		}
+		const stack = host.querySelector('[data-stack]')!;
+		expect([...stack.querySelectorAll('button')].map((b) => b.dataset.ribbonControl)).toStrictEqual(
+			['home.clipboard.cut', 'home.clipboard.copy', 'home.clipboard.formatPainter'],
+		);
+	});
+
 	it('gates paste, cut and copy and rejects disabled intents', () => {
 		const host = mount(
 			'clipboard',

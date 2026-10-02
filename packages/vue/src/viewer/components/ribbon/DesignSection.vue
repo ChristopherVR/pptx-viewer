@@ -61,7 +61,6 @@ const groups = computed(() =>
 			:label="t(command.labelKey)"
 			:title="t(command.titleKey)"
 			:icon="command.icon"
-			compact
 			:disabled="command.disabled || undefined"
 			:active="command.active || undefined"
 			:expanded="command.expanded === undefined ? undefined : String(command.expanded)"

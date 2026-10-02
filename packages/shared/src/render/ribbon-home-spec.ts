@@ -114,6 +114,8 @@ export interface RibbonHomeControlSpec {
 	readonly caret?: { labelKey: string; fallback: string; attrs?: Readonly<Record<string, string>> };
 	/** Destructive styling hook. */
 	readonly danger?: boolean;
+	/** Office "large" command: the glyph above the caption instead of beside it. */
+	readonly large?: boolean;
 }
 
 export interface RibbonHomeClusterSpec {
@@ -122,6 +124,8 @@ export interface RibbonHomeClusterSpec {
 	readonly free?: boolean;
 	/** Preserved `data-pptx-chrome` layout hook. */
 	readonly chrome?: string;
+	/** Stack the controls in one column of small, captioned rows (Office's three-row groups). */
+	readonly stack?: boolean;
 }
 
 export interface RibbonHomeFamilySpec {

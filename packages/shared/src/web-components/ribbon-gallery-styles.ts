@@ -6,7 +6,8 @@ ${host} button { box-sizing:border-box; font:inherit; color:inherit; cursor:poin
 ${host} button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); }
 ${host} button:disabled { opacity:.4; cursor:not-allowed; }
 ${host} button:focus-visible { outline:2px solid var(--pptx-ring,#6366f1); outline-offset:2px; }
-${host} .trigger { display:inline-flex; align-items:center; gap:6px; min-height:26px; padding:4px 8px; font-size:11px; white-space:nowrap; }
+${host} .trigger { display:inline-flex; align-items:center; gap:6px; min-height:24px; padding:0 6px; font-size:12px; white-space:nowrap; }
+${host}:not([mode=inline]) .trigger { border-color:transparent; background:transparent; }
 ${host} .trigger svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 ${host}[mode=inline] .trigger, ${host}[chevron-only] .trigger { align-self:stretch; padding:0 4px; }
 ${host} .strip { display:flex; gap:2px; padding:2px; align-items:center; }

@@ -72,6 +72,52 @@ describe('shared ribbon controls', () => {
 		expect(button.hasAttribute('aria-pressed')).toBeFalsy();
 	});
 
+	it('draws a large command with a caption and a chevron that joins a wrapped label', () => {
+		const host = document.createElement('pptx-ui-ribbon-command');
+		host.setAttribute('label', 'Table');
+		host.setAttribute('dropdown', '');
+		document.body.append(host);
+		const root = host.shadowRoot!;
+		expect(root.querySelector('.label span')!.textContent).toBe('Table');
+		expect(root.querySelector('svg.chev')).not.toBeNull();
+		expect(host.hasAttribute('data-wrap')).toBeFalsy();
+		host.setAttribute('label', 'Header & Footer');
+		expect(host.hasAttribute('data-wrap')).toBeTruthy();
+		// The button keeps its accessible name from the visible caption.
+		expect(root.querySelector('button')!.title).toBe('Header & Footer');
+	});
+
+	it('keeps label and group properties settable by frameworks that assign element properties', () => {
+		// React 19 assigns `element.label = ...` when the property exists; internal fields must not shadow it.
+		const command = document.createElement('pptx-ui-ribbon-command') as HTMLElement & {
+			label?: unknown;
+		};
+		document.body.append(command);
+		const group = document.createElement('pptx-ui-ribbon-group') as HTMLElement & {
+			launcher?: unknown;
+		};
+		document.body.append(group);
+		expect('label' in command).toBeFalsy();
+		expect('launcher' in group).toBeFalsy();
+	});
+
+	it('shows a group launcher only when asked and reports its press', () => {
+		const group = document.createElement('pptx-ui-ribbon-group');
+		group.setAttribute('label', 'Font');
+		group.dataset.ribbonGroup = 'home.font';
+		document.body.append(group);
+		const launcher = group.shadowRoot!.querySelector<HTMLButtonElement>('.launcher')!;
+		expect(group.hasAttribute('launcher')).toBeFalsy();
+		group.setAttribute('launcher', '');
+		const request = vi.fn();
+		group.addEventListener('launcher-request', request);
+		launcher.click();
+		expect(request.mock.calls[0][0].detail).toStrictEqual({ id: 'home.font' });
+		expect(launcher.getAttribute('aria-label')).toBe('Font options');
+		group.setAttribute('launcher-label', 'Font settings');
+		expect(launcher.getAttribute('aria-label')).toBe('Font settings');
+	});
+
 	it('controls toggle state through a single label intent and accepts a host commit', () => {
 		const host = document.createElement('pptx-ui-ribbon-toggle');
 		host.setAttribute('data-ribbon-control', 'slideShow.captions.subtitles');

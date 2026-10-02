@@ -10,7 +10,7 @@ export function createRibbonDrawView(doc: Document, request: (intent: RibbonDraw
 	const tools = DRAW_RIBBON_TOOLS.map((tool) => {
 		const command = doc.createElement('pptx-ui-ribbon-command');
 		command.dataset.ribbonControl = `draw.tools.${tool.id}`;
-		command.setAttribute('compact', '');
+		command.setAttribute('tall', '');
 		command.setAttribute('icon-only', '');
 		command.setAttribute('icon', tool.icon);
 		command.addEventListener('command-request', (event) => {

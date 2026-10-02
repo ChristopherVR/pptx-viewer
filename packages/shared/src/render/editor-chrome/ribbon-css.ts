@@ -37,7 +37,7 @@ export const EDITOR_RIBBON_CSS = `
     height: 2.5px; background: var(--pptx-primary);
   }
   [data-pptx-editor-chrome] [data-pptx-chrome="ribbon-content"] {
-    min-height: 82px; padding: 2px 4px; gap: 0; box-sizing: border-box;
+    min-height: 92px; padding: 2px 4px; gap: 0; box-sizing: border-box;
   }
   [data-pptx-editor-chrome] [data-pptx-chrome="ribbon-group-label"] {
     font-size: 9px; line-height: 9px; font-weight: 400;

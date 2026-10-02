@@ -118,9 +118,7 @@ function request(event: RibbonHomeRequestEvent): void {
 		<div class="flex items-center gap-1" data-pptx-chrome="drawing-controls">
 			<pptx-ui-ribbon-home-drawing :state.prop="state" @home-request="request" />
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.ribbon.groupDrawing')
-		}}</span>
+		<span data-pptx-chrome="ribbon-group-label">{{ t('pptx.ribbon.groupDrawing') }}</span>
 	</div>
 
 	<div :class="SEP" />

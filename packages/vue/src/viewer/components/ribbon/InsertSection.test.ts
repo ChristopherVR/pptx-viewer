@@ -62,26 +62,33 @@ describe('insert section', () => {
 
 	it('routes the shape and chart pickers and the Action menu', () => {
 		const { props, wrapper } = mountInsert();
-		const [shape, chart] = [...document.body.querySelectorAll('pptx-ui-select')];
-		shape.value = 'star5';
-		shape.dispatchEvent(new Event('change'));
-		chart.value = 'pie';
-		chart.dispatchEvent(new Event('change'));
+		vi.useFakeTimers();
+		// A gallery pick stages the type, then inserts it once the host has applied it.
+		const pick = (control: string, value: string) => {
+			document.body
+				.querySelector<HTMLButtonElement>(`[data-ribbon-control="${control}"] .trigger`)!
+				.click();
+			document.body
+				.querySelector<HTMLButtonElement>(
+					`[data-ribbon-control="${control}"] [data-insert-item="${value}"]`,
+				)!
+				.click();
+		};
+		pick('insert.illustrations.shapes', 'star5');
 		expect(props.onSetNewShapeType).toHaveBeenCalledExactlyOnceWith('star5');
-		document.body
-			.querySelector<HTMLButtonElement>(
-				'[data-ribbon-control="insert.illustrations.shapes"] .pick',
-			)!
-			.click();
-		document.body
-			.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.illustrations.chart"] .pick')!
-			.click();
+		pick('insert.illustrations.chart', 'pie');
+		vi.runAllTimers();
+		vi.useRealTimers();
 		expect(props.onAddShape).toHaveBeenCalledOnce();
 		expect(props.onAddChart).toHaveBeenCalledOnce();
 		document.body
 			.querySelector<HTMLButtonElement>('[data-ribbon-control="insert.links.action"] .trigger')!
 			.click();
-		document.body.querySelector<HTMLButtonElement>('[data-insert-item]')!.click();
+		document.body
+			.querySelector<HTMLButtonElement>(
+				'[data-ribbon-control="insert.links.action"] [data-insert-item]',
+			)!
+			.click();
 		expect(props.onAddActionButton).toHaveBeenCalledOnce();
 		wrapper.unmount();
 	});
