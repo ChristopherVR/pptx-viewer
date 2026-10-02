@@ -85,7 +85,7 @@ const SURFACES: Surface[] = [
 		open: async (page) => {
 			await tab(page, 'Slide Show');
 			await ribbon(page)
-				.getByRole('button', { name: /Custom show/i })
+				.getByRole('button', { name: /Custom (slide )?shows?/i })
 				.first()
 				.click();
 		},
