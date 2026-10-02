@@ -12,6 +12,10 @@
  * button + sheet are gated on edit mode, while Save + Present stay reachable even
  * in view-only mode (mirrors React).
  *
+ * A thin adapter around the shared `pptx-ui-mobile-toolbar`, which owns the markup
+ * and gating of the row; this maps the ribbon props onto its state and routes its
+ * `mobile-toolbar-request` intents to the handlers.
+ *
  * Conventions vs. React:
  *  - the aggregate `ToolbarProps` becomes our `RibbonProps` bundle (the same
  *    one the host assembles for the desktop ribbon),
@@ -19,12 +23,11 @@
  *  - the section sheet's open state is owned here (local `ref`), exactly like
  *    React's `useState`.
  */
-import { Download, Menu, Presentation, Redo, Share2, Sparkles, Undo } from 'lucide-vue-next';
 import { isFeatureEnabled } from 'pptx-viewer-shared';
+import type { MobileToolbarId, MobileToolbarRequestEvent } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../utils';
 import { useToolbarVisibility } from '../composables/useToolbarVisibility';
 import { useResolvedCustomization } from '../composables/useViewerCustomization';
 import MobileMenuSheet from './MobileMenuSheet.vue';
@@ -41,108 +44,62 @@ const menuOpen = ref(false);
 const customization = useResolvedCustomization();
 const presentModeEnabled = computed(() => isFeatureEnabled(customization.value, 'presentMode'));
 
-/** Edit + master modes expose the editing controls (mirrors React's showEdit). */
-const showEdit = (): boolean => props.mode === 'edit' || props.mode === 'master';
+const state = computed(() => {
+	const hidden: MobileToolbarId[] = [];
+	if (isHidden('undo')) {
+		hidden.push('undo');
+	}
+	if (isHidden('redo')) {
+		hidden.push('redo');
+	}
+	if (!presentModeEnabled.value) {
+		hidden.push('present');
+	}
+	if (isHidden('share')) {
+		hidden.push('share');
+	}
+	return {
+		// Edit + master modes expose the editing controls (mirrors React's showEdit).
+		editable: props.mode === 'edit' || props.mode === 'master',
+		canUndo: props.canUndo,
+		canRedo: props.canRedo,
+		aiVisible: props.aiEnabled === true,
+		aiActive: props.isAiPanelOpen === true,
+		menuOpen: menuOpen.value,
+		hidden,
+		translate: t,
+	};
+});
 
-const BTN =
-	'inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-md text-foreground/80 hover:bg-accent/60 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform';
+function request(event: Event): void {
+	switch ((event as MobileToolbarRequestEvent).detail.id) {
+		case 'menu':
+			menuOpen.value = true;
+			break;
+		case 'undo':
+			props.onUndo();
+			break;
+		case 'redo':
+			props.onRedo();
+			break;
+		case 'ai':
+			props.onToggleAiPanel?.();
+			break;
+		case 'save':
+			props.onSaveAsPptx();
+			break;
+		case 'present':
+			props.onSetMode('present');
+			break;
+		case 'share':
+			props.onOpenShareDialog?.();
+	}
+}
 </script>
 
 <template>
-	<div
-		role="toolbar"
-		:aria-label="t('pptx.mobileToolbar.toolbar')"
-		class="relative z-20 flex min-h-[52px] items-center gap-1 border-b border-border bg-secondary/50 px-2 py-1 pt-[max(env(safe-area-inset-top),0px)]"
-	>
-		<!-- Menu (opens the section sheet) -->
-		<button
-			v-if="showEdit()"
-			type="button"
-			:class="BTN"
-			:title="t('pptx.mobileToolbar.menu')"
-			:aria-label="t('pptx.mobileToolbar.menu')"
-			@click="menuOpen = true"
-		>
-			<Menu class="h-5 w-5" />
-		</button>
-
-		<!-- Undo / Redo -->
-		<template v-if="showEdit()">
-			<button
-				v-if="!isHidden('undo')"
-				type="button"
-				:disabled="!props.canUndo"
-				:class="BTN"
-				:title="t('pptx.toolbar.undo')"
-				:aria-label="t('pptx.toolbar.undo')"
-				@click="props.onUndo()"
-			>
-				<Undo class="h-5 w-5" />
-			</button>
-			<button
-				v-if="!isHidden('redo')"
-				type="button"
-				:disabled="!props.canRedo"
-				:class="BTN"
-				:title="t('pptx.toolbar.redo')"
-				:aria-label="t('pptx.toolbar.redo')"
-				@click="props.onRedo()"
-			>
-				<Redo class="h-5 w-5" />
-			</button>
-		</template>
-
-		<div class="flex-1" />
-
-		<!-- AI assistant toggle: surfaced in the top-right on mobile too (the
-		     desktop quick-access bar is replaced by this toolbar on mobile, so
-		     without this the assistant was unreachable). Host opts in via `ai`. -->
-		<button
-			v-if="showEdit() && props.aiEnabled"
-			type="button"
-			:class="cn(BTN, props.isAiPanelOpen ? 'text-primary' : undefined)"
-			:title="t('pptx.toolbar.toggleAiAssistant')"
-			:aria-label="t('pptx.toolbar.toggleAiAssistant')"
-			@click="props.onToggleAiPanel?.()"
-		>
-			<Sparkles class="h-5 w-5" />
-		</button>
-
-		<!-- Save: reachable without digging into Menu, even in view-only mode -->
-		<button
-			type="button"
-			:class="BTN"
-			:title="t('pptx.comments.save')"
-			:aria-label="t('pptx.comments.save')"
-			@click="props.onSaveAsPptx()"
-		>
-			<Download class="h-5 w-5" />
-		</button>
-
-		<!-- Present -->
-		<button
-			v-if="presentModeEnabled"
-			type="button"
-			:class="cn(BTN, 'text-primary')"
-			:title="t('pptx.mobileBar.present')"
-			:aria-label="t('pptx.mobileBar.present')"
-			@click="props.onSetMode('present')"
-		>
-			<Presentation class="h-5 w-5" />
-		</button>
-
-		<!-- Share -->
-		<button
-			v-if="showEdit() && !isHidden('share')"
-			type="button"
-			:class="cn(BTN, 'bg-primary px-3 text-white hover:bg-primary/90')"
-			:title="t('pptx.toolbar.share')"
-			:aria-label="t('pptx.toolbar.share')"
-			@click="props.onOpenShareDialog?.()"
-		>
-			<Share2 class="h-4 w-4" />
-		</button>
-
+	<div class="relative z-20">
+		<pptx-ui-mobile-toolbar :state.prop="state" @mobile-toolbar-request="request" />
 		<!-- Section sheet -->
 		<MobileMenuSheet v-bind="props" :open="menuOpen" @close="menuOpen = false" />
 	</div>

@@ -182,7 +182,11 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-viewport')).toBeTruthy();
 		expect(container.querySelector('.pptxv-mobile-toolbar')).toBeTruthy();
 		expect(container.querySelector('.pptxv-mobile-nav')).toBeNull();
-		expect(container.querySelectorAll('.pptxv-mobile-actions > nav > button')).toHaveLength(5);
+		expect(
+			container
+				.querySelector('.pptxv-mobile-actions > pptx-ui-mobile-bar')
+				?.shadowRoot?.querySelectorAll('nav > button'),
+		).toHaveLength(5);
 		expect(container.querySelector('.pptxv-statusbar [aria-label*="Previous"]')).toBeNull();
 		const primary = container.querySelector('.pptxv-ribbon-primary');
 		expect(primary?.getAttribute('role')).toBeNull();

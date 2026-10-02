@@ -1,13 +1,12 @@
 <script lang="ts">
-	import Layers from '@lucide/svelte/icons/layers';
-	import MessageSquare from '@lucide/svelte/icons/message-square';
-	import Plus from '@lucide/svelte/icons/plus';
-	import Settings2 from '@lucide/svelte/icons/settings-2';
-	import StickyNote from '@lucide/svelte/icons/sticky-note';
 	import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
-	import type { CanvasSize, MobileSheetKey } from 'pptx-viewer-shared';
-	import { buildBarActions, toggleSheet } from 'pptx-viewer-shared';
-	import type { Component } from 'svelte';
+	import type {
+		CanvasSize,
+		MobileBarRequestEvent,
+		MobileBarViewState,
+		MobileSheetKey,
+	} from 'pptx-viewer-shared';
+	import { toggleSheet } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { newTextElement } from '../editor';
@@ -37,29 +36,21 @@
 	};
 	const close = () => { onactivechange(null); };
 	const selectSlide = (index: number) => { onselect(index); close(); };
-	const actionLabels = {
-		slides: t('pptx.sections.slides'),
-		insert: t('pptx.mobileBar.insert'),
-		inspector: t('pptx.field.format'),
-		comments: t('pptx.toolbar.comments'),
-		notes: t('pptx.notes.title'),
-	} as const;
-	/** Same Lucide glyphs React's `MobileBottomBar` renders for each target. */
-	const actionIcons = {
-		slides: Layers,
-		insert: Plus,
-		inspector: Settings2,
-		comments: MessageSquare,
-		notes: StickyNote,
-	} satisfies Record<string, Component>;
-	const actions = $derived.by(() =>
-		buildBarActions({ slideCount: slides.length }).map((action) => ({
-			...action,
-			key: action.key as Exclude<MobileSheetKey, null>,
-			label: actionLabels[action.key as keyof typeof actionLabels],
-			icon: actionIcons[action.key as keyof typeof actionIcons],
-		})),
-	);
+	/** A thin adapter around the shared `pptx-ui-mobile-bar` (markup, gating, pressed state). */
+	const barState = $derived<MobileBarViewState>({
+		slideCount: slides.length,
+		activeSheet: active === 'menu' ? null : active,
+		translate: t,
+	});
+	function request(event: MobileBarRequestEvent): void {
+		const key = event.detail.id;
+		if (key === 'insert') {
+			editor.insertElement(newTextElement());
+			onactivechange(null);
+		} else {
+			open(key);
+		}
+	}
 </script>
 
 <div class="pptx-svelte-mobile-actions">
@@ -74,39 +65,14 @@
 	{:else if active === 'comments'}
 		<MobileSheet title={t('pptx.toolbar.comments')} onclose={close}><ReviewCommentsPanel {editor} embedded /></MobileSheet>
 	{/if}
-	<nav aria-label={t('pptx.mobileBar.ariaLabel')}>
-		{#each actions as action}
-			{@const Icon = action.icon}
-			<button
-				type="button"
-				class:active={active === action.key}
-				aria-pressed={active === action.key}
-				aria-label={action.key === 'notes' ? t('pptx.statusBar.toggleNotes') : undefined}
-				disabled={action.disabled}
-				onclick={() => {
-					if (action.key === 'insert') {
-						editor.insertElement(newTextElement());
-						onactivechange(null);
-					} else {
-						open(action.key);
-					}
-				}}
-			>
-				<Icon size={20} aria-hidden="true" /><small>{action.label}</small>
-			</button>
-		{/each}
-	</nav>
+	<pptx-ui-mobile-bar state={barState} onmobile-bar-request={request}></pptx-ui-mobile-bar>
 </div>
 
 <style>
 	.pptx-svelte-mobile-actions { display: none; }
 	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 		.pptx-svelte-mobile-actions { display: contents; }
-		.pptx-svelte-mobile-actions nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 56px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 94%, transparent); }
-		.pptx-svelte-mobile-actions nav button { display: grid; flex: 1; place-items: center; align-content: center; gap: 1px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground, #94a3b8); touch-action: manipulation; }
-		.pptx-svelte-mobile-actions nav button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }
-		.pptx-svelte-mobile-actions nav button.active { color: var(--pptx-primary, #818cf8); }
-		.pptx-svelte-mobile-actions nav small { font-size: 10px; }
+		.pptx-svelte-mobile-actions pptx-ui-mobile-bar { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-thumbs) { display:flex !important; max-height:55dvh; border:0; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-insert) { display: flex; flex-wrap: wrap; gap: 8px; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-insert-btn) { min-width: 44px; min-height: 44px; }
