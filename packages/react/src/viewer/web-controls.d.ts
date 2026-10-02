@@ -36,6 +36,7 @@ declare module 'react' {
 			'pptx-ui-ribbon-section': WebControlProps;
 			'pptx-ui-ribbon-gallery': WebControlProps;
 			'pptx-ui-ribbon-toggle': WebControlProps;
+			'pptx-ui-status-bar': WebControlProps;
 			'pptx-ui-subtitle-settings': WebControlProps;
 			'pptx-ui-theme-editor': WebControlProps;
 		}

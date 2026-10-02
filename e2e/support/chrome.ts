@@ -60,9 +60,8 @@ export async function stageWidth(page: Page): Promise<number> {
 /**
  * Measure the chrome, entirely inside the page.
  *
- * The status bar has no attribute of its own in any binding, so it is found
- * structurally: the nearest ancestor of the "Slide n of m" counter that also
- * owns a zoom-to-fit control. That is true of all five and of nothing else.
+ * The status bar is the shared `pptx-ui-status-bar` element in all five bindings;
+ * its measured box is the `bar` part inside the element's open shadow root.
  */
 export async function measureChrome(page: Page): Promise<ChromeMeasurement> {
 	return page.evaluate(() => {
@@ -95,18 +94,14 @@ export async function measureChrome(page: Page): Promise<ChromeMeasurement> {
 		const trackBox = toggle?.getBoundingClientRect() ?? null;
 		const knobBox = knob?.getBoundingClientRect() ?? null;
 
-		const counter = leavesOf(document.body).find((el) =>
-			/^Slide \d+ of \d+$/u.test((el.textContent ?? '').trim()),
-		);
-		let status: Element | null = null;
-		let node = counter?.parentElement ?? null;
-		while (node) {
-			if ([...node.querySelectorAll('button')].some((b) => /^zoom to fit$/iu.test(nameOf(b)))) {
-				status = node;
-				break;
-			}
-			node = node.parentElement;
-		}
+		// The status bar is the shared `pptx-ui-status-bar` element: its controls live
+		// in an open shadow root, which `querySelectorAll` on the document cannot see.
+		const status =
+			document.querySelector('pptx-ui-status-bar')?.shadowRoot?.querySelector('[part="bar"]') ??
+			null;
+		const counter = status
+			? leavesOf(status).find((el) => /^Slide \d+ of \d+$/u.test((el.textContent ?? '').trim()))
+			: undefined;
 		const statusStyle = status ? getComputedStyle(status) : null;
 		const statusTexts = status
 			? leavesOf(status)

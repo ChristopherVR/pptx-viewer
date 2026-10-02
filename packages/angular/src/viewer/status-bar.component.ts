@@ -1,178 +1,49 @@
-import { NgClass } from '@angular/common';
 /**
- * status-bar.component.ts: bottom status bar for the Angular editor chrome,
- * at parity with React's `viewer/components/StatusBar.tsx`.
+ * status-bar.component.ts: bottom status bar for the Angular editor chrome.
  *
- * Layout (mirrors React):
- *   LEFT  : "Slide X of Y" | language | save state ("All saved" / "Unsaved...")
- *   RIGHT : Notes toggle | view-mode toggles (Normal / Slide Sorter / Slide
- *           Show) | zoom-out / percent / zoom-in
+ * A thin adapter around the shared `pptx-ui-status-bar` element: the slide
+ * counter, save indicator, notes toggle, view-mode buttons and zoom cluster are
+ * rendered by the shared view. This component maps viewer state onto the
+ * element's controlled state and re-emits its typed intents as outputs the
+ * {@link PowerPointViewerComponent} already has handlers for.
  *
- * Purely presentational + `OnPush`; every action is an `output()` the
- * {@link PowerPointViewerComponent} already has handlers for. Slide-nav and
- * zoom live here (not in the top bar), matching React.
+ * A host may project a connection indicator with `[pptxCollabStatus]`; the
+ * projected element must also carry `slot="collaboration"`.
  */
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import {
-	LucideColumns2,
-	LucideMinus,
-	LucideMonitor,
-	LucidePlus,
-	LucidePresentation,
-	LucideStickyNote,
-} from '@lucide/angular';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { TranslateService } from '@ngx-translate/core';
+import { map, merge, startWith } from 'rxjs';
 
-import { STATUS_BAR_CLASSES } from '../internal/shared';
-import type { ToolbarActionId } from '../internal/shared';
+import { isActionHidden, resolveStatusBarSave } from '../internal/shared';
+import type {
+	StatusBarControlId,
+	StatusBarRequestEvent,
+	StatusBarViewState,
+	ToolbarActionId,
+} from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
-import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
 	selector: 'pptx-status-bar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [
-		NgClass,
-		TranslatePipe,
-		LucideStickyNote,
-		LucideMonitor,
-		LucideColumns2,
-		LucidePresentation,
-		LucideMinus,
-		LucidePlus,
-	],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { class: 'contents' },
 	template: `
-		<!--
-			The bound token pins the row height to the shared STATUS_BAR_METRICS
-			instead of letting it fall out of the padding + button box, which is how
-			the Vanilla and Svelte ports ended up 2px shorter than React's.
-		-->
-		<div
-			class="flex w-full items-center gap-1 border-t border-border bg-secondary/50 px-2 py-0.5 text-[10px] text-muted-foreground"
-			[ngClass]="statusBarHeightClass"
-		>
-			<!-- Left: slide counter + language + save state -->
-			<span class="shrink-0">
-				{{
-					slideCount() > 0
-						? ('pptx.statusBar.slideOf'
-							| translate: { current: min(slideIndex() + 1, slideCount()), total: slideCount() })
-						: ('pptx.statusBar.noSlides' | translate)
-				}}
-			</span>
-
-			<div class="mx-1 h-3 w-px bg-border/40 max-md:hidden"></div>
-			<span class="shrink-0 text-[10px] max-md:hidden">{{
-				'pptx.statusBar.language' | translate
-			}}</span>
-
-			<div class="mx-1 h-3 w-px bg-border/60 max-md:hidden"></div>
-			<span class="shrink-0 max-md:hidden" [ngClass]="saveStateClass()">{{
-				saveStatusText()
-			}}</span>
-
-			<!-- Center spacer -->
-			<div class="flex-1"></div>
-
-			<!-- Notes toggle -->
-			@if (!toolbar.isHidden('notes')) {
-				<button
-					type="button"
-					class="flex items-center gap-1 rounded-sm p-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/60"
-					[ngClass]="notesOpen() ? 'text-primary' : ''"
-					[title]="'pptx.statusBar.toggleNotes' | translate"
-					[attr.aria-label]="'pptx.statusBar.toggleNotes' | translate"
-					(click)="toggleNotes.emit()"
-				>
-					<svg lucideStickyNote class="h-3 w-3"></svg>
-					<span>{{ 'pptx.notes.title' | translate }}</span>
-				</button>
-			}
-
-			<div class="mx-0.5 h-3 w-px bg-border/60"></div>
-
-			<!-- View-mode toggles: Normal / Slide Sorter / Slide Show -->
-			<div class="flex items-center gap-0.5">
-				<button
-					type="button"
-					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					[ngClass]="isNormal() ? 'text-primary' : ''"
-					[title]="'pptx.statusBar.normalView' | translate"
-					[attr.aria-label]="'pptx.statusBar.normalView' | translate"
-					(click)="normalView.emit()"
-				>
-					<svg lucideMonitor class="h-3.5 w-3.5"></svg>
-				</button>
-				<button
-					type="button"
-					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					[ngClass]="sorterActive() ? 'text-primary' : ''"
-					[title]="'pptx.statusBar.slideSorter' | translate"
-					[attr.aria-label]="'pptx.statusBar.slideSorter' | translate"
-					(click)="openSorter.emit()"
-				>
-					<svg lucideColumns2 class="h-3.5 w-3.5"></svg>
-				</button>
-				@if (!toolbar.isHidden('fullscreen')) {
-					<button
-						type="button"
-						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-						[ngClass]="presenting() ? 'text-primary' : ''"
-						[title]="'pptx.statusBar.slideShow' | translate"
-						[attr.aria-label]="'pptx.statusBar.slideShow' | translate"
-						(click)="slideShow.emit()"
-					>
-						<svg lucidePresentation class="h-3.5 w-3.5"></svg>
-					</button>
-				}
-			</div>
-
-			<!--
-				Collaboration status slot (React parity: sits between the view-mode
-				cluster and the zoom cluster). Exposed for hosts / the viewer to
-				project a connection-status indicator via [pptxCollabStatus].
-			-->
+		<pptx-ui-status-bar [state]="view()" (status-request)="request($event)">
 			<ng-content select="[pptxCollabStatus]"></ng-content>
-
-			<!-- Zoom controls -->
-			@if (!toolbar.isHidden('zoom')) {
-				<div class="mx-0.5 h-3 w-px bg-border/60"></div>
-				<div class="flex items-center gap-0.5">
-					<button
-						type="button"
-						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-						[title]="'pptx.statusBar.zoomOut' | translate"
-						[attr.aria-label]="'pptx.statusBar.zoomOut' | translate"
-						(click)="zoomOut.emit()"
-					>
-						<svg lucideMinus class="h-3 w-3"></svg>
-					</button>
-					<button
-						type="button"
-						class="min-w-[3rem] rounded-sm px-1.5 py-0.5 text-center text-[10px] tabular-nums text-muted-foreground transition-colors hover:bg-accent/60"
-						[title]="'pptx.statusBar.zoomToFit' | translate"
-						(click)="zoomReset.emit()"
-					>
-						{{ zoomPercent() }}%
-					</button>
-					<button
-						type="button"
-						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-						[title]="'pptx.statusBar.zoomIn' | translate"
-						[attr.aria-label]="'pptx.statusBar.zoomIn' | translate"
-						(click)="zoomIn.emit()"
-					>
-						<svg lucidePlus class="h-3 w-3"></svg>
-					</button>
-				</div>
-			}
-		</div>
+		</pptx-ui-status-bar>
 	`,
 })
 export class StatusBarComponent {
-	/** Shared height token; see the note above the row in the template. */
-	protected readonly statusBarHeightClass = STATUS_BAR_CLASSES.container;
 	readonly slideIndex = input<number>(0);
 	readonly slideCount = input<number>(0);
 	readonly canEdit = input<boolean>(false);
@@ -197,61 +68,47 @@ export class StatusBarComponent {
 	readonly zoomReset = output<void>();
 
 	private readonly translate = inject(TranslateService);
-	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
+	/** Changes on language/dictionary updates so OnPush re-translates the view. */
+	private readonly translations = toSignal(
+		merge(this.translate.onLangChange, this.translate.onTranslationChange).pipe(
+			map(() => Date.now()),
+			startWith(0),
+		),
+		{ initialValue: 0 },
+	);
 
-	/** "Normal" is active when neither the sorter nor the slideshow is showing. */
-	protected isNormal(): boolean {
-		return !this.sorterActive() && !this.presenting();
+	private readonly intents: Record<StatusBarControlId, () => void> = {
+		notes: () => this.toggleNotes.emit(),
+		normal: () => this.normalView.emit(),
+		sorter: () => this.openSorter.emit(),
+		slideShow: () => this.slideShow.emit(),
+		zoomOut: () => this.zoomOut.emit(),
+		zoomFit: () => this.zoomReset.emit(),
+		zoomIn: () => this.zoomIn.emit(),
+	};
+
+	protected view(): StatusBarViewState {
+		this.translations();
+		const t = (key: string, params?: Record<string, string | number>): string =>
+			this.translate.instant(key, params);
+		const hidden = (id: ToolbarActionId) => isActionHidden(id, this.hiddenActions());
+		const save = resolveStatusBarSave(t, this.autosaveStatus(), this.dirty());
+		return {
+			slideCount: this.slideCount(),
+			activeSlideIndex: this.slideIndex(),
+			saveText: save.text,
+			saveKind: save.kind,
+			zoomPercent: hidden('zoom') ? undefined : this.zoomPercent(),
+			showNotes: !hidden('notes'),
+			notesExpanded: this.notesOpen(),
+			showSlideShow: !hidden('fullscreen'),
+			// "Normal" is active when neither the sorter nor the slideshow is showing.
+			viewMode: this.presenting() ? 'slideShow' : this.sorterActive() ? 'sorter' : 'normal',
+			translate: t,
+		};
 	}
 
-	protected min(a: number, b: number): number {
-		return Math.min(a, b);
-	}
-
-	/**
-	 * Save-state text next to the slide counter, mirroring React's StatusBar:
-	 * autosave saving/saved-time/error take precedence, then the dirty flag, then
-	 * "All saved".
-	 */
-	protected saveStatusText(): string {
-		const status = this.autosaveStatus();
-		if (status?.state === 'saving') {
-			return this.translate.instant('pptx.autosave.saving');
-		}
-		if (status?.state === 'saved') {
-			return this.translate.instant('pptx.autosave.saved', {
-				time: this.formatAutosaveAge(status.timestamp),
-			});
-		}
-		if (status?.state === 'error') {
-			return this.translate.instant('pptx.autosave.error');
-		}
-		return this.translate.instant(
-			this.dirty() ? 'pptx.statusBar.unsavedChanges' : 'pptx.statusBar.allSaved',
-		);
-	}
-
-	/** Colour override for the save-state text while saving (yellow) / errored (red). */
-	protected saveStateClass(): string {
-		const state = this.autosaveStatus()?.state;
-		if (state === 'error') {
-			return 'text-red-400';
-		}
-		if (state === 'saving') {
-			return 'text-yellow-400';
-		}
-		return '';
-	}
-
-	/** Relative age label for a saved timestamp ("just now" / "N min ago"). */
-	private formatAutosaveAge(timestamp: number): string {
-		const minutes = Math.floor((Date.now() - timestamp) / 60_000);
-		if (minutes < 1) {
-			return this.translate.instant('pptx.autosave.justNow');
-		}
-		if (minutes === 1) {
-			return this.translate.instant('pptx.autosave.oneMinAgo');
-		}
-		return this.translate.instant('pptx.autosave.minutesAgo', { count: minutes });
+	protected request(event: Event): void {
+		this.intents[(event as StatusBarRequestEvent).detail.id]();
 	}
 }

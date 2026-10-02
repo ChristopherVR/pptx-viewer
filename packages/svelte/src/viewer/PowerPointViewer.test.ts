@@ -27,6 +27,11 @@ afterEach(() => {
 	cleanup = undefined;
 });
 
+/** Text of the shared status bar, which renders inside an open shadow root. */
+function statusBarText(target: HTMLElement): string {
+	return target.querySelector('.pptx-svelte-statusbar')?.shadowRoot?.textContent ?? '';
+}
+
 async function mountViewer(props: Partial<PowerPointViewerProps> = {}): Promise<{
 	target: HTMLElement;
 	onload: ReturnType<typeof vi.fn>;
@@ -181,18 +186,17 @@ describe('powerPointViewer', () => {
 		// Read-only decks now render the full ribbon (React parity), not the
 		// lean fallback toolbar.
 		expect(target.querySelector('.pptx-svelte-ribbon')).not.toBeNull();
-		expect(target.textContent).toContain(`Slide 1 of ${detail.slideCount}`);
+		expect(statusBarText(target)).toContain(`Slide 1 of ${detail.slideCount}`);
 	});
 
 	it('keeps the slide counter in the status bar when editing', async () => {
 		const { target, onload } = await mountViewer({ editable: true });
 		const detail = onload.mock.calls[0][0] as { slideCount: number };
 		expect(target.querySelector('.pptx-svelte-ribbon-nav')).toBeNull();
-		expect(target.querySelector('.pptx-svelte-statusbar')?.textContent).toContain(
-			`Slide 1 of ${detail.slideCount}`,
-		);
-		expect(target.querySelector('.pptx-svelte-statusbar [aria-label="Previous slide"]')).toBeNull();
-		expect(target.querySelector('.pptx-svelte-statusbar [aria-label="Share"]')).toBeNull();
+		expect(statusBarText(target)).toContain(`Slide 1 of ${detail.slideCount}`);
+		const statusBar = target.querySelector('.pptx-svelte-statusbar')!.shadowRoot!;
+		expect(statusBar.querySelector('[aria-label="Previous slide"]')).toBeNull();
+		expect(statusBar.querySelector('[aria-label="Share"]')).toBeNull();
 		const mobileToolbar = target.querySelector('.pptx-svelte-mobile-toolbar');
 		expect(
 			Array.from(mobileToolbar?.querySelectorAll('button') ?? []).map((button) =>
@@ -214,7 +218,7 @@ describe('powerPointViewer', () => {
 		thumbs[1].click();
 		flushSync();
 		expect(onslidechange).toHaveBeenLastCalledWith(1);
-		expect(target.textContent).toContain('Slide 2 of');
+		expect(statusBarText(target)).toContain('Slide 2 of');
 		thumbs[0].click();
 		flushSync();
 		expect(onslidechange).toHaveBeenLastCalledWith(0);
@@ -239,7 +243,7 @@ describe('powerPointViewer', () => {
 	it('honours initialSlide and renders thumbnails for every slide', async () => {
 		const { target, onload } = await mountViewer({ initialSlide: 1 });
 		const detail = onload.mock.calls[0][0] as { slideCount: number };
-		expect(target.textContent).toContain(`Slide 2 of ${detail.slideCount}`);
+		expect(statusBarText(target)).toContain(`Slide 2 of ${detail.slideCount}`);
 		const thumbs = target.querySelectorAll('.pptx-svelte-thumb');
 		expect(thumbs).toHaveLength(detail.slideCount);
 	});

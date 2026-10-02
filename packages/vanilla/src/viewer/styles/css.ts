@@ -3,7 +3,6 @@ import {
 	EDITOR_CHROME_CSS,
 	HIDDEN_SLIDE_DIM_OPACITY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
-	STATUS_BAR_METRICS,
 	TITLE_BAR_METRICS,
 } from 'pptx-viewer-shared';
 
@@ -804,58 +803,7 @@ const CHROME_CSS = `
 }
 
 /* ── Bottom status bar ──────────────────────────────────────────────── */
-.pptxv-statusbar {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	/* Pinned from the shared metric rather than left to emerge from the padding
-	   + button box, which is how this row ended up 2px shorter than the others. */
-	min-height: ${STATUS_BAR_METRICS.height}px;
-	padding: 2px 8px;
-	border-top: 1px solid var(--pptx-border);
-	background: color-mix(in srgb, var(--pptx-secondary) 50%, transparent);
-	color: var(--pptx-muted-foreground);
-	font-size: 10px;
-}
-.pptxv-statusbar-spacer { flex: 1; }
-.pptxv-statusbar-sep { width: 1px; height: 12px; margin: 0 4px; background: var(--pptx-border); opacity: 0.6; }
-.pptxv-statusbar-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 4px;
-	min-width: 24px;
-	height: 22px;
-	padding: 2px 4px;
-	border: none;
-	border-radius: 3px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
-}
-.pptxv-statusbar-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-statusbar-btn:disabled { opacity: 0.4; cursor: default; }
-.pptxv-statusbar-btn.is-active { color: var(--pptx-primary); }
-.pptxv-statusbar-btn:focus-visible,
-.pptxv-statusbar-zoom:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
-.pptxv-statusbar-btn svg, .pptxv-statusbar-icon svg { width: 12px; height: 12px; display: block; }
-.pptxv-statusbar-counter, .pptxv-statusbar-text { white-space: nowrap; }
-.pptxv-statusbar-save.is-saving { color: #ca8a04; }
-.pptxv-statusbar-save.is-error { color: #dc2626; }
-.pptxv-statusbar-zoom {
-	min-width: 48px;
-	height: 22px;
-	padding: 2px 6px;
-	border: none;
-	border-radius: 3px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	font-variant-numeric: tabular-nums;
-	cursor: pointer;
-}
-.pptxv-statusbar-zoom:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+/* The row itself is the shared pptx-ui-status-bar; only visibility is host-owned. */
 .pptxv.pptxv-presenting .pptxv-statusbar { display: none; }
 
 @media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {

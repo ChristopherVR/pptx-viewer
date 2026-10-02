@@ -132,7 +132,12 @@ export function shortcutReference(page: Page): Locator {
 
 /** The visible slide counter, e.g. `"Slide 2 of 7"`. */
 export async function slidePosition(page: Page): Promise<string> {
-	return page.evaluate(
-		() => /Slide \d+ of \d+/u.exec(document.body.innerText ?? '')?.[0] ?? 'no slide counter',
-	);
+	// The status bar's counter lives in the shared element's open shadow root, which
+	// `innerText` on the document does not reach; the show overlay keeps its own copy.
+	return page.evaluate(() => {
+		const inBar = document.querySelector('pptx-ui-status-bar')?.shadowRoot?.textContent ?? '';
+		const text = `${document.body.innerText ?? ''}
+${inBar}`;
+		return /Slide \d+ of \d+/u.exec(text)?.[0] ?? 'no slide counter';
+	});
 }
