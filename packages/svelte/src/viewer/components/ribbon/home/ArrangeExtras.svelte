@@ -1,82 +1,115 @@
 <script lang="ts">
-	import RibbonIcon from '../RibbonIcon.svelte';
 	import ArrangeHomeStrip from './ArrangeHomeStrip.svelte';
 	/**
-	 * ArrangeExtras: the multi-select-aware half of the Home tab's Arrange
-	 * group: the shared align / distribute and flip strips around the native Format
-	 * Painter and Group / Ungroup. Z-order, Duplicate and Delete are further shared
-	 * strips (`ArrangeHomeStrip`) composed in `HomeTab`.
-	 * Reads `editor.selectedElements`/`selection` (the ordered multi-select)
-	 * and routes every mutation through `EditorState.arrangeOps`.
+	 * ArrangeExtras: the multi-select-aware half of the Home tab's Arrange group,
+	 * all shared elements: the align / distribute strip, the labelled Format
+	 * Painter, the flip strip and the shape extras (Group, Ungroup, Merge Shapes,
+	 * Crop and outline width). Z-order, Duplicate and Delete are further shared
+	 * strips composed in `HomeTab`. Reads `editor.selectedElements`/`selection`
+	 * and routes every mutation through `EditorState`.
 	 */
 	import {
+		arrangePainterHomeControls,
+		arrangeShapeHomeControls,
 		canGroupSelection,
 		canInteractWithElement,
+		canMergeShapes,
+		canSetStrokeWidth,
 		canUngroupSelection,
+		homeSnapshotTranslator,
+		isActionHidden,
+		strokeWidthOf,
 	} from 'pptx-viewer-shared';
-
+	import type { RibbonHomeRequestEvent, ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import { setStrokeWidthPatch } from '../../../editor';
+	import { refocusViewerRoot } from '../anchored-popup';
+	import { cropUpdateFor } from './home-crop';
 
-	const { editor }: { editor: EditorState } = $props();
+	const {
+		editor,
+		hiddenActions,
+	}: { editor: EditorState; hiddenActions?: readonly ToolbarActionId[] } = $props();
 	const t = useTranslator();
-
 	const count = $derived(editor.selection.size);
-	// G10: mirrors the a:spLocks/@noGrp guard editor.arrangeOps.groupSelected
-	// already enforces on the command, so a locked selection reads as disabled
-	// rather than a click that silently does nothing.
+	const el = $derived(editor.selectedElement ?? null);
+	// Mirrors the a:spLocks/@noGrp guard editor.arrangeOps.groupSelected already
+	// enforces on the command, so a locked selection reads as disabled.
 	const selectionGroupable = $derived(
-		editor.selectedElements.every((el) => canInteractWithElement(el, 'group')),
+		editor.selectedElements.every((element) => canInteractWithElement(element, 'group')),
 	);
-	const canGroup = $derived(canGroupSelection(editor.editable, count, selectionGroupable));
-	const canUngroup = $derived(canUngroupSelection(editor.editable, editor.selectedElement ?? null));
+	const cropping = $derived(editor.cropOps.active);
+	const painter = $derived({
+		controls: arrangePainterHomeControls({
+			editable: editor.editable,
+			active: editor.formatPainter.active,
+			canFormatPaint: editor.formatPainter.enabled,
+			show: true,
+		}),
+		translate: homeSnapshotTranslator(['arrange-painter'], t),
+	});
+	const shape = $derived({
+		controls: arrangeShapeHomeControls({
+			editable: editor.editable,
+			canGroup: canGroupSelection(editor.editable, count, selectionGroupable),
+			canUngroup: canUngroupSelection(editor.editable, el),
+			canMerge: canMergeShapes(editor.selectedElements),
+			canCrop: cropping || editor.cropOps.canCrop,
+			cropActive: cropping,
+			canStrokeWidth: canSetStrokeWidth(editor.editable, el),
+			strokeWidth: strokeWidthOf(el),
+			hideMerge: isActionHidden('mergeShapes', hiddenActions),
+			hideCrop: isActionHidden('crop', hiddenActions),
+		}),
+		translate: homeSnapshotTranslator(['arrange-shape'], t),
+	});
 
+	function requestShape(event: RibbonHomeRequestEvent): void {
+		const { id, value } = event.detail;
+		if (value !== undefined) {
+			refocusViewerRoot(event.currentTarget as HTMLElement);
+		}
+		switch (id) {
+			case 'home.arrange.group':
+				editor.arrangeOps.groupSelected();
+				break;
+			case 'home.arrange.ungroup':
+				editor.arrangeOps.ungroupSelected();
+				break;
+			case 'home.arrange.mergeShapes':
+				editor.arrangeOps.mergeSelected(
+					value as Parameters<typeof editor.arrangeOps.mergeSelected>[0],
+				);
+				break;
+			case 'home.arrange.crop':
+				if (value === undefined) {
+					editor.cropOps.toggle();
+				} else if (el) {
+					const update = cropUpdateFor(el, value);
+					if (update) {
+						editor.cropOps.applyOnce(update);
+					}
+				}
+				break;
+			case 'home.arrange.outlineWidth':
+				if (el) {
+					editor.patchSelected(setStrokeWidthPatch(el, Number(value)));
+				}
+		}
+	}
 </script>
 
 <div class="pptx-svelte-arrangex" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.ribbon.arrange')}>
-<ArrangeHomeStrip {editor} strip="align" />
-	<!-- The Arrange group's labelled Format Painter, beside the Clipboard
-	     group's icon-only one. Both drive the same controller; PowerPoint (and
-	     React) offer it in both places because the Arrange group is where you
-	     are already working when you want to copy a shape's look. -->
-	<button
-		type="button"
-		class="pptx-svelte-arrangex-wide"
-		class:pptx-svelte-arrangex-on={editor.formatPainter.active}
-		data-active={editor.formatPainter.active}
-		aria-pressed={editor.formatPainter.active}
-		disabled={!editor.formatPainter.enabled}
-		data-ribbon-control="home.clipboard.formatPainter"
-		title={t('pptx.arrange.formatPainter')}
-		onclick={() => editor.formatPainter.toggle()}
-	>
-		<RibbonIcon name="home.clipboard.formatPainter" />
-		<span>{t('pptx.arrange.format')}</span>
-	</button>
-<ArrangeHomeStrip {editor} strip="flip" /><div data-pptx-chrome="group-controls">
-
-	<button
-		type="button"
-		disabled={!canGroup}
-		data-ribbon-control="home.arrange.group"
-		aria-label={t('pptx.contextMenu.group')}
-		title={t('pptx.contextMenu.group')}
-		onclick={() => editor.arrangeOps.groupSelected()}
-	>
-		<RibbonIcon name="home.arrange.group" />
-	</button>
-	<button
-		type="button"
-		disabled={!canUngroup}
-		data-ribbon-control="home.arrange.ungroup"
-		aria-label={t('pptx.contextMenu.ungroup')}
-		title={t('pptx.contextMenu.ungroup')}
-		onclick={() => editor.arrangeOps.ungroupSelected()}
-	>
-		<RibbonIcon name="home.arrange.ungroup" />
-	</button>
-
-</div>
+	<ArrangeHomeStrip {editor} strip="align" />
+	<!-- The Arrange group's labelled Format Painter, beside the Clipboard group's
+	     icon-only one; both drive the same controller. -->
+	<pptx-ui-ribbon-home-arrange-painter
+		state={painter}
+		onhome-request={() => editor.formatPainter.toggle()}
+	></pptx-ui-ribbon-home-arrange-painter>
+	<ArrangeHomeStrip {editor} strip="flip" />
+	<pptx-ui-ribbon-home-arrange-shape state={shape} onhome-request={requestShape}></pptx-ui-ribbon-home-arrange-shape>
 </div>
 
 <style>
@@ -84,53 +117,5 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 2px;
-	}
-
-	.pptx-svelte-arrangex button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 26px;
-		height: 26px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: transparent;
-		color: inherit;
-		cursor: pointer;
-	}
-
-	.pptx-svelte-arrangex button:hover:not(:disabled) {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-arrangex button:disabled {
-		opacity: 0.35;
-		cursor: default;
-	}
-
-	.pptx-svelte-arrangex svg {
-		width: 14px;
-		height: 14px;
-	}
-
-	.pptx-svelte-arrangex-wide {
-		gap: 4px;
-		padding: 0 8px;
-		font: inherit;
-		font-size: 11.5px;
-		white-space: nowrap;
-	}
-
-	.pptx-svelte-arrangex-on {
-		background: var(--pptx-primary, #6366f1);
-		color: #fff;
-	}
-
-	.pptx-svelte-arrangex-sep {
-		width: 1px;
-		height: 18px;
-		margin: 0 3px;
-		background: var(--pptx-border, #33334d);
 	}
 </style>

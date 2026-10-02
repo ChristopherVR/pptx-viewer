@@ -7,7 +7,7 @@ import { EditorState } from '../../../editor/editor-state.svelte';
 import TextFormatGroup from '../../TextFormatGroup.svelte';
 import DrawingGroup from './DrawingGroup.svelte';
 import FontFormattingGroup from './FontFormattingGroup.svelte';
-import ParagraphDropdowns from './ParagraphDropdowns.svelte';
+import ParagraphGroup from './ParagraphGroup.svelte';
 
 registerPptxWebControls();
 
@@ -105,7 +105,7 @@ describe('home drawing group', () => {
 		flushSync();
 
 		expect(editor.slides[0]?.elements[0]?.type).toBe('shape');
-		expect(target.querySelector('[role="menu"]')).toBeNull();
+		expect(target.querySelector<HTMLElement>('[role="menu"].popup')?.hidden).toBeTruthy();
 	});
 
 	it('needs a selection before Arrange opens', () => {
@@ -114,38 +114,60 @@ describe('home drawing group', () => {
 	});
 });
 
-describe('home paragraph dropdowns', () => {
+describe('home paragraph menus', () => {
+	type Field = HTMLElement & { value: string };
+	const field = (target: HTMLElement, id: string) =>
+		target.querySelector<Field>(`pptx-ui-select[data-ribbon-control="${id}"]`)!;
+	function choose(select: Field, value: string): void {
+		select.value = value;
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+	}
+
 	it('needs a text selection', () => {
-		const target = mountComponent(ParagraphDropdowns, makeEditor());
-		for (const button of target.querySelectorAll('button')) {
-			expect(button.disabled).toBeTruthy();
+		const target = mountComponent(ParagraphGroup, makeEditor());
+		for (const id of ['lineSpacing', 'textDirection', 'columns']) {
+			expect(field(target, `home.paragraph.${id}`).hasAttribute('disabled')).toBeTruthy();
 		}
+		expect(
+			target.querySelector<HTMLButtonElement>(
+				'[data-ribbon-control="home.paragraph.bullets"] button',
+			)?.disabled,
+		).toBeTruthy();
 	});
 
 	it('writes the chosen text direction to the element style', () => {
 		const editor = makeEditor(true);
-		const target = mountComponent(ParagraphDropdowns, editor);
+		const target = mountComponent(ParagraphGroup, editor);
 
-		target.querySelector<HTMLButtonElement>('button[aria-label="Text Direction"]')?.click();
-		flushSync();
-		byText(target, 'Rotate 270°')?.click();
+		choose(field(target, 'home.paragraph.textDirection'), 'vertical270');
 		flushSync();
 
 		const el = editor.slides[0]?.elements[0];
 		expect(el?.type === 'text' ? el.textStyle?.textDirection : '').toBe('vertical270');
 	});
 
-	it('writes the chosen column count to the element style', () => {
+	it('writes the chosen column count and line spacing to the element style', () => {
 		const editor = makeEditor(true);
-		const target = mountComponent(ParagraphDropdowns, editor);
+		const target = mountComponent(ParagraphGroup, editor);
 
-		target.querySelector<HTMLButtonElement>('button[title="Columns"]')?.click();
-		flushSync();
-		byText(target, '3 Columns')?.click();
+		choose(field(target, 'home.paragraph.columns'), '3');
+		choose(field(target, 'home.paragraph.lineSpacing'), '1.5');
 		flushSync();
 
 		const el = editor.slides[0]?.elements[0];
 		expect(el?.type === 'text' ? el.textStyle?.columnCount : 0).toBe(3);
+		expect(el?.type === 'text' ? el.textStyle?.lineSpacing : 0).toBe(1.5);
+	});
+
+	it('toggles the bullet list from the shared Bullets button and marks it pressed', () => {
+		const editor = makeEditor(true);
+		const target = mountComponent(ParagraphGroup, editor);
+		const bullets = target.querySelector<HTMLButtonElement>(
+			'[data-ribbon-control="home.paragraph.bullets"] button.b',
+		)!;
+		bullets.click();
+		flushSync();
+		expect(bullets.getAttribute('aria-pressed')).toBe('true');
 	});
 });
 

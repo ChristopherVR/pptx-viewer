@@ -213,6 +213,47 @@ export class EditorSlidesController {
 		return new Map(previews.map((preview) => [preview.path, preview]));
 	}
 
+	/**
+	 * Insert a blank slide after the current one that already points at
+	 * `layoutPath` (Home > New Slide's layout gallery), then let the handler
+	 * populate its placeholders. Returns the new index, or null when not editable.
+	 */
+	insertSlideFromLayout(layoutPath: string, layoutName?: string): number | null {
+		if (!this.#editor.editable) {
+			return null;
+		}
+		const { slides, newIndex } = insertBlankSlideAfter(
+			this.#editor.slides,
+			this.#editor.currentSlideIndex,
+		);
+		this.#editor.commitSlides(
+			slides.map((slide, i) =>
+				i === newIndex ? { ...slide, layoutPath, ...(layoutName ? { layoutName } : {}) } : slide,
+			),
+		);
+		const handler = this.#editor.getHandler();
+		const draft = this.#editor.slides[newIndex];
+		if (handler && draft) {
+			void handler
+				.applyLayoutToSlide(newIndex, layoutPath, this.#editor.slides)
+				.then(async (updated) => {
+					const templateElements = await handler.getTemplateElementsForSlide(updated.id);
+					if (this.#editor.slides[newIndex]?.id === draft.id) {
+						this.#editor.commitSlides(
+							this.#editor.slides.map((slide, i) => (i === newIndex ? updated : slide)),
+						);
+						this.#editor.templateElementsBySlideId = {
+							...this.#editor.templateElementsBySlideId,
+							[updated.id]: templateElements,
+						};
+					}
+					return undefined;
+				})
+				.catch(() => undefined);
+		}
+		return newIndex;
+	}
+
 	/** Re-map the current slide onto `layoutPath`. Returns its index, or null when not editable. */
 	async applyLayout(layoutPath: string): Promise<number | null> {
 		if (!this.#editor.editable) {

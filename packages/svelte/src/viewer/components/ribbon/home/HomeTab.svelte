@@ -9,24 +9,18 @@
 	 * Every group wrapper carries its catalogue `data-ribbon-group` id so a
 	 * host customisation can hide it (shared `ribbonCustomizationCss`).
 	 */
-	import { isActionHidden } from 'pptx-viewer-shared';
 	import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
-	import ShapeFormatGroup from '../../ShapeFormatGroup.svelte';
 	import FontFormattingGroup from './FontFormattingGroup.svelte';
-	import FontSizeSelect from './FontSizeSelect.svelte';
+	import FontPickerGroup from './FontPickerGroup.svelte';
 	import ArrangeExtras from './ArrangeExtras.svelte';
 	import ArrangeHomeStrip from './ArrangeHomeStrip.svelte';
 	import ClipboardGroup from './ClipboardGroup.svelte';
-	import CropControls from './CropControls.svelte';
 	import DrawingGroup from './DrawingGroup.svelte';
 	import EditingGroup from './EditingGroup.svelte';
-	import FontFamilySelect from './FontFamilySelect.svelte';
-	import MergeShapesButton from './MergeShapesButton.svelte';
-	import ParagraphDropdowns from './ParagraphDropdowns.svelte';
 	import ParagraphGroup from './ParagraphGroup.svelte';
 	import SlidesGroup from './SlidesGroup.svelte';
 
@@ -50,10 +44,7 @@
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<SlidesGroup {editor} onnavigate={onnavigateslide} />
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<div class="pptx-svelte-hometab-group" data-pptx-chrome="home-group" data-ribbon-group="home.font">
-		<div data-pptx-chrome="font-picker-controls"><FontFamilySelect {editor} /><FontSizeSelect {editor} /></div>
-		<span data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.font')}</span>
-	</div>
+	<FontPickerGroup {editor} />
 	<div class="pptx-svelte-hometab-group" data-pptx-chrome="home-group" data-ribbon-group="home.font">
 		<FontFormattingGroup {editor} />
 		<span data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.font')}</span>
@@ -61,7 +52,6 @@
 	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.paragraph">
 		<div class="pptx-svelte-hometab-row" data-pptx-chrome="paragraph-controls">
 			<ParagraphGroup {editor} />
-			<ParagraphDropdowns {editor} />
 		</div>
 		<span class="pptx-svelte-hometab-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.paragraph')}</span>
 	</div>
@@ -76,10 +66,7 @@
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.arrange">
 		<div class="pptx-svelte-hometab-row" data-pptx-chrome="arrange-controls">
-			<ArrangeExtras {editor} />
-			{#if !isActionHidden('mergeShapes', hiddenActions)}<MergeShapesButton {editor} />{/if}
-			{#if !isActionHidden('crop', hiddenActions)}<CropControls {editor} />{/if}
-			<ShapeFormatGroup {editor} section="width" />
+			<ArrangeExtras {editor} {hiddenActions} />
 			<ArrangeHomeStrip {editor} strip="order" /><ArrangeHomeStrip {editor} strip="edit" />
 		</div>
 		<span class="pptx-svelte-hometab-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.arrange')}</span>

@@ -1,13 +1,13 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { PptxUiSelectElement } from 'pptx-viewer-shared';
-import { createRibbonControlIcon } from 'pptx-viewer-shared';
+import { createRibbonControlIcon, registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EditorState } from '../../../editor/editor-state.svelte';
-import FontFamilySelect from './FontFamilySelect.svelte';
 import FontFormattingGroup from './FontFormattingGroup.svelte';
-import FontSizeSelect from './FontSizeSelect.svelte';
+import FontPickerGroup from './FontPickerGroup.svelte';
+
+registerPptxWebControls();
 
 const text = {
 	id: 'text',
@@ -20,7 +20,18 @@ const text = {
 	textStyle: { fontFamily: 'Calibri', fontSize: 54 },
 } as PptxElement;
 
-describe('shared font fields in Svelte', () => {
+type Field = HTMLElement & { value: string };
+
+function picker(target: HTMLElement, kind: 'family' | 'size'): Field {
+	return target.querySelector<Field>(`pptx-ui-select[data-font-picker="${kind}"]`)!;
+}
+
+function choose(select: Field, value: string): void {
+	select.value = value;
+	select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+describe('shared font controls in Svelte', () => {
 	it('joins disabled formatting actions over their shared canonical artwork', async () => {
 		const target = document.createElement('div');
 		document.body.append(target);
@@ -43,35 +54,41 @@ describe('shared font fields in Svelte', () => {
 		target.remove();
 	});
 
-	it('keeps a decimal display and converts one preset edit from points to pixels', async () => {
+	it('renders the pickers on the shared select with the group caption and hooks', async () => {
+		const target = document.createElement('div');
+		document.body.append(target);
+		const editor = { editable: true, selectedElement: text } as unknown as EditorState;
+		const instance = mount(FontPickerGroup, { target, props: { editor } });
+		flushSync();
+		expect(target.querySelectorAll('[data-ribbon-group="home.font"]')).toHaveLength(1);
+		expect(picker(target, 'family').dataset.ribbonControl).toBe('home.font.fontFamily');
+		expect(picker(target, 'size').dataset.ribbonControl).toBe('home.font.fontSize');
+		expect(picker(target, 'family').getAttribute('variant')).toBe('ribbon-font');
+		// 54px is 40.5pt: a decimal outside the presets stays displayed.
+		expect(picker(target, 'size').value).toBe('40.5');
+		await unmount(instance);
+		target.remove();
+	});
+
+	it('converts one preset size edit from points to pixels', async () => {
 		const patchSelected = vi.fn();
 		const target = document.createElement('div');
 		document.body.append(target);
-		const instance = mount(FontSizeSelect, {
+		const instance = mount(FontPickerGroup, {
 			target,
 			props: {
 				editor: { editable: true, selectedElement: text, patchSelected } as unknown as EditorState,
 			},
 		});
 		flushSync();
-		const select = target.querySelector<PptxUiSelectElement>('pptx-ui-select')!;
-		expect(select.shadowRoot!.querySelector('[part="value"]')?.textContent).toBe('40.5');
-		select.shadowRoot!.querySelector<HTMLButtonElement>('button')!.click();
-		const index = select.options.findIndex((option) => option.value === '24');
-		select.shadowRoot!.querySelector<HTMLElement>(`[data-index="${index}"]`)!.click();
+		choose(picker(target, 'size'), '24');
 		expect(patchSelected).toHaveBeenCalledOnce();
 		expect(patchSelected.mock.calls[0][0](text).textStyle.fontSize).toBe(32);
-		patchSelected.mockClear();
-		const custom = select.querySelector('input')!;
-		custom.value = '48.1';
-		custom.dispatchEvent(new Event('change', { bubbles: true }));
-		expect(patchSelected).toHaveBeenCalledOnce();
-		expect(patchSelected.mock.calls[0][0](text).textStyle.fontSize).toBeCloseTo((48.1 * 96) / 72);
 		await unmount(instance);
 		target.remove();
 	});
 
-	it('forwards a font-family menu choice once with theme metadata preserved', async () => {
+	it('forwards a font-family choice once with theme metadata preserved', async () => {
 		const patchSelected = vi.fn();
 		const target = document.createElement('div');
 		document.body.append(target);
@@ -81,14 +98,25 @@ describe('shared font fields in Svelte', () => {
 			patchSelected,
 			theme: { fontScheme: { minorFont: { latin: 'Calibri' } } },
 		} as unknown as EditorState;
-		const instance = mount(FontFamilySelect, { target, props: { editor } });
+		const instance = mount(FontPickerGroup, { target, props: { editor } });
 		flushSync();
-		const select = target.querySelector<PptxUiSelectElement>('pptx-ui-select')!;
-		select.shadowRoot!.querySelector<HTMLButtonElement>('button')!.click();
-		const index = select.options.findIndex((option) => option.value === 'Arial');
-		select.shadowRoot!.querySelector<HTMLElement>(`[data-index="${index}"]`)!.click();
+		const groups = picker(target, 'family').querySelectorAll('optgroup');
+		expect(groups[0].label).toBe('Theme fonts');
+		choose(picker(target, 'family'), 'Arial');
 		expect(patchSelected).toHaveBeenCalledOnce();
 		expect(patchSelected.mock.calls[0][0](text).textStyle.fontFamily).toBe('Arial');
+		await unmount(instance);
+		target.remove();
+	});
+
+	it('disables both pickers without a text selection', async () => {
+		const target = document.createElement('div');
+		document.body.append(target);
+		const editor = { editable: true, selectedElement: undefined } as unknown as EditorState;
+		const instance = mount(FontPickerGroup, { target, props: { editor } });
+		flushSync();
+		expect(picker(target, 'family').hasAttribute('disabled')).toBeTruthy();
+		expect(picker(target, 'size').hasAttribute('disabled')).toBeTruthy();
 		await unmount(instance);
 		target.remove();
 	});

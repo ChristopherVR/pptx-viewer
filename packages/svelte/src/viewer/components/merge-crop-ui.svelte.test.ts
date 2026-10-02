@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import type { Component } from 'svelte';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -6,14 +7,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { FindReplaceState } from '../editor/editor-find-replace.svelte';
 import { EditorState } from '../editor/editor-state.svelte';
 import CropOverlay from './CropOverlay.svelte';
-import CropControls from './ribbon/home/CropControls.svelte';
+import ArrangeExtras from './ribbon/home/ArrangeExtras.svelte';
 import HomeTab from './ribbon/home/HomeTab.svelte';
-import MergeShapesButton from './ribbon/home/MergeShapesButton.svelte';
 
 /**
  * The Merge Shapes and Crop ribbon controls and the on-canvas crop overlay,
  * mounted against a real `EditorState`.
  */
+
+registerPptxWebControls();
 
 let cleanups: Array<() => void> = [];
 
@@ -83,7 +85,7 @@ describe('merge shapes ribbon button', () => {
 	it('is disabled with the hint until two mergeable shapes are selected', () => {
 		const editor = makeEditor([RECT, ELLIPSE]);
 		editor.selection.set('a');
-		const target = render(MergeShapesButton, { editor });
+		const target = render(ArrangeExtras, { editor });
 
 		const button = control(target, 'merge-shapes');
 		expect(button.disabled).toBeTruthy();
@@ -98,7 +100,7 @@ describe('merge shapes ribbon button', () => {
 	it('lists five operations and replaces the two shapes with one custom shape', () => {
 		const editor = makeEditor([RECT, ELLIPSE]);
 		editor.selection.setAll(['a', 'b']);
-		const target = render(MergeShapesButton, { editor });
+		const target = render(ArrangeExtras, { editor });
 
 		control(target, 'merge-shapes').click();
 		flushSync();
@@ -123,7 +125,7 @@ describe('crop ribbon controls', () => {
 	it('toggles crop mode on a selected picture and is disabled for a shape', () => {
 		const editor = makeEditor([PICTURE, RECT]);
 		editor.selection.set('a');
-		const target = render(CropControls, { editor });
+		const target = render(ArrangeExtras, { editor });
 		const crop = control(target, 'crop');
 		expect(crop.disabled).toBeTruthy();
 		expect(crop.title).toBe('Select a picture to crop it');
@@ -139,7 +141,7 @@ describe('crop ribbon controls', () => {
 	it('applies a 1:1 aspect preset as one undoable update', () => {
 		const editor = makeEditor([PICTURE]);
 		editor.selection.set('pic');
-		const target = render(CropControls, { editor });
+		const target = render(ArrangeExtras, { editor });
 
 		control(target, 'crop-menu').click();
 		flushSync();
@@ -220,8 +222,10 @@ describe('home tab customisation', () => {
 	it('drops both controls when the host hides them', () => {
 		const target = mountHome(['mergeShapes', 'crop']);
 
-		expect(target.querySelector('[data-pptx-ribbon-control="merge-shapes"]')).toBeNull();
-		expect(target.querySelector('[data-pptx-ribbon-control="crop"]')).toBeNull();
-		expect(target.querySelector('[data-pptx-ribbon-control="crop-menu"]')).toBeNull();
+		// The shared strip keeps the controls in the DOM but hides them.
+		for (const id of ['merge-shapes', 'crop', 'crop-menu']) {
+			const node = target.querySelector<HTMLElement>(`[data-pptx-ribbon-control="${id}"]`)!;
+			expect(node.hidden || node.closest<HTMLElement>('.slot')?.hidden).toBeTruthy();
+		}
 	});
 });

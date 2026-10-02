@@ -1,24 +1,29 @@
 <script lang="ts">
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { fontHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
+	import { fontHomeControls, homeSnapshotTranslator, textColorOf } from 'pptx-viewer-shared';
 	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import {
 		adjustFontSizePatch,
+		changeCasePatch,
 		clearFormattingPatch,
 		hasTextShadow,
+		highlightColorOf,
+		setCharacterSpacingPatch,
+		setHighlightColorPatch,
+		setTextColorPatch,
 		toggleStrikethroughPatch,
 		toggleTextFlagPatch,
 		toggleTextShadowPatch,
 	} from '../../../editor';
-	import FontExtrasGroup from './FontExtrasGroup.svelte';
+	import { transformInlineListCase } from 'pptx-viewer-shared';
 
 	/**
-	 * The Home Font group's character strip (toggles, Text Shadow, size steps,
-	 * Clear Formatting) is the shared `pptx-ui-ribbon-home-font` element; every
-	 * edit still goes through `EditorState.patchSelected`. The family, case,
-	 * spacing and colour controls stay native beside it.
+	 * The whole Home Font strip is the shared `pptx-ui-ribbon-home-font` element:
+	 * character toggles, Text Shadow, size steps, Clear Formatting, Character
+	 * Spacing, Change Case and the font and highlight colour popovers. Every
+	 * edit still goes through `EditorState.patchSelected`.
 	 */
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
@@ -34,18 +39,31 @@
 			underline: Boolean(style?.underline),
 			strikethrough: Boolean(style?.strikethrough),
 			shadow: hasTextShadow(element),
+			characterSpacing: style?.characterSpacing,
+			fontColor: {
+				value: element ? textColorOf(element) : '#000000',
+				ref: style?.colorRef,
+				themeColors: editor.themeColorMap,
+				recent: editor.mruColors,
+			},
+			highlight: {
+				value: (element ? highlightColorOf(element) : '') || '#ffff00',
+				recent: editor.mruColors,
+			},
 		}),
 		translate: homeSnapshotTranslator(['font'], t),
 	});
 
 	function request(event: RibbonHomeRequestEvent): void {
-		const id = event.detail.id.replace('home.font.', '');
-		switch (id) {
+		const { id, value, ref } = event.detail;
+		switch (id.replace('home.font.', '')) {
 			case 'bold':
 			case 'italic':
-			case 'underline':
-				editor.patchSelected((current) => toggleTextFlagPatch(current, id));
+			case 'underline': {
+				const flag = id.replace('home.font.', '') as 'bold' | 'italic' | 'underline';
+				editor.patchSelected((current) => toggleTextFlagPatch(current, flag));
 				break;
+			}
 			case 'strikethrough':
 				editor.patchSelected((current) => toggleStrikethroughPatch(current));
 				break;
@@ -60,11 +78,30 @@
 				break;
 			case 'clearFormatting':
 				editor.patchSelected((current) => clearFormattingPatch(current));
+				break;
+			case 'characterSpacing':
+				editor.patchSelected((current) => setCharacterSpacingPatch(current, Number(value)));
+				break;
+			case 'changeCase': {
+				const mode = value as Parameters<typeof changeCasePatch>[1];
+				editor.patchSelected((current, snapshot) => {
+					if (!snapshot) return changeCasePatch(current, mode);
+					const { text, textSegments } = transformInlineListCase(snapshot, null, mode);
+					return { text, textSegments };
+				});
+				break;
+			}
+			case 'fontColor':
+				editor.patchSelected((current) => setTextColorPatch(current, String(value), ref));
+				editor.recordRecentColor(String(value));
+				break;
+			case 'highlightColor':
+				editor.patchSelected((current) => setHighlightColorPatch(current, String(value)));
+				editor.recordRecentColor(String(value));
 		}
 	}
 </script>
 
 <div data-pptx-chrome="font-controls">
 	<pptx-ui-ribbon-home-font {state} onhome-request={request}></pptx-ui-ribbon-home-font>
-	<FontExtrasGroup {editor} showFamily={false} />
 </div>

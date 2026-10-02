@@ -77,7 +77,7 @@ describe('shared Slides group', () => {
 		}
 	});
 
-	it('inserts a slide and opens the New Slide caret menu natively', () => {
+	it('inserts a slide and opens the shared layout gallery from the New Slide caret', () => {
 		const editor = makeEditor();
 		const navigated: number[] = [];
 		const target = render(SlidesGroup, { editor, onnavigate: (i: number) => navigated.push(i) });
@@ -87,7 +87,7 @@ describe('shared Slides group', () => {
 		expect(navigated).toHaveLength(1);
 		target.querySelector<HTMLButtonElement>('[data-pptx-chrome="split-caret"]')?.click();
 		flushSync();
-		expect(target.querySelector('[role="menu"]')).not.toBeNull();
+		expect(target.querySelector('[data-testid="layout-gallery-menu"]')).not.toBeNull();
 		expect(
 			target.querySelector('[data-pptx-chrome="split-caret"]')?.getAttribute('aria-expanded'),
 		).toBe('true');
@@ -95,7 +95,7 @@ describe('shared Slides group', () => {
 });
 
 describe('shared Drawing triggers', () => {
-	it('keeps Shape Fill and Outline gated on a selected shape and opens the native popover', () => {
+	it('keeps Shape Fill and Outline gated on a selected shape and opens the shared popover', () => {
 		const none = render(DrawingGroup, { editor: makeEditor() });
 		expect(buttonOf(none, 'home.drawing.shapes').disabled).toBeFalsy();
 		expect(buttonOf(none, 'home.drawing.shapeFill').disabled).toBeTruthy();
@@ -105,10 +105,11 @@ describe('shared Drawing triggers', () => {
 		expect(buttonOf(target, 'home.drawing.shapeFill').disabled).toBeFalsy();
 		buttonOf(target, 'home.drawing.shapeFill').click();
 		flushSync();
-		expect(target.querySelector('[role="menu"]')).not.toBeNull();
-		target.querySelector<HTMLButtonElement>('.pptx-svelte-swatch-cell')?.click();
+		const popup = target.querySelector<HTMLElement>('[role="dialog"].popup')!;
+		expect(popup.hidden).toBeFalsy();
+		target.querySelector<HTMLButtonElement>('.std-grid button.sw')?.click();
 		flushSync();
-		expect(target.querySelector('[role="menu"]')).toBeNull();
+		expect(popup.hidden).toBeTruthy();
 	});
 });
 

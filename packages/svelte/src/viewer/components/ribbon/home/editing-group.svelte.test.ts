@@ -1,3 +1,4 @@
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -11,6 +12,8 @@ import EditingGroup from './EditingGroup.svelte';
  * binding shipped no command called "Select All" and the cross-binding effects
  * spec had to skip it. It is now a trigger plus a menu, as in the other four.
  */
+
+registerPptxWebControls();
 
 let cleanup: (() => void) | undefined;
 
@@ -85,7 +88,7 @@ describe('editingGroup', () => {
 
 		expect([...editor.selection.ids]).toStrictEqual(['a', 'b']);
 		// The menu closes behind the command, like every other ribbon menu.
-		expect(byText(target, 'Select All')).toBeUndefined();
+		expect(target.querySelector('[role="menu"]')?.hasAttribute('hidden')).toBeTruthy();
 	});
 
 	it('toggles the docked find panel from Find and Replace and reflects it as pressed', () => {
