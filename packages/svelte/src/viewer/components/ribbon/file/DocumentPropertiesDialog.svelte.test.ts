@@ -3,6 +3,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
+import { allButtons } from '../../dialog-footer.test-support';
 import DocumentPropertiesDialog from './DocumentPropertiesDialog.svelte';
 
 let cleanup: (() => void) | undefined;
@@ -42,7 +43,7 @@ describe('document properties dialog', () => {
 		flushSync();
 		expect(target.textContent).toContain('1');
 
-		const save = [...target.querySelectorAll('footer button')].find((button) =>
+		const save = allButtons(target.querySelector('footer')!).find((button) =>
 			button.textContent?.includes('Save'),
 		)! as HTMLButtonElement;
 		save.click();

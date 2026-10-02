@@ -4,6 +4,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
+import { allButtons } from '../../dialog-footer.test-support';
 import EquationEditorDialog from './EquationEditorDialog.svelte';
 
 /**
@@ -65,7 +66,7 @@ function typeLatex(target: HTMLElement, latex: string): void {
 }
 
 function footerButtons(target: HTMLElement): HTMLButtonElement[] {
-	return [...target.querySelectorAll<HTMLButtonElement>('footer button')];
+	return allButtons(target.querySelector('footer')!);
 }
 
 describe('equationEditorDialog', () => {

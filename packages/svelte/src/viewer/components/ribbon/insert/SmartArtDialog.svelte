@@ -5,6 +5,7 @@
 	 * footer. Escape and the backdrop dismiss it; Insert hands the chosen
 	 * preset's layout plus its default items back to the caller.
 	 */
+	import DialogFooter from '../../DialogFooter.svelte';
 	import type { SmartArtLayout } from 'pptx-viewer-core';
 	import { PRESETS } from 'pptx-viewer-shared';
 	import type { SmartArtCategory, SmartArtPreset } from 'pptx-viewer-shared';
@@ -82,12 +83,7 @@
 			onselect={selectPreset}
 		/>
 
-		<footer>
-			<button type="button" class="secondary" onclick={oncancel}>{t('pptx.smartart.cancel')}</button>
-			<button type="button" class="primary" disabled={!selectedLayout} onclick={insert}>
-				{t('pptx.smartart.insert')}
-			</button>
-		</footer>
+		<footer><DialogFooter actions={[{ id: 'cancel', label: t('pptx.smartart.cancel') }, { id: 'insert', label: t('pptx.smartart.insert'), variant: 'primary', disabled: !selectedLayout }]} onaction={(id) => (id === 'insert' ? insert() : oncancel())} /></footer>
 	</div>
 </div>
 
@@ -158,9 +154,6 @@
 	}
 
 	.pptx-svelte-smartart-close:hover,
-	.secondary:hover {
-		background: var(--pptx-accent, #33334d);
-	}
 
 	.pptx-svelte-smartart-close svg {
 		width: 16px;
@@ -176,30 +169,9 @@
 		border-top: 1px solid var(--pptx-border, #33334d);
 	}
 
-	footer button {
-		padding: 7px 12px;
-		color: inherit;
-		cursor: pointer;
-		font-size: 12px;
-	}
+	
 
-	.secondary {
-		background: var(--pptx-muted, #2a2a3d);
-	}
-
-	.primary {
-		background: var(--pptx-primary, #6366f1);
-		color: white;
-	}
-
-	.primary:hover:not(:disabled) {
-		filter: brightness(1.12);
-	}
-
-	.primary:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
+	
 
 	@media (max-width: 640px) {
 		.pptx-svelte-smartart-dialog-host {

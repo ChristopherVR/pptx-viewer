@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DialogFooter from '../../DialogFooter.svelte';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import X from '@lucide/svelte/icons/x';
 	import type { PptxAppProperties, PptxCoreProperties, PptxCustomProperty } from 'pptx-viewer-core';
@@ -91,7 +92,7 @@
 				</div>
 			{/if}
 		</div>
-		<footer><button type="button" onclick={onclose}>{t('pptx.common.cancel')}</button><button type="button" class="primary" onclick={save} disabled={!editor.editable}>{t('pptx.common.save')}</button></footer>
+		<footer><DialogFooter actions={[{ id: 'cancel', label: t('pptx.common.cancel') }, { id: 'save', label: t('pptx.common.save'), variant: 'primary', disabled: !editor.editable }]} onaction={(id) => (id === 'save' ? save() : onclose())} /></footer>
 	</div>
 </div>
 
@@ -107,6 +108,5 @@
 	.grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; } label { display:grid; gap:4px; font-size:11px; color:var(--pptx-muted-foreground,#94a3b8); } label input { color:var(--pptx-foreground,#e2e8f0); }
 	dl { display:grid; grid-template-columns:1fr auto; gap:8px 24px; margin:0; } dt { color:var(--pptx-muted-foreground,#94a3b8); } dd { margin:0; }
 	.custom-list { display:grid; gap:8px; } .custom-row { display:grid; grid-template-columns:1fr 1fr 120px 34px; gap:6px; }
-	footer { justify-content:flex-end; gap:8px; border-top:1px solid var(--pptx-border,#3f3f52); border-bottom:0; } footer .primary { background:var(--pptx-primary,#c43b32); color:#fff; }
-	@media (max-width:600px) { .grid { grid-template-columns:1fr; } .custom-row { grid-template-columns:1fr; } }
+	footer { justify-content:flex-end; gap:8px; border-top:1px solid var(--pptx-border,#3f3f52); border-bottom:0; } 	@media (max-width:600px) { .grid { grid-template-columns:1fr; } .custom-row { grid-template-columns:1fr; } }
 </style>

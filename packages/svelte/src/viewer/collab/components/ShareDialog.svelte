@@ -6,6 +6,7 @@
 	 * active view (status, share link, connected-users list) mirrors React's
 	 * `ShareDialogActiveView.tsx`, built on shared's `buildActiveSessionUsers`.
 	 */
+	import DialogFooter from '../../components/DialogFooter.svelte';
 	import { buildActiveSessionUsers, buildCollaborationShareUrl, resolveTransportForServerUrl } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
@@ -258,19 +259,10 @@
 		</div>
 	{/if}
 	{#snippet footer()}
-			<button type="button" class="pptx-svelte-share-btn" onclick={onclose}>
-				{active ? t('pptx.share.close') : t('pptx.share.cancel')}
-			</button>
-			{#if !active}
-				<button
-					type="button"
-					class="pptx-svelte-share-btn pptx-svelte-share-btn-primary"
-					disabled={isJoinMode ? !canJoin : !canStart}
-					onclick={handleStart}
-				>
-					{t(isJoinMode ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
-				</button>
-			{/if}
+		<DialogFooter actions={[
+			{ id: 'cancel', label: active ? t('pptx.share.close') : t('pptx.share.cancel') },
+			...(active ? [] : [{ id: 'start', label: t(isJoinMode ? 'pptx.share.joinSession' : 'pptx.share.startSharing'), variant: 'primary' as const, disabled: isJoinMode ? !canJoin : !canStart }]),
+		]} onaction={(id) => (id === 'start' ? handleStart() : onclose())} />
 	{/snippet}
 </ModalDialog>
 
@@ -501,20 +493,7 @@
 		background: var(--pptx-accent, #33334d);
 	}
 
-	.pptx-svelte-share-btn-primary {
-		background: var(--pptx-primary, #6366f1);
-		color: #fff;
-	}
-
-	.pptx-svelte-share-btn-primary:hover {
-		background: var(--pptx-primary, #6366f1);
-		opacity: 0.9;
-	}
-
-	.pptx-svelte-share-btn-primary:disabled {
-		cursor: not-allowed;
-		opacity: 0.4;
-	}
+	
 
 	/*
 	 * Touch target below the dense-panel breakpoint (`getDensePanelTouchTargetPx`

@@ -9,6 +9,7 @@
 	 * framework-agnostic `pptx-viewer-shared` broadcast helpers directly (no
 	 * local reimplementation).
 	 */
+	import DialogFooter from '../../components/DialogFooter.svelte';
 	import {
 		canUseClipboard,
 		DEFAULT_BROADCAST_SERVER_URL,
@@ -130,19 +131,10 @@
 		</div>
 	{/if}
 	{#snippet footer()}
-		<button type="button" class="pptx-svelte-broadcast-btn" onclick={onclose}>
-			{t('pptx.common.close')}
-		</button>
-		{#if !active}
-			<button
-				type="button"
-				class="pptx-svelte-broadcast-btn pptx-svelte-broadcast-btn-primary"
-				disabled={!canStart}
-				onclick={handleStart}
-			>
-				{t('pptx.broadcast.startBroadcast')}
-			</button>
-		{/if}
+		<DialogFooter actions={[
+			{ id: 'close', label: t('pptx.common.close') },
+			...(active ? [] : [{ id: 'start', label: t('pptx.broadcast.startBroadcast'), variant: 'primary' as const, disabled: !canStart }]),
+		]} onaction={(id) => (id === 'start' ? handleStart() : onclose())} />
 	{/snippet}
 </ModalDialog>
 
@@ -243,15 +235,4 @@
 		cursor: not-allowed;
 		opacity: 0.4;
 	}
-
-	.pptx-svelte-broadcast-btn-primary {
-		border: none;
-		background: var(--pptx-primary, #6366f1);
-		color: #fff;
-	}
-
-	.pptx-svelte-broadcast-btn-primary:hover:not(:disabled) {
-		background: var(--pptx-primary, #6366f1);
-		opacity: 0.9;
-	}
-</style>
+	</style>

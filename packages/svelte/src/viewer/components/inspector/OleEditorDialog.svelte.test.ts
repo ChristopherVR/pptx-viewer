@@ -5,6 +5,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { EditorState } from '../../editor/editor-state.svelte';
+import { allButtons } from '../dialog-footer.test-support';
 import OleEditorDialog from './OleEditorDialog.svelte';
 
 /**
@@ -248,9 +249,7 @@ describe('oleEditorDialog', () => {
 		};
 		const target = mountDialog(createEditor(), element, true, () => {});
 		await flush();
-		const button = Array.from(target.querySelectorAll('button')).find(
-			(b) => b.textContent?.trim() === 'Replace File...',
-		);
+		const button = allButtons(target).find((b) => b.textContent?.trim() === 'Replace File...');
 		expect(button).toBeDefined();
 	});
 });

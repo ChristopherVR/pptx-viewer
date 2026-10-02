@@ -11,6 +11,7 @@
 	 * edit mode (an `editor.equationOps.editingId` is set) seeds the textarea
 	 * from the existing OMML and applies the replacement in place.
 	 */
+	import DialogFooter from '../../DialogFooter.svelte';
 	import { compileLatexEquation, convertOmmlToLatex } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
@@ -128,17 +129,7 @@
 
 			<EquationTemplateGallery activeLatex={latex} onselect={(next) => (latex = next)} />
 
-			<footer>
-				<button type="button" onclick={onclose}>{t('pptx.equation.cancel')}</button>
-				<button
-					type="button"
-					class="primary"
-					disabled={!editor.editable || !hasContent}
-					onclick={insert}
-				>
-					{t(isEditing ? 'pptx.equation.update' : 'pptx.equation.insert')}
-				</button>
-			</footer>
+			<footer><DialogFooter actions={[{ id: 'cancel', label: t('pptx.equation.cancel') }, { id: 'insert', label: t(isEditing ? 'pptx.equation.update' : 'pptx.equation.insert'), variant: 'primary', disabled: !editor.editable || !hasContent }]} onaction={(id) => (id === 'insert' ? insert() : onclose())} /></footer>
 		</section>
 	</div>
 {/if}
@@ -253,38 +244,6 @@
 		justify-content: flex-end;
 		gap: 7px;
 	}
+	
 
-	footer button {
-		height: 28px;
-		padding: 0 12px;
-		border: 1px solid var(--pptx-border, #3f3f52);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-		font: inherit;
-		font-size: 12px;
-	}
-
-	footer button:hover:not(:disabled) {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	footer button:disabled {
-		opacity: 0.35;
-		cursor: default;
-	}
-
-	.primary {
-		border-color: transparent;
-		background: var(--pptx-primary, #c43b32);
-		color: #fff;
-	}
-
-	.primary:hover:not(:disabled) {
-		background: var(--pptx-primary, #c43b32);
-		color: #fff;
-		filter: brightness(1.1);
-	}
-</style>
+	</style>

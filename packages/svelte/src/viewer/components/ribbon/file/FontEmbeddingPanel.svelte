@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DialogFooter from '../../DialogFooter.svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import Type from '@lucide/svelte/icons/type';
 	import X from '@lucide/svelte/icons/x';
@@ -79,7 +80,7 @@
 			{/if}
 			{#if !scanning && missingCount > 0}<p class="warning">{t('pptx.fonts.missingWarning', { count: missingCount })}</p>{/if}
 		</div>
-		<footer><button type="button" onclick={onclose}>{t('pptx.common.done')}</button></footer>
+		<footer><DialogFooter actions={[{ id: 'done', label: t('pptx.common.done'), variant: 'primary' }]} onaction={onclose} /></footer>
 	</div>
 </div>
 

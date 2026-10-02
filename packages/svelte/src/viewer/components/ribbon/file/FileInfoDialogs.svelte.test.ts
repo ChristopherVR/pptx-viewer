@@ -1,6 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { footerAction } from '../../dialog-footer.test-support';
 import DigitalSignaturesDialog from './DigitalSignaturesDialog.svelte';
 import PasswordProtectionDialog from './PasswordProtectionDialog.svelte';
 
@@ -32,7 +33,7 @@ describe('file info dialogs', () => {
 		inputs[1].value = 'Safe123!';
 		inputs[1].dispatchEvent(new Event('input', { bubbles: true }));
 		flushSync();
-		(target.querySelector('button.primary') as HTMLButtonElement).click();
+		footerAction(target, 'submit')!.click();
 		expect(onset).toHaveBeenCalledWith('Safe123!');
 	});
 });

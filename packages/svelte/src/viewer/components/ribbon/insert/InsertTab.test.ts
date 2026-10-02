@@ -4,6 +4,7 @@ import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
+import { allButtons } from '../../dialog-footer.test-support';
 import InsertTab from './InsertTab.svelte';
 
 /**
@@ -149,7 +150,7 @@ describe('insertTab', () => {
 		expect(dialog?.getAttribute('aria-label')).toBe('Insert SmartArt');
 		dialog!.querySelector<HTMLButtonElement>('[role="option"]')!.click();
 		flushSync();
-		[...dialog!.querySelectorAll<HTMLButtonElement>('button')]
+		allButtons(dialog!)
 			.find((button) => button.textContent?.trim() === 'Insert')!
 			.click();
 		flushSync();
@@ -163,7 +164,7 @@ describe('insertTab', () => {
 		const target = mountTab(editor);
 		control(target, 'insert.illustrations.smartArt').click();
 		flushSync();
-		[...document.body.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+		allButtons(document.body.querySelector('[role="dialog"]')!)
 			.find((button) => button.textContent?.trim() === 'Cancel')!
 			.click();
 		flushSync();

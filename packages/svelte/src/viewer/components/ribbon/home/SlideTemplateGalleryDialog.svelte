@@ -6,6 +6,7 @@
 	 * grid of live previews: single click selects, double click or the Insert
 	 * button inserts, Escape / backdrop / Cancel dismiss.
 	 */
+	import DialogFooter from '../../DialogFooter.svelte';
 	import { SLIDE_TEMPLATES } from 'pptx-viewer-shared';
 	import type { SlideTemplateId } from 'pptx-viewer-shared';
 	import { onMount } from 'svelte';
@@ -103,14 +104,7 @@
 			</div>
 		</div>
 
-		<footer>
-			<button type="button" class="secondary" onclick={oncancel}>
-				{t('pptx.slideTemplates.cancel')}
-			</button>
-			<button type="button" class="primary" disabled={!selected} onclick={insert}>
-				{t('pptx.slideTemplates.insert')}
-			</button>
-		</footer>
+		<footer><DialogFooter actions={[{ id: 'cancel', label: t('pptx.slideTemplates.cancel') }, { id: 'insert', label: t('pptx.slideTemplates.insert'), variant: 'primary', disabled: !selected }]} onaction={(id) => (id === 'insert' ? insert() : oncancel())} /></footer>
 	</div>
 </div>
 
@@ -193,9 +187,6 @@
 	}
 
 	.pptx-svelte-slide-templates-close:hover,
-	.secondary:hover {
-		background: var(--pptx-accent, #33334d);
-	}
 
 	.pptx-svelte-slide-templates-close svg {
 		width: 16px;
@@ -248,30 +239,9 @@
 		border-top: 1px solid var(--pptx-border, #33334d);
 	}
 
-	footer button {
-		padding: 7px 12px;
-		color: inherit;
-		cursor: pointer;
-		font-size: 12px;
-	}
+	
 
-	.secondary {
-		background: var(--pptx-muted, #2a2a3d);
-	}
-
-	.primary {
-		background: var(--pptx-primary, #6366f1);
-		color: white;
-	}
-
-	.primary:hover:not(:disabled) {
-		filter: brightness(1.12);
-	}
-
-	.primary:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
+	
 
 	@media (max-width: 640px) {
 		.pptx-svelte-slide-templates-host {

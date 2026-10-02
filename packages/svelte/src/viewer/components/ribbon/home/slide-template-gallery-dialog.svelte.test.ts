@@ -1,6 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { allButtons } from '../../dialog-footer.test-support';
 import SlideTemplateGalleryDialog from './SlideTemplateGalleryDialog.svelte';
 
 /**
@@ -52,9 +53,9 @@ describe('slideTemplateGalleryDialog', () => {
 
 	it('disables Insert until a tile is selected, then inserts the selection', () => {
 		const { target, oninsert } = mountDialog();
-		const insertButton = Array.from(
-			target.querySelectorAll<HTMLButtonElement>('footer button'),
-		).find((button) => button.textContent?.trim() === 'Insert')!;
+		const insertButton = allButtons(target.querySelector('footer')!).find(
+			(button) => button.textContent?.trim() === 'Insert',
+		)!;
 		expect(insertButton.disabled).toBeTruthy();
 		const tile = target.querySelectorAll<HTMLButtonElement>('[role="option"]')[2];
 		tile.click();

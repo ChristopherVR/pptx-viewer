@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DialogFooter from '../../DialogFooter.svelte';
 	import BadgeCheck from '@lucide/svelte/icons/badge-check';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Info from '@lucide/svelte/icons/info';
@@ -22,7 +23,7 @@
 				<div class="notice"><b><Info size={14} aria-hidden="true" /></b><p>{t('pptx.digitalSignatures.noSignatures')}</p></div>
 			{/if}
 		</div>
-		<footer><button type="button" onclick={onclose}>{t('pptx.common.close')}</button></footer>
+		<footer><DialogFooter actions={[{ id: 'close', label: t('pptx.common.close') }]} onaction={onclose} /></footer>
 	</div>
 </div>
 

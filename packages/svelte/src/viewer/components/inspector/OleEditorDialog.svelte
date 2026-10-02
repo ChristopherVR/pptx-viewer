@@ -16,6 +16,7 @@
 	 * `editor.applyElementPatch` path every other inspector field uses, so
 	 * undo/history/collaboration sync works exactly like a typed-field edit.
 	 */
+	import DialogFooter from '../DialogFooter.svelte';
 	import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 	import { replaceOleFile } from 'pptx-viewer-core';
 	import { buildOleContentUpdatePatch, buildOleEditDialogDescriptor } from 'pptx-viewer-shared';
@@ -126,13 +127,7 @@
 
 			<footer>
 				<input bind:this={fileInputEl} type="file" class="hidden-file-input" onchange={onFileChange} />
-				<button type="button" class="replace" onclick={() => fileInputEl?.click()}>
-					{t('pptx.ole.editDialog.replaceFile')}
-				</button>
-				<button type="button" class="primary" onclick={onclose}>
-					{t('pptx.ole.editDialog.save')}
-				</button>
-			</footer>
+				<DialogFooter actions={[{ id: 'replace', label: t('pptx.ole.editDialog.replaceFile'), align: 'start' }, { id: 'save', label: t('pptx.ole.editDialog.save'), variant: 'primary' }]} onaction={(id) => (id === 'replace' ? fileInputEl?.click() : onclose())} /></footer>
 		</section>
 	</div>
 {/if}
@@ -216,33 +211,4 @@
 		justify-content: space-between;
 		gap: 8px;
 	}
-
-	footer button {
-		height: 28px;
-		padding: 0 12px;
-		border: 1px solid var(--pptx-border, #3f3f52);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-		font: inherit;
-		font-size: 12px;
-	}
-
-	footer button:hover {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.primary {
-		border-color: transparent;
-		background: var(--pptx-primary, #c43b32);
-		color: #fff;
-	}
-
-	.primary:hover {
-		background: var(--pptx-primary, #c43b32);
-		color: #fff;
-		filter: brightness(1.1);
-	}
-</style>
+	</style>

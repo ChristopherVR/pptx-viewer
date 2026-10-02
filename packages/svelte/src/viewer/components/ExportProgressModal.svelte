@@ -10,6 +10,7 @@
 	 * Cancel. `oncancel` aborts cooperatively (the export loops check the
 	 * signal between slides).
 	 */
+	import DialogFooter from './DialogFooter.svelte';
 	import { clampPercent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -45,7 +46,7 @@
 				<span class="pptx-svelte-export-progress-pct">{clamped}%</span>
 			</div>
 			<div class="pptx-svelte-export-progress-actions">
-				<button type="button" onclick={() => oncancel()}>{t('pptx.export.cancel')}</button>
+				<DialogFooter actions={[{ id: 'cancel', label: t('pptx.export.cancel') }]} onaction={(id) => oncancel()} />
 			</div>
 		</div>
 	</div>
@@ -113,20 +114,4 @@
 		display: flex;
 		justify-content: flex-end;
 	}
-
-	.pptx-svelte-export-progress-actions button {
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #1f2937);
-		color: var(--pptx-foreground, #f3f4f6);
-		padding: 6px 16px;
-		font-size: 12px;
-		font-family: inherit;
-		cursor: pointer;
-		transition: background 0.15s;
-	}
-
-	.pptx-svelte-export-progress-actions button:hover {
-		background: var(--pptx-accent, #33334d);
-	}
-</style>
+	</style>

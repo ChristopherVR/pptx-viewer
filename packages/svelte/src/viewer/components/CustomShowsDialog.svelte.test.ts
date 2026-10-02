@@ -11,6 +11,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import CustomShowsDialog from './CustomShowsDialog.svelte';
+import { allButtons } from './dialog-footer.test-support';
 
 let cleanup: (() => void) | undefined;
 
@@ -92,11 +93,11 @@ describe('customShowsDialog active-show picker', () => {
 		select.value = 'show-1';
 		select.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
-		[...target.querySelectorAll<HTMLButtonElement>('button')]
+		allButtons(target)
 			.find((button) => button.textContent === 'Delete')!
 			.click();
 		flushSync();
-		[...target.querySelectorAll<HTMLButtonElement>('button')]
+		allButtons(target)
 			.find((button) => button.textContent === 'Save')!
 			.click();
 		flushSync();

@@ -2,6 +2,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
+import { allButtons, footerAction } from '../../dialog-footer.test-support';
 import HyperlinkDialog from './HyperlinkDialog.svelte';
 
 /**
@@ -57,7 +58,7 @@ function fillAndSave(target: HTMLElement, url: string): void {
 	// `okButton` is read after typing into `urlInput` and flushing, so this
 	// declaration can't merge with the one above without reordering the setup.
 	// eslint-disable-next-line one-var
-	const okButton = [...target.querySelectorAll<HTMLButtonElement>('footer button')].at(-1);
+	const okButton = allButtons(target.querySelector('footer')!).at(-1);
 	okButton?.click();
 	flushSync();
 }
@@ -108,7 +109,7 @@ describe('hyperlinkDialog', () => {
 		// declaration can't merge with the one above.
 		// eslint-disable-next-line one-var
 		const target = mountDialog(editor, vi.fn()),
-			removeButton = target.querySelector<HTMLButtonElement>('.remove');
+			removeButton = footerAction(target, 'remove');
 
 		expect(removeButton).not.toBeNull();
 		removeButton?.click();
