@@ -27,6 +27,8 @@ declare module 'react' {
 			'pptx-ui-mobile-bar': WebControlProps;
 			'pptx-ui-mobile-toolbar': WebControlProps;
 			'pptx-ui-paste-options': WebControlProps;
+			'pptx-ui-present-toolbar': WebControlProps;
+			'pptx-ui-presenter-console': WebControlProps;
 			'pptx-ui-read-only-banner': WebControlProps;
 			'pptx-ui-ribbon-command': WebControlProps;
 			'pptx-ui-ribbon-animations': WebControlProps;

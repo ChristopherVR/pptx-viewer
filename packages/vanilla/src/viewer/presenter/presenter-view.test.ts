@@ -78,8 +78,16 @@ function mount(slides: PptxSlide[], overrides: Partial<PresenterViewOptions> = {
 	};
 }
 
+/** The strip renders inside the shared element's open shadow root; the rail does not. */
 function control(container: HTMLElement, id: string): HTMLElement | null {
-	return container.querySelector<HTMLElement>(`[data-pptx-presenter-control="${id}"]`);
+	const selector = `[data-pptx-presenter-control="${id}"]`;
+	return (
+		container.querySelector<HTMLElement>(selector) ??
+		container
+			.querySelector('pptx-ui-presenter-console')
+			?.shadowRoot?.querySelector<HTMLElement>(selector) ??
+		null
+	);
 }
 
 describe('vanilla presenter view', () => {
@@ -100,9 +108,9 @@ describe('vanilla presenter view', () => {
 	it('renders the shared strip inventory, in order', () => {
 		harness = mount([slide('s1')]);
 		const rendered = Array.from(
-			harness.container.querySelectorAll<HTMLElement>(
-				'.pptxv-presenter-strip [data-pptx-presenter-control]',
-			),
+			harness.container
+				.querySelector('.pptxv-presenter-strip')!
+				.shadowRoot!.querySelectorAll<HTMLElement>('button[data-pptx-presenter-control]'),
 		).map((node) => node.dataset.pptxPresenterControl ?? '');
 		const expected = PRESENTER_CONSOLE_ORDER.filter(
 			(id) => !id.startsWith('divider') && id !== 'spacer',
@@ -112,9 +120,9 @@ describe('vanilla presenter view', () => {
 
 	it('names every strip control from the dictionary, never a raw key', () => {
 		harness = mount([slide('s1')]);
-		const buttons = harness.container.querySelectorAll<HTMLElement>(
-			'.pptxv-presenter-strip [data-pptx-presenter-control]',
-		);
+		const buttons = harness.container
+			.querySelector('.pptxv-presenter-strip')!
+			.shadowRoot!.querySelectorAll<HTMLElement>('button[data-pptx-presenter-control]');
 		for (const button of buttons) {
 			const name = button.getAttribute('aria-label') ?? '';
 			expect(name.length).toBeGreaterThan(0);

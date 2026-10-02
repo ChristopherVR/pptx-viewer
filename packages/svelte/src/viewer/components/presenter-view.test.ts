@@ -106,7 +106,8 @@ describe('presenterView control attribute', () => {
 	 */
 	it('keeps the strip inventory intact when scoped, and exposes the rail ids too', () => {
 		const { target } = mountConsole([textSlide(1, 'one'), textSlide(2, 'two')]);
-		const stripRoot = target.querySelector<HTMLElement>('[data-pptx-presenter-strip]');
+		// The strip renders inside the shared element's open shadow root.
+		const stripRoot = target.querySelector<HTMLElement>('[data-pptx-presenter-strip]')?.shadowRoot;
 		const stripIds = [...(stripRoot?.querySelectorAll('[data-pptx-presenter-control]') ?? [])].map(
 			(el) => el.getAttribute('data-pptx-presenter-control'),
 		);

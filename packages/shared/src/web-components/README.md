@@ -447,21 +447,26 @@ highlight colour pickers stay native for the same reason.
 
 ## Chrome controls (non-ribbon, #386)
 
-Four small non-ribbon families share one element each. They differ from a ribbon
+Eight small non-ribbon families share one element each. They differ from a ribbon
 command because each owns a whole row or card (a banner with an inline password
-form, a floating strip, a stack, a dialog action row) with its own gating, so a
-per-button command would leave that gating duplicated five times. All four take a
-structured `state` DOM property (never an attribute), emit bubbling, composed
-events, are controlled (programmatic updates emit nothing), keep their text from
-`state.translate`, use 24px buttons that grow to 44px on coarse pointers, take
-colours from the `--pptx-*` tokens and use system colours in forced colors.
+form, a floating strip, a stack, a dialog action row, a phone bar) with its own
+gating, so a per-button command would leave that gating duplicated five times.
+All take a structured `state` DOM property (never an attribute), emit bubbling,
+composed events, are controlled (programmatic updates emit nothing), take their
+text from `state.translate`, use targets of at least 24px that grow to 44px on
+coarse pointers (the phone bars are always 44px), take colours from the
+`--pptx-*` tokens and use system colours in forced colors.
 
-| Element                     | `state` fields                                                                                                                                                                      | Events                                                                                                                | Host hooks stamped on the element                  |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `pptx-ui-read-only-banner`  | `kind`, `messageKey`, `passwordPromptOpen`, `passwordError` (`wrong-password`, `unsupported-algorithm`), `checkingPassword`, `translate`                                            | `read-only-request`: `{ id: 'editAnyway' \| 'dismiss' \| 'cancelPassword' }` or `{ id: 'submitPassword', password }` | `data-testid="pptx-readonly-banner"`, `data-kind`  |
-| `pptx-ui-paste-options`     | `left`, `top` (bottom-right corner of the pasted element, viewport px), `translate`                                                                                                 | `paste-options-request`: `{ format }`; `paste-options-dismiss` (no detail)                                            | `data-pptx-paste-options`                          |
-| `pptx-ui-compat-toasts`     | `toasts` (first 5 render), `overflowCount`, `rightInset`, `bottomInset`, `translate`                                                                                                | `compat-toasts-request`: `{ id: 'dismissAll' }` or `{ id: 'dismiss', toastId }`                                       | `data-testid="pptx-compat-toasts"`                 |
-| `pptx-ui-dialog-footer`     | `actions`: `{ id, label, variant ('secondary' \| 'primary' \| 'warning'), icon, disabled, testId }[]` (labels already translated)                                                   | `dialog-footer-request`: `{ id }`                                                                                     | none; `focusAction(id)` method                     |
+| Element                     | `state` fields                                                                                                                                                          | Events                                                                                            | Host hooks stamped on the element                                   |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `pptx-ui-read-only-banner`  | `kind`, `messageKey`, `passwordPromptOpen`, `passwordError` (`wrong-password`, `unsupported-algorithm`), `checkingPassword`, `translate`                                | `read-only-request`: `{ id: 'editAnyway'                                                          | 'dismiss'                                                           | 'cancelPassword' }`or`{ id: 'submitPassword', password }` | `data-testid="pptx-readonly-banner"`, `data-kind` |
+| `pptx-ui-paste-options`     | `left`, `top` (bottom-right corner of the pasted element, viewport px), `translate`                                                                                     | `paste-options-request`: `{ format }`; `paste-options-dismiss` (no detail)                        | `data-pptx-paste-options`                                           |
+| `pptx-ui-compat-toasts`     | `toasts` (first 5 render), `overflowCount`, `rightInset`, `bottomInset`, `translate`                                                                                    | `compat-toasts-request`: `{ id: 'dismissAll' }` or `{ id: 'dismiss', toastId }`                   | `data-testid="pptx-compat-toasts"`                                  |
+| `pptx-ui-dialog-footer`     | `actions`: `{ id, label, variant ('secondary'                                                                                                                           | 'primary'                                                                                         | 'warning'), icon, disabled, testId }[]` (labels already translated) | `dialog-footer-request`: `{ id }`                         | none; `focusAction(id)` method                    |
+| `pptx-ui-mobile-bar`        | `slideCount`, `activeSheet`, `commentCount`, `hidden`, `disabled` (ids `slides`, `insert`, `inspector`, `comments`, `notes`), `translate`                               | `mobile-bar-request`: `{ id }`                                                                    | none; the `nav` is "Editor actions"                                 |
+| `pptx-ui-present-toolbar`   | `current`, `total`, `tool`, `penColor`, `highlighterColor`, `hasAnnotations`, `blackout`, `presenterViewVisible`, `presenterViewActive`, `startTime`, `translate`       | `present-toolbar-request`: `move`, `tool`, `color`, `blackboard`, `clear`, `presenterView`, `end` | `data-pptx-present-toolbar`, `role="toolbar"`                       |
+| `pptx-ui-presenter-console` | `active`, `disabled` (control ids), `translate`                                                                                                                         | `presenter-console-request`: `{ id }`                                                             | `data-pptx-presenter-toolbar`, `data-pptx-presenter-strip`          |
+| `pptx-ui-mobile-toolbar`    | `editable`, `canUndo`, `canRedo`, `aiVisible`, `aiActive`, `menuOpen`, `hidden`, `disabled` (ids `menu`, `undo`, `redo`, `ai`, `save`, `present`, `share`), `translate` | `mobile-toolbar-request`: `{ id }`; slots `ai` and `collaboration`                                | none; the `toolbar` is "Toolbar"                                    |
 
 Read-only banner. The element owns the lock icon, "Read-only recommended: message"
 text, Edit anyway and Dismiss, and the password form (labelled input, Unlock,
@@ -472,12 +477,13 @@ password check (`checkModifyPassword`).
 
 Paste options. The host measures the pasted element with `findCanvasElementNode`
 (each binding waits its own number of frames for the node to render) and mounts
-the element only while a strip should show. The element fixes the strip 4px from
-the corner, names it from `pptx.pasteSpecial.optionsLabel`, stops mousedown from
-reaching the canvas and arms outside dismissal (pointerdown or keydown on the
-window, capture phase) one task after connecting so the paste's own gesture does
-not close it. A press inside the strip does not dismiss it (previously a press
-could unmount the strip before its click); Escape inside it does.
+the element only while a strip should show. The host is the fixed box, 4px from the
+corner; the strip inside is named from `pptx.pasteSpecial.optionsLabel`, stops
+mousedown from reaching the canvas and arms outside dismissal (pointerdown or
+keydown on the window, capture phase) one task after connecting so the paste's own
+gesture does not close it. A press inside the strip does not dismiss it (before,
+a press could unmount the strip before its click landed); Escape inside it does. A
+choice emits the format and then a dismissal, so every host closes the strip.
 
 Compat toasts. The element positions itself with `compatToastStackStyle`, so it
 must be a child of the viewer root. It rebuilds only when something visible
@@ -486,10 +492,51 @@ Toasts never auto-hide; "Dismiss all" is always offered, including for one toast
 
 Dialog footer. It is not a dialog shell: the host keeps the modal, backdrop,
 dismissal and focus trap. `activateModalFocus` now walks open shadow roots, so
-the footer buttons stay inside the Tab cycle of a trapped dialog. Hosts adopt it
-for the Cancel/OK style rows of Paste Special, Keep Annotations, the autosave
-recovery prompt and the signed-deck warning. Dialogs with form-like footers
-(Print, Options, Settings) stay native.
+the footer buttons stay inside the Tab cycle of a trapped dialog. Buttons are keyed
+by action id and patched in place, so focus and references survive disabling both
+actions. Hosts adopt it for the Cancel/OK style rows of Paste Special, Keep
+Annotations, the autosave recovery prompt and the signed-deck warning. Other
+dialogs keep native footers until adopted (see the migration guide).
+
+Phone bars. `pptx-ui-mobile-bar` is the five-slot bottom bar. Every slot disables at
+zero slides (`buildBarActions`), the open sheet is `aria-pressed` with a top pill,
+Comments shows a badge capped at `99+`, and Notes is named "Toggle notes". Hosts
+can drop a slot (`hidden`) or disable edit-only slots (`disabled`). The host keeps
+fixed positioning and any keyboard lift. `pptx-ui-mobile-toolbar` is the compact
+top row; Menu, Undo, Redo, AI and Share show only while `editable`, Save and
+Present always show unless `hidden`. The AI toggle is drawn by the element when
+`aiVisible`; a host that mounts its own (Vanilla) fills the `ai` slot, and a
+collaboration pill goes in `collaboration`. Hover colours apply only on devices
+that hover, so a tapped slot keeps its pressed colour.
+
+Slide-show chrome. `pptx-ui-present-toolbar` renders the shared
+`PRESENT_TOOLBAR_CONTROLS` inventory (ids, order and label keys unchanged, every
+control keeps `data-pptx-present-control`) from `PRESENT_TOOLBAR_METRICS`, so the
+five bindings can no longer drift in size or order. `state`: `current`, `total`,
+`tool`, `penColor`, `highlighterColor`, `hasAnnotations`, `blackout` (with the pen it
+marks Blackboard pressed), `presenterViewVisible` (the toggle is absent otherwise),
+`presenterViewActive`, `startTime` (epoch ms; the element ticks the elapsed readout,
+clamped at zero) and `translate`. Events: one `present-toolbar-request` with
+`{ id: 'move', direction }`, `{ id: 'tool', tool }`, `{ id: 'color', tool, color }`,
+`{ id: 'blackboard' }`, `{ id: 'clear' }`, `{ id: 'presenterView' }` or `{ id: 'end' }`.
+The host is the toolbar: it carries `data-pptx-present-toolbar`, `role="toolbar"`, its
+accessible name and `tabindex="-1"` (a running show keeps focus on the stage). The
+palettes are element state: a caret or a right click on Pen or Highlighter opens one
+(one at a time), and they close on a tool choice, a swatch pick, Blackboard, an
+outside mousedown and `closePalettes()`. The host decides whether re-selecting a tool
+disarms it (React sets it, Angular and Svelte toggle) and arms the tool after a
+swatch pick. The auto-hiding positioner and the annotation model stay with the host.
+Targets are 36px and grow to 44px on coarse pointers.
+
+`pptx-ui-presenter-console` renders `PRESENTER_CONSOLE_CONTROLS` with
+`data-pptx-presenter-control` ids. `state`: `active` and `disabled` id lists (derive
+both with `presenterConsoleViewState(snapshot, audienceOpen)`) and `translate`.
+Toggles carry `aria-pressed`; an active control also swaps its icon and label (the
+timer's resume glyph, "Close Audience Window"). One `presenter-console-request`
+event carries the control id; `presenterConsoleAction(id, snapshot)` resolves it to
+`pointer`, `blackout`, `zoom` or a plain action, with the "second press switches it
+off" rule built in. The host carries `data-pptx-presenter-toolbar` and
+`data-pptx-presenter-strip`.
 
 Adapters: React uses `useWebControl` (a ref, `state` after every render and native
 listeners), Vue `.prop` and event directives, Angular schema-enabled bindings

@@ -47,6 +47,10 @@ afterEach(() => {
 	container.remove();
 });
 
+/** The toolbar renders inside the shared element's open shadow root. */
+const bar = (): ParentNode =>
+	container.querySelector('pptx-ui-present-toolbar')?.shadowRoot ?? container;
+
 function renderToolbar(overrides: Record<string, unknown> = {}): void {
 	act(() => {
 		root.render(
@@ -74,15 +78,14 @@ function renderToolbar(overrides: Record<string, unknown> = {}): void {
 }
 
 function controlIds(): (string | null)[] {
-	return [...container.querySelectorAll('[data-pptx-present-control]')].map((node) =>
+	return [...bar().querySelectorAll('[data-pptx-present-control]')].map((node) =>
 		node.getAttribute('data-pptx-present-control'),
 	);
 }
 
 function nameOf(id: string): string | null {
 	return (
-		container.querySelector(`[data-pptx-present-control="${id}"]`)?.getAttribute('aria-label') ??
-		null
+		bar().querySelector(`[data-pptx-present-control="${id}"]`)?.getAttribute('aria-label') ?? null
 	);
 }
 
@@ -94,9 +97,10 @@ describe('the slide-show toolbar', () => {
 
 	it('announces itself as a toolbar', () => {
 		renderToolbar();
-		const bar = container.querySelector('[data-pptx-present-toolbar]');
-		expect(bar?.getAttribute('role')).toBe('toolbar');
-		expect(bar?.getAttribute('aria-label')).toBe('Presentation toolbar');
+		// The host is the toolbar: it carries the role and the accessible name.
+		const toolbar = container.querySelector('[data-pptx-present-toolbar]');
+		expect(toolbar?.getAttribute('role')).toBe('toolbar');
+		expect(toolbar?.getAttribute('aria-label')).toBe('Presentation toolbar');
 	});
 
 	it('names every control from the dictionary, with no punctuation smuggled in', () => {
@@ -124,13 +128,12 @@ describe('the slide-show toolbar', () => {
 	it('disables navigation at the ends of the deck', () => {
 		renderToolbar({ currentSlideIndex: 0, totalSlides: 3 });
 		expect(
-			container.querySelector<HTMLButtonElement>('[data-pptx-present-control="previous"]')
-				?.disabled,
+			bar().querySelector<HTMLButtonElement>('[data-pptx-present-control="previous"]')?.disabled,
 		).toBeTruthy();
 
 		renderToolbar({ currentSlideIndex: 2, totalSlides: 3 });
 		expect(
-			container.querySelector<HTMLButtonElement>('[data-pptx-present-control="next"]')?.disabled,
+			bar().querySelector<HTMLButtonElement>('[data-pptx-present-control="next"]')?.disabled,
 		).toBeTruthy();
 	});
 
@@ -147,9 +150,7 @@ describe('the slide-show toolbar', () => {
 			},
 		});
 		act(() => {
-			container
-				.querySelector<HTMLButtonElement>('[data-pptx-present-control="blackboard"]')
-				?.click();
+			bar().querySelector<HTMLButtonElement>('[data-pptx-present-control="blackboard"]')?.click();
 		});
 		expect(setBlackout).toHaveBeenCalledWith('black');
 		expect(setTool).toHaveBeenCalledWith('pen');
@@ -157,12 +158,12 @@ describe('the slide-show toolbar', () => {
 
 	it('reads the blackboard toggle as active only when blackout and pen are both armed', () => {
 		renderToolbar({ blackout: 'black', presentationTool: 'pen' });
-		const active = container.querySelector('[data-pptx-present-control="blackboard"]');
-		expect(active?.className).toContain('bg-white/25');
+		const active = bar().querySelector('[data-pptx-present-control="blackboard"]');
+		expect(active?.getAttribute('aria-pressed')).toBe('true');
 
 		renderToolbar({ blackout: 'black', presentationTool: 'none' });
-		const inactive = container.querySelector('[data-pptx-present-control="blackboard"]');
-		expect(inactive?.className).not.toContain('bg-white/25');
+		const inactive = bar().querySelector('[data-pptx-present-control="blackboard"]');
+		expect(inactive?.getAttribute('aria-pressed')).toBe('false');
 	});
 
 	it('names each colour swatch with its value', () => {
@@ -172,7 +173,75 @@ describe('the slide-show toolbar', () => {
 				.querySelector<HTMLButtonElement>('[data-pptx-present-control="pen-color"]')
 				?.click();
 		});
-		const swatches = [...container.querySelectorAll('button[aria-label^="Pen colour #"]')];
+		const swatches = [...bar().querySelectorAll('button[aria-label^="Pen colour #"]')];
 		expect(swatches).toHaveLength(8);
+	});
+});
+
+describe('the slide-show toolbar adapter', () => {
+	const click = (id: string): void => {
+		act(() => {
+			bar().querySelector<HTMLButtonElement>(`[data-pptx-present-control="${id}"]`)?.click();
+		});
+	};
+
+	it('routes every control to its callback', () => {
+		const calls: string[] = [];
+		renderToolbar({
+			onMovePresentationSlide: (direction: number) => calls.push(`move:${direction}`),
+			onSetTool: (tool: string) => calls.push(`tool:${tool}`),
+			onClearAnnotations: () => calls.push('clear'),
+			onToggleBlackboard: () => calls.push('blackboard'),
+			onTogglePresenterView: () => calls.push('presenter-view'),
+			onEndPresentation: () => calls.push('end'),
+			hasAnnotations: true,
+		});
+		for (const id of [
+			'previous',
+			'next',
+			'laser',
+			'pen',
+			'highlighter',
+			'eraser',
+			'blackboard',
+			'clear',
+			'presenter-view',
+			'end',
+		]) {
+			click(id);
+		}
+		expect(calls).toStrictEqual([
+			'move:-1',
+			'move:1',
+			'tool:laser',
+			'tool:pen',
+			'tool:highlighter',
+			'tool:eraser',
+			'blackboard',
+			'clear',
+			'presenter-view',
+			'end',
+		]);
+	});
+
+	it('a swatch pick sets the colour and arms that tool when another is active', () => {
+		const calls: string[] = [];
+		renderToolbar({
+			presentationTool: 'eraser',
+			onSetPenColor: (color: string) => calls.push(`pen:${color}`),
+			onSetTool: (tool: string) => calls.push(`tool:${tool}`),
+		});
+		click('pen-color');
+		act(() => {
+			bar().querySelector<HTMLButtonElement>('button[aria-label="Pen colour #0000ff"]')?.click();
+		});
+		expect(calls).toStrictEqual(['pen:#0000ff', 'tool:pen']);
+	});
+
+	it('shows the elapsed time from the show start time', () => {
+		renderToolbar({ presentationStartTime: Date.now() - 125_000 });
+		expect(bar().querySelector('[data-pptx-present-control="timer"] span')?.textContent).toBe(
+			'02:05',
+		);
 	});
 });

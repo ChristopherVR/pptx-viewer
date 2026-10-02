@@ -43,13 +43,22 @@ describe('presenterView', () => {
 		// real deck had no timer, zoom, annotation, blackout, captions or End.
 		const wrapper = mountView();
 		expect(wrapper.find('[data-pptx-presenter-strip]').exists()).toBeTruthy();
-		expect(wrapper.find('[data-pptx-presenter-control="timer-toggle"]').exists()).toBeTruthy();
-		expect(wrapper.find('[data-pptx-presenter-control="end"]').exists()).toBeTruthy();
+		// The strip's controls render inside the shared element's open shadow root.
+		const control = (id: string): HTMLButtonElement | null | undefined =>
+			wrapper
+				.find('[data-pptx-presenter-strip]')
+				.element.shadowRoot?.querySelector<HTMLButtonElement>(
+					`[data-pptx-presenter-control="${id}"]`,
+				);
+		expect(control('timer-toggle')).toBeTruthy();
+		expect(control('end')).toBeTruthy();
 
-		await wrapper.find('[data-pptx-presenter-control="zoom-in"]').trigger('click');
+		control('zoom-in')?.click();
+		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('update-snapshot')).toHaveLength(1);
 
-		await wrapper.find('[data-pptx-presenter-control="all-slides"]').trigger('click');
+		control('all-slides')?.click();
+		await wrapper.vm.$nextTick();
 		expect(wrapper.find('[data-pptx-presenter-navigator]').exists()).toBeTruthy();
 		expect(wrapper.find('[data-pptx-presenter-navigator]').text()).toContain('See All Slides');
 	});

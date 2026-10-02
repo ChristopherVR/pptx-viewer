@@ -1,20 +1,16 @@
 /**
- * Non-view state for the slide-show toolbar: auto-hide visibility, the elapsed
- * clock, and which colour palette popover is open.
+ * Non-view state for the slide-show toolbar: auto-hide visibility and the show's
+ * start instant. (The colour palettes and the elapsed readout belong to the
+ * shared `pptx-ui-present-toolbar`.)
  *
- * It lives beside `PresentationToolbar.svelte` rather than inside it because
- * the SFC is already at its budget with sixteen controls, and because this is
- * the part worth unit testing on its own: timers and document listeners, with
- * no markup involved.
+ * It lives beside `PresentationToolbar.svelte` because this is the part worth
+ * unit testing on its own: timers and document listeners, with no markup.
  *
  * The timings and the trigger zone come from `pptx-viewer-shared` so this
  * binding cannot drift from React's toolbar the way the old bottom-right
  * annotation strip had.
  */
 import { AUTO_HIDE_DELAY_MS, isInBottomTriggerZone } from 'pptx-viewer-shared';
-
-/** Which tool's colour palette is currently open, if any. */
-export type PresentPaletteKey = 'pen' | 'highlighter';
 
 /** DOM getters {@link PresentToolbarChrome.attach} needs from the component. */
 export interface PresentToolbarChromeTargets {
@@ -24,8 +20,6 @@ export interface PresentToolbarChromeTargets {
 	 * any movement, exactly as React's wrapper does.
 	 */
 	getContainer: () => HTMLElement | null;
-	/** The bar itself, so a mousedown outside it can close an open palette. */
-	getToolbar: () => HTMLElement | null;
 	/**
 	 * File > Options > Advanced > "Show popup toolbar" (default true). When it
 	 * returns `false`, `mousemove` never auto-reveals the bar; `toggleVisible`
@@ -37,28 +31,22 @@ export interface PresentToolbarChromeTargets {
 export class PresentToolbarChrome {
 	/** Whether the bar is currently faded in and accepting pointer events. */
 	visible = $state(false);
-	/** Milliseconds since the show started, refreshed once a second. */
-	elapsedMs = $state(0);
-	/** The open colour palette, or `null` when both are closed. */
-	palette = $state<PresentPaletteKey | null>(null);
+	/** Epoch ms the show started; the shared element ticks the elapsed readout from it. */
+	startedAt = $state(Date.now());
 
 	#hideTimer: number | null = null;
 	#hovering = false;
-	/**
-	 * The show's start instant. The toolbar is only ever mounted while the show
-	 * runs, so construction time IS the show start; there is no separate
-	 * timestamp on the viewer state to read (`presenterStartedAt` belongs to
-	 * presenter view, which can be entered long after the show began).
-	 */
-	#startedAt = Date.now();
 
 	/**
 	 * Wire the document listeners and the one-second tick. Returns a teardown,
 	 * so a component can hand it straight to `$effect`.
 	 */
 	attach(targets: PresentToolbarChromeTargets): () => void {
-		this.#startedAt = Date.now();
-		this.elapsedMs = 0;
+		// The toolbar is only ever mounted while the show runs, so attach time IS the
+		// show start; there is no separate timestamp on the viewer state to read
+		// (`presenterStartedAt` belongs to presenter view, which can be entered long
+		// after the show began).
+		this.startedAt = Date.now();
 
 		const onMouseMove = (event: MouseEvent): void => {
 			if (targets.popupToolbarEnabled?.() === false) {
@@ -77,23 +65,9 @@ export class PresentToolbarChrome {
 			this.#show();
 		};
 
-		const onMouseDown = (event: MouseEvent): void => {
-			const toolbar = targets.getToolbar();
-			if (toolbar && !toolbar.contains(event.target as Node)) {
-				this.palette = null;
-			}
-		};
-
-		const tick = window.setInterval(() => {
-			this.elapsedMs = Date.now() - this.#startedAt;
-		}, 1000);
-
 		document.addEventListener('mousemove', onMouseMove);
-		document.addEventListener('mousedown', onMouseDown);
 		return () => {
 			document.removeEventListener('mousemove', onMouseMove);
-			document.removeEventListener('mousedown', onMouseDown);
-			window.clearInterval(tick);
 			this.#clearHideTimer();
 		};
 	}
@@ -123,16 +97,6 @@ export class PresentToolbarChrome {
 			return;
 		}
 		this.#show();
-	}
-
-	/** Open `key`'s palette, or close it when it is already the open one. */
-	togglePalette(key: PresentPaletteKey): void {
-		this.palette = this.palette === key ? null : key;
-	}
-
-	/** Close both palettes (after picking a colour or choosing a tool). */
-	closePalettes(): void {
-		this.palette = null;
 	}
 
 	#show(): void {

@@ -102,6 +102,13 @@ async function settle(): Promise<void> {
 	await nextTick();
 }
 
+/** The toolbar counter renders inside the shared element's open shadow root. */
+function counterText(): string | null | undefined {
+	return document
+		.querySelector('pptx-ui-present-toolbar')
+		?.shadowRoot?.querySelector('[data-pptx-present-control="counter"]')?.textContent;
+}
+
 describe('presentationMode', () => {
 	afterEach(() => {
 		document.body.replaceChildren();
@@ -110,9 +117,7 @@ describe('presentationMode', () => {
 	it('renders a slide stage for the active slide', () => {
 		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
 		expect(document.querySelector('.pptx-vue-stage')).not.toBeNull();
-		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
-			'1 / 2',
-		);
+		expect(counterText()).toContain('1 / 2');
 		wrapper.unmount();
 	});
 
@@ -127,9 +132,7 @@ describe('presentationMode', () => {
 		pressKey('ArrowRight');
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
-		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
-			'2 / 3',
-		);
+		expect(counterText()).toContain('2 / 3');
 		wrapper.unmount();
 	});
 
@@ -215,14 +218,10 @@ describe('presentationMode', () => {
 	// only honours the click gate sits on it for ever and looks completely dead.
 	it('advances on the slide timing when click-advance is forbidden', async () => {
 		const wrapper = mountMode([makeTimedSlide('s1'), makeSlide('s2')]);
-		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
-			'1 / 2',
-		);
+		expect(counterText()).toContain('1 / 2');
 		await settle();
 		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
-		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
-			'2 / 2',
-		);
+		expect(counterText()).toContain('2 / 2');
 		wrapper.unmount();
 	});
 

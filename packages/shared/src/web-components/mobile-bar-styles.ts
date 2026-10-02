@@ -19,7 +19,7 @@ button:active:not(:disabled) { transform: scale(.95); }
 button:disabled { opacity: .4; pointer-events: none; }
 button[aria-pressed="true"] { color: var(--pptx-primary, #6366f1); }
 button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }
-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+svg { flex: none; width: 20px; height: 20px; }
 .badge {
 	position: absolute; top: 4px; right: 25%; display: flex; align-items: center; justify-content: center;
 	min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 9999px;
@@ -58,7 +58,7 @@ button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-off
 button[aria-pressed="true"], button.present { color: var(--pptx-primary, #818cf8); }
 button.share { padding: 0 12px; background: var(--pptx-primary, #6366f1); color: #fff; }
 button.share:hover:not(:disabled) { background: color-mix(in srgb, var(--pptx-primary, #6366f1) 90%, transparent); }
-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+svg { flex: none; width: 20px; height: 20px; }
 @media (forced-colors: active) {
 	.bar { border-bottom-color: CanvasText; background: Canvas; color: CanvasText; }
 	button, button.share, button.present { color: ButtonText; background: ButtonFace; }
