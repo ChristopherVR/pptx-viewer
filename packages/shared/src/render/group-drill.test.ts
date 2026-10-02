@@ -134,4 +134,39 @@ describe('group drill-in', () => {
 		expect(parentSelection(slide, 'card-b')).toBe('cards');
 		expect(parentSelection(slide, 'cards')).toBeNull();
 	});
+
+	it('does not drill into a member locked with noSelect: the group answers instead', () => {
+		const locked = group('cards', 100, 200, [
+			shape('card-a', 0, 0, 180, 120, { locks: { noSelect: true } }),
+			shape('card-c', 200, 0, 100, 60),
+		]);
+		expect(memberChainAtPoint([locked], 'cards', { x: 150, y: 250 })).toStrictEqual(['cards']);
+		// An unlocked sibling still resolves.
+		expect(memberChainAtPoint([locked], 'cards', { x: 350, y: 230 })).toStrictEqual([
+			'card-c',
+			'cards',
+		]);
+		// A locked nested member stops the walk at its parent.
+		const deep = group('cards', 100, 200, [
+			group('card-b', 0, 0, [shape('label', 0, 0, 80, 20, { locks: { noSelect: true } })]),
+		]);
+		expect(memberChainAtPoint([deep], 'cards', { x: 120, y: 210 })).toStrictEqual([
+			'card-b',
+			'cards',
+		]);
+	});
+
+	it('does not drill into a group locked with noDrilldown: it selects as one', () => {
+		const sealed = group('cards', 100, 200, [shape('card-a', 0, 0, 180, 120)], {
+			locks: { noDrilldown: true },
+		});
+		expect(memberChainAtPoint([sealed], 'cards', { x: 150, y: 250 })).toStrictEqual(['cards']);
+		const nested = group('cards', 100, 200, [
+			group('card-b', 0, 0, [shape('label', 0, 0, 80, 20)], { locks: { noDrilldown: true } }),
+		]);
+		expect(memberChainAtPoint([nested], 'cards', { x: 120, y: 210 })).toStrictEqual([
+			'card-b',
+			'cards',
+		]);
+	});
 });

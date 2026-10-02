@@ -124,8 +124,10 @@ test('undo removes the added effect from the saved deck', async ({ page }) => {
 	const undo = page.getByRole('button', { name: 'Undo', exact: true }).first();
 	await expect(undo).toBeEnabled();
 	await undo.click();
-	const { xml } = await savedSlideXml(page);
-	expect(xml).not.toContain('<p:timing');
+	// The undo is applied asynchronously: poll the saved deck instead of racing a single save.
+	await expect
+		.poll(async () => (await savedSlideXml(page)).xml, { timeout: 15_000 })
+		.not.toContain('<p:timing');
 });
 
 test('a redone effect survives save and reload and previews on the saved deck', async ({
