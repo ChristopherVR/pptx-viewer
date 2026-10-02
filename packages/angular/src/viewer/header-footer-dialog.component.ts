@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	effect,
+	input,
+	output,
+	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
 
@@ -7,6 +15,7 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 @Component({
 	selector: 'pptx-header-footer-dialog',
 	standalone: true,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
@@ -29,20 +38,20 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 					</header>
 					<div class="body">
 						<label
-							><input
-								type="checkbox"
+							><pptx-ui-checkbox
 								[checked]="draft().hasDateTime ?? false"
 								(change)="setFlag('hasDateTime', $event)"
-							/>{{ 'pptx.headerFooter.dateAndTime' | translate }}</label
+							></pptx-ui-checkbox
+							>{{ 'pptx.headerFooter.dateAndTime' | translate }}</label
 						>
 						@if (draft().hasDateTime) {
 							<div class="nested">
 								<label
-									><input
-										type="checkbox"
+									><pptx-ui-checkbox
 										[checked]="draft().dateTimeAuto ?? false"
 										(change)="setFlag('dateTimeAuto', $event)"
-									/>{{ 'pptx.headerFooter.updateAutomatically' | translate }}</label
+									></pptx-ui-checkbox
+									>{{ 'pptx.headerFooter.updateAutomatically' | translate }}</label
 								>
 								@if (!draft().dateTimeAuto) {
 									<input
@@ -55,18 +64,18 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 							</div>
 						}
 						<label
-							><input
-								type="checkbox"
+							><pptx-ui-checkbox
 								[checked]="draft().hasSlideNumber ?? false"
 								(change)="setFlag('hasSlideNumber', $event)"
-							/>{{ 'pptx.headerFooter.slideNumber' | translate }}</label
+							></pptx-ui-checkbox
+							>{{ 'pptx.headerFooter.slideNumber' | translate }}</label
 						>
 						<label
-							><input
-								type="checkbox"
+							><pptx-ui-checkbox
 								[checked]="draft().hasHeader ?? false"
 								(change)="setFlag('hasHeader', $event)"
-							/>{{ 'pptx.field.header' | translate }}</label
+							></pptx-ui-checkbox
+							>{{ 'pptx.field.header' | translate }}</label
 						>
 						@if (draft().hasHeader) {
 							<input
@@ -78,11 +87,11 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 							/>
 						}
 						<label
-							><input
-								type="checkbox"
+							><pptx-ui-checkbox
 								[checked]="draft().hasFooter ?? false"
 								(change)="setFlag('hasFooter', $event)"
-							/>{{ 'pptx.headerFooter.footer' | translate }}</label
+							></pptx-ui-checkbox
+							>{{ 'pptx.headerFooter.footer' | translate }}</label
 						>
 						@if (draft().hasFooter) {
 							<input
@@ -155,9 +164,6 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 			align-items: center;
 			gap: 9px;
 			font-size: 12px;
-		}
-		input[type='checkbox'] {
-			accent-color: var(--pptx-primary, #2563eb);
 		}
 		input[type='text'] {
 			box-sizing: border-box;

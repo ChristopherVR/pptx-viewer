@@ -34,6 +34,7 @@ import {
 	inject,
 	input,
 	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { LucideFilter, LucidePaintbrush, LucidePlus } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -58,6 +59,7 @@ type QuickActionId = 'elements' | 'styles' | 'filters';
 	selector: 'pptx-chart-quick-actions-overlay',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe, LucidePlus, LucidePaintbrush, LucideFilter],
 	host: {
 		'data-pptx-chart-quick-actions': 'true',
@@ -101,13 +103,12 @@ type QuickActionId = 'elements' | 'styles' | 'filters';
 						</h4>
 						@for (item of d.elements; track item.key) {
 							<label class="pptx-ng-chart-quick-check">
-								<input
-									type="checkbox"
+								<pptx-ui-checkbox
 									[disabled]="!canEdit()"
 									[checked]="item.checked"
 									[attr.data-testid]="'chart-quick-element-' + item.key"
 									(change)="onElementToggle(item.key, $event)"
-								/>
+								></pptx-ui-checkbox>
 								<span>{{ item.labelKey | translate }}</span>
 							</label>
 						}
@@ -153,13 +154,12 @@ type QuickActionId = 'elements' | 'styles' | 'filters';
 						<h4 class="pptx-ng-chart-quick-heading">{{ 'pptx.chart.quickFilters' | translate }}</h4>
 						@for (row of d.filters.series; track row.key) {
 							<label class="pptx-ng-chart-quick-check">
-								<input
-									type="checkbox"
+								<pptx-ui-checkbox
 									[disabled]="!canEdit()"
 									[checked]="row.visible"
 									[attr.data-testid]="'chart-quick-filter-' + row.key"
 									(change)="onFilterToggle(row.seriesIndex, row.filteredIndex)"
-								/>
+								></pptx-ui-checkbox>
 								<span class="pptx-ng-chart-quick-name">{{ row.name }}</span>
 							</label>
 						}

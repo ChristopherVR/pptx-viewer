@@ -19,7 +19,13 @@
  * ```
  */
 
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { HANDOUT_OPTIONS } from './print-helpers';
@@ -35,6 +41,7 @@ import type {
 	selector: 'pptx-print-settings-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-ng-print-settings">
@@ -179,11 +186,10 @@ import type {
 
 			<!-- Frame slides -->
 			<label class="pptx-ng-print-settings__check">
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
 					[checked]="settings().frameSlides"
 					(change)="onFrameChange($event)"
-				/>
+				></pptx-ui-checkbox>
 				<span>{{ 'pptx.print.frameSlides' | translate }}</span>
 			</label>
 		</div>

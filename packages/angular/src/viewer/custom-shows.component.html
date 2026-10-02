@@ -61,11 +61,10 @@
 									<div class="pptx-ng-cs-slide-picker">
 										@for (slide of slides(); track slide.id; let i = $index) {
 											<label class="pptx-ng-cs-slide-option">
-												<input
-													type="checkbox"
+												<pptx-ui-checkbox
 													[checked]="editDraftSlideIds().includes(slide.id)"
 													(change)="toggleEditSlide(slide.id)"
-												/>
+												></pptx-ui-checkbox>
 												<span>{{ slideLabel(slide, i) }}</span>
 											</label>
 										}
@@ -142,11 +141,10 @@
 						<div class="pptx-ng-cs-slide-picker">
 							@for (slide of slides(); track slide.id; let i = $index) {
 								<label class="pptx-ng-cs-slide-option">
-									<input
-										type="checkbox"
+									<pptx-ui-checkbox
 										[checked]="draftSlideIds().includes(slide.id)"
 										(change)="toggleDraftSlide(slide.id)"
-									/>
+									></pptx-ui-checkbox>
 									<span>{{ slideLabel(slide, i) }}</span>
 								</label>
 							}

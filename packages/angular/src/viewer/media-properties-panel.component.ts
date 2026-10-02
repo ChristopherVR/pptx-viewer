@@ -179,7 +179,7 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 			padding: 0;
 			accent-color: var(--pptx-primary, #2563eb);
 		}
-		input[type='checkbox'] {
+		pptx-ui-checkbox {
 			width: auto;
 			justify-self: end;
 		}
