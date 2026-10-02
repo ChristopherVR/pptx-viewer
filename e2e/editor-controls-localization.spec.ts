@@ -51,6 +51,18 @@ for (const { dictionary, nativeLabel } of [
 					.first(),
 			).toBeVisible();
 		}
+		// The shared Home strips re-translate when the language changes at runtime.
+		for (const key of [
+			'pptx.arrange.copy',
+			'pptx.ribbon.alignLeft',
+			'pptx.home.newSlide',
+			'pptx.drawing.shapes',
+			'pptx.arrange.flipH',
+			'pptx.arrange.duplicate',
+		]) {
+			const name = dictionary[key] ?? translationsEn[key];
+			await expect(page.getByRole('button', { name, exact: true }).first()).toBeVisible();
+		}
 		await page
 			.getByRole('tab', { name: dictionary['pptx.ribbon.tab.record'], exact: true })
 			.click();
