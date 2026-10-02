@@ -1,32 +1,32 @@
 <script setup lang="ts">
 /**
- * ParagraphGroup: the Home tab's Paragraph group (list toggles with their
- * Bullets / Numbering library galleries, indent, alignment, and the line
- * spacing / direction / columns dropdowns). Split out of `TextSection.vue`.
- * The indent and alignment buttons are the shared `pptx-ui-ribbon-home-paragraph`
- * strip; this adapter maps its one intent onto the existing text-style edit.
+ * ParagraphGroup: the Home tab's Paragraph group. The list toggles with their
+ * Bullets / Numbering library galleries, indent, alignment, line spacing, text
+ * direction and columns are all the shared `pptx-ui-ribbon-home-paragraph`
+ * element; this adapter reflects the text style and gallery descriptors into it
+ * and maps each intent onto the existing undoable text-style edit.
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import {
 	elementBulletKind,
 	getInlineEditorSelectionResult,
+	homeGalleryApply,
+	homeGalleryControls,
+	homeSnapshotTranslator,
 	paragraphHomeAction,
 	paragraphHomeAlign,
 	paragraphHomeControls,
 	selectionBulletKind,
-	homeSnapshotTranslator,
+	withHomeGalleries,
 } from 'pptx-viewer-shared';
 import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useRibbonGalleryHost } from '../../composables/useRibbonGalleryHost';
 import { getEffectiveTextStyle } from './effective-text-style';
-import ParagraphDropdowns from './ParagraphDropdowns.vue';
-import { gB, grp, ic } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
-import RibbonGallery from './RibbonGallery.vue';
-import RibbonIcon from './RibbonIcon';
 
 interface Props {
 	canEdit: boolean;
@@ -36,7 +36,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const gallery = useRibbonGalleryHost();
 
 const hasSel = computed(() => Boolean(props.selectedElement));
 const canMut = computed(() => hasSel.value && props.canEdit);
@@ -46,12 +47,21 @@ const isTextEl = computed(
 const canFormat = computed(
 	() => isTextEl.value || (hasSel.value && props.selectedElement?.type === 'table'),
 );
-const listKind = computed(() =>
-	props.selectedElement ? elementBulletKind(props.selectedElement) : 'none',
-);
+const enabled = computed(() => canMut.value && canFormat.value);
 const effectiveTs = computed(() =>
 	getEffectiveTextStyle(props.selectedElement, props.tableEditorState),
 );
+/** Table cells keep their list kind in the cell style; text elements read their paragraphs. */
+const listKind = computed(() => {
+	if (!props.selectedElement) {
+		return 'none';
+	}
+	if (isTextEl.value) {
+		return elementBulletKind(props.selectedElement);
+	}
+	const kind = effectiveTs.value?.listType;
+	return kind === 'bullet' || kind === 'numbered' ? kind : 'none';
+});
 
 function currentListKind() {
 	const element = props.selectedElement;
@@ -66,7 +76,11 @@ function currentListKind() {
 }
 
 function toggleList(kind: 'bullet' | 'numbered'): void {
-	if (!canMut.value || !isTextEl.value) {
+	if (!canMut.value || !canFormat.value) {
+		return;
+	}
+	if (!isTextEl.value) {
+		props.onUpdateTextStyle({ listType: effectiveTs.value?.listType === kind ? 'none' : kind });
 		return;
 	}
 	const current = currentListKind();
@@ -77,22 +91,55 @@ function toggleList(kind: 'bullet' | 'numbered'): void {
 }
 
 const paragraphState = computed(() => ({
-	controls: paragraphHomeControls({
-		enabled: canMut.value && canFormat.value,
-		align: paragraphHomeAlign(effectiveTs.value?.align),
-	}),
+	controls: withHomeGalleries(
+		paragraphHomeControls({
+			enabled: enabled.value,
+			align: paragraphHomeAlign(effectiveTs.value?.align),
+			list: listKind.value === 'mixed' ? 'none' : listKind.value,
+			lineSpacing: effectiveTs.value?.lineSpacing,
+			columns: effectiveTs.value?.columnCount,
+			textDirection: effectiveTs.value?.textDirection,
+		}),
+		homeGalleryControls('paragraph', gallery.context.value, enabled.value),
+		enabled.value,
+	),
+	// The locale is read so a language switch re-translates the shared labels.
+	locale: locale.value,
 	translate: homeSnapshotTranslator(['paragraph'], t),
 }));
 
-function requestParagraph(event: RibbonHomeRequestEvent): void {
-	const action = paragraphHomeAction(event.detail.id);
-	if (!canFormat.value || !props.selectedElement || !action) {
+function request(event: RibbonHomeRequestEvent): void {
+	const { id, value } = event.detail;
+	if (!canFormat.value || !props.selectedElement) {
 		return;
 	}
-	if (action.kind === 'indent') {
+	switch (id) {
+		case 'home.paragraph.bullets':
+		case 'home.paragraph.numbering':
+			if (value === undefined) {
+				toggleList(id === 'home.paragraph.bullets' ? 'bullet' : 'numbered');
+			} else {
+				const result = homeGalleryApply('paragraph', id, String(value), gallery.context.value);
+				if (result && gallery.editable?.value !== false) {
+					gallery.dispatch(result);
+				}
+			}
+			return;
+		case 'home.paragraph.lineSpacing':
+			props.onUpdateTextStyle({ lineSpacing: Number(value) });
+			return;
+		case 'home.paragraph.textDirection':
+			props.onUpdateTextStyle({ textDirection: value as TextStyle['textDirection'] });
+			return;
+		case 'home.paragraph.columns':
+			props.onUpdateTextStyle({ columnCount: Number(value) });
+			return;
+	}
+	const action = paragraphHomeAction(id);
+	if (action?.kind === 'indent') {
 		const current = effectiveTs.value?.paragraphMarginLeft ?? 0;
 		props.onUpdateTextStyle({ paragraphMarginLeft: Math.max(0, current + action.delta) });
-	} else {
+	} else if (action) {
 		props.onUpdateTextStyle({ align: action.align });
 	}
 }
@@ -101,46 +148,7 @@ function requestParagraph(event: RibbonHomeRequestEvent): void {
 <template>
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.paragraph">
 		<div class="flex items-center gap-1" data-pptx-chrome="paragraph-controls">
-			<!-- List style: each toggle with its library gallery chevron -->
-			<div :class="grp" data-pptx-chrome="list-controls">
-				<div class="inline-flex items-stretch" data-ribbon-control="home.paragraph.bullets">
-					<button
-						type="button"
-						:disabled="!canMut || !isTextEl"
-						:class="[gB, listKind === 'bullet' ? 'bg-accent' : '']"
-						:aria-pressed="listKind === 'bullet'"
-						:title="t('pptx.text.bulletList')"
-						@mousedown.prevent
-						@click="toggleList('bullet')"
-					>
-						<RibbonIcon name="home.paragraph.bullets" :class="ic" />
-					</button>
-					<RibbonGallery gallery="bullets" mode="chevron" class="border-r border-border" />
-				</div>
-				<div class="inline-flex items-stretch" data-ribbon-control="home.paragraph.numbering">
-					<button
-						type="button"
-						:disabled="!canMut || !isTextEl"
-						:class="[gB, listKind === 'numbered' ? 'bg-accent' : '']"
-						:aria-pressed="listKind === 'numbered'"
-						:title="t('pptx.text.numberedList')"
-						@mousedown.prevent
-						@click="toggleList('numbered')"
-					>
-						<RibbonIcon name="home.paragraph.numbering" :class="ic" />
-					</button>
-					<RibbonGallery gallery="numbering" mode="chevron" />
-				</div>
-			</div>
-
-			<!-- Indent and alignment: the shared Paragraph strip -->
-			<pptx-ui-ribbon-home-paragraph
-				:state.prop="paragraphState"
-				@home-request="requestParagraph"
-			/>
-
-			<!-- Line Spacing / Text Direction / Columns -->
-			<ParagraphDropdowns :can-mut="canMut" :on-update-text-style="props.onUpdateTextStyle" />
+			<pptx-ui-ribbon-home-paragraph :state.prop="paragraphState" @home-request="request" />
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{
 			t('pptx.ribbon.paragraph')

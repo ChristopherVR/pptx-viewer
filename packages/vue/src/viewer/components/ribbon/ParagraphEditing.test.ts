@@ -52,7 +52,39 @@ describe('vue paragraph group', () => {
 	});
 });
 
+describe('vue paragraph galleries', () => {
+	it('hosts the Bullets and Numbering libraries in the shared element and toggles lists', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mount(ParagraphGroup, {
+			props: { canEdit: true, selectedElement: textElement({}), onUpdateTextStyle },
+			attachTo: document.body,
+		});
+		for (const id of ['bullets', 'numbering']) {
+			const slot = wrapper.element.querySelector(`[data-ribbon-control="home.paragraph.${id}"]`)!;
+			expect(slot.querySelector('pptx-ui-ribbon-gallery[chevron-only]')).toBeTruthy();
+		}
+		wrapper.element
+			.querySelector<HTMLButtonElement>('[data-ribbon-control="home.paragraph.bullets"] > button')!
+			.click();
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ listType: 'bullet' });
+		wrapper.unmount();
+	});
+});
+
 describe('vue editing section', () => {
+	it('runs Select All from the shared Select menu', () => {
+		const onSelectAll = vi.fn();
+		const wrapper = mount(EditingSection, {
+			props: { onToggleFindReplace: vi.fn(), onSelectAll },
+			attachTo: document.body,
+		});
+		const slot = wrapper.element.querySelector('[data-ribbon-control="home.editing.select"]')!;
+		slot.querySelector('button')!.click();
+		slot.querySelector<HTMLElement>('[data-value="selectAll"]')!.click();
+		expect(onSelectAll).toHaveBeenCalledOnce();
+		wrapper.unmount();
+	});
+
 	it('opens the find panel from both Find and Replace', () => {
 		const onToggleFindReplace = vi.fn();
 		const wrapper = mount(EditingSection, { props: { onToggleFindReplace } });

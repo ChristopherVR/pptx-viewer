@@ -129,10 +129,34 @@ describe('drawingGroup shared triggers', () => {
 		}
 		await wrapper.get('[title="Shapes"]').trigger('click');
 		expect(wrapper.get('[title="Shapes"]').attributes('aria-expanded')).toBe('true');
-		const item = wrapper.findAll('button').find((b) => b.text() === 'Rectangle');
-		await item!.trigger('click');
-		expect(props.onSetNewShapeType).toHaveBeenCalledWith('rect');
+		await wrapper.get('[data-value="ellipse"]').trigger('click');
+		expect(props.onSetNewShapeType).toHaveBeenCalledWith('ellipse');
 		expect(props.onAddShape).toHaveBeenCalledOnce();
+		expect(wrapper.get('[title="Shapes"]').attributes('aria-expanded')).toBe('false');
+		wrapper.unmount();
+	});
+
+	it('runs the layer-order menu rows through the matching move handler', async () => {
+		const props = drawingProps();
+		const wrapper = mount(DrawingGroup, { props, attachTo: document.body });
+		for (const value of ['forward', 'backward', 'front', 'back']) {
+			await wrapper.get('[title="Arrange"]').trigger('click');
+			await wrapper.get(`[data-value="${value}"]`).trigger('click');
+		}
+		expect(props.onMoveLayer.mock.calls).toStrictEqual([['forward'], ['backward']]);
+		expect(props.onMoveLayerToEdge.mock.calls).toStrictEqual([['front'], ['back']]);
+		wrapper.unmount();
+	});
+
+	it('hosts the Quick Styles and Shape Effects galleries in the shared element', () => {
+		const wrapper = mount(DrawingGroup, { props: drawingProps(), attachTo: document.body });
+		for (const id of ['quickStyles', 'shapeEffects']) {
+			expect(
+				wrapper.element.querySelectorAll(
+					`pptx-ui-ribbon-gallery[data-ribbon-control="home.drawing.${id}"]`,
+				),
+			).toHaveLength(1);
+		}
 		wrapper.unmount();
 	});
 

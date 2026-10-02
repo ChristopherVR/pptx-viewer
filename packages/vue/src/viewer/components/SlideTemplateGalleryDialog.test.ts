@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 function dialogEl(): HTMLElement {
-	const el = document.body.querySelector<HTMLElement>('[role="dialog"]');
+	const el = document.body.querySelector<HTMLElement>('[role="dialog"]:not([hidden])');
 	if (!el) {
 		throw new Error('dialog not found');
 	}
@@ -152,7 +152,7 @@ describe('slidesGroup template affordance', () => {
 		await wrapper.vm.$nextTick();
 
 		expect(onInsertSlideFromTemplate).toHaveBeenCalledExactlyOnceWith('keyMetrics');
-		expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+		expect(document.body.querySelector('[role="dialog"]:not([hidden])')).toBeNull();
 	});
 
 	it('hides the button when no template handler is provided', () => {

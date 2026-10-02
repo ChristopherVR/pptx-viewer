@@ -5,7 +5,7 @@ import { createRibbonControlIcon } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-import FontDecorationControls from './FontDecorationControls.vue';
+import FontHomeControls from './FontHomeControls.vue';
 import HomeSection from './HomeSection.vue';
 
 enableAutoUnmount(afterEach);
@@ -61,7 +61,7 @@ function mountHome(overrides: Record<string, unknown> = {}) {
 describe('homeSection - font size box (shared fontSizeOf)', () => {
 	it('renders the shared font-step artwork and forwards each action once', async () => {
 		const onAction = vi.fn();
-		const wrapper = mount(FontDecorationControls, {
+		const wrapper = mount(FontHomeControls, {
 			props: {
 				disabled: false,
 				textStyle: { fontSize: 24 },

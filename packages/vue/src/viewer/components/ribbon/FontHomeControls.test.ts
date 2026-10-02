@@ -7,12 +7,12 @@ import { mount } from '@vue/test-utils';
 import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
-import FontDecorationControls from './FontDecorationControls.vue';
+import FontHomeControls from './FontHomeControls.vue';
 
 registerPptxWebControls();
 
 function mountControls(props: Record<string, unknown> = {}) {
-	const wrapper = mount(FontDecorationControls, {
+	const wrapper = mount(FontHomeControls, {
 		props: { disabled: false, textStyle: { bold: true, textShadowColor: '#000000' }, ...props },
 	});
 	const button = (id: string) =>

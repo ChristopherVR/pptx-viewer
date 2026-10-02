@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { Highlighter } from 'lucide-vue-next';
 /** Vue's Home character-formatting controls and thin editor wiring. */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { OFFICE_COLOR_SWATCH_HEXES, textFontSizePtToPx } from 'pptx-viewer-shared';
+import { textFontSizePtToPx } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { getEffectiveTextStyle } from './effective-text-style';
-import FontActionMenus from './FontActionMenus.vue';
-import FontDecorationControls from './FontDecorationControls.vue';
+import FontHomeControls from './FontHomeControls.vue';
 import ParagraphGroup from './ParagraphGroup.vue';
-import { ic, SEP } from './ribbon-constants';
+import { SEP } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
-import TextColorPopover from './TextColorPopover.vue';
 
 interface Props {
 	canEdit: boolean;
@@ -27,21 +24,6 @@ interface Props {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
-
-const FONT_COLOR_PRESETS = OFFICE_COLOR_SWATCH_HEXES;
-
-const HIGHLIGHT_COLOR_PRESETS = [
-	'#ffff00',
-	'#00ff00',
-	'#00ffff',
-	'#ff00ff',
-	'#0000ff',
-	'#ff0000',
-	'#000080',
-	'#008080',
-	'#008000',
-	'#800080',
-];
 
 const hasSel = computed(() => Boolean(props.selectedElement));
 const canMut = computed(() => hasSel.value && props.canEdit);
@@ -184,55 +166,22 @@ function handleChangeCase(value: ChangeCaseMode): void {
 	<!-- ── Font group ── -->
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
 		<div class="flex items-center gap-1" data-pptx-chrome="font-controls">
-			<FontDecorationControls
+			<FontHomeControls
 				:disabled="!canMut || !canFormat"
 				:text-style="effectiveTs"
+				:color="currentColor"
+				:color-ref="currentColorThemeRef"
+				:highlight="currentHighlight"
 				@format="handleFmtClick"
 				@shadow="handleToggleTextShadow"
 				@increase="handleIncreaseFontSize"
 				@decrease="handleDecreaseFontSize"
 				@clear="handleClearFormatting"
-			/>
-			<FontActionMenus
-				:disabled="!canMut || !canFormat"
+				@color="handleColorChange"
+				@highlight="handleHighlightChange"
 				@spacing="handleCharSpacing"
 				@case="handleChangeCase"
 			/>
-			<!-- Font colour -->
-			<TextColorPopover
-				data-ribbon-control="home.font.fontColor"
-				:current="currentColor"
-				:current-ref="currentColorThemeRef"
-				:show-theme-colors="true"
-				:presets="FONT_COLOR_PRESETS"
-				:disabled="!canMut || !canFormat"
-				title-key="pptx.text.fontColor"
-				@pick="handleColorChange"
-			>
-				<svg
-					:class="ic"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M6 20h12M9.5 4h5L18 16H6L9.5 4z" />
-				</svg>
-			</TextColorPopover>
-
-			<!-- Text highlight colour -->
-			<TextColorPopover
-				data-ribbon-control="home.font.highlightColor"
-				:current="currentHighlight"
-				:presets="HIGHLIGHT_COLOR_PRESETS"
-				:disabled="!canMut || !canFormat"
-				title-key="pptx.text.highlightColor"
-				@pick="handleHighlightChange"
-			>
-				<Highlighter :class="ic" />
-			</TextColorPopover>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
 	</div>

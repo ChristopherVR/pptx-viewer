@@ -1,20 +1,27 @@
 <script setup lang="ts">
 /**
- * SlidesGroup: New Slide split button, Slide Templates gallery, Layout (apply
- * to current), Reset, and Section controls. Extracted from HomeSection to keep
- * it under 300 LOC. Vue port of React's `toolbar/SlidesGroup.tsx`.
+ * SlidesGroup: New Slide split button, Slide Templates, Layout (apply to
+ * current), Reset and Section. All of it, including the layout thumbnail
+ * galleries, is the shared `pptx-ui-ribbon-home-slides` element. The host only
+ * draws each tile's real artwork (SlideStage, teleported into the tile so
+ * provide/inject keeps working), loads the previews when a gallery opens, and
+ * runs the edits. The Slide Templates dialog stays native.
  */
-import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import type { RibbonHomeRequestEvent, SlideTemplateId } from 'pptx-viewer-shared';
-import { slidesHomeControls } from 'pptx-viewer-shared';
-import { computed, onMounted, ref, watchEffect } from 'vue';
+import type { PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
+import type {
+	HomeLayoutArtwork,
+	RibbonHomeLayoutModel,
+	RibbonHomePopupEvent,
+	RibbonHomeRequestEvent,
+	SlideTemplateId,
+} from 'pptx-viewer-shared';
+import { homeSnapshotTranslator, slidesHomeControls } from 'pptx-viewer-shared';
+import { computed, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import SlideStage from '../SlideStage.vue';
 import SlideTemplateGalleryDialog from '../SlideTemplateGalleryDialog.vue';
-import LayoutGalleryMenu from './LayoutGalleryMenu.vue';
 import type { LayoutOption } from './ribbon-types';
-import { useDropdown } from './use-dropdown';
-import { useHomeHost } from './use-home-host';
 
 interface Props {
 	canEdit: boolean;
@@ -35,19 +42,19 @@ interface Props {
 const props = defineProps<Props>();
 const { t, locale } = useI18n();
 
-const layoutMenu = useDropdown();
-const layoutApplyMenu = useDropdown();
-const { host, anchorOf } = useHomeHost();
-/** Wrapper holding the shared strip and both menus: the outside-click boundary. */
-const root = ref<HTMLElement | null>(null);
-onMounted(() => {
-	layoutMenu.root.value = root.value;
-	layoutApplyMenu.root.value = root.value;
-});
+/** Cap on artwork drawn per thumbnail; layouts never legitimately exceed this. */
+const MAX_PREVIEW_ELEMENTS = 100;
+/** No media in a layout thumbnail; images arrive already decoded as data URLs. */
+const EMPTY_MEDIA = new Map<string, string>();
+
+const previews = ref<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+const layouts = computed<RibbonHomeLayoutModel>(() => ({
+	layouts: props.layoutOptions,
+	current: props.currentLayoutPath,
+	previews: previews.value,
+}));
 
 const state = computed(() => ({
-	// The locale is read so a language switch re-translates the shared labels.
-	locale: locale.value,
 	controls: slidesHomeControls({
 		editable: props.canEdit,
 		hasLayouts: props.layoutOptions.length > 0,
@@ -55,28 +62,84 @@ const state = computed(() => ({
 		showTemplates: Boolean(props.onInsertSlideFromTemplate),
 		newSlideNeedsLayout: true,
 		resetNeedsSlide: false,
-		layoutOpen: layoutApplyMenu.open.value,
-		newSlideOpen: layoutMenu.open.value,
+		layouts: layouts.value,
 	}),
-	translate: t,
+	// The locale is read so a language switch re-translates the shared labels.
+	locale: locale.value,
+	translate: homeSnapshotTranslator(['slides'], t),
 }));
 
+/** Tiles the shared gallery asked this host to fill with artwork. */
+interface Artwork {
+	key: number;
+	container: HTMLElement;
+	slide: PptxSlide;
+	width: number;
+	height: number;
+	scale: number;
+}
+const artworks = shallowRef<Artwork[]>([]);
+let nextKey = 0;
+const drawArtwork: HomeLayoutArtwork = (preview, geometry, container) => {
+	const entry: Artwork = {
+		key: nextKey++,
+		container,
+		slide: {
+			id: `layout-preview-${preview.path}`,
+			rId: '',
+			slideNumber: 0,
+			elements: preview.elements.slice(0, MAX_PREVIEW_ELEMENTS),
+			backgroundColor: geometry.backgroundColor,
+		},
+		width: geometry.surfaceWidth,
+		height: geometry.surfaceHeight,
+		scale: 1,
+	};
+	artworks.value = [...artworks.value, entry];
+	return () => {
+		artworks.value = artworks.value.filter((item) => item !== entry);
+	};
+};
+
+/**
+ * Layout artwork, fetched the first time either gallery opens: parsing every
+ * layout part is only worth doing once the user asks to see the thumbnails.
+ */
+function onPopup(event: Event): void {
+	const { open } = (event as RibbonHomePopupEvent).detail;
+	const load = props.loadLayoutPreviews;
+	if (!open || !load) {
+		return;
+	}
+	void load()
+		.then((loaded) => {
+			previews.value = new Map(loaded.map((preview) => [preview.path, preview]));
+			return undefined;
+		})
+		// A layout that will not parse costs the user a name-only tile, not a broken menu.
+		.catch(() => undefined);
+}
+
+const templateGalleryOpen = ref(false);
+
 function request(event: RibbonHomeRequestEvent): void {
-	switch (event.detail.id) {
-		case 'home.slides.newSlide':
-			if (event.detail.part === 'caret') {
-				layoutApplyMenu.close();
-				layoutMenu.toggle();
-			} else {
-				handleNewSlide();
+	const { id, value } = event.detail;
+	switch (id) {
+		case 'home.slides.newSlide': {
+			const layout =
+				value === undefined
+					? props.layoutOptions[0]
+					: props.layoutOptions.find((option) => option.path === value);
+			if (layout) {
+				props.onInsertSlideFromLayout(layout.path, layout.name);
 			}
 			break;
+		}
 		case 'home.slides.slideTemplates':
 			templateGalleryOpen.value = true;
 			break;
 		case 'home.slides.layout':
-			layoutMenu.close();
-			layoutApplyMenu.toggle();
+			props.onApplyLayout?.(String(value));
 			break;
 		case 'home.slides.reset':
 			props.onResetSlide?.();
@@ -85,79 +148,28 @@ function request(event: RibbonHomeRequestEvent): void {
 			props.onAddSection?.();
 	}
 }
-const templateGalleryOpen = ref(false);
-
-/**
- * Layout artwork, fetched the first time either gallery opens.
- *
- * Parsing every layout part is only worth doing once the user asks to see the
- * thumbnails; core memoises the result, so reopening a menu costs nothing.
- */
-const previews = ref<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
-watchEffect(() => {
-	if (!layoutMenu.open.value && !layoutApplyMenu.open.value) {
-		return;
-	}
-	const load = props.loadLayoutPreviews;
-	if (!load) {
-		return;
-	}
-	void load()
-		.then((loaded) => {
-			previews.value = new Map(loaded.map((preview) => [preview.path, preview]));
-			return undefined;
-		})
-		// A layout that will not parse costs the user a name-only tile, not a
-		// broken menu.
-		.catch(() => undefined);
-});
-
-function handleInsertTemplate(templateId: SlideTemplateId): void {
-	props.onInsertSlideFromTemplate?.(templateId);
-}
-
-function handleNewSlide(): void {
-	if (props.layoutOptions.length > 0) {
-		const first = props.layoutOptions[0];
-		props.onInsertSlideFromLayout(first.path, first.name);
-	}
-}
-
-function handlePickLayout(lo: PptxLayoutOption | LayoutOption): void {
-	props.onInsertSlideFromLayout(lo.path, lo.name);
-	layoutMenu.close();
-}
-
-function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
-	props.onApplyLayout?.(lo.path);
-	layoutApplyMenu.close();
-}
 </script>
 
 <template>
-	<div ref="root" class="contents">
-		<pptx-ui-ribbon-home-slides ref="host" :state.prop="state" @home-request="request" />
-		<LayoutGalleryMenu
-			v-if="layoutMenu.open.value"
-			:anchor="anchorOf('home.slides.newSlide')"
-			:layout-options="props.layoutOptions"
-			:previews="previews"
-			@select="handlePickLayout"
+	<pptx-ui-ribbon-home-slides
+		:state.prop="state"
+		:layoutArtwork.prop="drawArtwork"
+		@home-request="request"
+		@home-popup="onPopup"
+	/>
+	<Teleport v-for="art in artworks" :key="art.key" :to="art.container">
+		<SlideStage
+			:slide="art.slide"
+			:canvas-size="{ width: art.width, height: art.height }"
+			:media-data-urls="EMPTY_MEDIA"
+			:scale="art.scale"
 		/>
-		<LayoutGalleryMenu
-			v-if="layoutApplyMenu.open.value"
-			:anchor="anchorOf('home.slides.layout')"
-			:layout-options="props.layoutOptions"
-			:previews="previews"
-			:current-layout-path="props.currentLayoutPath"
-			@select="handleApplyLayout"
-		/>
-		<SlideTemplateGalleryDialog
-			v-if="props.onInsertSlideFromTemplate"
-			:open="templateGalleryOpen"
-			:scheme="props.templateScheme"
-			@insert="handleInsertTemplate"
-			@close="templateGalleryOpen = false"
-		/>
-	</div>
+	</Teleport>
+	<SlideTemplateGalleryDialog
+		v-if="props.onInsertSlideFromTemplate"
+		:open="templateGalleryOpen"
+		:scheme="props.templateScheme"
+		@insert="props.onInsertSlideFromTemplate?.($event)"
+		@close="templateGalleryOpen = false"
+	/>
 </template>

@@ -48,7 +48,7 @@ describe('slidesGroup', () => {
 		wrapper.unmount();
 	});
 
-	it('opens the native layout menus from the caret and the Layout button', async () => {
+	it('opens the shared layout galleries and runs the picked layout', async () => {
 		const { wrapper, handlers, button, control } = mountGroup();
 		const caret = control('newSlide').querySelector<HTMLElement>(
 			'[data-pptx-chrome="split-caret"]',
@@ -57,11 +57,50 @@ describe('slidesGroup', () => {
 		await wrapper.vm.$nextTick();
 		expect(caret.getAttribute('aria-expanded')).toBe('true');
 		expect(wrapper.element.textContent).toContain('Title and Content');
+		control('newSlide')
+			.querySelector<HTMLElement>(`[data-layout-path="${LAYOUTS[1].path}"]`)!
+			.click();
+		expect(handlers.onInsertSlideFromLayout).toHaveBeenCalledWith(
+			LAYOUTS[1].path,
+			'Title and Content',
+		);
 		button('layout').click();
 		await wrapper.vm.$nextTick();
 		expect(button('layout').getAttribute('aria-expanded')).toBe('true');
-		expect(caret.getAttribute('aria-expanded')).toBe('false');
-		expect(handlers.onInsertSlideFromLayout).not.toHaveBeenCalled();
+		control('layout')
+			.querySelector<HTMLElement>(`[data-layout-path="${LAYOUTS[0].path}"]`)!
+			.click();
+		expect(handlers.onApplyLayout).toHaveBeenCalledWith(LAYOUTS[0].path);
+		wrapper.unmount();
+	});
+
+	it('marks the current layout, loads previews on open and teleports artwork into the tile', async () => {
+		const loadLayoutPreviews = vi.fn(async () => [
+			{
+				path: LAYOUTS[0].path,
+				name: 'Title Slide',
+				width: 960,
+				height: 540,
+				elements: [],
+				placeholders: [],
+			},
+		]);
+		const { wrapper, button, control } = mountGroup({
+			currentLayoutPath: LAYOUTS[1].path,
+			loadLayoutPreviews,
+		});
+		button('layout').click();
+		await vi.waitFor(() =>
+			expect(
+				control('layout').querySelector('.surface .pptx-vue-stage, .surface > *'),
+			).toBeTruthy(),
+		);
+		expect(loadLayoutPreviews).toHaveBeenCalledWith();
+		expect(
+			control('layout')
+				.querySelector(`[data-layout-path="${LAYOUTS[1].path}"]`)!
+				.getAttribute('aria-current'),
+		).toBe('true');
 		wrapper.unmount();
 	});
 

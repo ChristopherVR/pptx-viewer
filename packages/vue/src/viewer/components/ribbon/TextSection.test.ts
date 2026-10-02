@@ -1,10 +1,13 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import TextSection from './TextSection.vue';
+
+registerPptxWebControls();
 
 /**
  * TextSection: the ribbon Home "Font" group (wave-4 B6 "Recent colours"
@@ -41,6 +44,12 @@ function mountSection(props: Record<string, unknown> = {}, global?: Record<strin
 	});
 }
 
+function openFontColour(wrapper: ReturnType<typeof mountSection>): void {
+	wrapper
+		.get<HTMLButtonElement>('[data-ribbon-control="home.font.fontColor"] button')
+		.element.click();
+}
+
 describe('textSection font-colour popover', () => {
 	it('offers the recent-colours row when a controller is injected', () => {
 		const recent = ref<string[]>(['#112233']);
@@ -48,6 +57,7 @@ describe('textSection font-colour popover', () => {
 			{},
 			{ provide: { [RecentColorsKey as symbol]: { recent, push: () => {} } } },
 		);
+		openFontColour(wrapper);
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
 	});
 
@@ -62,6 +72,7 @@ describe('textSection font-colour popover', () => {
 			{ provide: { [RecentColorsKey as symbol]: { recent, push } } },
 		);
 
+		openFontColour(wrapper);
 		const recentSwatch = wrapper.findAll('[data-testid="pptx-color-recent"] button')[1];
 		await recentSwatch.trigger('click');
 
@@ -71,6 +82,7 @@ describe('textSection font-colour popover', () => {
 
 	it('renders no recent-colours row without an injected controller', () => {
 		const wrapper = mountSection();
+		openFontColour(wrapper);
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeFalsy();
 	});
 });
@@ -131,8 +143,10 @@ describe('textSection list controls', () => {
 		},
 	);
 
-	it('disables unsupported table list commands without disabling ordinary cell formatting', () => {
+	it('keeps table list commands on the cell style and ordinary cell formatting enabled', async () => {
+		const onUpdateTextStyle = vi.fn();
 		const wrapper = mountSection({
+			onUpdateTextStyle,
 			selectedElement: {
 				id: 'table',
 				type: 'table',
@@ -144,8 +158,77 @@ describe('textSection list controls', () => {
 			},
 			tableEditorState: { elementId: 'table', rowIndex: 0, columnIndex: 0 },
 		});
-		expect(wrapper.find('button[title="Bullet List"]').attributes('disabled')).toBeDefined();
-		expect(wrapper.find('button[title="Numbered List"]').attributes('disabled')).toBeDefined();
+		expect(wrapper.find('button[title="Bullet List"]').attributes('disabled')).toBeUndefined();
 		expect(wrapper.find('button[title="Bold"]').attributes('disabled')).toBeUndefined();
+		await wrapper.find('button[title="Numbered List"]').trigger('click');
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ listType: 'numbered' });
+	});
+});
+
+describe('textSection shared font extras', () => {
+	const pick = async (wrapper: ReturnType<typeof mountSection>, id: string, value: string) => {
+		const slot = wrapper.get(`[data-ribbon-control="${id}"]`);
+		(slot.get('button').element as HTMLButtonElement).click();
+		(slot.get(`[data-value="${value}"]`).element as HTMLElement).click();
+		await wrapper.vm.$nextTick();
+	};
+
+	it('routes character spacing, change case and highlight to the existing edits', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const onTransformTextCase = vi.fn();
+		const wrapper = mountSection({ onUpdateTextStyle, onTransformTextCase });
+		const spacing = wrapper.get('[data-ribbon-control="home.font.characterSpacing"]')
+			.element as HTMLElement & { value: string };
+		spacing.value = '75';
+		spacing.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ characterSpacing: 75 });
+		await pick(wrapper, 'home.font.changeCase', 'upper');
+		expect(onTransformTextCase).toHaveBeenCalledWith('upper');
+		(
+			wrapper.get('[data-ribbon-control="home.font.highlightColor"] button').element as HTMLElement
+		).click();
+		wrapper
+			.get<HTMLElement>('[data-ribbon-control="home.font.highlightColor"] .std-grid button')
+			.element.click();
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ highlightColor: '#ffff00' });
+	});
+
+	it('falls back to the visual caps hint for table cells', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountSection({
+			onUpdateTextStyle,
+			selectedElement: {
+				id: 'table',
+				type: 'table',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 40,
+				tableData: { rows: [{ cells: [{ text: 'cell', style: {} }] }], columnWidths: [1] },
+			},
+			tableEditorState: { elementId: 'table', rowIndex: 0, columnIndex: 0 },
+		});
+		await pick(wrapper, 'home.font.changeCase', 'upper');
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ textCaps: 'all' });
+	});
+
+	it('applies line spacing, direction and columns from the paragraph selects', () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountSection({ onUpdateTextStyle });
+		for (const [id, value] of [
+			['lineSpacing', '1.5'],
+			['textDirection', 'vertical'],
+			['columns', '2'],
+		]) {
+			const select = wrapper.get(`[data-ribbon-control="home.paragraph.${id}"]`)
+				.element as HTMLElement & { value: string };
+			select.value = value;
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		expect(onUpdateTextStyle.mock.calls).toStrictEqual([
+			[{ lineSpacing: 1.5 }],
+			[{ textDirection: 'vertical' }],
+			[{ columnCount: 2 }],
+		]);
 	});
 });

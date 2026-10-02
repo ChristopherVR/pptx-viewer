@@ -1,10 +1,10 @@
 <!--
 	Arrange ribbon section: Vue port of React's `toolbar/ArrangeSection.tsx`.
-	The align/distribute, flip, layer-order and duplicate/delete buttons are the
-	shared `pptx-ui-ribbon-home-arrange-*` strips (markup, icons and gating come
-	from shared code; this adapter maps their `home-request` intents onto the
-	handlers). The optional format-painter toggle, group/ungroup + outline width
-	(`ShapeArrangeExtras.vue`), Merge Shapes and Crop stay native.
+	Every control is a shared `pptx-ui-ribbon-home-arrange-*` strip (markup,
+	icons, menus and gating come from shared code; this adapter maps their
+	`home-request` intents onto the handlers): align/distribute, the optional
+	second Format Painter, flip, Group/Ungroup + Merge Shapes + Crop + outline
+	width, layer order and duplicate/delete.
 
 	This group deliberately does NOT repeat Cut / Copy / Paste. It used to, and
 	since the Home tab already renders the Clipboard group beside it, every one
@@ -13,19 +13,25 @@
 	name, by a user or by a test.
 -->
 <script setup lang="ts">
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { MergeShapeOperation, PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import type { RibbonHomeRequestEvent, ToolbarActionId } from 'pptx-viewer-shared';
-import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import {
+	arrangeAlignAction,
+	arrangeHomeControls,
+	arrangePainterHomeControls,
+	arrangeShapeHomeControls,
+	canGroupSelection,
+	canSetStrokeWidth,
+	canUngroupSelection,
+	homeSnapshotTranslator,
+	parseCropValue,
+	strokeWidthOf,
+} from 'pptx-viewer-shared';
+import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../../utils';
+import { MergeCropKey } from '../../composables/merge-crop-context';
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
-import CropControls from './CropControls.vue';
-import MergeShapesMenu from './MergeShapesMenu.vue';
-import { ic, pill } from './ribbon-constants';
-import RibbonIcon from './RibbonIcon';
-import ShapeArrangeExtras from './ShapeArrangeExtras.vue';
 
 interface Props {
 	canEdit: boolean;
@@ -57,6 +63,17 @@ const props = defineProps<Props>();
 const { t, locale } = useI18n();
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
+const controller = inject(MergeCropKey, undefined);
+
+const families = [
+	'arrange-align',
+	'arrange-painter',
+	'arrange-flip',
+	'arrange-shape',
+	'arrange-order',
+	'arrange-edit',
+] as const;
+
 const state = computed(() => ({
 	// The locale is read so a language switch re-translates the shared labels.
 	locale: locale.value,
@@ -65,8 +82,66 @@ const state = computed(() => ({
 		hasSelection: Boolean(props.selectedElement),
 		canDistribute: props.canDistribute,
 	}),
-	translate: t,
+	translate: homeSnapshotTranslator(families, t),
 }));
+
+const painterState = computed(() => ({
+	controls: arrangePainterHomeControls({
+		editable: props.canEdit,
+		active: Boolean(props.formatPainterActive),
+		canFormatPaint: props.canActivateFormatPainter !== false,
+		show: true,
+	}),
+	locale: locale.value,
+	translate: homeSnapshotTranslator(families, t),
+}));
+
+const shapeState = computed(() => ({
+	controls: arrangeShapeHomeControls({
+		editable: props.canEdit,
+		canGroup: canGroupSelection(props.canEdit, props.selectedCount, props.selectionGroupable),
+		canUngroup: canUngroupSelection(props.canEdit, props.selectedElement),
+		canMerge: Boolean(controller?.canMerge.value),
+		canCrop: Boolean(controller?.cropActive.value) || Boolean(controller?.canCrop.value),
+		cropActive: Boolean(controller?.cropActive.value),
+		canStrokeWidth: canSetStrokeWidth(props.canEdit, props.selectedElement),
+		strokeWidth: strokeWidthOf(props.selectedElement),
+		hideMerge: isHidden('mergeShapes'),
+		hideCrop: isHidden('crop'),
+	}),
+	locale: locale.value,
+	translate: homeSnapshotTranslator(families, t),
+}));
+
+function requestShape(event: RibbonHomeRequestEvent): void {
+	const { id, value } = event.detail;
+	switch (id) {
+		case 'home.arrange.group':
+			props.onGroupElements();
+			break;
+		case 'home.arrange.ungroup':
+			props.onUngroupElement();
+			break;
+		case 'home.arrange.outlineWidth':
+			props.onUpdateElementStyle({ strokeWidth: Math.max(0, Number(value)) });
+			break;
+		case 'home.arrange.mergeShapes':
+			controller?.merge(String(value) as MergeShapeOperation);
+			break;
+		case 'home.arrange.crop': {
+			const crop = parseCropValue(value);
+			if (!crop) {
+				controller?.toggleCrop();
+			} else if (crop.kind === 'aspect') {
+				controller?.applyAspect(`${crop.width}:${crop.height}`);
+			} else if (crop.kind === 'fill') {
+				controller?.applyFill();
+			} else {
+				controller?.applyFit();
+			}
+		}
+	}
+}
 
 /** This binding's align handler names the horizontal centre `center`. */
 function requestAlign(event: RibbonHomeRequestEvent): void {
@@ -111,39 +186,16 @@ function requestEdit(event: RibbonHomeRequestEvent): void {
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.arrange">
 		<div data-pptx-chrome="arrange-controls">
 			<pptx-ui-ribbon-home-arrange-align :state.prop="state" @home-request="requestAlign" />
-			<button
+			<pptx-ui-ribbon-home-arrange-painter
 				v-if="props.onToggleFormatPainter"
-				type="button"
-				:disabled="
-					!props.canEdit || (props.canActivateFormatPainter === false && !props.formatPainterActive)
-				"
-				data-testid="format-painter-toggle"
-				data-ribbon-control="home.clipboard.formatPainter"
-				:data-active="props.formatPainterActive ? 'true' : 'false'"
-				:class="
-					cn(pill, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
-				"
-				:title="t('pptx.arrange.formatPainter')"
-				@click="props.onToggleFormatPainter"
-			>
-				<RibbonIcon name="home.clipboard.formatPainter" :class="ic" />
-				{{ t('pptx.arrange.format') }}
-			</button>
+				:state.prop="painterState"
+				@home-request="props.onToggleFormatPainter()"
+			/>
 			<pptx-ui-ribbon-home-arrange-flip :state.prop="state" @home-request="requestFlip" />
-			<ShapeArrangeExtras
-				:can-edit="props.canEdit"
-				:selected-element="props.selectedElement"
-				:selected-count="props.selectedCount"
-				:selection-groupable="props.selectionGroupable"
-				:on-group-elements="props.onGroupElements"
-				:on-ungroup-element="props.onUngroupElement"
-				:on-update-element-style="props.onUpdateElementStyle"
-			/>
-			<MergeShapesMenu
-				v-if="!isHidden('mergeShapes')"
-				data-ribbon-control="home.arrange.mergeShapes"
-			/>
-			<CropControls v-if="!isHidden('crop')" data-ribbon-control="home.arrange.crop" />
+			<!-- A press here must not count as "outside" and commit crop mode. -->
+			<div class="contents" data-pptx-crop-keep="true">
+				<pptx-ui-ribbon-home-arrange-shape :state.prop="shapeState" @home-request="requestShape" />
+			</div>
 			<pptx-ui-ribbon-home-arrange-order :state.prop="state" @home-request="requestOrder" />
 			<pptx-ui-ribbon-home-arrange-edit :state.prop="state" @home-request="requestEdit" />
 		</div>
