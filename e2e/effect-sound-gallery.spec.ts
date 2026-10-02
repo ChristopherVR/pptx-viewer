@@ -109,7 +109,7 @@ test.describe('transition sound gallery (ribbon)', () => {
 
 		const soundSelect = page.getByRole('combobox', { name: 'Sound:', exact: true });
 		await expect(soundSelect).toBeVisible();
-		await soundSelect.selectOption('applause');
+		await chooseSelectValue(page, soundSelect, 'applause');
 
 		const download = await savePptxViaBackstage(page);
 		const bytes = await downloadBytes(download);

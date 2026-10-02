@@ -24,7 +24,7 @@ button.busy::before { content: ''; width: 12px; height: 12px; border: 2px solid 
 @media (prefers-reduced-motion: reduce) { button.busy::before { animation: none; } }
 button:disabled { cursor: not-allowed; opacity: .55; }
 button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: 2px; }
-@media (pointer: coarse) { button { min-width: 44px; min-height: 44px; } }
+@media (pointer: coarse), (max-width: 767px) { button { min-width: 44px; min-height: 44px; } }
 @media (forced-colors: active) {
 	button, button.primary, button.warning, button.danger { border-color: ButtonText; background: ButtonFace; color: ButtonText; }
 	button:hover:not(:disabled) { background: Highlight; color: HighlightText; }

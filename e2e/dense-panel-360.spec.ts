@@ -177,24 +177,33 @@ async function controlNameSet(container: Locator): Promise<Set<string>> {
 	}
 	const names = await container.page().evaluate((root: Element) => {
 		const out: string[] = [];
-		for (const el of root.querySelectorAll(
-			'button, [role="button"], a[href], [role="tab"], select',
-		)) {
-			if (!(el as HTMLElement).checkVisibility?.()) {
-				continue;
+		// Native controls plus the shared custom controls, found through open shadow roots too
+		// (dialog action rows and selects/checkboxes/radios/switches live in shadow roots now).
+		const selector =
+			'button, [role="button"], a[href], [role="tab"], select, [role="combobox"], ' +
+			'[role="checkbox"], [role="radio"], [role="switch"], ' +
+			'pptx-ui-select, pptx-ui-checkbox, pptx-ui-radio, pptx-ui-switch';
+		const walk = (scope: ParentNode): void => {
+			for (const el of scope.querySelectorAll('*')) {
+				if (el.matches(selector) && (el as HTMLElement).checkVisibility?.()) {
+					const name = (
+						el.getAttribute('aria-label') ??
+						el.getAttribute('title') ??
+						el.textContent ??
+						''
+					)
+						.trim()
+						.replace(/\s+/gu, ' ');
+					if (name) {
+						out.push(name);
+					}
+				}
+				if (el.shadowRoot) {
+					walk(el.shadowRoot);
+				}
 			}
-			const name = (
-				el.getAttribute('aria-label') ??
-				el.getAttribute('title') ??
-				el.textContent ??
-				''
-			)
-				.trim()
-				.replace(/\s+/gu, ' ');
-			if (name) {
-				out.push(name);
-			}
-		}
+		};
+		walk(root);
 		return out;
 	}, handle);
 	return new Set(names);
