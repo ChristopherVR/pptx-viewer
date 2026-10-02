@@ -82,7 +82,7 @@ describe('shared ribbon controls', () => {
 		expect(root.querySelector('button')!.title).toBe('Header & Footer');
 		host.setAttribute('tall', '');
 		host.setAttribute('icon-only', '');
-		expect(host.hasAttribute('tall')).toBe(true);
+		expect(host.hasAttribute('tall')).toBeTruthy();
 	});
 
 	it('keeps label and group properties settable by frameworks that assign element properties', () => {

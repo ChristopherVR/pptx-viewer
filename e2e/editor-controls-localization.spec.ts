@@ -12,7 +12,7 @@ import { loadDeck } from './support/deck';
 import { openOptionsDialog, optionsCategory, pickOptionsEntry } from './support/settings-dialog';
 
 // Wide enough that the Home Arrange extras (alignment) have not collapsed into a popup.
-test.use({ viewport: { width: 2600, height: 1080 } });
+test.use({ viewport: { width: 3200, height: 1080 } });
 
 for (const { dictionary, nativeLabel } of [
 	{ dictionary: translationsDe, nativeLabel: 'Deutsch' },
