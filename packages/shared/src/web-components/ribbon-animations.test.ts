@@ -70,7 +70,7 @@ describe('shared Animations view', () => {
 		button(host, 'animations.advancedAnimation.remove').click();
 		host.querySelector<HTMLButtonElement>('[data-animation-preset="flyIn"]')!.click();
 		host.querySelector<HTMLButtonElement>('[data-animation-preset="lineRight"]')!.click();
-		host.querySelectorAll('pptx-ui-ribbon-command')[2].shadowRoot!.querySelector('button')!.click();
+		host.querySelectorAll('pptx-ui-ribbon-command')[3].shadowRoot!.querySelector('button')!.click();
 		expect(intents(request)).toStrictEqual([
 			{ kind: 'command', value: 'preview' },
 			{ kind: 'add', group: 'exit', preset: 'fadeOut' },
@@ -187,8 +187,8 @@ describe('shared Animations gallery structure', () => {
 	it('groups motion paths under the five families and effects under the three buckets (fallback captions)', () => {
 		const host = mount({ translate: (key) => key });
 		const captions = (id: string) =>
-			[...host.querySelectorAll(`[data-ribbon-control="${id}"] .caption`)].map(
-				(node) => node.textContent,
+			[...host.querySelectorAll(`[data-ribbon-control="${id}"] .column`)].map((node) =>
+				node.getAttribute('aria-label'),
 			);
 		expect(captions('animations.motionPath.gallery')).toStrictEqual([
 			'Lines',

@@ -97,7 +97,28 @@ export function createRibbonGalleryView(
 			trigger.setAttribute('aria-label', trigger.title);
 			trigger.disabled = disabled;
 			trigger.replaceChildren();
-			if (!inline && !chevronOnly) {
+			const command = descriptor.command;
+			trigger.classList.toggle('command', Boolean(command));
+			trigger.classList.toggle('command-large', Boolean(command?.large));
+			if (command) {
+				// A one-button command: no panel, no chevron; the tooltip says why it is off.
+				trigger.removeAttribute('aria-haspopup');
+				trigger.removeAttribute('aria-expanded');
+				trigger.title = command.hintKey
+					? caption(t, command.hintKey, command.hint ?? title)
+					: title;
+				trigger.setAttribute('aria-label', title);
+				const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+				svg.setAttribute('viewBox', '0 0 20 20');
+				svg.setAttribute('aria-hidden', 'true');
+				const path = doc.createElementNS(svg.namespaceURI, 'path');
+				path.setAttribute('d', command.iconPath);
+				svg.append(path);
+				const label = doc.createElement('span');
+				label.textContent = title;
+				trigger.append(svg, label);
+			} else if (!inline && !chevronOnly) {
+				trigger.setAttribute('aria-haspopup', 'dialog');
 				const svg =
 					controlId && RIBBON_CONTROL_ICONS[controlId]
 						? createRibbonControlIcon(doc, controlId)
@@ -115,10 +136,12 @@ export function createRibbonGalleryView(
 				label.textContent = title;
 				trigger.append(svg, label);
 			}
-			const chevron = doc.createElement('span');
-			chevron.textContent = '\u2304';
-			chevron.setAttribute('aria-hidden', 'true');
-			trigger.append(chevron);
+			if (!command) {
+				const chevron = doc.createElement('span');
+				chevron.textContent = '\u2304';
+				chevron.setAttribute('aria-hidden', 'true');
+				trigger.append(chevron);
+			}
 			strip.hidden = !inline;
 			strip.style.display = inline ? '' : 'none';
 			strip.replaceChildren(

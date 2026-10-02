@@ -41,7 +41,9 @@ function command(tab: { el: HTMLElement }, id: string): HTMLButtonElement {
 
 function presetButtons(tab: { el: HTMLElement }, gallery: string): HTMLButtonElement[] {
 	return [
-		...tab.el.querySelectorAll<HTMLButtonElement>(`[data-ribbon-control="${gallery}"] button`),
+		...tab.el.querySelectorAll<HTMLButtonElement>(
+			`[data-ribbon-control="${gallery}"] button.preset`,
+		),
 	];
 }
 
@@ -71,8 +73,8 @@ describe('createAnimationsTab', () => {
 		const t = createTranslator();
 		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
 		const captions = [
-			...tab.el.querySelectorAll('[data-ribbon-control="animations.animation.gallery"] .caption'),
-		].map((node) => node.textContent);
+			...tab.el.querySelectorAll('[data-ribbon-control="animations.animation.gallery"] .column'),
+		].map((node) => node.getAttribute('aria-label'));
 		expect(captions).toStrictEqual([
 			t('pptx.animation.entrance'),
 			t('pptx.animation.emphasis'),
@@ -124,7 +126,7 @@ describe('createAnimationsTab', () => {
 		tab.update(selected);
 		command(tab, 'animations.advancedAnimation.addAnimation').click();
 		tab.el
-			.querySelectorAll('pptx-ui-ribbon-command')[2]
+			.querySelectorAll('pptx-ui-ribbon-command')[3]
 			.shadowRoot!.querySelector('button')!
 			.click();
 		expect(actions.addAnimation).toHaveBeenNthCalledWith(1, 'exit', 'fadeOut');

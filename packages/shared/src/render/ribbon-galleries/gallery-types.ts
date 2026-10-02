@@ -40,6 +40,17 @@ export type RibbonGalleryId =
 	| 'chartQuickLayout'
 	| 'smartArtStyles'
 	| 'smartArtColors'
+	| 'smartArtLayouts'
+	| 'smartArtAddShape'
+	| 'smartArtAddBullet'
+	| 'smartArtTextPane'
+	| 'smartArtPromote'
+	| 'smartArtDemote'
+	| 'smartArtRightToLeft'
+	| 'smartArtMoveUp'
+	| 'smartArtMoveDown'
+	| 'smartArtResetGraphic'
+	| 'smartArtConvert'
 	| 'themeColors'
 	| 'themeFonts';
 
@@ -91,6 +102,23 @@ export interface RibbonGalleryDescriptor {
 	sections: RibbonGallerySection[];
 	/** True when the selection cannot take this gallery (trigger disabled). */
 	disabled: boolean;
+	/**
+	 * Set when the entry is a one-button command (PowerPoint's Add Shape, Reset
+	 * Graphic, ...) rather than a gallery: the element draws a plain command, a
+	 * click picks its only item and no panel opens.
+	 */
+	command?: RibbonGalleryCommandView;
+}
+
+/** How a command-style entry draws (see {@link RibbonGalleryDescriptor.command}). */
+export interface RibbonGalleryCommandView {
+	/** SVG path data on a 20px grid. */
+	iconPath: string;
+	/** Icon above the label (PowerPoint's large button) instead of beside it. */
+	large?: boolean;
+	/** i18n key and English fallback of the tooltip, e.g. why the command is unavailable. */
+	hintKey?: string;
+	hint?: string;
 }
 
 /**

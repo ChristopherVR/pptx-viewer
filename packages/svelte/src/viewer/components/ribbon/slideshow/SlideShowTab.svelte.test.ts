@@ -101,7 +101,7 @@ describe('slideShowTab', () => {
 			'Rehearse Timings',
 			'Record',
 			'Subtitle Settings',
-			'Custom show',
+			'Custom Slide Show',
 		]) {
 			expect(found.get(name), `${name} is missing from the Slide Show tab`).toBeDefined();
 			expect(found.get(name)?.disabled, `${name} should be usable`).toBeFalsy();
@@ -128,8 +128,8 @@ describe('slideShowTab', () => {
 
 	it('offers the playback option toggles, parking the ones with no backing state', () => {
 		const target = mountTab({ editor: makeEditor() });
-		expect(toggle(target, 'Using timings, if present')?.checked).toBeTruthy();
-		expect(toggle(target, 'Using timings, if present')?.disabled).toBeFalsy();
+		expect(toggle(target, 'Use Timings')?.checked).toBeTruthy();
+		expect(toggle(target, 'Use Timings')?.disabled).toBeFalsy();
 		expect(toggle(target, 'Play Narrations')?.checked).toBeTruthy();
 		// Neither of these has anywhere to be stored, so they admit it rather
 		// than toggling and changing nothing.
@@ -143,12 +143,12 @@ describe('slideShowTab', () => {
 		const editor = makeEditor();
 		const target = mountTab({ editor });
 
-		const timings = toggle(target, 'Using timings, if present')!;
+		const timings = toggle(target, 'Use Timings')!;
 		timings.checked = false;
 		timings.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 		expect(editor.presentationProperties.advanceMode).toBe('manual');
-		expect(toggle(target, 'Using timings, if present')?.checked).toBeFalsy();
+		expect(toggle(target, 'Use Timings')?.checked).toBeFalsy();
 
 		const narrations = toggle(target, 'Play Narrations')!;
 		narrations.checked = false;
@@ -163,7 +163,7 @@ describe('slideShowTab', () => {
 		const editor = makeEditor();
 		editor.presentationMetadata.updatePresentationProperties({ advanceMode: 'manual' });
 		const target = mountTab({ editor });
-		expect(toggle(target, 'Using timings, if present')?.checked).toBeFalsy();
+		expect(toggle(target, 'Use Timings')?.checked).toBeFalsy();
 	});
 
 	it('reflects and toggles the host subtitle flag', () => {

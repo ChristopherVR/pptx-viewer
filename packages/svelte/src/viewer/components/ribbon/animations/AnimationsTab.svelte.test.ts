@@ -79,7 +79,7 @@ describe('animationsTab', () => {
 		expect(
 			target
 				.querySelector('[data-ribbon-control="animations.motionPath.gallery"]')!
-				.querySelectorAll('button'),
+				.querySelectorAll('button.preset'),
 		).toHaveLength(MOTION_PATH_PRESETS.length);
 	});
 
@@ -122,7 +122,7 @@ describe('animationsTab', () => {
 		const target = mountTab(editor);
 
 		target
-			.querySelectorAll('pptx-ui-ribbon-command')[2]
+			.querySelectorAll('pptx-ui-ribbon-command')[3]
 			.shadowRoot!.querySelector('button')!
 			.click();
 		flushSync();

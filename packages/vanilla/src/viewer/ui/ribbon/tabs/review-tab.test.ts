@@ -58,7 +58,7 @@ describe('createReviewTab', () => {
 			t('pptx.review.language'),
 			t('pptx.review.markAllRead'),
 			t('pptx.ribbon.compare'),
-			t('pptx.toolbar.comments'),
+			t('pptx.review.newComment'),
 			t('pptx.common.delete'),
 			t('pptx.common.previous'),
 			t('pptx.common.next'),

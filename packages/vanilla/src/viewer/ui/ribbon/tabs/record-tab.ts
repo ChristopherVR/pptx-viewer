@@ -20,7 +20,6 @@ export function createRecordTab(
 			control.setAttribute('label', t(command.labelKey));
 			control.setAttribute('icon', command.icon);
 			control.setAttribute('data-ribbon-control', command.id);
-			control.setAttribute('compact', '');
 			if (command.unsupported) {
 				control.setAttribute('disabled', '');
 			} else {

@@ -184,9 +184,24 @@ export const RIBBON_CATALOG_TAIL_TABS = {
 		},
 	},
 	smartArtDesign: {
+		createGraphic: {
+			label: 'Create Graphic',
+			controls: {
+				addShape: 'Add Shape',
+				addBullet: 'Add Bullet',
+				textPane: 'Text Pane',
+				promote: 'Promote',
+				demote: 'Demote',
+				rightToLeft: 'Right to Left',
+				moveUp: 'Move Up',
+				moveDown: 'Move Down',
+			},
+		},
+		layouts: { label: 'Layouts', controls: { gallery: 'Layouts gallery' } },
 		smartArtStyles: {
 			label: 'SmartArt Styles',
 			controls: { changeColors: 'Change Colors gallery', gallery: 'SmartArt Styles gallery' },
 		},
+		reset: { label: 'Reset', controls: { resetGraphic: 'Reset Graphic', convert: 'Convert' } },
 	},
 } as const satisfies Readonly<Record<string, TabEntry>>;

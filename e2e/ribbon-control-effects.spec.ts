@@ -328,7 +328,7 @@ test.describe('slide show options write to the deck', () => {
 		await loadDeck(page, SAMPLE_DECK);
 		await openRibbonTab(page, 'Slide Show');
 
-		const useTimings = page.getByRole('checkbox', { name: 'Using timings, if present' }).first();
+		const useTimings = page.getByRole('checkbox', { name: 'Use Timings' }).first();
 		await expect(useTimings).toBeChecked();
 		await useTimings.click();
 		await expect(useTimings).not.toBeChecked();

@@ -363,9 +363,7 @@ describe('createPptxViewer', () => {
 		const concrete = viewer as PptxViewer;
 		const useTimings = container
 			.querySelector('pptx-ui-slide-show-options')
-			?.shadowRoot?.querySelector<HTMLInputElement>(
-				'pptx-ui-checkbox[aria-label="Using timings, if present"]',
-			);
+			?.shadowRoot?.querySelector<HTMLInputElement>('pptx-ui-checkbox[aria-label="Use Timings"]');
 		// Defaults to on, the way PowerPoint does, and reads the deck rather than
 		// claiming to be on regardless.
 		expect(useTimings?.checked).toBeTruthy();

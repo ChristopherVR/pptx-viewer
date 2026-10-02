@@ -778,7 +778,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.slideShow.fromTo': 'From / to',
 	'pptx.slideShow.from': 'From',
 	'pptx.slideShow.to': 'To',
-	'pptx.slideShow.customShow': 'Custom show',
+	'pptx.slideShow.customShow': 'Custom Slide Show',
 	'pptx.slideShow.fromBeginningTooltip': 'Start slide show from beginning',
 	'pptx.slideShow.fromBeginning': 'From Beginning',
 	'pptx.slideShow.fromCurrentTooltip': 'Start slide show from current slide',
@@ -796,8 +796,8 @@ export const translationsEn: Record<string, string> = {
 
 	// Record tab (camera overlay placeholders)
 	'pptx.record.cameo': 'Cameo',
-	'pptx.record.manage': 'Manage',
-	'pptx.record.camera': 'Camera',
+	'pptx.record.manage': 'Edit',
+	'pptx.record.camera': 'Cameo',
 	'pptx.record.clear': 'Clear',
 	'pptx.record.learnMore': 'Learn More',
 	'pptx.record.resetToCameo': 'Reset to Cameo',
@@ -1476,7 +1476,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.slideShow.presentedBySpeaker': 'Presented by a speaker (full screen)',
 	'pptx.slideShow.setUpTitle': 'Set Up Show',
 	'pptx.slideShow.showType': 'Show Type',
-	'pptx.slideShow.useTimings': 'Using timings, if present',
+	'pptx.slideShow.useTimings': 'Use Timings',
 
 	// Slide size dialog
 	'pptx.slideSize.height': 'Height',
@@ -2574,6 +2574,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.present.presentTooltip': 'Present (fullscreen)',
 	'pptx.review.spelling': 'Spelling',
 	'pptx.review.toggleComments': 'Toggle comments panel',
+	'pptx.review.newComment': 'New Comment',
+	'pptx.animations.moreEffects': 'More Effects',
+	'pptx.ribbon.moreTransitions': 'More Transitions',
 	'pptx.review.toggleSpellCheck': 'Toggle spell check',
 	'pptx.review.language': 'Language',
 	'pptx.review.languageTooltip': 'Set proofing language',

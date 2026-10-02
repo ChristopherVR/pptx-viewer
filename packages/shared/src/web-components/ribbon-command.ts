@@ -1,3 +1,4 @@
+import { RIBBON_MENU_COMMAND_IDS } from '../render';
 import type { RibbonControlId } from '../render';
 import { attachControlStyles } from './control-styles';
 import { RIBBON_COMMAND_STYLES } from './ribbon-command-styles';
@@ -23,11 +24,13 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 			'data-ribbon-control',
 			'badge',
 			'icon-only',
+			'caret',
 		];
 		private readonly button: HTMLButtonElement;
 		private readonly text: HTMLSpanElement;
 		private readonly path: SVGPathElement;
 		private readonly badge: HTMLSpanElement;
+		private readonly caret: SVGSVGElement;
 		constructor() {
 			super();
 			const root = this.attachShadow({ mode: 'open' });
@@ -41,6 +44,13 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 			this.path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 			svg.append(this.path);
 			this.text = document.createElement('span');
+			this.caret = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			this.caret.setAttribute('viewBox', '0 0 20 20');
+			this.caret.setAttribute('aria-hidden', 'true');
+			this.caret.setAttribute('class', 'caret');
+			const caretPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			caretPath.setAttribute('d', 'M5 7.5 10 12.5 15 7.5');
+			this.caret.append(caretPath);
 			this.button.append(svg, this.text);
 			this.badge = document.createElement('span');
 			this.badge.className = 'badge';
@@ -75,15 +85,23 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 		}
 		private sync(): void {
 			this.text.textContent = this.getAttribute('label') ?? '';
+			const label = this.text.textContent;
+			// The chevron trails the last line of the label, as PowerPoint draws it.
+			this.text.append(this.caret);
 			this.text.hidden = this.hasAttribute('icon-only');
 			if (this.text.hidden) {
-				this.button.setAttribute('aria-label', this.text.textContent);
+				this.button.setAttribute('aria-label', label);
 			} else {
 				this.button.removeAttribute('aria-label');
 			}
+			const menu = RIBBON_MENU_COMMAND_IDS.has(this.getAttribute('data-ribbon-control') ?? '');
+			this.caret.toggleAttribute(
+				'hidden',
+				this.getAttribute('caret') === 'false' || !(menu || this.hasAttribute('caret')),
+			);
 			this.badge.textContent = this.getAttribute('badge') ?? '';
 			this.badge.hidden = !this.badge.textContent;
-			this.button.title = this.getAttribute('title') ?? this.text.textContent;
+			this.button.title = this.getAttribute('title') ?? label;
 			this.button.disabled = this.hasAttribute('disabled');
 			this.path.setAttribute('d', RIBBON_ICON_PATHS[this.getAttribute('icon') ?? ''] ?? '');
 			for (const attr of ['pressed', 'expanded']) {

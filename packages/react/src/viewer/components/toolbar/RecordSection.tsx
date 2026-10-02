@@ -25,7 +25,6 @@ export function RecordSection(props: RecordSectionProps): React.ReactElement {
 							label={t(command.labelKey)}
 							icon={command.icon}
 							disabled={command.unsupported}
-							compact
 							onCommand={actions[command.id]}
 						/>
 					))}

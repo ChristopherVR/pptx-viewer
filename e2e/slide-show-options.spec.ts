@@ -12,7 +12,7 @@ test('Slide Show options share layout, label activation, keyboard and persisted 
 	await tab.click();
 	const options = toolbar.locator('pptx-ui-slide-show-options');
 	await expect(options).toBeVisible();
-	const timings = options.getByRole('checkbox', { name: 'Using timings, if present', exact: true });
+	const timings = options.getByRole('checkbox', { name: 'Use Timings', exact: true });
 	const narration = options.getByRole('checkbox', { name: 'Play Narrations', exact: true });
 	await expect(timings).toBeChecked();
 	await expect(narration).toBeChecked();

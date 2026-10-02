@@ -137,6 +137,61 @@ export const CONTEXTUAL_TAB_GROUPS: Record<
 	],
 	smartArtDesign: [
 		{
+			group: 'smartArtDesign.createGraphic',
+			labelKey: 'pptx.ribbon.groupCreateGraphic',
+			label: 'Create Graphic',
+			galleries: [
+				{
+					gallery: 'smartArtAddShape',
+					control: 'smartArtDesign.createGraphic.addShape',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtAddBullet',
+					control: 'smartArtDesign.createGraphic.addBullet',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtTextPane',
+					control: 'smartArtDesign.createGraphic.textPane',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtPromote',
+					control: 'smartArtDesign.createGraphic.promote',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtDemote',
+					control: 'smartArtDesign.createGraphic.demote',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtRightToLeft',
+					control: 'smartArtDesign.createGraphic.rightToLeft',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtMoveUp',
+					control: 'smartArtDesign.createGraphic.moveUp',
+					mode: 'dropdown',
+				},
+				{
+					gallery: 'smartArtMoveDown',
+					control: 'smartArtDesign.createGraphic.moveDown',
+					mode: 'dropdown',
+				},
+			],
+		},
+		{
+			group: 'smartArtDesign.layouts',
+			labelKey: 'pptx.ribbon.groupLayouts',
+			label: 'Layouts',
+			galleries: [
+				{ gallery: 'smartArtLayouts', control: 'smartArtDesign.layouts.gallery', mode: 'inline' },
+			],
+		},
+		{
 			group: 'smartArtDesign.smartArtStyles',
 			labelKey: 'pptx.ribbon.groupSmartArtStyles',
 			label: 'SmartArt Styles',
@@ -151,6 +206,19 @@ export const CONTEXTUAL_TAB_GROUPS: Record<
 					control: 'smartArtDesign.smartArtStyles.gallery',
 					mode: 'inline',
 				},
+			],
+		},
+		{
+			group: 'smartArtDesign.reset',
+			labelKey: 'pptx.ribbon.groupReset',
+			label: 'Reset',
+			galleries: [
+				{
+					gallery: 'smartArtResetGraphic',
+					control: 'smartArtDesign.reset.resetGraphic',
+					mode: 'dropdown',
+				},
+				{ gallery: 'smartArtConvert', control: 'smartArtDesign.reset.convert', mode: 'dropdown' },
 			],
 		},
 	],

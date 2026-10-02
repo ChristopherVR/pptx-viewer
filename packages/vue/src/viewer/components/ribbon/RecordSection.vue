@@ -26,7 +26,6 @@ function request(id: string): void {
 			:icon="command.icon"
 			:disabled="command.unsupported || undefined"
 			:data-ribbon-control="command.id"
-			compact
 			@command-request="request(command.id)"
 		></pptx-ui-ribbon-command>
 	</pptx-ui-ribbon-group>

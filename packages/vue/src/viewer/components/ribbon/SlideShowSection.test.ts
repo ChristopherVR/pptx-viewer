@@ -43,7 +43,7 @@ function commandButtons(wrapper: ReturnType<typeof mountSlideShowSection>) {
 		.map((host) => new DOMWrapper(host.element.shadowRoot!.querySelector('button')!));
 }
 function customShowButton(wrapper: ReturnType<typeof mountSlideShowSection>) {
-	return commandButtons(wrapper).find((button) => button.text() === 'Custom show');
+	return commandButtons(wrapper).find((button) => button.text() === 'Custom Slide Show');
 }
 function surfaceText(wrapper: ReturnType<typeof mountSlideShowSection>): string {
 	return (
@@ -119,7 +119,7 @@ describe('slideShowSection', () => {
 			'From Beginning',
 			'From Current Slide',
 			'Presenter View',
-			'Custom show',
+			'Custom Slide Show',
 			'Broadcast',
 			'Rehearse with Coach',
 			'Set Up Slide Show',
@@ -127,7 +127,7 @@ describe('slideShowSection', () => {
 			'Rehearse Timings',
 			'Record',
 			'Keep Slides Updated',
-			'Using timings, if present',
+			'Use Timings',
 			'Play Narrations',
 			'Show Media Controls',
 			'Subtitles',
@@ -229,7 +229,7 @@ describe('slideShowSection options cluster', () => {
 
 	it('reflects the deck rather than a hard-coded checked attribute', () => {
 		const wrapper = mountWithProperties({ advanceMode: 'manual' });
-		const box = optionBox(wrapper, 'Using timings, if present');
+		const box = optionBox(wrapper, 'Use Timings');
 		if (!box) {
 			throw new Error('the Use Timings checkbox must exist');
 		}
@@ -241,7 +241,7 @@ describe('slideShowSection options cluster', () => {
 		const wrapper = mountWithProperties({}, (patch: Record<string, unknown>) =>
 			changes.push(patch),
 		);
-		(optionBox(wrapper, 'Using timings, if present').element as HTMLElement).click();
+		(optionBox(wrapper, 'Use Timings').element as HTMLElement).click();
 		expect(changes).toStrictEqual([{ advanceMode: 'manual' }]);
 	});
 

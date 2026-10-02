@@ -65,9 +65,9 @@ describe('animationsSection', () => {
 			expect(root.querySelectorAll(`[data-animation-preset="${value}"]`)).toHaveLength(1);
 		}
 		const gallery = root.querySelector('[data-ribbon-control="animations.motionPath.gallery"]')!;
-		expect(gallery.querySelectorAll('button')).toHaveLength(MOTION_PATH_PRESETS.length);
-		expect(root.textContent).toContain('Entrance');
-		expect(root.textContent).toContain('Emphasis');
+		expect(gallery.querySelectorAll('button.preset')).toHaveLength(MOTION_PATH_PRESETS.length);
+		expect(root.querySelector('[aria-label="Entrance"]')).toBeTruthy();
+		expect(root.querySelector('[aria-label="Emphasis"]')).toBeTruthy();
 		wrapper.unmount();
 	});
 
@@ -80,7 +80,7 @@ describe('animationsSection', () => {
 		preset(root, MOTION_PATH_PRESETS[0].id).click();
 		control(root, 'animations.advancedAnimation.addAnimation').click();
 		// "Path Animation" applies the default motion path, not an entrance.
-		root.querySelectorAll('pptx-ui-ribbon-command')[2].shadowRoot!.querySelector('button')!.click();
+		root.querySelectorAll('pptx-ui-ribbon-command')[3].shadowRoot!.querySelector('button')!.click();
 		expect(onAddAnimation.mock.calls).toStrictEqual([
 			['flyIn', 'entrance'],
 			['fadeOut', 'exit'],
@@ -132,7 +132,7 @@ describe('animationsSection', () => {
 		expect(preset(root, 'appear').disabled).toBeTruthy();
 		for (const button of root
 			.querySelector('[data-ribbon-control="animations.motionPath.gallery"]')!
-			.querySelectorAll('button')) {
+			.querySelectorAll('button.preset')) {
 			expect(button.disabled).toBeTruthy();
 		}
 		preset(root, 'appear').click();

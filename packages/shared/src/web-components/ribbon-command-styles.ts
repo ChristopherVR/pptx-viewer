@@ -3,7 +3,8 @@ export const RIBBON_COMMAND_STYLES = `
 :host([hidden]) { display: none !important; }
 .badge { position:absolute; top:0; right:0; border-radius:99px; padding:0 3px; background:var(--pptx-primary,#6366f1); color:var(--pptx-primary-foreground,#fff); font-size:9px; }
 .badge[hidden] { display:none; }
-span[hidden] { display:none; }
+span[hidden],.caret[hidden] { display:none; }
+.caret { display:inline-block; width:10px; height:10px; margin-inline-start:2px; vertical-align:-1px; color:var(--pptx-muted-foreground,#94a3b8); fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 button {
 	box-sizing: border-box; position:relative; display: inline-flex; flex-direction: column; align-items: center;
 	justify-content: flex-start; gap: 2px; min-width: 54px; max-width: 78px; height: 58px;

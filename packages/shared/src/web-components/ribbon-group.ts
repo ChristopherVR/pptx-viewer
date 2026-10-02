@@ -9,6 +9,8 @@ const STYLES = `
 /* One-line (compact) groups centre their commands on the whole group box; the caption
    stays in flow and the row's negative margin hands its height to the centring. */
 :host([data-compact-row]) .row { flex: 1; align-items: center; margin-bottom: -14px; }
+/* Several small drop-down galleries or commands (Picture Format > Adjust, SmartArt > Create Graphic) stack in columns of three, as PowerPoint draws them. */
+:host([data-stack]) .row { flex-direction: column; align-items: flex-start; align-content: flex-start; flex-wrap: wrap; max-height: 84px; gap: 2px; margin-bottom: 0; }
 ::slotted(*) { flex-shrink: 0; }
 .caption { padding-top: 2px; color: var(--pptx-muted-foreground, #94a3b8); font: inherit;
 	font-size: 9px; line-height: 12px; text-align: center; white-space: nowrap; }
@@ -63,6 +65,21 @@ export function definePptxRibbonGroup(registry: CustomElementRegistry): void {
 		}
 		/** Marks groups whose commands are all single-line so they can be centred vertically. */
 		private measure(): void {
+			const stackable = [...this.children].filter((el) => {
+				// Angular wraps each gallery in its own component host.
+				const gallery =
+					el.localName === 'pptx-ui-ribbon-gallery'
+						? el
+						: el.querySelector('pptx-ui-ribbon-gallery');
+				return (
+					gallery?.getAttribute('mode') === 'dropdown' &&
+					!gallery.hasAttribute('data-command-large')
+				);
+			});
+			this.toggleAttribute(
+				'data-stack',
+				stackable.length > 1 && stackable.length === this.children.length,
+			);
 			const heights = [...this.children].map((el) => el.getBoundingClientRect().height);
 			const tallest = Math.max(0, ...heights);
 			if (tallest > 0) {

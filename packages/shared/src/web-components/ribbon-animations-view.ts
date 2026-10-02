@@ -21,6 +21,8 @@ import { createAnimationsTimingView } from './ribbon-animations-timing-view';
 type Label = [key: string, fallback: string];
 interface CommandSpec {
 	id?: string;
+	/** Opens a menu or panel: draws the drop-down chevron. */
+	caret?: boolean;
 	icon: string;
 	label: Label;
 	title?: Label;
@@ -47,6 +49,7 @@ const EXIT = spec({
 	id: 'animations.advancedAnimation.addAnimation',
 	icon: 'star',
 	add: { group: 'exit', preset: 'fadeOut' },
+	caret: true,
 	label: ['pptx.animations.exitEffects', 'Exit Effects'],
 });
 const PATH = spec({
@@ -59,7 +62,7 @@ const OPTIONS = spec({
 	id: 'animations.animation.effectOptions',
 	icon: 'sparkles',
 	command: 'effectOptions',
-	compact: true,
+	caret: true,
 	label: ['pptx.animations.effectOptions', 'Effect Options'],
 });
 const PANE = spec({
@@ -76,6 +79,7 @@ const TRIGGER = spec({
 	icon: 'pointerClick',
 	command: 'trigger',
 	compact: true,
+	caret: true,
 	label: ['pptx.animations.trigger', 'Trigger'],
 });
 const PAINTER = spec({
@@ -157,6 +161,7 @@ export function createRibbonAnimationsView(
 		}
 		el.setAttribute('icon', item.icon);
 		el.toggleAttribute('compact', Boolean(item.compact));
+		el.toggleAttribute('caret', Boolean(item.caret));
 		el.addEventListener('command-request', (event) => {
 			event.stopPropagation();
 			dispatch(item);
@@ -191,14 +196,13 @@ export function createRibbonAnimationsView(
 	const timing = createAnimationsTimingView(doc);
 	const root: HTMLElement[] = [
 		group('animations.preview', command(PREVIEW)),
-		group('animations.animation', presets.el),
+		group('animations.animation', presets.el, command(OPTIONS)),
 		group('animations.motionPath', paths.el),
 		group(
 			'animations.advancedAnimation',
 			command(EXIT),
 			command(PATH),
-			stack(command(OPTIONS), command(PANE)),
-			stack(command(TRIGGER), command(PAINTER)),
+			stack(command(PANE), command(TRIGGER), command(PAINTER)),
 			command(REMOVE),
 		),
 		group('animations.timing', timing.el),

@@ -38,6 +38,10 @@ export function definePptxRibbonGallery(registry: CustomElementRegistry): void {
 				this.ownerDocument,
 				(itemId) => this.pick(itemId),
 				() => {
+					if (this.value?.command) {
+						this.pick(this.value.sections[0]?.items[0]?.id ?? '');
+						return;
+					}
 					this.open = !this.open;
 				},
 			);
@@ -149,7 +153,13 @@ export function definePptxRibbonGallery(registry: CustomElementRegistry): void {
 				this.open,
 				this.getAttribute('data-ribbon-control') ?? undefined,
 			);
-			this.view.trigger.setAttribute('aria-expanded', String(this.open));
+			if (this.value.command) {
+				this.view.trigger.removeAttribute('aria-expanded');
+			} else {
+				this.view.trigger.setAttribute('aria-expanded', String(this.open));
+			}
+			this.toggleAttribute('data-command', Boolean(this.value.command));
+			this.toggleAttribute('data-command-large', Boolean(this.value.command?.large));
 			if (this.unavailable()) {
 				this.close();
 			}

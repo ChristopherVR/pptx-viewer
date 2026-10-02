@@ -330,12 +330,12 @@ describe('transitionsTab', () => {
 		expect(editor.slides[0]?.transition?.soundData).toMatch(/^data:/);
 	});
 
-	it('opens the inspector from the Inspector button', () => {
+	it('opens the inspector from the Effect Options button', () => {
 		const chromeUi = new ChromeUiState();
 		chromeUi.inspectorOpen = false;
 		const target = mountTab(makeEditor(), chromeUi);
 
-		button(target, 'Inspector')?.click();
+		button(target, 'Effect Options')?.click();
 		flushSync();
 
 		expect(chromeUi.inspectorOpen).toBeTruthy();

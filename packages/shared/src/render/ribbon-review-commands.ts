@@ -76,27 +76,27 @@ export function buildReviewRibbon(t: Translate, state: ReviewRibbonState): Ribbo
 			}),
 		]),
 		group('review.comments', 'pptx.toolbar.comments', 'Comments', [
-			command('review.comments.newComment', 'pptx.toolbar.comments', 'Comments', 'messagePlus', {
-				disabled: !state.canComments,
-				active: state.commentsOpen,
-				expanded: state.commentsOpen,
-				badge: state.commentCount,
-				title: label('pptx.review.toggleComments', 'Toggle comments'),
-			}),
+			command(
+				'review.comments.newComment',
+				'pptx.review.newComment',
+				'New Comment',
+				'messagePlus',
+				{
+					disabled: !state.canComments,
+					active: state.commentsOpen,
+					expanded: state.commentsOpen,
+					badge: state.commentCount,
+					title: label('pptx.review.toggleComments', 'Toggle comments'),
+				},
+			),
 			command('review.comments.delete', 'pptx.common.delete', 'Delete', 'trash', {
 				disabled: true,
-				compact: true,
-				column: 1,
 			}),
 			command('review.comments.previous', 'pptx.common.previous', 'Previous', 'chevronLeft', {
 				disabled: true,
-				compact: true,
-				column: 1,
 			}),
 			command('review.comments.next', 'pptx.common.next', 'Next', 'chevronRight', {
 				disabled: true,
-				compact: true,
-				column: 2,
 			}),
 			command(
 				'review.comments.showComments',
@@ -107,8 +107,6 @@ export function buildReviewRibbon(t: Translate, state: ReviewRibbonState): Ribbo
 					disabled: !state.canComments,
 					active: state.commentsOpen,
 					expanded: state.commentsOpen,
-					compact: true,
-					column: 2,
 				},
 			),
 		]),

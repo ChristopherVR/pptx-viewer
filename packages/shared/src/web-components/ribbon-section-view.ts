@@ -27,7 +27,7 @@ function syncCommand(el: HTMLElement, command: RibbonCommandView): void {
 	} else {
 		el.removeAttribute('badge');
 	}
-	for (const attr of ['disabled', 'active', 'compact', 'hidden'] as const) {
+	for (const attr of ['disabled', 'active', 'compact', 'hidden', 'caret'] as const) {
 		setBoolean(el, attr, command[attr]);
 	}
 	setOptionalBoolean(el, 'pressed', command.pressed);

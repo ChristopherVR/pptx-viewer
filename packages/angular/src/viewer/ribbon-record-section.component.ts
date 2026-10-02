@@ -22,7 +22,6 @@ import { RECORD_COMMAND_GROUPS } from '../internal/shared';
 						[attr.icon]="command.icon"
 						[attr.disabled]="command.unsupported ? '' : null"
 						[attr.data-ribbon-control]="command.id"
-						compact
 						(command-request)="request(command.id)"
 					></pptx-ui-ribbon-command>
 				}

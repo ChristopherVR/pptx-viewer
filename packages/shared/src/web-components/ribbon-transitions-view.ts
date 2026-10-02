@@ -9,6 +9,10 @@ import {
 } from '../render';
 import type { RibbonTransitionsIntent, RibbonTransitionsViewState } from '../render';
 import { RIBBON_ICON_PATHS } from './ribbon-icons';
+import {
+	RIBBON_TRANSITION_TILE_DEFAULT,
+	RIBBON_TRANSITION_TILE_PATHS,
+} from './ribbon-transitions-icons';
 
 type Request = (intent: RibbonTransitionsIntent) => void;
 
@@ -32,9 +36,16 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 		el.append(...children);
 		return el;
 	};
-	const command = (id: string | undefined, icon: string, intent: RibbonTransitionsIntent) => {
+	const command = (
+		id: string | undefined,
+		icon: string,
+		intent: RibbonTransitionsIntent,
+		large = false,
+	) => {
 		const el = doc.createElement('pptx-ui-ribbon-command');
-		el.setAttribute('compact', '');
+		if (!large) {
+			el.setAttribute('compact', '');
+		}
 		el.setAttribute('icon', icon);
 		if (id) {
 			el.dataset.ribbonControl = id;
@@ -52,18 +63,47 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 		el.dataset.ribbonControl = id;
 		return el;
 	};
-	const preview = command('transitions.preview.preview', 'play', { kind: 'preview' });
+	const preview = command('transitions.preview.preview', 'play', { kind: 'preview' }, true);
 	const gallery = make('div', 'gallery');
+	const strip = make('div', 'strip');
 	gallery.dataset.ribbonControl = 'transitions.transitionToThisSlide.gallery';
 	const presets = RIBBON_TRANSITION_PRESETS.map((preset) => {
 		const button = make('button', 'preset');
 		button.type = 'button';
 		// Sized by the shared styles (28px, 44px on touch), not the host's generic button floor.
 		button.dataset.pptxCompact = '';
+		const tile = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		tile.setAttribute('viewBox', '0 0 36 24');
+		tile.setAttribute('aria-hidden', 'true');
+		tile.setAttribute('class', 'tile-icon');
+		const tilePath = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+		tilePath.setAttribute(
+			'd',
+			RIBBON_TRANSITION_TILE_PATHS[preset.type] ?? RIBBON_TRANSITION_TILE_DEFAULT,
+		);
+		tile.append(tilePath);
+		const name = make('span', 'name');
+		button.append(tile, name);
 		button.addEventListener('click', () => request({ kind: 'preset', value: preset.type }));
-		gallery.append(button);
-		return { preset, button };
+		strip.append(button);
+		return { preset, button, name };
 	});
+	const more = make('button', 'more');
+	more.type = 'button';
+	more.dataset.pptxCompact = '';
+	const chevron = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	chevron.setAttribute('viewBox', '0 0 20 20');
+	chevron.setAttribute('aria-hidden', 'true');
+	chevron.setAttribute('class', 'more-icon');
+	const chevronPath = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+	chevronPath.setAttribute('d', 'M5 7.5 10 12.5 15 7.5');
+	chevron.append(chevronPath);
+	more.append(chevron);
+	more.addEventListener('click', () => {
+		const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+		strip.scrollTo({ left: atEnd ? 0 : strip.scrollLeft + strip.clientWidth * 0.8 });
+	});
+	gallery.append(strip, more);
 
 	let last: RibbonTransitionsViewState | undefined;
 	const soundFile = make('input', 'sound-file');
@@ -144,21 +184,21 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 		request({ kind: 'advanceAfterText', value: afterText.value }),
 	);
 	after.row.append(afterText);
-	const inspector = command(undefined, 'panelRight', { kind: 'inspector' });
+	const inspector = command(undefined, 'panelRight', { kind: 'inspector' }, true);
+	inspector.setAttribute('caret', '');
 	inspector.classList.add('inspector');
 
 	const groups = {
 		preview: group('transitions.preview', preview),
-		gallery: group('transitions.transitionToThisSlide', gallery),
+		gallery: group('transitions.transitionToThisSlide', gallery, inspector),
 		timing: group(
 			'transitions.timing',
-			stack(soundField, durationField),
-			applyToAll,
+			stack(soundField, durationField, applyToAll),
 			stack(caption, onClick.row, after.row),
 			soundFile,
 		),
 	};
-	const layout = [groups.preview, groups.gallery, groups.timing, inspector];
+	const layout = [groups.preview, groups.gallery, groups.timing];
 	let soundKey = '';
 	const sync = (state: RibbonTransitionsViewState) => {
 		const text = (key: string, fallback: string, params?: Record<string, string>) =>
@@ -173,9 +213,12 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 		groups.timing.setAttribute('label', text('pptx.animations.timing', 'Timing'));
 		preview.setAttribute('label', text('pptx.ribbon.preview', 'Preview'));
 		preview.setAttribute('title', text('pptx.ribbon.previewTransition', 'Preview transition'));
-		for (const { preset, button } of presets) {
+		const moreLabel = text('pptx.ribbon.moreTransitions', 'More Transitions');
+		more.setAttribute('aria-label', moreLabel);
+		more.title = moreLabel;
+		for (const { preset, button, name: nameEl } of presets) {
 			const name = text(preset.labelKey, preset.type[0].toUpperCase() + preset.type.slice(1));
-			button.textContent = name;
+			nameEl.textContent = name;
 			button.title = text('pptx.ribbon.transitionTitle', '{{name}} transition', { name });
 			button.setAttribute('aria-pressed', String(draft.type === preset.type));
 			button.disabled = !editable;
@@ -235,7 +278,7 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 			afterText.value = draft.advanceAfterText;
 		}
 		afterText.disabled = !editable || !draft.advanceAfter;
-		inspector.setAttribute('label', text('pptx.ribbon.inspector', 'Inspector'));
+		inspector.setAttribute('label', text('pptx.animations.effectOptions', 'Effect Options'));
 		inspector.setAttribute(
 			'title',
 			text('pptx.ribbon.openInspectorTransitions', 'Open Inspector for full transition options'),

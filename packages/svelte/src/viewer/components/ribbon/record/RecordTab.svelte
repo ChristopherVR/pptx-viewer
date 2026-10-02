@@ -13,7 +13,7 @@
  <pptx-ui-ribbon-group label={t(group.labelKey)} data-ribbon-group={group.id}>
   {#each group.commands as command (command.id)}
    <pptx-ui-ribbon-command label={t(command.labelKey)} icon={command.icon} disabled={command.unsupported || undefined}
-    data-ribbon-control={command.id} compact oncommand-request={() => request(command.id)}></pptx-ui-ribbon-command>
+    data-ribbon-control={command.id} oncommand-request={() => request(command.id)}></pptx-ui-ribbon-command>
   {/each}
  </pptx-ui-ribbon-group>
 {/each}

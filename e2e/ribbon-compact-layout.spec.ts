@@ -10,7 +10,7 @@ for (const width of [820, 1280]) {
 		for (const [tab, commands] of [
 			['Design', ['Browse Themes', 'Edit Theme', 'Slide Size', 'Format Background']],
 			['Insert', ['Text Box', 'Image', 'Media', 'Table', 'SmartArt', 'Equation']],
-			['Transitions', ['Preview', 'Apply to All']],
+			['Transitions', ['Apply to All']],
 		] as const) {
 			test(`${tab} commands retain compact height and alignment`, async ({ page }, testInfo) => {
 				await loadDeck(page);
@@ -33,6 +33,13 @@ for (const width of [820, 1280]) {
 							`${name} must be vertically centered`,
 						).toBeLessThanOrEqual(3);
 					}
+				}
+				if (tab === 'Transitions') {
+					// Preview is a large (icon above label) command, as in PowerPoint.
+					const preview = await toolbar
+						.getByRole('button', { name: 'Preview', exact: true })
+						.boundingBox();
+					expect(preview!.height).toBeGreaterThanOrEqual(44);
 				}
 				const overflow = await page.evaluate(
 					() => document.documentElement.scrollWidth - document.documentElement.clientWidth,

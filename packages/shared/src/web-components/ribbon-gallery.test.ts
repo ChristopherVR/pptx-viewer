@@ -80,3 +80,53 @@ describe('shared ribbon gallery', () => {
 		expect(document.querySelectorAll('#pptx-ui-gallery-styles')).toHaveLength(1);
 	});
 });
+
+describe('shared ribbon gallery command mode', () => {
+	const element = {
+		id: 'sa',
+		type: 'smartArt',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 60,
+		smartArtData: { nodes: [{ id: 'n1', text: 'One' }] },
+	} as never;
+
+	it('draws a command without a panel and emits one pick on click', () => {
+		const gallery = document.createElement('pptx-ui-ribbon-gallery');
+		gallery.descriptor = buildRibbonGallery('smartArtAddShape', { element });
+		document.body.append(gallery);
+		const pick = vi.fn();
+		gallery.addEventListener('gallery-pick', pick);
+		expect(gallery.trigger.classList.contains('command')).toBeTruthy();
+		expect(gallery.trigger.hasAttribute('aria-haspopup')).toBeFalsy();
+		expect(gallery.trigger.textContent).toBe('Add Shape');
+		gallery.trigger.click();
+		expect(pick).toHaveBeenCalledOnce();
+		expect(pick.mock.calls[0][0].detail).toStrictEqual({
+			gallery: 'smartArtAddShape',
+			itemId: 'run',
+		});
+		expect(gallery.open).toBeFalsy();
+	});
+
+	it('shows an unavailable command disabled, with its reason as the tooltip', () => {
+		const gallery = document.createElement('pptx-ui-ribbon-gallery');
+		gallery.descriptor = buildRibbonGallery('smartArtPromote', { element });
+		document.body.append(gallery);
+		const pick = vi.fn();
+		gallery.addEventListener('gallery-pick', pick);
+		expect(gallery.trigger.disabled).toBeTruthy();
+		expect(gallery.trigger.title).toContain('text pane');
+		gallery.trigger.click();
+		expect(pick).not.toHaveBeenCalled();
+	});
+
+	it('marks large commands so the group keeps them out of the small-command stack', () => {
+		const gallery = document.createElement('pptx-ui-ribbon-gallery');
+		gallery.descriptor = buildRibbonGallery('smartArtResetGraphic', { element });
+		document.body.append(gallery);
+		expect(gallery.hasAttribute('data-command-large')).toBeTruthy();
+		expect(gallery.trigger.classList.contains('command-large')).toBeTruthy();
+	});
+});

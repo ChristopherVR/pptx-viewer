@@ -32,6 +32,12 @@ export const SLIDE_SHOW_COMMAND_GROUPS: readonly SlideShowRibbonGroup[] = [
 				icon: 'play',
 				tooltipKey: 'pptx.slideShow.fromCurrentTooltip',
 			},
+			{
+				id: 'slideShow.startSlideShow.customShow',
+				labelKey: 'pptx.slideShow.customShow',
+				icon: 'list',
+				tooltipKey: 'pptx.customShows.customShowTooltip',
+			},
 		],
 	},
 	{
@@ -43,12 +49,6 @@ export const SLIDE_SHOW_COMMAND_GROUPS: readonly SlideShowRibbonGroup[] = [
 				labelKey: 'pptx.slideShow.presenterView',
 				icon: 'presentation',
 				tooltipKey: 'pptx.slideShow.presenterViewTooltip',
-			},
-			{
-				id: 'slideShow.startSlideShow.customShow',
-				labelKey: 'pptx.slideShow.customShow',
-				icon: 'list',
-				tooltipKey: 'pptx.customShows.customShowTooltip',
 			},
 			{
 				id: 'slideShow.present.broadcast',

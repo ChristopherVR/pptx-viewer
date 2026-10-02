@@ -208,13 +208,16 @@ export function createRibbonViewView(doc: Document, request: (intent: RibbonView
 		label: ['pptx.ribbon.templatesOff', 'Templates Off'],
 	});
 	templates.dataset.testid = 'template-edit-toggle';
+	const showCommands = SHOW.map((item) => command(item));
 	const root: HTMLElement[] = [
 		group('view.presentationViews', ...VIEWS.map((item) => command(item))),
 		group('view.masterViews', ...MASTERS.map((item) => command(item))),
 		group(
 			'view.show',
-			stack(...toggles.map(({ el }) => el)),
-			stack(...SHOW.map((item) => command(item)), guides),
+			// Three columns of three rows keep the Show group as short as every other tab.
+			stack(...toggles.slice(0, 3).map(({ el }) => el)),
+			stack(toggles[3].el, showCommands[2], showCommands[0]),
+			stack(showCommands[1], guides),
 		),
 		group('view.zoom', ...ZOOM.map((item) => command(item))),
 		group('view.window', templates, command(MACROS)),
