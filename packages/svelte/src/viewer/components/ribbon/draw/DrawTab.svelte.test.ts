@@ -69,6 +69,6 @@ describe('drawTab', () => {
 		for (const command of target.querySelectorAll('pptx-ui-ribbon-command')) {
 			expect(command.shadowRoot?.querySelector<HTMLButtonElement>('button')?.disabled).toBeTruthy();
 		}
-		expect(target.querySelector('select')?.disabled).toBeTruthy();
+		expect(target.querySelector('pptx-ui-select')?.disabled).toBeTruthy();
 	});
 });

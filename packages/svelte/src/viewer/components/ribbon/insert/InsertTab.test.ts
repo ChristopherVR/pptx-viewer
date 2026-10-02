@@ -73,7 +73,7 @@ describe('insertTab', () => {
 	it('inserts the staged shape and chart, keeping the picked types', () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
-		const [shape, chart] = [...target.querySelectorAll('select')];
+		const [shape, chart] = [...target.querySelectorAll('pptx-ui-select')];
 		shape.value = 'ellipse';
 		shape.dispatchEvent(new Event('change'));
 		chart.value = 'pie';
@@ -89,7 +89,7 @@ describe('insertTab', () => {
 			.click();
 		flushSync();
 		expect(editor.slides[0]?.elements.map((el) => el.type)).toStrictEqual(['shape', 'chart']);
-		expect(target.querySelectorAll('select')[0].value).toBe('ellipse');
+		expect(target.querySelectorAll('pptx-ui-select')[0].value).toBe('ellipse');
 	});
 
 	it('inserts action buttons and fields from the shared menus', () => {

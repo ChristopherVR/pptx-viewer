@@ -79,7 +79,7 @@ function mountTimeline(
 }
 
 function selectByAriaLabel(root: ParentNode, label: string): HTMLSelectElement {
-	const select = root.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`);
+	const select = root.querySelector<HTMLSelectElement>(`pptx-ui-select[aria-label="${label}"]`);
 	if (!select) {
 		throw new Error(`no select labelled "${label}"`);
 	}
@@ -107,7 +107,7 @@ describe('animationTimeline schema selects', () => {
 
 	it('keeps every select accessible name exactly as it was', () => {
 		const { target } = mountTimeline();
-		const labels = Array.from(target.querySelectorAll('select')).map((select) =>
+		const labels = Array.from(target.querySelectorAll('pptx-ui-select')).map((select) =>
 			select.getAttribute('aria-label'),
 		);
 
@@ -116,7 +116,7 @@ describe('animationTimeline schema selects', () => {
 
 	it('drops the Direction select for a preset PowerPoint saves with no direction', () => {
 		const { target } = mountTimeline('en', 'fadeIn');
-		expect(target.querySelector('select[aria-label="Direction"]')).toBeNull();
+		expect(target.querySelector('pptx-ui-select[aria-label="Direction"]')).toBeNull();
 	});
 
 	it('shows an unset timing curve as linear (the writer saves accel=0 decel=0)', () => {

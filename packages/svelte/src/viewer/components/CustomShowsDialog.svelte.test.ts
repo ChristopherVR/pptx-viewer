@@ -56,7 +56,7 @@ function open(activeShowId: string | null) {
 		target.remove();
 	};
 	flushSync();
-	const select = target.querySelector<HTMLSelectElement>('.active-picker select')!;
+	const select = target.querySelector<HTMLSelectElement>('.active-picker pptx-ui-select')!;
 	return { target, select, onsetactive, onsave };
 }
 

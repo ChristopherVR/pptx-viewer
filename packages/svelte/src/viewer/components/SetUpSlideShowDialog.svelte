@@ -30,17 +30,17 @@
 				<label><input type="radio" name="range" checked={(draft.showSlidesMode ?? 'all') === 'all'} onchange={() => (draft = { ...draft, showSlidesMode: 'all' })} />{t('pptx.slideShow.allSlides')}</label>
 				<label><input type="radio" name="range" checked={draft.showSlidesMode === 'range'} onchange={() => (draft = { ...draft, showSlidesMode: 'range' })} />{t('pptx.slideShow.fromTo')}</label>
 				<div class="range"><input aria-label={t('pptx.slideShow.from')} type="number" min="1" max={slideCount} value={draft.showSlidesFrom ?? 1} oninput={(event) => (draft = { ...draft, showSlidesFrom: Number(event.currentTarget.value) })} /><span>{t('pptx.slideShow.to')}</span><input aria-label={t('pptx.slideShow.to')} type="number" min="1" max={slideCount} value={draft.showSlidesTo ?? slideCount} oninput={(event) => (draft = { ...draft, showSlidesTo: Number(event.currentTarget.value) })} /></div>
-				{#if customShows.length}<label><input type="radio" name="range" checked={draft.showSlidesMode === 'customShow'} onchange={() => (draft = { ...draft, showSlidesMode: 'customShow' })} />{t('pptx.slideShow.customShow')}<select aria-label={t('pptx.slideShow.customShow')} value={draft.showSlidesCustomShowId ?? customShows[0]?.id} onchange={(event) => (draft = { ...draft, showSlidesCustomShowId: event.currentTarget.value })}>{#each customShows as show}<option value={show.id}>{show.name}</option>{/each}</select></label>{/if}
+				{#if customShows.length}<label><input type="radio" name="range" checked={draft.showSlidesMode === 'customShow'} onchange={() => (draft = { ...draft, showSlidesMode: 'customShow' })} />{t('pptx.slideShow.customShow')}<pptx-ui-select aria-label={t('pptx.slideShow.customShow')} value={draft.showSlidesCustomShowId ?? customShows[0]?.id} onchange={(event) => (draft = { ...draft, showSlidesCustomShowId: event.currentTarget.value })}>{#each customShows as show}<option value={show.id}>{show.name}</option>{/each}</pptx-ui-select></label>{/if}
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.advanceSlides')}</legend>
 				<label><input type="radio" name="advance" checked={draft.advanceMode === 'manual'} onchange={() => (draft = { ...draft, advanceMode: 'manual' })} />{t('pptx.slideShow.manually')}</label>
 				<label><input type="radio" name="advance" checked={(draft.advanceMode ?? 'useTimings') === 'useTimings'} onchange={() => (draft = { ...draft, advanceMode: 'useTimings' })} />{t('pptx.slideShow.useTimings')}</label>
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.showOptions')}</legend>
-				<label><input type="checkbox" checked={draft.loopContinuously ?? false} onchange={(event) => option('loopContinuously', event.currentTarget.checked)} />{t('pptx.slideShow.loopContinuously')}</label>
-				<label><input type="checkbox" checked={draft.showWithNarration === false} onchange={(event) => option('showWithNarration', !event.currentTarget.checked)} />{t('pptx.slideShow.showWithoutNarration')}</label>
-				<label><input type="checkbox" checked={draft.showWithAnimation === false} onchange={(event) => option('showWithAnimation', !event.currentTarget.checked)} />{t('pptx.slideShow.showWithoutAnimation')}</label>
-				<label><input type="checkbox" checked={draft.showSubtitles ?? false} onchange={(event) => option('showSubtitles', event.currentTarget.checked)} />{t('pptx.slideShow.showSubtitles')}</label>
+				<label><pptx-ui-checkbox checked={draft.loopContinuously ?? false} onchange={(event) => option('loopContinuously', event.currentTarget.checked)}></pptx-ui-checkbox>{t('pptx.slideShow.loopContinuously')}</label>
+				<label><pptx-ui-checkbox checked={draft.showWithNarration === false} onchange={(event) => option('showWithNarration', !event.currentTarget.checked)}></pptx-ui-checkbox>{t('pptx.slideShow.showWithoutNarration')}</label>
+				<label><pptx-ui-checkbox checked={draft.showWithAnimation === false} onchange={(event) => option('showWithAnimation', !event.currentTarget.checked)}></pptx-ui-checkbox>{t('pptx.slideShow.showWithoutAnimation')}</label>
+				<label><pptx-ui-checkbox checked={draft.showSubtitles ?? false} onchange={(event) => option('showSubtitles', event.currentTarget.checked)}></pptx-ui-checkbox>{t('pptx.slideShow.showSubtitles')}</label>
 			</fieldset>
 		</div>
 		<footer><button type="button" onclick={onclose}>{t('pptx.common.cancel')}</button><button class="primary" type="button" onclick={save}>{t('pptx.common.ok')}</button></footer>

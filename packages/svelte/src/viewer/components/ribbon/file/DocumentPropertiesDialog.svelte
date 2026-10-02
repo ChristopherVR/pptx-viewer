@@ -83,7 +83,7 @@
 						<div class="custom-row">
 							<input aria-label={t('pptx.documentProperties.custom.name')} bind:value={property.name} />
 							<input aria-label={t('pptx.documentProperties.custom.value')} bind:value={property.value} />
-							<select aria-label={t('pptx.documentProperties.custom.type')} bind:value={property.type}><option value="lpwstr">Text</option><option value="i4">Number</option><option value="filetime">Date</option><option value="bool">Yes/No</option></select>
+							<pptx-ui-select aria-label={t('pptx.documentProperties.custom.type')} value={property.type} onchange={(event) => (property.type = event.currentTarget.value as typeof property.type)}><option value="lpwstr">Text</option><option value="i4">Number</option><option value="filetime">Date</option><option value="bool">Yes/No</option></pptx-ui-select>
 							<button type="button" aria-label={t('pptx.documentProperties.custom.deleteProperty')} onclick={() => removeCustom(index)}><Trash2 size={15} aria-hidden="true" /></button>
 						</div>
 					{/each}

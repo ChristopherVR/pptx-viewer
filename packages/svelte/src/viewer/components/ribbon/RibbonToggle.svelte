@@ -28,12 +28,10 @@
 </script>
 
 <label class="pptx-svelte-rbtoggle" class:pptx-svelte-rbtoggle-on={checked} {title} data-ribbon-control={control}>
-	<input
-		type="checkbox"
+	<pptx-ui-checkbox
 		{checked}
 		{disabled}
-		onchange={(event) => onchange?.(event.currentTarget.checked)}
-	/>
+		onchange={(event) => onchange?.(event.currentTarget.checked)}></pptx-ui-checkbox>
 	{label}
 </label>
 
@@ -55,15 +53,5 @@
 		color: var(--pptx-primary, #6366f1);
 	}
 
-	.pptx-svelte-rbtoggle input {
-		width: 12px;
-		height: 12px;
-		accent-color: var(--pptx-primary, #6366f1);
-		cursor: inherit;
-	}
 
-	.pptx-svelte-rbtoggle input:disabled {
-		opacity: 0.35;
-		cursor: default;
-	}
 </style>
