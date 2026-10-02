@@ -157,7 +157,6 @@ import { parseAudienceNonce, PresenterWindowService } from './presenter-window.s
 import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
-import { QuickAccessStripComponent } from './quick-access-strip.component';
 import { ReadingViewOverlayComponent } from './reading-view-overlay.component';
 import { ReadOnlyBannerComponent } from './readonly-banner.component';
 import { RecentColorsService } from './recent-colors.service';
@@ -283,7 +282,6 @@ import { ZoomTargetService } from './zoom-target.service';
 		MasterViewCanvasComponent,
 		MasterViewSidebarComponent,
 		NotesPanelComponent,
-		QuickAccessStripComponent,
 		RibbonComponent,
 		EditorChromeStyleDirective,
 		RibbonCustomizationStyleDirective,
@@ -370,6 +368,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[isDirty]="editor.dirty()"
 							[autosaveStatus]="autosave.status()"
 							[autosaveEnabled]="autosaveActivation().active"
+							[autosaveToggleAvailable]="autosaveActivation().toggleAvailable"
 							[canUndo]="editor.canUndo()"
 							[canRedo]="editor.canRedo()"
 							[undoLabel]="editor.undoLabel()"
@@ -498,17 +497,12 @@ import { ZoomTargetService } from './zoom-target.service';
 					/>
 
 					@if (belowRibbonQuickAccess(); as belowQuickAccess) {
-						<div
-							class="flex items-center gap-0.5 border-b border-border/60 px-2 py-0.5"
-							data-pptx-quick-access="below"
-						>
-							<pptx-quick-access-strip
-								[quickAccess]="belowQuickAccess"
-								[canUndo]="editor.canUndo()"
-								[canRedo]="editor.canRedo()"
-								(command)="onQuickAccessCommand($event)"
-							/>
-						</div>
+						<pptx-title-bar
+							placement="belowRibbon"
+							[canEdit]="canEdit()"
+							[quickAccess]="belowQuickAccess"
+							(quickCommand)="onQuickAccessCommand($event)"
+						/>
 					}
 				}
 

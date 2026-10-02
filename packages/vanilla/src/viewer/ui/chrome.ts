@@ -465,13 +465,11 @@ export function buildViewerChrome(
 				return;
 			}
 			if (position === 'below') {
-				const strip = titleBar.getQuickAccessElement();
-				quickAccessRow.appendChild(strip);
+				quickAccessRow.appendChild(titleBar.getQuickAccessElement());
 				quickAccessDetached = true;
-				// Follow the strip's own visibility (Options > "Show Quick Access
-				// Toolbar" off, or the chrome currently read-only): an empty docked
-				// row would otherwise still draw its border/padding.
-				quickAccessRow.hidden = strip.hidden;
+				// The title bar reports whether the docked strip has anything to show
+				// (Options > "Show Quick Access Toolbar" off, or a read-only chrome):
+				// an empty docked row would otherwise still draw its border.
 				titleBar.setQuickAccessDetached(true);
 			} else {
 				quickAccessDetached = false;

@@ -1,112 +1,12 @@
-import type { Translator } from '../i18n';
-import { createEl } from '../render';
-
 /**
- * The title bar's centred "Tell me what you want to do" command search box.
+ * A command the title bar's "Tell me what you want to do" search can run.
  *
- * The shared `filterCommands` catalogue (see `pptx-viewer-shared`
- * render/command-search) maps to command ids the React binding dispatches;
- * the vanilla binding wires a small local command list to its own chrome
- * callbacks instead, filtered with the same case-insensitive
- * label-substring match. Enter or click executes the first/clicked match
- * and closes the dropdown.
+ * The search box, filtering, result list and keyboard handling live in the shared
+ * `pptx-ui-title-bar`; the vanilla binding only supplies this short local list
+ * and runs the chosen entry (see `title-bar.ts`).
  */
 export interface CommandSearchCommand {
 	/** Existing `pptx.*` translation key for the visible label. */
 	labelKey: string;
 	run(): void;
-}
-
-export interface CommandSearch {
-	el: HTMLElement;
-}
-
-/** Case-insensitive label-substring filter over the local command list. */
-export function filterSearchCommands(
-	query: string,
-	commands: readonly CommandSearchCommand[],
-	t: Translator,
-): CommandSearchCommand[] {
-	const trimmed = query.trim().toLowerCase();
-	if (!trimmed) {
-		return [];
-	}
-	return commands.filter((command) => t(command.labelKey).toLowerCase().includes(trimmed));
-}
-
-export function createCommandSearch(
-	doc: Document,
-	t: Translator,
-	commands: readonly CommandSearchCommand[],
-): CommandSearch {
-	const el = createEl(doc, 'div', 'pptxv-cmdsearch');
-
-	const input = doc.createElement('pptx-ui-search') as HTMLElement & {
-		value: string;
-		placeholder: string;
-	};
-	input.className = 'pptxv-cmdsearch-box';
-	input.setAttribute('variant', 'titlebar');
-	input.setAttribute('data-pptx-search-surface', '');
-	input.setAttribute('data-pptx-search-input', '');
-	input.placeholder = t('pptx.titleBar.searchPlaceholder');
-	input.setAttribute('aria-label', t('pptx.titleBar.search'));
-	el.appendChild(input);
-
-	const menu = createEl(doc, 'div', 'pptxv-cmdsearch-menu');
-	menu.hidden = true;
-	el.appendChild(menu);
-
-	const close = (): void => {
-		menu.hidden = true;
-		menu.replaceChildren();
-	};
-
-	const execute = (command: CommandSearchCommand): void => {
-		input.value = '';
-		close();
-		command.run();
-	};
-
-	let matches: CommandSearchCommand[] = [];
-	const render = (): void => {
-		matches = filterSearchCommands(input.value, commands, t);
-		if (input.value.trim().length === 0) {
-			close();
-			return;
-		}
-		menu.replaceChildren();
-		if (matches.length === 0) {
-			const emptyItem = createEl(doc, 'div', 'pptxv-cmdsearch-empty');
-			emptyItem.textContent = t('pptx.titleBar.searchNoResults');
-			menu.appendChild(emptyItem);
-		}
-		for (const command of matches) {
-			const item = createEl(doc, 'button', 'pptxv-cmdsearch-item');
-			item.type = 'button';
-			item.textContent = t(command.labelKey);
-			// mousedown (not click) so the action runs before the input blurs.
-			item.addEventListener('mousedown', (event) => {
-				event.preventDefault();
-				execute(command);
-			});
-			menu.appendChild(item);
-		}
-		menu.hidden = false;
-	};
-
-	input.addEventListener('input', render);
-	input.addEventListener('focus', render);
-	input.addEventListener('blur', close);
-	input.addEventListener('keydown', (event) => {
-		event.stopPropagation();
-		if (event.key === 'Enter' && matches.length > 0) {
-			execute(matches[0]);
-		} else if (event.key === 'Escape') {
-			input.value = '';
-			close();
-		}
-	});
-
-	return { el };
 }

@@ -108,6 +108,7 @@
 	editable={vm.editingActive}
 	isDirty={editor.dirty}
 	autosaveEnabled={vm.autosaveEnabled}
+	autosaveToggleAvailable={vm.autosaveToggleAvailable}
 	{autosaveStatus}
 	canUndo={editor.canUndo}
 	canRedo={editor.canRedo}

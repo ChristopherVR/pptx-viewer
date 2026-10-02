@@ -41,7 +41,6 @@ import {
 	computeGridSpacingPx,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
-	extraQuickAccessCommands,
 	INSPECTOR_PANEL_DEFAULT_WIDTH,
 	listAutosaveSnapshots,
 	MAX_ZOOM_SCALE,
@@ -79,7 +78,6 @@ import NotesPanel from './components/NotesPanel.vue';
 import ReadOnlyBanner from './components/ReadOnlyBanner.vue';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import TitleBar from './components/ribbon/TitleBar.vue';
-import TitleBarQuickAccess from './components/ribbon/TitleBarQuickAccess.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideStage from './components/SlideStage.vue';
 import StatusBar from './components/StatusBar.vue';
@@ -959,25 +957,31 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 });
 
 // -- Autosave ----------------------------------------------------------
-const { autosave, autosaveEnabled, autosaveActive, toggleAutosave, autosaveDisabledReason } =
-	useAutosaveWiring({
-		slides,
-		// Edit-template mode rebuilds only this map, never `slides`.
-		templateElements: templateElementsBySlideId,
-		loading,
-		canEdit: () => canEditEffective.value,
-		// Undefined (the host said nothing) permits autosave; only an explicit
-		// `false` vetoes it. See `resolveAutosaveActivation` in the shared package.
-		autosaveEnabledByHost: () => props.autosave,
-		intervalMs: () => props.autosaveIntervalMs,
-		// File > Options > Save > "Save AutoRecover information every N minutes",
-		// used whenever the host did not state a cadence of its own.
-		optionsIntervalSeconds: () => resolveAutosaveIntervalSeconds(viewerOptions.value),
-		snapshotName: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
-		getRecoverySnapshot,
-		emitAutosave: (bytes) => emit('autosave', bytes),
-		captureVersion: (label, at) => versionHistoryWiring.versionHistory.capture(label, at),
-	});
+const {
+	autosave,
+	autosaveEnabled,
+	autosaveActive,
+	toggleAutosave,
+	autosaveDisabledReason,
+	autosaveToggleAvailable,
+} = useAutosaveWiring({
+	slides,
+	// Edit-template mode rebuilds only this map, never `slides`.
+	templateElements: templateElementsBySlideId,
+	loading,
+	canEdit: () => canEditEffective.value,
+	// Undefined (the host said nothing) permits autosave; only an explicit
+	// `false` vetoes it. See `resolveAutosaveActivation` in the shared package.
+	autosaveEnabledByHost: () => props.autosave,
+	intervalMs: () => props.autosaveIntervalMs,
+	// File > Options > Save > "Save AutoRecover information every N minutes",
+	// used whenever the host did not state a cadence of its own.
+	optionsIntervalSeconds: () => resolveAutosaveIntervalSeconds(viewerOptions.value),
+	snapshotName: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
+	getRecoverySnapshot,
+	emitAutosave: (bytes) => emit('autosave', bytes),
+	captureVersion: (label, at) => versionHistoryWiring.versionHistory.capture(label, at),
+});
 
 // -- Crash-recovery prompt --------------------------------------------
 // Vue wrote snapshots and never offered one back; the decision and the copy are
@@ -1398,20 +1402,6 @@ const reducedMotion = ref(false);
 // Viewer-root CSS classes reflecting display-affecting options (reduced
 // motion, disabled hardware acceleration, "optimize for compatibility").
 const optionRootClasses = computed(() => resolveOptionRootClasses(viewerOptions.value, 'pptx-vue'));
-// Options > Quick Access Toolbar > "Show below the Ribbon": `TitleBar.vue`
-// suppresses its own inline strip when this is the position, and this row
-// renders in its place, directly under `RibbonToolbar`.
-const belowRibbonQuickAccess = computed(() => {
-	const quickAccess = viewerOptions.value.quickAccess;
-	if (!quickAccess.visible || quickAccess.position !== 'below') {
-		return [];
-	}
-	return extraQuickAccessCommands(quickAccess.commandIds).map((command) => ({
-		id: command.id,
-		label: t(command.labelKey),
-		icon: command.icon,
-	}));
-});
 // The host's own 3D opt-in props, ANDed with the viewer user's Options >
 // Advanced > "Disable 3D rendering" override (see `resolve3DRenderingFlags`),
 // each provided as a computed ref so toggling the option takes effect live,
@@ -1860,6 +1850,7 @@ defineExpose<PowerPointViewerExpose>({
 					:autosave-status="autosaveDisabledReason ? 'disabled' : autosave.status.value"
 					:autosave-enabled="autosaveActive"
 					:autosave-disabled-reason="autosaveDisabledReason"
+					:autosave-toggle-available="autosaveToggleAvailable"
 					:on-toggle-autosave="toggleAutosave"
 					:can-undo="history.canUndo.value"
 					:can-redo="history.canRedo.value"
@@ -1891,17 +1882,14 @@ defineExpose<PowerPointViewerExpose>({
 						:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 					/>
 					<!-- Options > Quick Access Toolbar > "below the Ribbon" -->
-					<div
-						v-if="belowRibbonQuickAccess.length > 0 && panelVisible('quickAccessToolbar')"
-						class="flex items-center border-b border-border bg-background px-2 py-0.5"
-						data-pptx-quick-access-below
-					>
-						<TitleBarQuickAccess
-							:items="belowRibbonQuickAccess"
-							:show-labels="viewerOptions.quickAccess.showCommandLabels"
-							:on-command="handleQuickAccessCommand"
-						/>
-					</div>
+					<TitleBar
+						placement="belowRibbon"
+						:mode="ribbonMode"
+						:can-edit="canEditEffective"
+						:is-dirty="autosave.isDirty.value"
+						:autosave-enabled="autosaveActive"
+						:on-quick-command="handleQuickAccessCommand"
+					/>
 				</template>
 				<!-- The AI bindings must be passed here too: `ribbonProps` does not
 				     carry them, so without these the mobile toolbar's Sparkles

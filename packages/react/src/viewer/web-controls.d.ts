@@ -13,6 +13,7 @@ type WebControlProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElemen
 	compact?: boolean;
 	pressed?: string;
 	expanded?: string;
+	placement?: string;
 };
 
 declare module 'react' {
@@ -46,6 +47,7 @@ declare module 'react' {
 			'pptx-ui-notes-toolbar': WebControlProps;
 			'pptx-ui-subtitle-settings': WebControlProps;
 			'pptx-ui-theme-editor': WebControlProps;
+			'pptx-ui-title-bar': WebControlProps;
 		}
 	}
 }

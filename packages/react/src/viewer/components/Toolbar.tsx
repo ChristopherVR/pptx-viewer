@@ -1,5 +1,5 @@
 import { isPanelVisible } from 'pptx-viewer-shared';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
@@ -18,7 +18,7 @@ import { InsertSection } from './toolbar/InsertSection';
 import { RibbonTabBar } from './toolbar/RibbonTabBar';
 import { TabRowActions } from './toolbar/TabRowActions';
 import { TextSection } from './toolbar/TextSection';
-import { TitleBarQuickExtras } from './toolbar/TitleBarQuickExtras';
+import { TitleBarElement } from './toolbar/TitleBarElement';
 import type { ToolbarProps } from './toolbar/toolbar-types';
 import { ToolbarPrimaryRow } from './toolbar/ToolbarPrimaryRow';
 import { useContextualRibbonTab } from './toolbar/useContextualRibbonTab';
@@ -34,6 +34,17 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { isTabVisible } = useToolbarVisibility(p.hiddenActions);
 	const viewerOptions = useViewerOptionsContext();
 	const customization = useViewerCustomizationContext();
+	// Below-ribbon Quick Access row: the shared element renders only the extras.
+	const belowInput = useMemo(
+		() => ({
+			editing: (mode === 'edit' || mode === 'master') && p.canEdit,
+			isDirty: false,
+			autosaveEnabled: false,
+			canUndo: p.canUndo,
+			canRedo: p.canRedo,
+		}),
+		[mode, p.canEdit, p.canUndo, p.canRedo],
+	);
 	const fallBackHome = useCallback(() => onSetToolbarSection('home'), [onSetToolbarSection]);
 	const contextual = useContextualRibbonTab(p.selectedElement, customization, fallBackHome);
 
@@ -120,12 +131,11 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 			{showRibbon &&
 				viewerOptions.quickAccess.position === 'below' &&
 				isPanelVisible(customization, 'quickAccessToolbar') && (
-					<div className='flex items-center gap-0.5 border-b border-border/60 px-2 py-1'>
-						<TitleBarQuickExtras
-							quickAccess={viewerOptions.quickAccess}
-							onCommand={p.onQuickCommand}
-						/>
-					</div>
+					<TitleBarElement
+						placement='belowRibbon'
+						input={belowInput}
+						onQuickCommand={p.onQuickCommand}
+					/>
 				)}
 
 			{/* Ribbon Content */}

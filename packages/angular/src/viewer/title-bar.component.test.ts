@@ -8,11 +8,18 @@
  * so the template's `@if (extraQat().commandIds.length > 0)` predicate is
  * factored into the pure `narrowToExtraQuickAccess` and asserted directly.
  */
+import { Injector, runInInjectionContext } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+import { Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_VIEWER_OPTIONS } from '../internal/shared';
-import type { ViewerQuickAccessOptions } from '../internal/shared';
-import { narrowToExtraQuickAccess, resolveBelowRibbonQuickAccess } from './title-bar.component';
+import type { TitleBarViewState, ViewerQuickAccessOptions } from '../internal/shared';
+import {
+	narrowToExtraQuickAccess,
+	resolveBelowRibbonQuickAccess,
+	TitleBarComponent,
+} from './title-bar.component';
 
 function quickAccess(over: Partial<ViewerQuickAccessOptions> = {}): ViewerQuickAccessOptions {
 	return { ...DEFAULT_VIEWER_OPTIONS.quickAccess, ...over };
@@ -76,5 +83,81 @@ describe('resolveBelowRibbonQuickAccess', () => {
 				quickAccess({ position: 'below', commandIds: ['save', 'undo', 'redo'] }),
 			),
 		).toBeNull();
+	});
+});
+
+/**
+ * The component is a thin adapter around `pptx-ui-title-bar`: its default state
+ * and event routing are checked through an injection context (no TestBed).
+ */
+describe('titleBarComponent adapter', () => {
+	type Out = { subscribe(fn: (value: string) => void): unknown };
+	function create() {
+		const translate = {
+			onLangChange: new Subject<unknown>(),
+			onTranslationChange: new Subject<unknown>(),
+			instant: (key: string) => key,
+		};
+		const injector = Injector.create({
+			providers: [{ provide: TranslateService, useValue: translate }],
+		});
+		return runInInjectionContext(injector, () => new TitleBarComponent()) as unknown as {
+			view(): TitleBarViewState;
+			placement(): string;
+			onCommandSearch(event: Event): void;
+			onQuickCommand(event: Event): void;
+			onEvent(id: 'save' | 'undo' | 'redo', event?: Event): void;
+			commandSearch: Out;
+			toggleFindReplace: Out;
+			quickCommand: Out;
+			save: Out;
+			undo: Out;
+		};
+	}
+
+	it('maps the default inputs onto a read-only, non-editing state', () => {
+		const state = create().view();
+		expect(state.editing).toBeFalsy();
+		expect(state.searchVisible).toBeFalsy();
+		expect(state.quickAccess).toStrictEqual(DEFAULT_VIEWER_OPTIONS.quickAccess);
+		expect(state.autosave.statusKey).toBe('pptx.titleBar.savedToThisPc');
+		expect(state.history.showUndo).toBeTruthy();
+	});
+
+	it('defaults to the title-bar placement', () => {
+		expect(create().placement()).toBe('titleBar');
+	});
+
+	it('routes a catalogue command to commandSearch and content search to Find', () => {
+		const bar = create();
+		const commands: string[] = [];
+		let finds = 0;
+		bar.commandSearch.subscribe((v: string) => commands.push(v));
+		bar.toggleFindReplace.subscribe(() => finds++);
+		bar.onCommandSearch(
+			new CustomEvent('command-search', { detail: { query: 'b', command: 'format.bold' } }),
+		);
+		bar.onCommandSearch(new CustomEvent('command-search', { detail: { query: 'zzz' } }));
+		expect(commands).toStrictEqual(['format.bold']);
+		expect(finds).toBe(1);
+	});
+
+	it('routes quick commands and dedicated buttons to their outputs', () => {
+		const bar = create();
+		const seen: string[] = [];
+		bar.quickCommand.subscribe((v: string) => seen.push(`q:${v}`));
+		bar.save.subscribe(() => seen.push('save'));
+		bar.undo.subscribe(() => seen.push('undo'));
+		bar.onQuickCommand(new CustomEvent('quick-command', { detail: { id: 'print' } }));
+		bar.onEvent('save');
+		bar.onEvent('undo');
+		expect(seen).toStrictEqual(['q:print', 'save', 'undo']);
+	});
+
+	it('consumes the bubbling DOM event so a host binding does not run twice', () => {
+		const bar = create();
+		const event = new CustomEvent('undo', { bubbles: true });
+		bar.onEvent('undo', event);
+		expect(event.cancelBubble).toBeTruthy();
 	});
 });

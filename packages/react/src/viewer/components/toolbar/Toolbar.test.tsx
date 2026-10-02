@@ -447,31 +447,6 @@ const { TextSection } = await import('./TextSection');
 const { ViewSection } = await import('./ViewSection');
 const { ToolbarPrimaryRow } = await import('./ToolbarPrimaryRow');
 const { ArrangeSection } = await import('./ArrangeSection');
-const { TitleBar } = await import('./TitleBar');
-
-// ---------------------------------------------------------------------------
-// Mock TitleBarProps factory
-// ---------------------------------------------------------------------------
-
-function createTitleBarProps(
-	overrides: Partial<import('./TitleBar').TitleBarProps> = {},
-): import('./TitleBar').TitleBarProps {
-	return {
-		mode: 'edit',
-		canEdit: true,
-		isDirty: false,
-		autosaveEnabled: true,
-		onToggleAutosave: vi.fn<() => void>(),
-		canUndo: true,
-		canRedo: true,
-		onUndo: vi.fn<() => void>(),
-		onRedo: vi.fn<() => void>(),
-		findReplaceOpen: false,
-		onToggleFindReplace: vi.fn<() => void>(),
-		...overrides,
-	};
-}
-
 // ===========================================================================
 // 1. Tab Navigation Tests
 // ===========================================================================
@@ -1093,22 +1068,6 @@ describe('toolbar - View tab', () => {
 // ===========================================================================
 
 describe('toolbar - Quick Access Bar (ToolbarPrimaryRow)', () => {
-	it('renders Undo and Redo buttons in the title bar', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps()));
-		expect(html).toContain('aria-label="Undo"');
-		expect(html).toContain('aria-label="Redo"');
-	});
-
-	it('undo button is disabled when canUndo is false', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps({ canUndo: false })));
-		expect(html).toMatch(/disabled[^>]*aria-label="Undo"/u);
-	});
-
-	it('redo button is disabled when canRedo is false', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps({ canRedo: false })));
-		expect(html).toMatch(/disabled[^>]*aria-label="Redo"/u);
-	});
-
 	it('renders sidebar toggle button', () => {
 		const html = render(React.createElement(ToolbarPrimaryRow, createMockToolbarProps()));
 		expect(html).toContain('aria-label="Toggle slides panel"');
@@ -1141,19 +1100,6 @@ describe('toolbar - Quick Access Bar (ToolbarPrimaryRow)', () => {
 		expect(html).not.toContain('aria-label="Toggle AI assistant"');
 	});
 
-	it('renders the search box that opens Find and Replace', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps()));
-		expect(html).toContain('aria-label="Search"');
-		expect(html).toContain('placeholder="');
-	});
-
-	it('search box has foreground text when Find and Replace is open', () => {
-		const html = render(
-			React.createElement(TitleBar, createTitleBarProps({ findReplaceOpen: true })),
-		);
-		expect(html).toContain('text-foreground');
-	});
-
 	it('shows Read-only badge when canEdit is false', () => {
 		const html = render(
 			React.createElement(ToolbarPrimaryRow, createMockToolbarProps({ canEdit: false })),
@@ -1166,49 +1112,6 @@ describe('toolbar - Quick Access Bar (ToolbarPrimaryRow)', () => {
 			React.createElement(ToolbarPrimaryRow, createMockToolbarProps({ canEdit: true })),
 		);
 		expect(html).not.toContain('Read-only');
-	});
-
-	it('undo button title shows label when provided', () => {
-		const html = render(
-			React.createElement(TitleBar, createTitleBarProps({ undoLabel: 'Delete shape' })),
-		);
-		expect(html).toContain('title="Undo: Delete shape"');
-	});
-
-	it('redo button title shows label when provided', () => {
-		const html = render(
-			React.createElement(TitleBar, createTitleBarProps({ redoLabel: 'Add text' })),
-		);
-		expect(html).toContain('title="Redo: Add text"');
-	});
-
-	it('renders the AutoSave switch reflecting its state', () => {
-		const on = render(React.createElement(TitleBar, createTitleBarProps()));
-		expect(on).toContain('role="switch"');
-		expect(on).toContain('aria-checked="true"');
-		const off = render(
-			React.createElement(TitleBar, createTitleBarProps({ autosaveEnabled: false })),
-		);
-		expect(off).toContain('aria-checked="false"');
-	});
-
-	it('shows the file name and saved-to-this-PC status when clean', () => {
-		const html = render(
-			React.createElement(TitleBar, createTitleBarProps({ fileName: 'deck.pptx' })),
-		);
-		expect(html).toContain('deck.pptx');
-		expect(html).toContain('Saved to this PC');
-	});
-
-	it('shows unsaved-changes status when dirty', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps({ isDirty: true })));
-		expect(html).toContain('Unsaved changes');
-	});
-
-	it('hides edit-only controls when canEdit is false', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps({ canEdit: false })));
-		expect(html).not.toContain('role="switch"');
-		expect(html).not.toContain('aria-label="Undo"');
 	});
 
 	it('does not render sidebar toggle in present mode', () => {
@@ -1510,25 +1413,5 @@ describe('toolbar - hiddenActions', () => {
 	it('renders Export in the File backstage nav when hiddenActions is omitted', () => {
 		const html = render(React.createElement(FileSection, createHiddenActionsFileProps()));
 		expect(html).toContain('>Export<');
-	});
-
-	it('omits the Undo/Redo quick buttons independently when hidden', () => {
-		const htmlUndoHidden = render(
-			React.createElement(TitleBar, createTitleBarProps({ hiddenActions: ['undo'] })),
-		);
-		expect(htmlUndoHidden).not.toContain('aria-label="Undo"');
-		expect(htmlUndoHidden).toContain('aria-label="Redo"');
-
-		const htmlRedoHidden = render(
-			React.createElement(TitleBar, createTitleBarProps({ hiddenActions: ['redo'] })),
-		);
-		expect(htmlRedoHidden).toContain('aria-label="Undo"');
-		expect(htmlRedoHidden).not.toContain('aria-label="Redo"');
-	});
-
-	it('renders Undo/Redo when hiddenActions is omitted', () => {
-		const html = render(React.createElement(TitleBar, createTitleBarProps()));
-		expect(html).toContain('aria-label="Undo"');
-		expect(html).toContain('aria-label="Redo"');
 	});
 });
