@@ -111,7 +111,7 @@ Native document insertion, file pickers, the SmartArt/equation/hyperlink/Header
   SmartArt, edit-points, save-corruption and compact-layout Insert checks passed.
 - Changed-file formatting/lint and neutral test contract: passed.
 
-## Home (#373, partial)
+## Home (#373, first families)
 
 The five `*-home.png` captures use the baseline deck, viewport and Home tab
 (no selection). Clipboard, Font characters, Paragraph indent/alignment and
@@ -125,3 +125,29 @@ Editing Find/Replace are shared; Slides, Drawing and Arrange stay native (see
 - Home neutral browser suite across all five bindings plus 16 related ribbon,
   keyboard, Draw, View and text specs: 580 passed; only the known Design cases
   of `ribbon-compact-layout.spec.ts` fail.
+
+## Home, remaining controls (#373)
+
+Captures of the finished Home migration are in `../home-remaining-after/`
+(`<binding>-home.png`, plus `-home-colour-popover.png` and
+`-home-layout-gallery.png`); the matching "before" captures are in
+`../home-remaining-before/` (the commit before this change, same deck,
+viewport and Home tab, no selection). Font family and size, character spacing,
+change case, colours, Bullets and Numbering, line spacing, text direction,
+columns, Select, the layout galleries, Shapes and Arrange menus, Fill and
+Outline popovers, the second Format Painter, Group, Ungroup, Merge Shapes, Crop
+and the outline width now render in the shared Home elements. The Slide
+Templates dialog and the layout thumbnail artwork stay native (see
+`docs/guide/ui-migration.md`).
+
+Validation on 2026-10-02:
+
+- Typecheck of every package: passed (0 errors); builds of shared, locales,
+  tools and the five bindings: passed.
+- Unit suites: shared 11,111 tests; locales 35; React 7,490; Vue 3,189;
+  Angular 4,090; Vanilla 2,130; Svelte 2,066.
+- Browser: `ribbon-home-migration.spec.ts` (extended with the font, colour,
+  paragraph, Select, Shape Fill/Outline, outline width, Arrange menu and layout
+  gallery controls, including a save and reload) plus the related ribbon,
+  localization, Merge/Crop, Select All, format painter, galleries and layout
+  specs passed on all five bindings.

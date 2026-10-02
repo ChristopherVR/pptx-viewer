@@ -49,7 +49,7 @@ do not claim that the remaining UI inventory has already migrated.
 
 | Planned family                               | Issue | Owner         |
 | -------------------------------------------- | ----- | ------------- |
-| Remaining Home controls                      | #373  | ChristopherVR |
+| Home (delivered, see below)                  | #373  | ChristopherVR |
 | Insert                                       | #374  | ChristopherVR |
 | Insert (delivered, see below)                | #374  | ChristopherVR |
 | Transitions                                  | #377  | ChristopherVR |
@@ -238,65 +238,107 @@ into shared code; the markup, gating and callbacks of every group were still
 duplicated per binding. Each family below now uses one controlled shared view,
 `pptx-ui-ribbon-home-<family>`, that renders the buttons, icons, labels,
 pressed and disabled state, and emits one typed `home-request` intent with the
-public control id. Hosts keep every document mutation, history entry,
-persistence and native popup. Public customization ids are unchanged.
+public control id (plus a `value` for picks). Hosts keep every document
+mutation, history entry and persistence. Public customization ids are
+unchanged.
 
 - Clipboard: Paste, Cut, Copy and Format Painter (the whole `home.clipboard`
   group). Gating is now identical in all five bindings; Angular's Format
   Painter previously stayed live in a read-only viewer and now follows the
   other four. The React and Vue "copied/cut" green flash was cosmetic and is not
   carried over.
-
 - Font: the character strip in `home.font` (Bold, Italic, Underline,
   Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear
-  Formatting) with pressed state for the toggles. The family and size
-  selectors, character spacing, change case and the colour pickers stay native:
-  they are app-owned selects and popovers that read the deck's theme fonts,
-  embedded fonts and recent colours. How each binding computes the toggle and
-  size-step edits is unchanged (React reads the run-level tri-state at click
-  time; the size ladder differs between bindings). React's Font buttons now
-  disable for non-text selections like the other four.
+  Formatting) plus character spacing, change case and the font and highlight
+  colour popovers, and the family and size fields as `font-picker`. How each
+  binding computes the toggle and size-step edits is unchanged (React reads the
+  run-level tri-state at click time; the size ladder differs between bindings).
+- Paragraph: Bullets and Numbering (toggle plus the shared library gallery),
+  Decrease and Increase Indent, the four alignments, line spacing, text
+  direction and columns in `home.paragraph`. Alignment is reflected as pressed
+  when the viewer can read an explicit alignment.
+- Editing: Find, Replace and the Select menu in `home.editing`.
+- Slides: the whole `home.slides` group (split New Slide, Slide Templates,
+  Layout, Reset, Section) including the New Slide and Layout thumbnail
+  galleries.
+- Drawing: Shapes and Arrange menus, Shape Fill and Shape Outline colour
+  popovers, Quick Styles and Shape Effects.
+- Arrange: Align and Distribute, Flip, z-order, Duplicate/Delete as four
+  strips, plus the second Format Painter, Group and Ungroup, Merge Shapes, Crop
+  (split with its aspect-ratio menu) and the outline width spinner.
 
-- Paragraph: Decrease and Increase Indent and the four alignments in
-  `home.paragraph`, with alignment reflected as pressed when the viewer can
-  read an explicit alignment. The Bullets and Numbering toggles (with their
-  library galleries), line spacing, text direction and columns stay native.
-  Angular's indent and alignment buttons now follow read-only mode like the
-  other bindings.
-- Editing: Find and Replace in `home.editing` (both open the host's find
-  panel; Svelte mirrors an open panel as pressed). The Select menu and Select All
-  stay native.
+Behaviour changes to know: popover triggers carry `aria-haspopup` and
+`aria-expanded` and all of them open on click (React and Vue's hover menus and
+Angular's hover popovers no longer exist); menus and colour popovers close on a
+pick, Escape or an outside press. Every text extra now enables on an editable
+text selection (`canMut && canFormat`), not on a selection alone. Menus that
+were English strings in React and Svelte (line spacing, text direction,
+columns) now translate. Character spacing offers the shared five presets
+(Angular's wider list is gone), Shapes lists the first twelve shared catalogue
+presets in every binding (Vue's custom list is gone), and Group/Ungroup live in
+the Arrange strip only (they no longer repeat in the Drawing Arrange menu). The
+Svelte font size field no longer accepts a typed size that is not in the preset
+list (it still displays one), matching the other four. Table cells can toggle
+Bullets and Numbering in Vue as in React. Angular Arrange and Svelte
+Fill/Outline/z-order follow read-only mode.
 
-- Slides: the whole `home.slides` group as `pptx-ui-ribbon-home-slides` (split
-  New Slide, Slide Templates, Layout, Reset, Section). The layout menus and the
-  template dialog stay native and anchor to the shared wrappers.
-- Drawing: the Shapes, Arrange, Shape Fill and Shape Outline triggers
-  (`pptx-ui-ribbon-home-drawing`); their menus and colour popovers stay native.
-  Quick Styles and Shape Effects were already shared galleries.
-- Arrange: Align and Distribute, Flip, z-order and Duplicate/Delete as four
-  strips (`pptx-ui-ribbon-home-arrange-*`).
+Locale: Vue and Svelte derive the shared `translate` with
+`homeSnapshotTranslator` over every family they render, inside the reactive
+state, so a runtime language change re-translates the strips; React and Angular
+re-apply on `i18n`/`TranslateService` change and Vanilla rebuilds its chrome.
+Unit tests per binding and `e2e/editor-controls-localization.spec.ts` cover it.
 
-Behaviour changes to know: popover triggers now carry `aria-haspopup` and
-`aria-expanded`; Angular's layout, Fill and Outline popovers open on click
-instead of hover; Angular Arrange and Svelte Fill/Outline/z-order now follow
-read-only mode; the Fill/Outline colour bar under the icon is gone in the
-bindings that had it; a customization of `home.arrange.align` also hides
-Distribute (Angular already did, Vanilla and Svelte now do). Hosts keep their
-own empty-deck and layout rules for New Slide/Reset/Section through
-`slidesHomeControls` flags.
+### Decision per control
 
-Still native: the layout galleries, Shapes/Arrange menus, colour popovers and the
-template dialog (popovers that read deck data and run each binding's undo), the
-second Format Painter, Group/Ungroup, Merge Shapes, Crop and outline width in
-Arrange, and in Font/Paragraph the family and size selects, character spacing,
-change case, colour pickers, Bullets/Numbering galleries, line spacing, text
-direction, columns and the Select menu. See the shared README for the detail.
+Every control that was native before this change now renders in a shared
+element. The adapters supply state and handle typed intents with their own
+undoable edit functions.
+
+| Control (customization id)                                | Shared implementation                                   | Adapter provides                                                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Font family and size (`home.font.fontFamily`, `fontSize`) | `font-picker` on `pptx-ui-select` (`ribbon-font`)       | Current values, theme/embedded/custom fonts; applies family and size                                              |
+| Character spacing (`characterSpacing`)                    | `font` strip, `pptx-ui-select` `ribbon-icon`            | Current spacing; applies `characterSpacing`                                                                       |
+| Change case (`changeCase`)                                | `font` strip, command menu                              | Runs the binding's text transform (table cells use the `textCaps` hint)                                           |
+| Font colour, highlight (`fontColor`, `highlightColor`)    | `font` strip, shared colour popover                     | Theme colour map and recents; applies colour and theme reference, pushes recents                                  |
+| Bullets, Numbering (`bullets`, `numbering`)               | `paragraph` strip: toggle plus embedded library gallery | List kind, gallery context; toggles the list, applies a gallery tile                                              |
+| Line spacing, text direction, columns                     | `paragraph` strip, `pptx-ui-select` `ribbon-icon`       | Current values; applies the style patch                                                                           |
+| Select (`home.editing.select`)                            | `editing` strip, command menu                           | Select All handler                                                                                                |
+| New Slide caret, Layout galleries                         | `slides` strip, layout tile gallery                     | Layouts, current layout, previews; draws thumbnail artwork through `layoutArtwork`; inserts or applies the layout |
+| Slide Templates (`slideTemplates`)                        | `slides` strip button                                   | Opens the native dialog (dialogs are #342 and #396)                                                               |
+| Shapes, Arrange menus (`drawing`)                         | `drawing` strip, command menus                          | Inserts the shape, runs the z-order command                                                                       |
+| Shape Fill, Shape Outline                                 | `drawing` strip, shared colour popover                  | Current colour and theme data; applies `shapeFillChange` / `shapeOutlineChange`                                   |
+| Quick Styles, Shape Effects                               | `drawing` strip, embedded `pptx-ui-ribbon-gallery`      | Gallery context; applies the tile                                                                                 |
+| Second Format Painter (`formatPainter` in Arrange)        | `arrange-painter` strip                                 | Armed and enabled state; toggles the painter                                                                      |
+| Group, Ungroup (`group`, `ungroup`)                       | `arrange-shape` strip                                   | Gating; runs the binding's group edit                                                                             |
+| Merge Shapes (`mergeShapes`)                              | `arrange-shape` command menu                            | Gating; runs the merge operation                                                                                  |
+| Crop (`crop`)                                             | `arrange-shape` split control (main toggle plus menu)   | Crop session; toggles it or crops to a ratio, fills or fits                                                       |
+| Outline width (`outlineWidth`)                            | `arrange-shape` number input                            | Current width; applies `strokeWidth`                                                                              |
+
+Native on purpose, with the technical reason:
+
+- The Slide Templates dialog itself. It is a modal dialog with focus management
+  owned by the dialog migration (#342 and #396); the Home button that opens it
+  is shared.
+- The artwork drawn inside each layout thumbnail. It is slide-element rendering
+  (`StaticElementRenderer` in React, `SlideStage` in Vue and Svelte,
+  `pptx-element-renderer` in Angular, the DOM renderer in Vanilla), and
+  slide-content rendering is a separate architecture decision. The thumbnail
+  shell, geometry, current-tile marking, keyboard and popover are shared and
+  the host draws into the already-scaled surface through `layoutArtwork`.
+- The canvas context-menu and thumbnail-rail layout galleries
+  (`LayoutGalleryMenu` in React, Vue, Svelte and Angular, `ViewerMainContent`,
+  `ViewerEditDialogs`): context menus are reserved for #393.
+- The edit toolbar's own text-format group in Svelte (`FontExtrasGroup`,
+  `FontFamilySelect`, `ShapeFormatGroup`); it is not part of the Home ribbon.
 
 `e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
 real copy/paste/cut with undo and redo, the Format Painter, customization,
-touch targets, theme tokens and forced colors across all five bindings.
-Comparable screenshots are `<binding>-home.png` in the baseline and after
-directories.
+touch targets, theme tokens and forced colors across all five bindings, and
+now the font, colour, paragraph, Select, Shape Fill/Outline, outline width,
+Arrange menu and layout gallery controls including a save and reload. Comparable
+screenshots of this change are in `/assets/ui-migration/home-remaining-before/`
+and `/assets/ui-migration/home-remaining-after/` (`<binding>-home.png`); earlier
+Home captures remain in the baseline and after directories.
 
 ## Non-ribbon buttons (#386)
 
