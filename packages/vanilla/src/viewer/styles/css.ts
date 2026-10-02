@@ -402,19 +402,16 @@ const CHROME_CSS = `
 }
 /* React's SectionBlock paints the same 10px p15:sectionPr/@clr dot. */
 .pptxv-thumb-section-color { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; }
-.pptxv-thumb-section-actions { display: flex; gap: 1px; }
-.pptxv-thumb-section-actions button {
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	border: 0;
+.pptxv-thumb-section-rename {
+	min-width: 0;
+	flex: 1;
+	padding: 0 4px;
+	border: 1px solid var(--pptx-primary, #3b82f6);
 	border-radius: 3px;
-	background: transparent;
-	color: var(--pptx-muted-foreground);
-	cursor: pointer;
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+	font: inherit;
 }
-.pptxv-thumb-section-actions button:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-thumb-section-actions button:disabled { opacity: .35; cursor: default; }
 .pptxv-thumb-section-slides { display: flex; flex-direction: column; gap: 8px; }
 
 /* ── Viewport / stage ────────────────────────────────────────────────── */

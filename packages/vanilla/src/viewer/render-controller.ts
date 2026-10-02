@@ -107,6 +107,7 @@ export interface RenderControllerDeps {
 	onSectionRename(sectionId: string, name: string): void;
 	onSectionDelete(sectionId: string): void;
 	onSectionMove(sectionId: string, direction: 'up' | 'down'): void;
+	onSectionAddAfter(slideIndex: number): void;
 	/** Navigate from a presentation Zoom tile. */
 	onZoomClick(target: ZoomNavigationTarget, returnSlideIndex: number): void;
 	/** A canvas comment marker dot was clicked; bring the comments UI on screen. */
@@ -500,6 +501,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 							rename: deps.onSectionRename,
 							delete: deps.onSectionDelete,
 							move: deps.onSectionMove,
+							addAfter: deps.onSectionAddAfter,
 						}
 					: undefined,
 			);

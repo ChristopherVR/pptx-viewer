@@ -24,12 +24,18 @@
 					@let i = item.index;
 					@let hidden = hiddenCue(slide, i);
 					@if (item.sectionStart) {
-						<header class="pptx-ng-section-header" [attr.data-section-id]="item.section?.id">
+						<header
+							class="pptx-ng-section-header"
+							data-pptx-chrome="section-header"
+							[attr.data-section-id]="item.section?.id"
+							(contextmenu)="item.section && onSectionContextMenu($event, item.section.id)"
+						>
 							<button
 								type="button"
 								class="pptx-ng-section-toggle"
 								[attr.aria-expanded]="!item.section?.collapsed"
 								(click)="item.section && editor.sectionOps.toggle(item.section.id)"
+								(dblclick)="item.section && startRenameSection(item.section.id, item.section.name)"
 							>
 								<span>{{ item.section?.collapsed ? '▸' : '▾' }}</span>
 								<!--
@@ -43,44 +49,23 @@
 										[style.background-color]="sectionColor"
 									></span>
 								}
-								<strong>{{
-									item.section?.name ?? ('pptx.slides.ungroupedSlides' | translate)
-								}}</strong>
+								@if (item.section && renamingSectionId() === item.section.id) {
+									<input
+										#renameInput
+										type="text"
+										class="pptx-ng-section-rename"
+										[value]="renameValue()"
+										(input)="renameValue.set($any($event.target).value)"
+										(keydown)="onRenameKeydown($event)"
+										(click)="$event.stopPropagation()"
+										(blur)="commitRenameSection()"
+									/>
+								} @else {
+									<strong>{{
+										item.section?.name ?? ('pptx.slides.ungroupedSlides' | translate)
+									}}</strong>
+								}
 							</button>
-							@if (item.section) {
-								<div class="pptx-ng-section-actions">
-									<button
-										type="button"
-										data-pptx-compact
-										(click)="onRenameSection(item.section.id, item.section.name)"
-									>
-										✎
-									</button>
-									<button
-										type="button"
-										data-pptx-compact
-										[disabled]="sectionIndex(item.section.id) === 0"
-										(click)="editor.sectionOps.move(item.section.id, 'up')"
-									>
-										↑
-									</button>
-									<button
-										type="button"
-										data-pptx-compact
-										[disabled]="sectionIndex(item.section.id) === editor.sections().length - 1"
-										(click)="editor.sectionOps.move(item.section.id, 'down')"
-									>
-										↓
-									</button>
-									<button
-										type="button"
-										data-pptx-compact
-										(click)="editor.sectionOps.delete(item.section.id)"
-									>
-										×
-									</button>
-								</div>
-							}
 						</header>
 					}
 					@if (!item.section?.collapsed) {
@@ -93,7 +78,11 @@
 							role="option"
 							[attr.aria-selected]="i === activeIndex()"
 							[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
+							[attr.draggable]="true"
 							(contextmenu)="onThumbContextMenu($event, i)"
+							(dragstart)="onDragStart($event, i)"
+							(dragover)="$event.preventDefault()"
+							(drop)="onDrop($event, i)"
 						>
 							<!-- Thumbnail (clickable to select). Slide number sits to the LEFT
 							     of the preview (React SlideItem parity), not below it. -->
@@ -162,57 +151,6 @@
 									}
 								</div>
 							</button>
-
-							<!-- Per-card action toolbar (visible on hover / focus-within) -->
-							<div
-								class="pptx-ng-spanel-actions"
-								role="toolbar"
-								[attr.aria-label]="'pptx.slideMenu.slideActions' | translate: { n: i + 1 }"
-							>
-								<button
-									type="button"
-									class="pptx-ng-spanel-action"
-									data-pptx-compact
-									[title]="'pptx.ribbon.duplicateSlide' | translate"
-									[attr.aria-label]="'pptx.arrange.duplicate' | translate"
-									(click)="onDuplicate(i)"
-								>
-									<svg lucideCopy class="h-3.5 w-3.5"></svg>
-								</button>
-								<button
-									type="button"
-									class="pptx-ng-spanel-action"
-									data-pptx-compact
-									[title]="'pptx.slidesPanel.deleteSlide' | translate"
-									[attr.aria-label]="'pptx.arrange.delete' | translate"
-									[disabled]="editor.slides().length <= 1"
-									(click)="onDelete(i)"
-								>
-									<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
-								</button>
-								<button
-									type="button"
-									class="pptx-ng-spanel-action"
-									data-pptx-compact
-									[title]="'pptx.sections.moveUp' | translate"
-									[attr.aria-label]="'pptx.sections.moveUp' | translate"
-									[disabled]="i === 0"
-									(click)="onMoveUp(i)"
-								>
-									<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
-								</button>
-								<button
-									type="button"
-									class="pptx-ng-spanel-action"
-									data-pptx-compact
-									[title]="'pptx.sections.moveDown' | translate"
-									[attr.aria-label]="'pptx.sections.moveDown' | translate"
-									[disabled]="i === editor.slides().length - 1"
-									(click)="onMoveDown(i)"
-								>
-									<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
-								</button>
-							</div>
 						</div>
 					}
 				}
@@ -232,6 +170,16 @@
 		</button>
 	</footer>
 
+	@if (sectionMenu(); as sm) {
+		<pptx-section-context-menu
+			[x]="sm.x"
+			[y]="sm.y"
+			[sectionIndex]="sectionIndex(sm.sectionId)"
+			[totalSections]="editor.sections().length"
+			(command)="onSectionCommand($event, sm.sectionId)"
+			(closed)="sectionMenu.set(null)"
+		/>
+	}
 	@if (rail.contextMenu(); as m) {
 		<pptx-slide-pane-context-menu
 			[x]="m.x"

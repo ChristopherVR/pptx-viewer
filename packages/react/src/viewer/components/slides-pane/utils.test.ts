@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { formatTimingMs } from './utils';
+import { declaredSectionFacts, formatTimingMs } from './utils';
 
 describe('formatTimingMs', () => {
 	it('formats 0 ms as "0:00"', () => {
@@ -42,5 +42,28 @@ describe('formatTimingMs', () => {
 
 	it('formats 59 seconds correctly', () => {
 		expect(formatTimingMs(59000)).toBe('0:59');
+	});
+});
+
+describe('declaredSectionFacts', () => {
+	const group = (id: string) => ({ id, label: id, slideIndexes: [] }) as never;
+	const groups = [group('a'), group('b'), group('__ungrouped__')];
+
+	it('indexes declared sections and ignores the trailing ungrouped group', () => {
+		expect(declaredSectionFacts(groups, 'a')).toStrictEqual({
+			isDeclared: true,
+			index: 0,
+			total: 2,
+		});
+		expect(declaredSectionFacts(groups, 'b')).toStrictEqual({
+			isDeclared: true,
+			index: 1,
+			total: 2,
+		});
+		expect(declaredSectionFacts(groups, '__ungrouped__').isDeclared).toBeFalsy();
+	});
+
+	it('treats the synthetic no-sections group as undeclared', () => {
+		expect(declaredSectionFacts([group('default')], 'default').total).toBe(0);
 	});
 });

@@ -136,6 +136,42 @@ describe('slideSorter', () => {
 			expect(wrapper.emitted('duplicate')).toStrictEqual([[2]]);
 		});
 
+		const itemLabels = (): (string | undefined)[] =>
+			Array.from(document.querySelectorAll<HTMLElement>('[role="menu"] [role="menuitem"]')).map(
+				(node) => node.textContent?.trim(),
+			);
+		const click = (id: string): void =>
+			document
+				.querySelector<HTMLButtonElement>(`[data-item-id="${id}"]`)
+				?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+		it('offers the shared list: Copy, Duplicate, Hide Slides, Delete', async () => {
+			const wrapper = mountEditable(makeSlides(3));
+			expect(wrapper.findAll('[data-pptx-chrome="sorter-tile"]')).toHaveLength(3);
+			await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('contextmenu');
+			expect(itemLabels()).toStrictEqual(['Copy', 'Duplicate', 'Hide Slides', 'Delete']);
+		});
+
+		it('offers Paste only after Copy and pastes a copy of the copied slide', async () => {
+			const wrapper = mountEditable(makeSlides(3));
+			await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('contextmenu');
+			click('copy');
+			await wrapper.vm.$nextTick();
+			await wrapper.findAll('.pptx-vue-sorter-tile')[2]!.trigger('contextmenu');
+			expect(itemLabels()).toContain('Paste');
+			click('paste');
+			await wrapper.vm.$nextTick();
+			expect(wrapper.emitted('duplicate')).toStrictEqual([[1]]);
+		});
+
+		it('emits toggle-hidden for the right-clicked tile', async () => {
+			const wrapper = mountEditable(makeSlides(3));
+			await wrapper.findAll('.pptx-vue-sorter-tile')[0]!.trigger('contextmenu');
+			click('toggle-hidden');
+			await wrapper.vm.$nextTick();
+			expect(wrapper.emitted('toggle-hidden')).toStrictEqual([[0]]);
+		});
+
 		it('does not open when canEdit is false', async () => {
 			const wrapper = mountSorter(makeSlides(3));
 			await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('contextmenu');

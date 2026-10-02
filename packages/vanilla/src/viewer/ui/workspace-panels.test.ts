@@ -236,9 +236,13 @@ describe('workspace parity panels', () => {
 			onDuplicate,
 			onToggleHidden: vi.fn(),
 		});
-		Array.from(document.querySelectorAll('button'))
-			.find((button) => button.textContent === 'Duplicate')!
-			.click();
+		// Slide commands live on the shared tile right-click menu, not inline buttons.
+		document
+			.querySelector('[data-pptx-chrome="sorter-tile"]')!
+			.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+		Array.from(document.querySelectorAll('[role="menuitem"]'))
+			.find((item) => item.textContent === 'Duplicate')!
+			.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		expect(onDuplicate).toHaveBeenCalledWith(0);
 		document.body.replaceChildren();
 		const addComment = vi.fn(() => 'comment');

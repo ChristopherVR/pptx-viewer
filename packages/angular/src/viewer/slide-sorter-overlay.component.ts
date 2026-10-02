@@ -12,13 +12,21 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
+	buildSlideSorterContextMenuEntries,
 	HIDDEN_SLIDE_LABEL_KEY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	hiddenSlideCue,
 	isEditorTextInputTarget,
 	mapSlideSorterKey,
+	slideSorterContextMenuLabel,
+	slideSorterPasteIndexes,
 } from '../internal/shared';
-import type { CanvasSize, HiddenSlideCue } from '../internal/shared';
+import type {
+	CanvasSize,
+	HiddenSlideCue,
+	SlideSorterContextMenuCommandId,
+	SlideSorterContextMenuEntry,
+} from '../internal/shared';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 
@@ -34,10 +42,10 @@ const GRID_GAP = 16;
  * Renders a fixed full-screen modal overlay containing a responsive grid of
  * scaled slide previews. Clicking a thumbnail emits `select(index)`; pressing
  * Escape or clicking the ✕ button emits `closed`. Right-clicking a thumbnail
- * (when `canEdit`) opens a small context menu (Duplicate / Hide-Show /
- * Delete), matching React's `SorterContextMenu` and Vue's `ContextMenu`
- * wiring: this overlay previously had no mouse path to any of the three, and
- * no path to hide/show at all (mouse or keyboard).
+ * (when `canEdit`) opens a small context menu (Copy / Paste / Duplicate /
+ * Hide-Show / Delete) whose command list comes from the shared
+ * `buildSlideSorterContextMenuEntries`, the same list React, Vue, Svelte and
+ * Vanilla render.
  *
  * Viewer-first scope: no drag-reorder, no section grouping.
  *
@@ -150,6 +158,16 @@ export class SlideSorterOverlayComponent {
 		if (action === 'duplicate') {
 			event.preventDefault();
 			this.duplicateSlide.emit(this.activeIndex());
+			return;
+		}
+		if (action === 'copy') {
+			event.preventDefault();
+			this.copySlide(this.activeIndex());
+			return;
+		}
+		if (action === 'paste') {
+			event.preventDefault();
+			this.pasteSlides();
 		}
 	}
 
@@ -193,34 +211,67 @@ export class SlideSorterOverlayComponent {
 		this.contextMenu.set(null);
 	}
 
-	/** Whether the context menu's target slide is currently hidden. */
-	contextMenuTargetHidden(): boolean {
+	/** Slide ids copied in this sorter session (the shared Copy / Paste pair). */
+	private readonly clipboardSlideIds = signal<string[]>([]);
+
+	/** The shared sorter command list for the slide the menu was opened on. */
+	readonly menuEntries = computed<SlideSorterContextMenuEntry[]>(() => {
 		const menu = this.contextMenu();
-		return menu ? (this.slides()[menu.index]?.hidden ?? false) : false;
+		const hidden = menu ? (this.slides()[menu.index]?.hidden ?? false) : false;
+		return buildSlideSorterContextMenuEntries({
+			selectedCount: 1,
+			hasClipboard: this.clipboardSlideIds().length > 0,
+			hasHiddenInSelection: hidden,
+			hasVisibleInSelection: !hidden,
+			wouldDeleteAllSlides: this.slides().length <= 1,
+		});
+	});
+
+	/** The count suffix only applies to a multi-selection; the sorter is single-select. */
+	menuLabelSuffix(translated: string, entry: SlideSorterContextMenuEntry): string {
+		return slideSorterContextMenuLabel(translated, entry, 1);
 	}
 
-	menuDuplicate(): void {
-		const menu = this.contextMenu();
-		if (menu) {
-			this.duplicateSlide.emit(menu.index);
+	private copySlide(index: number): void {
+		const slide = this.slides()[index];
+		if (slide) {
+			this.clipboardSlideIds.set([slide.id]);
 		}
-		this.closeContextMenu();
 	}
 
-	menuToggleHidden(): void {
-		const menu = this.contextMenu();
-		if (menu) {
-			this.toggleHiddenSlide.emit(menu.index);
+	/** Paste inserts a copy after each copied slide; highest index first so earlier ones stay valid. */
+	private pasteSlides(): void {
+		const indexes = slideSorterPasteIndexes(this.clipboardSlideIds(), this.slides());
+		for (const index of [...indexes].sort((a, b) => b - a)) {
+			this.duplicateSlide.emit(index);
 		}
-		this.closeContextMenu();
 	}
 
-	menuDelete(): void {
+	runMenuCommand(id: SlideSorterContextMenuCommandId): void {
 		const menu = this.contextMenu();
-		if (menu) {
-			this.deleteSlide.emit(menu.index);
-		}
 		this.closeContextMenu();
+		if (!menu) {
+			return;
+		}
+		switch (id) {
+			case 'copy':
+				this.copySlide(menu.index);
+				break;
+			case 'paste':
+				this.pasteSlides();
+				break;
+			case 'duplicate':
+				this.duplicateSlide.emit(menu.index);
+				break;
+			case 'toggle-hidden':
+				this.toggleHiddenSlide.emit(menu.index);
+				break;
+			case 'delete':
+				this.deleteSlide.emit(menu.index);
+				break;
+			default:
+				break;
+		}
 	}
 
 	// -------------------------------------------------------------------------

@@ -1,6 +1,27 @@
 import { EDITOR_THUMBNAIL_WIDTH, editorThumbnailStep } from 'pptx-viewer-shared';
 
+import { DEFAULT_SECTION_GROUP_ID, UNGROUPED_SECTION_ID } from '../../constants';
 import type { SlideSectionGroup } from '../../types';
+
+/**
+ * Where a section sits among the DECLARED sections. The synthetic groups (the
+ * deck's "no sections at all" group and the trailing "ungrouped slides" group)
+ * are not sections: they have no menu and do not count toward Move Up / Move
+ * Down gating, matching the other four bindings.
+ */
+export function declaredSectionFacts(
+	groups: readonly SlideSectionGroup[],
+	sectionId: string,
+): { isDeclared: boolean; index: number; total: number } {
+	const declared = groups
+		.filter((group) => group.id !== DEFAULT_SECTION_GROUP_ID && group.id !== UNGROUPED_SECTION_ID)
+		.map((group) => group.id);
+	return {
+		isDeclared: declared.includes(sectionId),
+		index: declared.indexOf(sectionId),
+		total: declared.length,
+	};
+}
 
 /**
  * Format a duration in milliseconds as "M:SS".

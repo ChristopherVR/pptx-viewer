@@ -5,10 +5,7 @@
 	 * main canvas.
 	 */
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
-	import Pencil from '@lucide/svelte/icons/pencil';
-	import X from '@lucide/svelte/icons/x';
 	import {
 		computeVirtualRange,
 		groupSlidesBySection,
@@ -16,14 +13,17 @@
 		HIDDEN_SLIDE_LABEL_KEY,
 		HIDDEN_SLIDE_SLASH_GRADIENT,
 		hiddenSlideCue,
+		sectionAddAfterSlideIndex,
 		SLIDE_VIRTUALIZATION_THRESHOLD,
 		EDITOR_SLIDE_RAIL_WIDTH,
 		EDITOR_THUMBNAIL_WIDTH,
 		editorThumbnailHeight,
 		editorThumbnailStep,
 	} from 'pptx-viewer-shared';
+	import type { SectionContextMenuCommandId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
+	import SectionContextMenu from './SectionContextMenu.svelte';
 	import SlideStage from './SlideStage.svelte';
 	import ThumbnailContextMenu from './ThumbnailContextMenu.svelte';
 	import { ThumbnailRailMenu } from './thumbnail-rail-menu.svelte';
@@ -116,9 +116,60 @@
 		draggedIndex = null;
 	}
 
-	function renameSection(sectionId: string, currentName: string): void {
-		const next = window.prompt(t('pptx.sections.rename'), currentName);
-		if (next !== null) {onsectionrename?.(sectionId, next);}
+	// Section header: right-click menu (shared command list) and inline rename.
+	let sectionMenu = $state<{ x: number; y: number; sectionId: string } | null>(null);
+	let renamingId = $state<string | null>(null);
+	let renameValue = $state('');
+	let renameInput = $state<HTMLInputElement>();
+
+	function onSectionContextMenu(event: MouseEvent, sectionId: string): void {
+		if (!editable) {return;}
+		event.preventDefault();
+		sectionMenu = { x: event.clientX, y: event.clientY, sectionId };
+	}
+
+	function startRename(sectionId: string, currentName: string): void {
+		if (!editable) {return;}
+		renamingId = sectionId;
+		renameValue = currentName;
+		queueMicrotask(() => { renameInput?.focus(); renameInput?.select(); });
+	}
+
+	function commitRename(): void {
+		const id = renamingId;
+		if (id === null) {return;}
+		const name = renameValue.trim();
+		renamingId = null;
+		if (name.length > 0) {onsectionrename?.(id, name);}
+	}
+
+	function onRenameKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			commitRename();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			renamingId = null;
+		}
+		event.stopPropagation();
+	}
+
+	function runSectionCommand(id: SectionContextMenuCommandId): void {
+		const menu = sectionMenu;
+		sectionMenu = null;
+		const index = sectionGroups.findIndex((group) => group.section?.id === menu?.sectionId);
+		const group = sectionGroups[index];
+		if (!menu || !group?.section) {return;}
+		switch (id) {
+			case 'rename': startRename(menu.sectionId, group.section.name); break;
+			case 'delete': onsectiondelete?.(menu.sectionId); break;
+			case 'move-up': onsectionmove?.(menu.sectionId, 'up'); break;
+			case 'move-down': onsectionmove?.(menu.sectionId, 'down'); break;
+			case 'add-after':
+				onaddsectionat?.(sectionAddAfterSlideIndex(group.slideIndexes[group.slideIndexes.length - 1], slides.length));
+				break;
+			default: break;
+		}
 	}
 </script>
 
@@ -176,23 +227,19 @@
 	{#if hasSections}
 		{#each sectionGroups as group, groupIndex (group.section?.id ?? 'ungrouped')}
 			<section class="pptx-svelte-section" data-section-id={group.section?.id}>
-				<header class="pptx-svelte-section-header">
-					<button type="button" class="pptx-svelte-section-toggle" onclick={() => group.section && onsectiontoggle?.(group.section.id)} aria-expanded={!group.section?.collapsed}>
+				<header class="pptx-svelte-section-header" data-pptx-chrome="section-header" oncontextmenu={(event) => group.section && onSectionContextMenu(event, group.section.id)}>
+					<button type="button" class="pptx-svelte-section-toggle" onclick={() => group.section && onsectiontoggle?.(group.section.id)} ondblclick={() => group.section && startRename(group.section.id, group.section.name)} aria-expanded={!group.section?.collapsed}>
 						<span class="pptx-svelte-section-caret" class:is-collapsed={group.section?.collapsed}><ChevronDown size={12} aria-hidden="true" /></span>
 						<!-- `p15:sectionPr/@clr`: parsed and round-tripped by core, but
 						     shown by React alone until this. -->
 						{#if group.section?.color}<span class="pptx-svelte-section-color" data-pptx-section-color={group.section.color} style={`background:${group.section.color}`}></span>{/if}
-						<strong>{group.section?.name ?? t('pptx.slides.ungroupedSlides')}</strong>
-						<small>{group.slides.length}</small>
+						{#if group.section && renamingId === group.section.id}
+							<input bind:this={renameInput} class="pptx-svelte-section-rename" type="text" bind:value={renameValue} onkeydown={onRenameKeydown} onclick={(event) => event.stopPropagation()} onblur={commitRename} />
+						{:else}
+							<strong>{group.section?.name ?? t('pptx.slides.ungroupedSlides')}</strong>
+							<small>{group.slides.length}</small>
+						{/if}
 					</button>
-					{#if editable && group.section}
-						<div class="pptx-svelte-section-actions">
-							<button type="button" title={t('pptx.sections.rename')} aria-label={t('pptx.sections.rename')} data-pptx-compact onclick={() => renameSection(group.section!.id, group.section!.name)}><Pencil size={12} aria-hidden="true" /></button>
-							<button type="button" title={t('pptx.sections.moveUp')} aria-label={t('pptx.sections.moveUp')} disabled={groupIndex === 0} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'up')}><ChevronUp size={12} aria-hidden="true" /></button>
-							<button type="button" title={t('pptx.sections.moveDown')} aria-label={t('pptx.sections.moveDown')} disabled={groupIndex === sectionGroups.length - 1} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'down')}><ChevronDown size={12} aria-hidden="true" /></button>
-							<button type="button" title={t('pptx.sectionList.deleteSection')} aria-label={t('pptx.sectionList.deleteSection')} data-pptx-compact onclick={() => onsectiondelete?.(group.section!.id)}><X size={12} aria-hidden="true" /></button>
-						</div>
-					{/if}
 				</header>
 				{#if !group.section?.collapsed}
 					<div class="pptx-svelte-section-slides">
@@ -223,6 +270,10 @@
 		</div>
 	{/if}
 </nav>
+
+{#if sectionMenu}
+	<SectionContextMenu x={sectionMenu.x} y={sectionMenu.y} sectionIndex={sectionGroups.filter((group) => group.section).findIndex((group) => group.section?.id === sectionMenu?.sectionId)} totalSections={sectionGroups.filter((group) => group.section).length} onrun={runSectionCommand} onclose={() => (sectionMenu = null)} />
+{/if}
 
 {#if railMenu.contextMenu}
 	<ThumbnailContextMenu

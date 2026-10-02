@@ -40,6 +40,7 @@
 					<button
 						type="button"
 						class="pptx-ng-sorter-cell"
+						data-pptx-chrome="sorter-tile"
 						[class.is-active]="i === activeIndex()"
 						[class.is-hidden]="hidden.hidden"
 						[attr.data-pptx-slide-hidden]="hidden.marker ?? null"
@@ -90,22 +91,27 @@
 		></button>
 		<div
 			class="pptx-ng-sorter-context-menu"
+			data-pptx-context-menu="true"
+			data-pptx-sorter-context-menu="true"
 			[style.left.px]="menu.x"
 			[style.top.px]="menu.y"
 			role="menu"
+			[attr.aria-label]="'pptx.slideSorter.title' | translate"
 		>
-			<button type="button" role="menuitem" (click)="menuDuplicate()">
-				{{ 'pptx.slideMenu.duplicate' | translate }}
-			</button>
-			<button type="button" role="menuitem" (click)="menuToggleHidden()">
-				{{
-					(contextMenuTargetHidden() ? 'pptx.slideMenu.show' : 'pptx.slideMenu.hide') | translate
-				}}
-			</button>
-			<div class="pptx-ng-sorter-context-menu-sep"></div>
-			<button type="button" role="menuitem" class="is-danger" (click)="menuDelete()">
-				{{ 'pptx.slideMenu.delete' | translate }}
-			</button>
+			@for (entry of menuEntries(); track entry.id) {
+				@if (entry.separatorBefore) {
+					<div class="pptx-ng-sorter-context-menu-sep" role="separator"></div>
+				}
+				<button
+					type="button"
+					role="menuitem"
+					[class.is-danger]="entry.id === 'delete'"
+					[disabled]="!!entry.disabled"
+					(click)="runMenuCommand(entry.id)"
+				>
+					{{ menuLabelSuffix(entry.labelKey | translate, entry) }}
+				</button>
+			}
 		</div>
 	}
 </div>

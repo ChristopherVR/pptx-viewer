@@ -65,17 +65,54 @@ describe('sectionList', () => {
 		expect(wrapper.emitted('toggle-collapse')).toStrictEqual([['sec1']]);
 	});
 
-	it('emits move-up / move-down / delete from the action buttons', async () => {
+	/** The section menu teleports to the body; read it from there. */
+	const menuItems = (): HTMLButtonElement[] =>
+		Array.from(
+			document.body.querySelectorAll<HTMLButtonElement>('[role="menu"] [role="menuitem"]'),
+		);
+	const itemNamed = (label: string): HTMLButtonElement =>
+		menuItems().find((candidate) => candidate.textContent?.trim() === label)!;
+
+	it('opens the shared five-command menu on right-click and has no inline buttons', async () => {
 		const wrapper = mountList(sampleGroups());
-		const actions = wrapper
-			.findAll('.pptx-vue-section-header')[0]!
-			.findAll('.pptx-vue-section-action');
-		await actions[0]!.trigger('click');
-		await actions[1]!.trigger('click');
-		await actions[2]!.trigger('click');
-		expect(wrapper.emitted('move-up')).toStrictEqual([['sec1']]);
+		const header = wrapper.findAll('.pptx-vue-section-header')[0]!;
+		expect(header.findAll('button')).toHaveLength(1);
+		await wrapper.findAll('.pptx-vue-section-toggle')[0]!.trigger('contextmenu');
+		expect(menuItems().map((candidate) => candidate.textContent?.trim())).toStrictEqual([
+			'Rename',
+			'Delete',
+			'Move Up',
+			'Move Down',
+			'Add Section After',
+		]);
+		expect(itemNamed('Move Up').disabled).toBeTruthy();
+		expect(itemNamed('Move Down').disabled).toBeFalsy();
+		wrapper.unmount();
+	});
+
+	it('emits move-down, delete-section and add-section from the menu', async () => {
+		const wrapper = mountList(sampleGroups());
+		const toggles = wrapper.findAll('.pptx-vue-section-toggle');
+		await toggles[0]!.trigger('contextmenu');
+		itemNamed('Move Down').click();
+		await toggles[0]!.trigger('contextmenu');
+		itemNamed('Delete').click();
+		await toggles[0]!.trigger('contextmenu');
+		itemNamed('Add Section After').click();
 		expect(wrapper.emitted('move-down')).toStrictEqual([['sec1']]);
-		expect(wrapper.emitted('delete')).toStrictEqual([['sec1']]);
+		expect(wrapper.emitted('delete-section')).toStrictEqual([['sec1']]);
+		// The new section starts at the slide after the section's last one.
+		expect(wrapper.emitted('add-section')).toStrictEqual([[1]]);
+		wrapper.unmount();
+	});
+
+	it('starts an inline rename from the menu', async () => {
+		const wrapper = mountList(sampleGroups());
+		await wrapper.findAll('.pptx-vue-section-toggle')[0]!.trigger('contextmenu');
+		itemNamed('Rename').click();
+		await wrapper.vm.$nextTick();
+		expect(wrapper.find('.pptx-vue-section-rename').exists()).toBeTruthy();
+		wrapper.unmount();
 	});
 
 	it('emits rename after a double-click + Enter', async () => {
@@ -87,16 +124,11 @@ describe('sectionList', () => {
 		expect(wrapper.emitted('rename')).toStrictEqual([['sec1', 'Renamed']]);
 	});
 
-	it('emits add-section with the last slide index of the group', async () => {
-		const wrapper = mountList(sampleGroups());
-		await wrapper.findAll('.pptx-vue-section-add')[0]!.trigger('click');
-		expect(wrapper.emitted('add-section')).toStrictEqual([[0]]);
-	});
-
-	it('hides edit affordances when canEdit is false', () => {
+	it('opens no menu when canEdit is false', async () => {
 		const wrapper = mountList(sampleGroups(), 0, false);
-		expect(wrapper.findAll('.pptx-vue-section-action')).toHaveLength(0);
-		expect(wrapper.findAll('.pptx-vue-section-add')).toHaveLength(0);
+		await wrapper.findAll('.pptx-vue-section-toggle')[0]!.trigger('contextmenu');
+		expect(menuItems()).toHaveLength(0);
+		wrapper.unmount();
 	});
 
 	/**

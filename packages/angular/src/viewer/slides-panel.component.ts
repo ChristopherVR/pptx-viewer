@@ -12,14 +12,8 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import {
-	LucideArrowDown,
-	LucideArrowUp,
-	LucideCopy,
-	LucidePlus,
-	LucideTrash2,
-} from '@lucide/angular';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { LucidePlus } from '@lucide/angular';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import {
 	computeVirtualRange,
@@ -30,10 +24,12 @@ import {
 	HIDDEN_SLIDE_LABEL_KEY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	hiddenSlideCue,
+	sectionAddAfterSlideIndex,
 	SLIDE_VIRTUALIZATION_THRESHOLD,
 } from '../internal/shared';
-import type { CanvasSize, HiddenSlideCue } from '../internal/shared';
+import type { CanvasSize, HiddenSlideCue, SectionContextMenuCommandId } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { SectionContextMenuComponent } from './section-context-menu.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlidePaneContextMenuComponent } from './slide-pane-context-menu.component';
 import { SlidePaneRailSelection } from './slide-pane-rail-selection';
@@ -49,10 +45,11 @@ const THUMB_W = EDITOR_THUMBNAIL_WIDTH;
  *
  * Renders the live editable deck (from {@link EditorStateService}) as a
  * scrollable vertical list of numbered thumbnail cards. Clicking a card emits
- * `select(index)`; the active card is highlighted. Per-card hover toolbar
- * provides Duplicate, Delete (disabled when only 1 slide), Move up, and Move
- * down. A footer "＋ Add slide" button appends a blank slide after the current
- * `activeIndex`.
+ * `select(index)`; the active card is highlighted. Slide commands live on the
+ * shared thumbnail right-click menu and cards reorder by drag and drop; section
+ * commands live on the shared section-header menu. A footer "＋ Add slide"
+ * button, the rail's one persistent action, appends a blank slide after the
+ * current `activeIndex`.
  *
  * Usage:
  * ```html
@@ -71,12 +68,9 @@ const THUMB_W = EDITOR_THUMBNAIL_WIDTH;
 	imports: [
 		NgStyle,
 		SlideCanvasComponent,
+		SectionContextMenuComponent,
 		SlidePaneContextMenuComponent,
 		TranslatePipe,
-		LucideCopy,
-		LucideTrash2,
-		LucideArrowUp,
-		LucideArrowDown,
 		LucidePlus,
 	],
 	templateUrl: './slides-panel.component.html',
@@ -108,7 +102,6 @@ export class SlidesPanelComponent {
 	protected readonly rail = new SlidePaneRailSelection();
 
 	protected readonly editor = inject(EditorStateService);
-	private readonly translate = inject(TranslateService);
 	private readonly scrollViewport = viewChild<ElementRef<HTMLElement>>('scrollViewport');
 	private readonly scrollTop = signal(0);
 	private readonly viewportHeight = signal(600);
@@ -200,20 +193,24 @@ export class SlidesPanelComponent {
 
 	// ── Event handlers ────────────────────────────────────────────────────────
 
-	onDuplicate(index: number): void {
-		this.editor.duplicateSlide(index);
+	// ── Drag-to-reorder (the rail's reorder path; there are no per-card buttons) ──
+	private dragFrom: number | null = null;
+
+	onDragStart(event: DragEvent, index: number): void {
+		this.dragFrom = index;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', String(index));
+		}
 	}
 
-	onDelete(index: number): void {
-		this.editor.deleteSlide(index);
-	}
-
-	onMoveUp(index: number): void {
-		this.editor.moveSlide(index, index - 1);
-	}
-
-	onMoveDown(index: number): void {
-		this.editor.moveSlide(index, index + 1);
+	onDrop(event: DragEvent, index: number): void {
+		event.preventDefault();
+		const from = this.dragFrom;
+		this.dragFrom = null;
+		if (from !== null && from !== index) {
+			this.editor.moveSlide(from, index);
+		}
 	}
 
 	onAddSlide(): void {
@@ -250,11 +247,82 @@ export class SlidesPanelComponent {
 		return this.editor.slides().map((s) => s.id);
 	}
 
-	onRenameSection(sectionId: string, currentName: string): void {
-		const name = window.prompt(this.translate.instant('pptx.sections.rename'), currentName);
-		if (name !== null) {
-			this.editor.sectionOps.rename(sectionId, name);
+	// ── Section header menu + inline rename ──
+	/** Open state of the section-header menu, or null when closed. */
+	protected readonly sectionMenu = signal<{ x: number; y: number; sectionId: string } | null>(null);
+	protected readonly renamingSectionId = signal<string | null>(null);
+	protected readonly renameValue = signal('');
+	private readonly renameInput = viewChild<ElementRef<HTMLInputElement>>('renameInput');
+
+	onSectionContextMenu(event: MouseEvent, sectionId: string): void {
+		event.preventDefault();
+		this.sectionMenu.set({ x: event.clientX, y: event.clientY, sectionId });
+	}
+
+	onSectionCommand(id: SectionContextMenuCommandId, sectionId: string): void {
+		const section = this.editor.sections().find((candidate) => candidate.id === sectionId);
+		if (!section) {
+			return;
 		}
+		switch (id) {
+			case 'rename':
+				this.startRenameSection(sectionId, section.name);
+				break;
+			case 'delete':
+				this.editor.sectionOps.delete(sectionId);
+				break;
+			case 'move-up':
+				this.editor.sectionOps.move(sectionId, 'up');
+				break;
+			case 'move-down':
+				this.editor.sectionOps.move(sectionId, 'down');
+				break;
+			case 'add-after': {
+				const group = this.editor.sectionGroups().find((g) => g.section?.id === sectionId);
+				this.addSectionAt.emit(
+					sectionAddAfterSlideIndex(
+						group?.slideIndexes[group.slideIndexes.length - 1],
+						this.editor.slides().length,
+					),
+				);
+				break;
+			}
+			default:
+				break;
+		}
+	}
+
+	startRenameSection(sectionId: string, currentName: string): void {
+		this.renamingSectionId.set(sectionId);
+		this.renameValue.set(currentName);
+		setTimeout(() => {
+			const field = this.renameInput()?.nativeElement;
+			field?.focus();
+			field?.select();
+		});
+	}
+
+	commitRenameSection(): void {
+		const id = this.renamingSectionId();
+		if (id === null) {
+			return;
+		}
+		const name = this.renameValue().trim();
+		this.renamingSectionId.set(null);
+		if (name.length > 0) {
+			this.editor.sectionOps.rename(id, name);
+		}
+	}
+
+	onRenameKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			this.commitRenameSection();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			this.renamingSectionId.set(null);
+		}
+		event.stopPropagation();
 	}
 
 	sectionIndex(sectionId: string): number {

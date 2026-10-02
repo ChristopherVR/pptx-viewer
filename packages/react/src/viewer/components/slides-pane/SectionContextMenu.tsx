@@ -1,7 +1,11 @@
+import { buildSectionContextMenuEntries, sectionAddAfterSlideIndex } from 'pptx-viewer-shared';
+import type { SectionContextMenuCommandId } from 'pptx-viewer-shared';
 import type React from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { SlideSectionGroup } from '../../types';
+import { ContextMenuItem, ContextMenuSeparator } from '../context-menu-parts';
 import type { SectionContextMenuState } from './types';
 
 // ---------------------------------------------------------------------------
@@ -24,6 +28,11 @@ interface SectionContextMenuProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * The section-header right-click menu. The command list, order, separators and
+ * end-of-list gating come from the shared `buildSectionContextMenuEntries`, so
+ * this menu cannot drift from the other four bindings.
+ */
 export function SectionContextMenu({
 	state,
 	sectionGroups,
@@ -37,76 +46,75 @@ export function SectionContextMenu({
 }: SectionContextMenuProps): React.ReactElement {
 	const { t } = useTranslation();
 
-	const handleAddSectionAfter = () => {
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				onClose();
+			}
+		};
+		document.addEventListener('keydown', onKeyDown);
+		return () => document.removeEventListener('keydown', onKeyDown);
+	}, [onClose]);
+
+	const entries = buildSectionContextMenuEntries({
+		sectionIndex: state.sectionIndex,
+		totalSections: state.totalSections,
+	});
+
+	const run = (id: SectionContextMenuCommandId): void => {
 		const group = sectionGroups.find((g) => g.id === state.sectionId);
-		if (!group) {
-			return;
+		switch (id) {
+			case 'rename':
+				if (group) {
+					onStartRename(state.sectionId, group.label);
+				}
+				return;
+			case 'delete':
+				onDeleteSection?.(state.sectionId);
+				break;
+			case 'move-up':
+				onMoveSectionUp?.(state.sectionId);
+				break;
+			case 'move-down':
+				onMoveSectionDown?.(state.sectionId);
+				break;
+			case 'add-after':
+				if (group) {
+					onAddSection?.(
+						t('pptx.sections.defaultName'),
+						sectionAddAfterSlideIndex(
+							group.slideIndexes[group.slideIndexes.length - 1],
+							totalSlides,
+						),
+					);
+				}
+				break;
+			default:
+				break;
 		}
-		const lastSlideIndex = group.slideIndexes[group.slideIndexes.length - 1] ?? 0;
-		const nextSlideIndex = Math.min(lastSlideIndex + 1, totalSlides - 1);
-		onAddSection?.(t('pptx.sections.defaultName'), nextSlideIndex);
 		onClose();
 	};
 
 	return (
 		<div
-			className='fixed z-50 min-w-[160px] rounded-md border border-border bg-popover py-1 shadow-xl'
+			data-pptx-context-menu='true'
+			data-pptx-section-context-menu='true'
+			role='menu'
+			tabIndex={-1}
+			aria-label={t('pptx.sections.sectionButtonLabel')}
+			className='fixed z-50 min-w-[160px] rounded-md border border-border bg-popover py-1 text-xs text-foreground shadow-xl'
 			style={{ left: state.x, top: state.y }}
 			onClick={(e: React.MouseEvent) => e.stopPropagation()}
 		>
-			<button
-				type='button'
-				className='flex w-full items-center px-3 py-1.5 text-xs text-foreground hover:bg-muted'
-				onClick={() => {
-					const group = sectionGroups.find((g) => g.id === state.sectionId);
-					if (group) {
-						onStartRename(state.sectionId, group.label);
-					}
-				}}
-			>
-				{t('pptx.sections.rename')}
-			</button>
-			<button
-				type='button'
-				className='flex w-full items-center px-3 py-1.5 text-xs text-foreground hover:bg-muted'
-				onClick={() => {
-					onDeleteSection?.(state.sectionId);
-					onClose();
-				}}
-			>
-				{t('pptx.sections.delete')}
-			</button>
-			<div className='my-1 border-t border-border' />
-			<button
-				type='button'
-				className='flex w-full items-center px-3 py-1.5 text-xs text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed'
-				disabled={state.sectionIndex === 0}
-				onClick={() => {
-					onMoveSectionUp?.(state.sectionId);
-					onClose();
-				}}
-			>
-				{t('pptx.sections.moveUp')}
-			</button>
-			<button
-				type='button'
-				className='flex w-full items-center px-3 py-1.5 text-xs text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed'
-				disabled={state.sectionIndex >= state.totalSections - 1}
-				onClick={() => {
-					onMoveSectionDown?.(state.sectionId);
-					onClose();
-				}}
-			>
-				{t('pptx.sections.moveDown')}
-			</button>
-			<div className='my-1 border-t border-border' />
-			<button
-				type='button'
-				className='flex w-full items-center px-3 py-1.5 text-xs text-foreground hover:bg-muted'
-				onClick={handleAddSectionAfter}
-			>
-				{t('pptx.sections.addAfter')}
-			</button>
+			{entries.map((entry) => (
+				<span key={entry.id}>
+					{entry.separatorBefore && <ContextMenuSeparator />}
+					<ContextMenuItem disabled={entry.disabled} onSelect={() => run(entry.id)}>
+						{t(entry.labelKey)}
+					</ContextMenuItem>
+				</span>
+			))}
 		</div>
 	);
 }

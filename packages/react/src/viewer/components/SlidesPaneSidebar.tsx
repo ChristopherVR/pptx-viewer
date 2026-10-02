@@ -13,7 +13,11 @@ import { SlideItem } from './slides-pane/SlideItem';
 import type { SlidePresenceUser } from './slides-pane/SlideItem';
 import type { SlidesPaneSidebarProps } from './slides-pane/types';
 import { useSlidePaneCallbacks } from './slides-pane/useSlidePaneCallbacks';
-import { buildFlatPaneItems, estimateSlideItemHeight } from './slides-pane/utils';
+import {
+	buildFlatPaneItems,
+	declaredSectionFacts,
+	estimateSlideItemHeight,
+} from './slides-pane/utils';
 
 const EMPTY_TEMPLATE_ELEMENTS: SlidesPaneSidebarProps['templateElementsBySlideId'][string] = [];
 
@@ -269,6 +273,7 @@ export function SlidesPaneSidebar({
 										return null;
 									}
 									const isCollapsed = effectiveCollapsed[section.id] ?? false;
+									const facts = declaredSectionFacts(sectionGroups, section.id);
 									return (
 										<SectionHeader
 											key={`section-${section.id}`}
@@ -278,9 +283,9 @@ export function SlidesPaneSidebar({
 											isCollapsed={isCollapsed}
 											isRenaming={renamingSectionId === section.id}
 											renameValue={renameValue}
-											canEdit={canEdit}
-											sectionIndex={item.sectionIndex}
-											totalSections={sectionGroups.length}
+											canEdit={canEdit && facts.isDeclared}
+											sectionIndex={facts.index}
+											totalSections={facts.total}
 											renameInputRef={renameInputRef}
 											onToggle={toggleSection}
 											onContextMenu={handleSectionContextMenu}
@@ -334,8 +339,9 @@ export function SlidesPaneSidebar({
 	// ── Render (non-virtualized, for small presentations) ──
 	const renderNonVirtualized = () => (
 		<div data-pptx-chrome='slide-list' className='flex-1 space-y-1 overflow-y-auto px-1.5 pb-2'>
-			{sectionGroups.map((section, sectionIndex) => {
+			{sectionGroups.map((section) => {
 				const isCollapsed = effectiveCollapsed[section.id] ?? false;
+				const facts = declaredSectionFacts(sectionGroups, section.id);
 
 				return (
 					<div key={section.id} className='space-y-1' data-pptx-chrome='slide-window'>
@@ -347,9 +353,9 @@ export function SlidesPaneSidebar({
 								isCollapsed={isCollapsed}
 								isRenaming={renamingSectionId === section.id}
 								renameValue={renameValue}
-								canEdit={canEdit}
-								sectionIndex={sectionIndex}
-								totalSections={sectionGroups.length}
+								canEdit={canEdit && facts.isDeclared}
+								sectionIndex={facts.index}
+								totalSections={facts.total}
 								renameInputRef={renameInputRef}
 								onToggle={toggleSection}
 								onContextMenu={handleSectionContextMenu}

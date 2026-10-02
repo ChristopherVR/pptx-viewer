@@ -510,6 +510,83 @@ five bindings; `mobile-notes.spec.ts` checks the default plain surface and its
 touch targets. Adapter unit tests cover state mapping, intent routing, gating and
 callback replacement in each binding.
 
+## Slide rail, section and sorter actions (#397)
+
+The rail itself (thumbnail rendering, virtualisation, drag state) stays native.
+What was decided is which actions the rail, a section header and a sorter tile
+expose, because the audit found a different product behind each in every
+binding. Evidence recorded before the change:
+
+- **Rail persistent row.** React, Svelte and Vanilla: an "Add Slide" footer.
+  Vue: the footer on flat decks only (none on sectioned decks), and
+  `SlidesPaneControls.vue` (Add, Duplicate, Delete) existed but was never
+  mounted. Angular: the footer plus a hover toolbar on every thumbnail
+  (Duplicate, Delete, Move up, Move down) and no drag reorder.
+- **Section header.** React: a popup menu (`pptx.sections.*`) with inline rename.
+  Vue: hover buttons (`pptx.sectionList.*`), a "+ Add section" button per group
+  and inline rename. Angular, Svelte, Vanilla: hover buttons and a
+  `window.prompt` rename.
+- **Sorter tile menu.** React: Copy, Paste (with a clipboard), Duplicate, Hide
+  and Show, Delete, with a count suffix. Vue, Angular, Svelte: Duplicate,
+  Hide/Show, Delete (`pptx.slideMenu.*`). Vanilla: no menu, inline Duplicate,
+  Hide/Show and Delete buttons per card.
+- **Thumbnail menu on a sectioned rail.** Present in React, Angular, Svelte and
+  Vanilla; absent in Vue (its section list had no right-click menu and no
+  multi-select).
+
+### Decision
+
+PowerPoint is the reference: its slide pane has no per-thumbnail buttons and no
+button strip, and its section header and sorter are right-click menus. So:
+
+- **Rail.** One persistent action, **Add Slide** (`pptx.sections.addSlide`), in
+  a pinned footer, in flat and sectioned decks. Everything else on a slide is on
+  the thumbnail right-click menu (already shared in `slide-pane-context-menu.ts`)
+  and the keyboard (Enter inserts after, Delete). Reordering is drag and drop in
+  all five bindings (Angular gained it; its per-thumbnail Move up/down buttons
+  are gone). Vue's sectioned rail gains the footer, the thumbnail menu and
+  Ctrl/Shift multi-select, and the unmounted `SlidesPaneControls.vue` is deleted.
+- **Section header.** A `role="menu"` popup on right-click or the keyboard
+  context-menu key with Rename, Delete, Move Up, Move Down and Add Section After
+  (React's list, which matches PowerPoint). Move Up is disabled on the first
+  section and Move Down on the last. Rename is an inline text field in the header
+  (Enter or blur commits a non-empty name, Escape cancels) in every binding; no
+  binding opens `window.prompt`. Add Section After starts the new section at the
+  slide following the section's last slide, clamped to the last slide. The hover
+  buttons, Vue's per-group "+ Add section" button and the `pptx.sectionList.*`
+  keys are no longer used by the rail; the label keys are `pptx.sections.*`
+  everywhere.
+- **Sorter tile.** A `role="menu"` popup on right-click with Copy, Paste (only
+  after a Copy), Duplicate, Hide or Show, Delete. Hide and Show are one toggle
+  entry like the rail menu (Show only when every selected slide is hidden);
+  Delete is disabled when it would remove every slide; a multi-selection appends
+  " (n)" to Copy, Duplicate, Hide/Show and Delete. The keys are
+  `pptx.slideSorter.contextMenu.*`. Vanilla's inline per-card buttons are
+  removed. Copy and Paste also answer Ctrl+C and Ctrl+V (the shared sorter
+  keymap).
+
+Shared logic lives in `pptx-viewer-shared`: `buildSectionContextMenuEntries` and
+`sectionAddAfterSlideIndex` (`section-context-menu.ts`),
+`buildSlideSorterContextMenuEntries`, `slideSorterContextMenuLabel`,
+`slideSorterPasteIndexes` and `SLIDE_RAIL_FOOTER_ACTIONS`
+(`slide-sorter-context-menu.ts`). Each binding renders the entries natively
+(React and Vue reuse their menu components, Angular has
+`pptx-section-context-menu`, Svelte `SectionContextMenu.svelte` and
+`SlideSorterContextMenu.svelte`, Vanilla `section-context-menu.ts` and
+`slide-sorter-context-menu.ts`); the menus join the shared context-menu element
+when that lands.
+
+Known limits, deliberately not changed here: only React's sorter has
+multi-selection, zoom and a slide clipboard of more than one slide, so in the
+other four bindings the sorter menu acts on one slide, and Paste (React's
+long-standing behaviour, ported) inserts a copy after each copied slide rather
+than at the pointer. Section colours, collapse and drag state stay native.
+
+`e2e/slide-rail-menus-parity.spec.ts` drives all five bindings through the Add
+Slide footer (flat and sectioned), the section menu (commands, role, no inline
+buttons), inline rename without a prompt, Move Up/Down gating and reordering, and
+the sorter menu (commands, Copy then Paste, Hide then Show).
+
 ## Inspector reset and clear actions (#398)
 
 The inspector panels stay native (each commits through its own editor and

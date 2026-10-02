@@ -17,11 +17,15 @@
 import { X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
+	buildSlideSorterContextMenuEntries,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	hiddenSlideCue,
 	isEditorTextInputTarget,
 	mapSlideSorterKey,
+	slideSorterContextMenuLabel,
+	slideSorterPasteIndexes,
 } from 'pptx-viewer-shared';
+import type { SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -135,34 +139,74 @@ function openContextMenu(index: number, event: MouseEvent): void {
 	contextMenu.value = { open: true, x: event.clientX, y: event.clientY, index };
 }
 
+/** Slide ids copied in this sorter session (the shared Copy / Paste pair). */
+const clipboardSlideIds = ref<string[]>([]);
+
+function copySlide(index: number): void {
+	const slide = props.slides[index];
+	if (slide) {
+		clipboardSlideIds.value = [slide.id];
+	}
+}
+
+/** Paste inserts a copy after each copied slide; highest index first so earlier ones stay valid. */
+function pasteSlides(): void {
+	const indexes = slideSorterPasteIndexes(clipboardSlideIds.value, props.slides);
+	for (const index of [...indexes].sort((a, b) => b - a)) {
+		emit('duplicate', index);
+	}
+}
+
 const contextItems = computed<ContextMenuItem[]>(() => {
 	const hidden = props.slides[contextMenu.value.index]?.hidden ?? false;
-	return [
-		{ id: 'duplicate', label: t('pptx.slideMenu.duplicate') },
-		{ id: 'toggle-hidden', label: hidden ? t('pptx.slideMenu.show') : t('pptx.slideMenu.hide') },
-		{ id: 'sep', label: '', separator: true },
-		{ id: 'delete', label: t('pptx.slideMenu.delete') },
-	];
+	return buildSlideSorterContextMenuEntries({
+		selectedCount: 1,
+		hasClipboard: clipboardSlideIds.value.length > 0,
+		hasHiddenInSelection: hidden,
+		hasVisibleInSelection: !hidden,
+		wouldDeleteAllSlides: props.slides.length <= 1,
+	}).flatMap((entry, position) => {
+		const item: ContextMenuItem = {
+			id: entry.id,
+			label: slideSorterContextMenuLabel(t(entry.labelKey), entry, 1),
+			disabled: entry.disabled,
+		};
+		return entry.separatorBefore
+			? [{ id: `sep-${position}`, label: '', separator: true }, item]
+			: [item];
+	});
 });
 
 function onContextSelect(id: string): void {
 	const index = contextMenu.value.index;
 	contextMenu.value.open = false;
-	if (id === 'duplicate') {
-		emit('duplicate', index);
-	} else if (id === 'toggle-hidden') {
-		emit('toggle-hidden', index);
-	} else if (id === 'delete') {
-		emit('delete', index);
+	switch (id as SlideSorterContextMenuCommandId) {
+		case 'copy':
+			copySlide(index);
+			break;
+		case 'paste':
+			pasteSlides();
+			break;
+		case 'duplicate':
+			emit('duplicate', index);
+			break;
+		case 'toggle-hidden':
+			emit('toggle-hidden', index);
+			break;
+		case 'delete':
+			emit('delete', index);
+			break;
+		default:
+			break;
 	}
 }
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────
 // Resolution is the shared `mapSlideSorterKey`, the one sorter keymap every
 // binding answers to. Only the commands this overlay can actually perform are
-// dispatched: it has no slide clipboard, no multi-selection and no thumbnail
-// zoom, so copy / paste / select-all / Ctrl+plus fall through to the host
-// rather than being swallowed by a handler that would do nothing with them.
+// dispatched: it has no multi-selection and no thumbnail zoom, so select-all /
+// Ctrl+plus fall through to the host rather than being swallowed by a handler
+// that would do nothing with them.
 function onKeyDown(event: KeyboardEvent): void {
 	if (contextMenu.value.open) {
 		contextMenu.value.open = false;
@@ -184,6 +228,16 @@ function onKeyDown(event: KeyboardEvent): void {
 	if (action === 'duplicate') {
 		event.preventDefault();
 		emit('duplicate', props.activeIndex);
+		return;
+	}
+	if (action === 'copy') {
+		event.preventDefault();
+		copySlide(props.activeIndex);
+		return;
+	}
+	if (action === 'paste') {
+		event.preventDefault();
+		pasteSlides();
 	}
 }
 
@@ -221,6 +275,7 @@ onBeforeUnmount(() => {
 					'is-hidden': Boolean(slide.hidden),
 				}"
 				draggable="true"
+				data-pptx-chrome="sorter-tile"
 				:data-index="index"
 				:data-pptx-slide-hidden="hiddenCue(slide.hidden, 'sorter', index).marker"
 				:aria-label="t('pptx.notes.slideN', { n: index + 1 })"

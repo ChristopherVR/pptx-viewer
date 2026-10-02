@@ -5,10 +5,13 @@ import {
 	hiddenSlideCue,
 	isEditorTextInputTarget,
 	mapSlideSorterKey,
+	slideSorterPasteIndexes,
 } from 'pptx-viewer-shared';
+import type { SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { openSlideSorterContextMenu } from './slide-sorter-context-menu';
 
 export interface SlideSorterOptions {
 	slides: readonly PptxSlide[];
@@ -20,6 +23,12 @@ export interface SlideSorterOptions {
 	onToggleHidden(index: number): void;
 	/** Whether the host allows edits; gates the deck-writing shortcuts. */
 	canEdit?: boolean;
+	/**
+	 * Slide ids copied in the sorter. The caller keeps the object when it
+	 * re-opens the overlay after an edit, so Copy then Paste survives the
+	 * re-render.
+	 */
+	clipboard?: { ids: string[] };
 }
 
 export function openSlideSorterOverlay(
@@ -44,8 +53,66 @@ export function openSlideSorterOverlay(
 	header.append(title, count, close);
 	overlay.appendChild(header);
 	const grid = createEl(doc, 'div', 'pptxv-sorter-grid');
+
+	// Slide ids copied in this sorter session (the shared Copy / Paste pair).
+	const clipboard = options.clipboard ?? { ids: [] };
+	let closeMenu: (() => void) | null = null;
+	const copySlide = (index: number): void => {
+		const slide = options.slides[index];
+		if (slide) {
+			clipboard.ids = [slide.id];
+		}
+	};
+	// Paste inserts a copy after each copied slide; highest index first so the
+	// earlier indexes stay valid while the deck grows.
+	const pasteSlides = (): void => {
+		const indexes = slideSorterPasteIndexes(clipboard.ids, options.slides);
+		for (const index of [...indexes].sort((a, b) => b - a)) {
+			options.onDuplicate(index);
+		}
+	};
+	const runCommand = (id: SlideSorterContextMenuCommandId, index: number): void => {
+		switch (id) {
+			case 'copy':
+				copySlide(index);
+				break;
+			case 'paste':
+				pasteSlides();
+				break;
+			case 'duplicate':
+				options.onDuplicate(index);
+				break;
+			case 'toggle-hidden':
+				options.onToggleHidden(index);
+				break;
+			case 'delete':
+				options.onDelete(index);
+				break;
+			default:
+				break;
+		}
+	};
 	options.slides.forEach((slide, index) => {
 		const card = createEl(doc, 'article', 'pptxv-sorter-card');
+		card.dataset.pptxChrome = 'sorter-tile';
+		card.addEventListener('contextmenu', (event) => {
+			if (options.canEdit === false) {
+				return;
+			}
+			event.preventDefault();
+			closeMenu?.();
+			closeMenu = openSlideSorterContextMenu({
+				doc,
+				t,
+				host: overlay,
+				x: event.clientX,
+				y: event.clientY,
+				hidden: Boolean(slide.hidden),
+				hasClipboard: clipboard.ids.length > 0,
+				totalSlides: options.slides.length,
+				onCommand: (id) => runCommand(id, index),
+			});
+		});
 		card.draggable = true;
 		card.classList.toggle('is-current', index === options.current);
 		card.classList.toggle('is-hidden', Boolean(slide.hidden));
@@ -70,25 +137,6 @@ export function openSlideSorterOverlay(
 			options.onSelect(index);
 			overlay.remove();
 		});
-		const actions = createEl(doc, 'div');
-		for (const [label, action] of [
-			[t('pptx.slideSorter.contextMenu.duplicate'), () => options.onDuplicate(index)],
-			[
-				t(
-					slide.hidden
-						? 'pptx.slideSorter.contextMenu.showSlides'
-						: 'pptx.slideSorter.contextMenu.hideSlides',
-				),
-				() => options.onToggleHidden(index),
-			],
-			[t('pptx.slideSorter.contextMenu.delete'), () => options.onDelete(index)],
-		] as const) {
-			const button = createEl(doc, 'button');
-			button.type = 'button';
-			button.textContent = label;
-			button.addEventListener('click', action);
-			actions.appendChild(button);
-		}
 		card.addEventListener('dragstart', (event) =>
 			event.dataTransfer?.setData('text/plain', String(index)),
 		);
@@ -100,7 +148,7 @@ export function openSlideSorterOverlay(
 				options.onReorder(from, index);
 			}
 		});
-		card.append(preview, actions);
+		card.append(preview);
 		grid.appendChild(card);
 	});
 	overlay.appendChild(grid);
@@ -109,8 +157,8 @@ export function openSlideSorterOverlay(
 	// the same keys as the other four bindings' sorters. Vanilla had no sorter
 	// keyboard at all before: Escape did not even close it, which left the
 	// overlay dismissable only by finding its ✕. Only the commands this overlay
-	// can perform are dispatched; it has no slide clipboard, no multi-selection
-	// and no thumbnail zoom, so those chords are left to the host.
+	// can perform are dispatched; it has no multi-selection and no thumbnail
+	// zoom, so those chords are left to the host.
 	const dismiss = (): void => {
 		doc.removeEventListener('keydown', onKeyDown);
 		overlay.remove();
@@ -139,6 +187,16 @@ export function openSlideSorterOverlay(
 		if (action === 'duplicate') {
 			event.preventDefault();
 			options.onDuplicate(options.current);
+			return;
+		}
+		if (action === 'copy') {
+			event.preventDefault();
+			copySlide(options.current);
+			return;
+		}
+		if (action === 'paste') {
+			event.preventDefault();
+			pasteSlides();
 		}
 	};
 	doc.addEventListener('keydown', onKeyDown);

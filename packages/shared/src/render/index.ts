@@ -1234,6 +1234,8 @@ export * from './slide-show-start-keymap';
 export * from './slide-sorter-keymap';
 export * from './slide-pane-selection';
 export * from './slide-pane-context-menu';
+export * from './section-context-menu';
+export * from './slide-sorter-context-menu';
 // Focus repair for bindings whose canvas gesture preventDefault()s the click,
 // which would otherwise park focus on document.body and kill their keymap.
 export * from './editor-keyboard-focus';
