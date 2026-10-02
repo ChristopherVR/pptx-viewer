@@ -56,7 +56,7 @@ import { DialogFooterComponent } from './dialog-footer.component';
 					</div>
 
 					<div class="pptx-ng-export-progress__actions">
-						<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
+						<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction()" />
 					</div>
 				</div>
 			</div>

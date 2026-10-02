@@ -7,6 +7,8 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from '../DialogFooter.vue';
+
 const emit = defineEmits<{ close: []; insert: [formatted: string] }>();
 const { t } = useI18n();
 
@@ -88,20 +90,13 @@ function onBackdropMouseDown(event: MouseEvent): void {
 				</pptx-ui-select>
 			</div>
 			<div class="flex justify-end gap-2 pt-1">
-				<button
-					type="button"
-					class="px-3 py-1.5 text-xs rounded border border-border text-foreground hover:bg-muted transition-colors"
-					@click="emit('close')"
-				>
-					{{ t('pptx.common.cancel', 'Cancel') }}
-				</button>
-				<button
-					type="button"
-					class="px-3 py-1.5 text-xs rounded bg-primary text-white hover:bg-primary/90 transition-colors"
-					@click="confirm"
-				>
-					{{ t('pptx.common.insert', 'Insert') }}
-				</button>
+				<DialogFooter
+					:actions="[
+						{ id: 'cancel', label: t('pptx.common.cancel', 'Cancel') },
+						{ id: 'insert', label: t('pptx.common.insert', 'Insert'), variant: 'primary' },
+					]"
+					@action="(id) => (id === 'insert' ? confirm() : emit('close'))"
+				/>
 			</div>
 		</div>
 	</div>

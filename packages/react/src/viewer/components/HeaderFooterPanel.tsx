@@ -8,9 +8,8 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuCalendarDays, LuClock, LuFileText, LuHash, LuText, LuX } from 'react-icons/lu';
 
-import { WebCheckbox } from './WebControls';
-
 import { DialogFooter } from './DialogFooter';
+import { WebCheckbox } from './WebControls';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */

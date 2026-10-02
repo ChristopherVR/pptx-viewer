@@ -42,7 +42,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction()" />
 			</div>
 		</pptx-modal-dialog>
 	`,

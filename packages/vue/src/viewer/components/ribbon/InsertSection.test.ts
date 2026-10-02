@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { footerAction } from '../dialog-footer.test-support';
 import InsertSection from './InsertSection.vue';
 
 vi.mock(import('vue-i18n'), () => ({
@@ -97,10 +98,8 @@ describe('insert section', () => {
 		trigger().click();
 		document.body.querySelector<HTMLButtonElement>('[data-insert-item="datetime"]')!.click();
 		await wrapper.vm.$nextTick();
-		expect(document.body.textContent).toContain('pptx.common.insert');
-		[...document.body.querySelectorAll('button')]
-			.find((el) => el.textContent?.trim() === 'pptx.common.insert')!
-			.click();
+		expect(footerAction(document.body, 'insert')).toBeDefined();
+		footerAction(document.body, 'insert')!.click();
 		expect(props.onInsertField).toHaveBeenLastCalledWith('datetime', expect.any(String));
 		wrapper.unmount();
 	});

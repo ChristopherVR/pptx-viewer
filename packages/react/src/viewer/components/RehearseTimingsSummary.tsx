@@ -8,6 +8,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { CanvasSize } from '../types';
+import { DialogFooter } from './DialogFooter';
 import { SlideThumbnail } from './SlideThumbnail';
 
 // ---------------------------------------------------------------------------
@@ -104,20 +105,13 @@ export function RehearseTimingsSummary({
 
 				{/* Actions */}
 				<div className='flex items-center justify-end gap-2 border-t border-border px-5 py-3'>
-					<button
-						type='button'
-						onClick={onDiscard}
-						className='rounded-lg px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors'
-					>
-						{t('pptx.rehearse.discard')}
-					</button>
-					<button
-						type='button'
-						onClick={onSave}
-						className='rounded-lg bg-primary px-4 py-2 text-sm text-white hover:bg-primary/80 transition-colors'
-					>
-						{t('pptx.rehearse.saveTimings')}
-					</button>
+					<DialogFooter
+						actions={[
+							{ id: 'discard', label: t('pptx.rehearse.discard') },
+							{ id: 'save', label: t('pptx.rehearse.saveTimings'), variant: 'primary' },
+						]}
+						onAction={(id) => (id === 'save' ? onSave() : onDiscard())}
+					/>
 				</div>
 			</div>
 		</div>

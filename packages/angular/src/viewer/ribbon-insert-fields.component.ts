@@ -20,6 +20,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
 import { buildActionButtonElement, secureRandomUuid } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { EditorStateService } from './editor-state.service';
 
 /** Default display text per field type when no explicit value is supplied. */
@@ -57,7 +59,7 @@ function newFieldGuid(): string {
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
-	imports: [TranslatePipe],
+	imports: [DialogFooterComponent, TranslatePipe],
 	template: `
 		<!-- Date/Time picker modal -->
 		@if (datePickerOpen()) {
@@ -93,20 +95,10 @@ function newFieldGuid(): string {
 						</pptx-ui-select>
 					</div>
 					<div class="flex justify-end gap-2 pt-1">
-						<button
-							type="button"
-							class="rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-							(click)="datePickerOpen.set(false)"
-						>
-							{{ 'pptx.common.cancel' | translate }}
-						</button>
-						<button
-							type="button"
-							class="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
-							(click)="confirmDatePicker()"
-						>
-							{{ 'pptx.common.insert' | translate }}
-						</button>
+						<pptx-dialog-footer
+							[actions]="datePickerFooter"
+							(action)="onDatePickerAction($event)"
+						/>
 					</div>
 				</div>
 			</div>
@@ -114,6 +106,20 @@ function newFieldGuid(): string {
 	`,
 })
 export class RibbonInsertFieldsComponent {
+	/** Date/Time dialog actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly datePickerFooter: DialogFooterActionSpec[] = [
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{ id: 'insert', labelKey: 'pptx.common.insert', variant: 'primary' },
+	];
+
+	protected onDatePickerAction(id: string): void {
+		if (id === 'insert') {
+			this.confirmDatePicker();
+		} else {
+			this.datePickerOpen.set(false);
+		}
+	}
+
 	private readonly editor = inject(EditorStateService);
 	private readonly translate = inject(TranslateService);
 

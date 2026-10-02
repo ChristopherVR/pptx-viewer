@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { WebSelect } from '../WebControls';
 import { DialogFooter } from '../DialogFooter';
+import { WebSelect } from '../WebControls';
 
 function nowLocalInputValue(): string {
 	const now = new Date();
