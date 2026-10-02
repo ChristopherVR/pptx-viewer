@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.19.1) - 2026-10-02
+
+### Bug Fixes
+
+- **shared:** Parse gallery preview SVG instead of assigning innerHTML (by @ChristopherVR) ([b471295](https://github.com/ChristopherVR/pptx-viewer/commit/b4712950838e00ac81a09fb9595554db7d4f8158))
+
 ## [4.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.19.0) - 2026-10-02
 
 ### Features

@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-10-02
 
+_Releases: pptx-react-viewer@4.19.1, pptx-vue-viewer@4.19.1, pptx-angular-viewer@4.19.1, pptx-vanilla-viewer@3.19.1, pptx-svelte-viewer@4.19.1_
+
+### Bug Fixes
+
+- **shared:** Parse gallery preview SVG instead of assigning innerHTML (by @ChristopherVR) ([b471295](https://github.com/ChristopherVR/pptx-viewer/commit/b4712950838e00ac81a09fb9595554db7d4f8158))
+
+## 2026-10-02
+
 _Releases: pptx-viewer-core@4.9.4, pptx-react-viewer@4.19.0, pptx-vue-viewer@4.19.0, pptx-angular-viewer@4.19.0, pptx-vanilla-viewer@3.19.0, pptx-svelte-viewer@4.19.0, pptx-viewer-mcp@2.5.9, @christophervr/pptx-viewer@2.36.0_
 
 ### Features
