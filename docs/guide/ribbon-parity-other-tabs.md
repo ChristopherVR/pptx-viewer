@@ -29,76 +29,76 @@ is a clear visual or structural mismatch, **Low** is polish.
 Evidence: `transitions/` (`powerpoint.png`, `viewer-before-react.png`, `viewer-after-react.png`,
 `viewer-after-vanilla.png` and the other bindings).
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Gallery was nine text pills wrapped over two rows, PowerPoint shows one row of icon-over-label thumbnails | High | Fixed: one row of 58 px tiles with a motion thumbnail, selected tile outlined, chevron pages the strip |
-| Effect Options was an unlabelled "Inspector" button at the far right | Medium | Fixed: a large "Effect Options" command with the drop-down chevron at the end of the Transition to This Slide group (still opens the Inspector, same `.inspector` hook) |
-| Apply To All sat beside Sound and Duration instead of under them | Medium | Fixed: Sound, Duration and Apply To All form one three-row stack |
-| Duration spinner only appeared on hover | Low | Fixed: spinner always visible |
-| Preview was a small button, PowerPoint draws a large one | Low | Fixed: large command |
-| Only nine transitions (PowerPoint lists about fifty) | Medium | Not fixed: the engine renders these nine in the quick strip; the Inspector Type select lists the full catalogue. Adding thumbnails for effects the playback layer cannot yet draw would misreport support |
-| Sound field has no speaker glyph, Duration has no clock glyph | Low | Not fixed: cosmetic only, the labels already say Sound and Duration |
+| Gap                                                                                                       | Severity | Status                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gallery was nine text pills wrapped over two rows, PowerPoint shows one row of icon-over-label thumbnails | High     | Fixed: one row of 58 px tiles with a motion thumbnail, selected tile outlined, chevron pages the strip                                                                                                    |
+| Effect Options was an unlabelled "Inspector" button at the far right                                      | Medium   | Fixed: a large "Effect Options" command with the drop-down chevron at the end of the Transition to This Slide group (still opens the Inspector, same `.inspector` hook)                                   |
+| Apply To All sat beside Sound and Duration instead of under them                                          | Medium   | Fixed: Sound, Duration and Apply To All form one three-row stack                                                                                                                                          |
+| Duration spinner only appeared on hover                                                                   | Low      | Fixed: spinner always visible                                                                                                                                                                             |
+| Preview was a small button, PowerPoint draws a large one                                                  | Low      | Fixed: large command                                                                                                                                                                                      |
+| Only nine transitions (PowerPoint lists about fifty)                                                      | Medium   | Not fixed: the engine renders these nine in the quick strip; the Inspector Type select lists the full catalogue. Adding thumbnails for effects the playback layer cannot yet draw would misreport support |
+| Sound field has no speaker glyph, Duration has no clock glyph                                             | Low      | Not fixed: cosmetic only, the labels already say Sound and Duration                                                                                                                                       |
 
 ## Animations
 
 Evidence: `animations/`.
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Effects were three captioned text columns inside a bordered box with a vertical scrollbar | High | Fixed: one row of icon-over-label tiles (entrance green, emphasis amber, exit red, motion path blue), a rule between families, chevron pages the strip, no scrollbar |
-| Effect Options was in the Advanced group, PowerPoint puts it beside the gallery | Medium | Fixed: large command with chevron, id unchanged |
-| Advanced Animation stacked Effect Options + Panel and Trigger + Painter in two 2-row columns | Medium | Fixed: Animation Pane, Trigger (chevron) and Animation Painter in one three-row stack, Add Animation (chevron) and Path Animation large |
-| No Delay field and no Reorder Animation (Move Earlier / Later) | Medium | Not fixed: the viewer authors per-effect timing in the Animation Panel and has no ribbon-level reorder command; a disabled placeholder would add noise. Start and Duration stay as the existing honest disabled fields |
-| Motion Paths is a second gallery, PowerPoint folds paths into the main gallery's expander | Low | Not fixed: kept as a separate gallery (ids and tests depend on it); it now uses the same tile look |
-| No live preview of an effect on hover | Medium | Not fixed: needs a playback preview path outside the UI layer |
+| Gap                                                                                          | Severity | Status                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Effects were three captioned text columns inside a bordered box with a vertical scrollbar    | High     | Fixed: one row of icon-over-label tiles (entrance green, emphasis amber, exit red, motion path blue), a rule between families, chevron pages the strip, no scrollbar                                                   |
+| Effect Options was in the Advanced group, PowerPoint puts it beside the gallery              | Medium   | Fixed: large command with chevron, id unchanged                                                                                                                                                                        |
+| Advanced Animation stacked Effect Options + Panel and Trigger + Painter in two 2-row columns | Medium   | Fixed: Animation Pane, Trigger (chevron) and Animation Painter in one three-row stack, Add Animation (chevron) and Path Animation large                                                                                |
+| No Delay field and no Reorder Animation (Move Earlier / Later)                               | Medium   | Not fixed: the viewer authors per-effect timing in the Animation Panel and has no ribbon-level reorder command; a disabled placeholder would add noise. Start and Duration stay as the existing honest disabled fields |
+| Motion Paths is a second gallery, PowerPoint folds paths into the main gallery's expander    | Low      | Not fixed: kept as a separate gallery (ids and tests depend on it); it now uses the same tile look                                                                                                                     |
+| No live preview of an effect on hover                                                        | Medium   | Not fixed: needs a playback preview path outside the UI layer                                                                                                                                                          |
 
 ## Slide Show
 
 Evidence: `slideshow/`.
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Custom show lived in the Present group, PowerPoint puts "Custom Slide Show" in Start Slide Show | Medium | Fixed: moved (its id already said `startSlideShow`), renamed "Custom Slide Show", drop-down chevron |
-| "Using timings, if present" | Low | Fixed: now "Use Timings" |
-| Option checkboxes sit in their own "Options" group, PowerPoint places them inside Set Up | Low | Not fixed: the options row is a separate shared element with its own customization group id; merging would rename a public group id |
-| Monitors group (Monitor select, Use Presenter View checkbox) is missing; Presenter View is a large button in a "Present" group | Medium | Not fixed: the viewer has no multi-monitor model. Presenter View keeps its button |
-| Broadcast and Rehearse with Coach appear although PowerPoint 365 no longer shows them | Low | Kept: Broadcast is a working feature; Coach is a disabled, honestly labelled placeholder |
+| Gap                                                                                                                            | Severity | Status                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Custom show lived in the Present group, PowerPoint puts "Custom Slide Show" in Start Slide Show                                | Medium   | Fixed: moved (its id already said `startSlideShow`), renamed "Custom Slide Show", drop-down chevron                                 |
+| "Using timings, if present"                                                                                                    | Low      | Fixed: now "Use Timings"                                                                                                            |
+| Option checkboxes sit in their own "Options" group, PowerPoint places them inside Set Up                                       | Low      | Not fixed: the options row is a separate shared element with its own customization group id; merging would rename a public group id |
+| Monitors group (Monitor select, Use Presenter View checkbox) is missing; Presenter View is a large button in a "Present" group | Medium   | Not fixed: the viewer has no multi-monitor model. Presenter View keeps its button                                                   |
+| Broadcast and Rehearse with Coach appear although PowerPoint 365 no longer shows them                                          | Low      | Kept: Broadcast is a working feature; Coach is a disabled, honestly labelled placeholder                                            |
 
 ## Record
 
 Evidence: `record/`.
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Every command was a small icon-beside-label row, PowerPoint uses large buttons | High | Fixed in all five bindings (they each forced `compact`) |
-| Group names "Camera" and "Manage" | Low | Fixed: "Cameo" and "Edit" |
-| No chevron on Cameo, Clear Recording, Reset to Cameo | Low | Fixed |
-| Preview, Screen Recording, Audio, Save as Show, Export to Video are missing | Medium | Not fixed: the viewer records through the existing rehearsal flow only; unbacked disabled buttons were not added |
+| Gap                                                                            | Severity | Status                                                                                                           |
+| ------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| Every command was a small icon-beside-label row, PowerPoint uses large buttons | High     | Fixed in all five bindings (they each forced `compact`)                                                          |
+| Group names "Camera" and "Manage"                                              | Low      | Fixed: "Cameo" and "Edit"                                                                                        |
+| No chevron on Cameo, Clear Recording, Reset to Cameo                           | Low      | Fixed                                                                                                            |
+| Preview, Screen Recording, Audio, Save as Show, Export to Video are missing    | Medium   | Not fixed: the viewer records through the existing rehearsal flow only; unbacked disabled buttons were not added |
 
 ## Review
 
 Evidence: `review/`.
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Comments group: one large button next to a 2 x 2 grid of small ones | High | Fixed: New Comment, Delete, Previous, Next and Show Comments are all large, in PowerPoint's order |
-| "Comments" label on the new-comment button | Medium | Fixed: "New Comment" (new locale key in all four dictionaries) |
-| No chevrons on Check Accessibility, Language, Show Comments, Hide Ink | Medium | Fixed: shared set of menu commands draws the chevron |
-| Activity group (Mark All as Read, Show Changes) is named Changes and holds Compare | Low | Kept: the viewer's Compare is a real feature, the name is existing customization vocabulary |
-| Protect group (Always Open Read-Only, Restrict Permission) is not in PowerPoint's Review tab | Low | Kept as disabled, honestly labelled placeholders |
-| OneNote Linked Notes group is missing | Low | Not fixed: no OneNote integration |
+| Gap                                                                                          | Severity | Status                                                                                            |
+| -------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| Comments group: one large button next to a 2 x 2 grid of small ones                          | High     | Fixed: New Comment, Delete, Previous, Next and Show Comments are all large, in PowerPoint's order |
+| "Comments" label on the new-comment button                                                   | Medium   | Fixed: "New Comment" (new locale key in all four dictionaries)                                    |
+| No chevrons on Check Accessibility, Language, Show Comments, Hide Ink                        | Medium   | Fixed: shared set of menu commands draws the chevron                                              |
+| Activity group (Mark All as Read, Show Changes) is named Changes and holds Compare           | Low      | Kept: the viewer's Compare is a real feature, the name is existing customization vocabulary       |
+| Protect group (Always Open Read-Only, Restrict Permission) is not in PowerPoint's Review tab | Low      | Kept as disabled, honestly labelled placeholders                                                  |
+| OneNote Linked Notes group is missing                                                        | Low      | Not fixed: no OneNote integration                                                                 |
 
 ## View
 
 Evidence: `view/`.
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Show group was a six-row column of controls, the tab was about 50 percent taller than every other tab | High | Fixed: three columns of three rows |
-| Color/Grayscale group (Color, Grayscale, Black and White) | Medium | Not fixed: the renderer has no grayscale mode; adding buttons would claim a view it cannot show |
-| Window group (New Window, Arrange All, Cascade, Move Split, Switch Windows) | Low | Not applicable to an embeddable web component |
-| Macros shares the Window group, PowerPoint gives it its own group | Low | Not fixed: would change a public group id |
-| Notes and Ruler/Gridlines/Guides labels differ ("Rulers", "Grid") | Low | Not fixed: these strings are shared with other UI and localized |
+| Gap                                                                                                   | Severity | Status                                                                                          |
+| ----------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| Show group was a six-row column of controls, the tab was about 50 percent taller than every other tab | High     | Fixed: three columns of three rows                                                              |
+| Color/Grayscale group (Color, Grayscale, Black and White)                                             | Medium   | Not fixed: the renderer has no grayscale mode; adding buttons would claim a view it cannot show |
+| Window group (New Window, Arrange All, Cascade, Move Split, Switch Windows)                           | Low      | Not applicable to an embeddable web component                                                   |
+| Macros shares the Window group, PowerPoint gives it its own group                                     | Low      | Not fixed: would change a public group id                                                       |
+| Notes and Ruler/Gridlines/Guides labels differ ("Rulers", "Grid")                                     | Low      | Not fixed: these strings are shared with other UI and localized                                 |
 
 ## Contextual tabs
 
@@ -106,17 +106,17 @@ Evidence: `shape-format/`, `picture-format/`, `table-design/`, `chart-design/`, 
 (the `powerpoint.png` files also show Table Layout, Chart Format and SmartArt Format in
 `table-layout/`, `chart-format/` and `smartart-format/`).
 
-| Gap | Severity | Status |
-| --- | --- | --- |
-| Drop-down galleries (Corrections, Color, Artistic Effects) were bordered pills in a row | Medium | Fixed: flat commands, several in a row stack in one column (the group measures its children, so every binding inherits it) |
-| Inline galleries had a detached chevron button | Low | Fixed: strip and chevron form one framed gallery |
-| SmartArt Design only had Change Colors and SmartArt Styles (reported by users as "can't change SmartArt colouring etc.") | High | Fixed: Create Graphic (Add Shape, Add Bullet work through the core node edits and undo; Promote, Demote, Move Up, Move Down, Text Pane and Right to Left are present but disabled with a tooltip: they need a selected node or engine support), a Layouts gallery (the 14 families the Inspector's switcher offers, same `switchSmartArtLayout`), Change Colors and SmartArt Styles, and Reset (Reset Graphic works: default colours and style; Convert is disabled, it needs slide-level element replacement) |
-| SmartArt Format tab (Shapes, Shape Styles, WordArt Styles, Arrange, Size) | High | Not fixed: styling individual SmartArt nodes needs per-node formatting that the model does not expose; the whole-graphic galleries stay on SmartArt Design |
-| The SmartArt tab does not switch itself on selection | Low | Kept: PowerPoint shows the coloured tab header without switching, and so does the viewer |
-| Each tab only carries its galleries; PowerPoint also has Insert Shapes, Arrange, Size, Alt Text, Adjust / Shape Fill / Outline / Text commands | High | Not fixed: these are commands, not galleries. They need per-binding action plumbing (z-order, align, group, size, crop) through the host toolbar props; the Home tab owns the equivalents today. Tracked as the main remaining gap |
-| Table Layout, Chart Format, SmartArt Format and Video/Audio Format tabs do not exist | High | Not fixed for the same reason: they are made of editing commands (insert row, merge, distribute, chart element formatting) that have no ribbon wiring yet |
-| Gallery strips show six tiles, PowerPoint shows seven to ten | Low | Not fixed: `INLINE_GALLERY_TILE_COUNT` is part of the tested gallery contract |
-| Contextual tabs are not highlighted with the red accent PowerPoint uses | Low | Not fixed: tab strip styling belongs to the shared ribbon chrome |
+| Gap                                                                                                                                            | Severity | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Drop-down galleries (Corrections, Color, Artistic Effects) were bordered pills in a row                                                        | Medium   | Fixed: flat commands, several in a row stack in one column (the group measures its children, so every binding inherits it)                                                                                                                                                                                                                                                                                                                                                                                     |
+| Inline galleries had a detached chevron button                                                                                                 | Low      | Fixed: strip and chevron form one framed gallery                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| SmartArt Design only had Change Colors and SmartArt Styles (reported by users as "can't change SmartArt colouring etc.")                       | High     | Fixed: Create Graphic (Add Shape, Add Bullet work through the core node edits and undo; Promote, Demote, Move Up, Move Down, Text Pane and Right to Left are present but disabled with a tooltip: they need a selected node or engine support), a Layouts gallery (the 14 families the Inspector's switcher offers, same `switchSmartArtLayout`), Change Colors and SmartArt Styles, and Reset (Reset Graphic works: default colours and style; Convert is disabled, it needs slide-level element replacement) |
+| SmartArt Format tab (Shapes, Shape Styles, WordArt Styles, Arrange, Size)                                                                      | High     | Not fixed: styling individual SmartArt nodes needs per-node formatting that the model does not expose; the whole-graphic galleries stay on SmartArt Design                                                                                                                                                                                                                                                                                                                                                     |
+| The SmartArt tab does not switch itself on selection                                                                                           | Low      | Kept: PowerPoint shows the coloured tab header without switching, and so does the viewer                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Each tab only carries its galleries; PowerPoint also has Insert Shapes, Arrange, Size, Alt Text, Adjust / Shape Fill / Outline / Text commands | High     | Not fixed: these are commands, not galleries. They need per-binding action plumbing (z-order, align, group, size, crop) through the host toolbar props; the Home tab owns the equivalents today. Tracked as the main remaining gap                                                                                                                                                                                                                                                                             |
+| Table Layout, Chart Format, SmartArt Format and Video/Audio Format tabs do not exist                                                           | High     | Not fixed for the same reason: they are made of editing commands (insert row, merge, distribute, chart element formatting) that have no ribbon wiring yet                                                                                                                                                                                                                                                                                                                                                      |
+| Gallery strips show six tiles, PowerPoint shows seven to ten                                                                                   | Low      | Not fixed: `INLINE_GALLERY_TILE_COUNT` is part of the tested gallery contract                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Contextual tabs are not highlighted with the red accent PowerPoint uses                                                                        | Low      | Not fixed: tab strip styling belongs to the shared ribbon chrome                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ## Cross-cutting changes
 

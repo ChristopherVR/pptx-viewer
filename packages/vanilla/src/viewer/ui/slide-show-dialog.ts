@@ -4,11 +4,7 @@ import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { appendDialogActions } from './dialog-footer';
 import { createInspectorRadio, createInspectorSelect } from './inspector/controls-extra';
-import {
-	appendCheckRow,
-	appendRadioControl,
-	createParityDialogShell,
-} from './parity-dialog-shell';
+import { appendCheckRow, appendRadioControl, createParityDialogShell } from './parity-dialog-shell';
 
 /**
  * PowerPoint's Set Up Show dialog.
