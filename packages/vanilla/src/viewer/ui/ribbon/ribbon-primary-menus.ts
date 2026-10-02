@@ -7,6 +7,7 @@ import {
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { onDocumentPointerDown } from '../outside-pointer';
 import type { RibbonHandlers } from './ribbon-types';
 
 /** One entry in a primary-row popover menu (Present options / "..." overflow). */
@@ -62,7 +63,7 @@ export function makePrimaryMenu(
 		el.appendChild(btn);
 	}
 
-	doc.addEventListener('pointerdown', (event) => {
+	onDocumentPointerDown(doc, el, (event) => {
 		if (open && !el.parentElement?.contains(event.target as Node)) {
 			setOpen(false);
 		}

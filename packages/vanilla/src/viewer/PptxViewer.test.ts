@@ -19,12 +19,18 @@ function mount(options?: ConstructorParameters<typeof PptxViewer>[1]): {
 	return { container, viewer };
 }
 
-afterEach(() => {
+afterEach(async () => {
 	for (const viewer of active) {
 		viewer.destroy();
 	}
 	active = [];
 	document.body.replaceChildren();
+	// Every test here is synchronous, so the DOM's queued timer tasks would otherwise only run at the
+	// end of the file and keep each viewer's whole tree alive until then (36 full chromes overflow
+	// the worker's heap). One timer turn lets them run and release it.
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, 0);
+	});
 });
 
 describe('createPptxViewer', () => {

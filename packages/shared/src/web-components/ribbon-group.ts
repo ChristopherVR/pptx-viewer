@@ -55,6 +55,11 @@ export function definePptxRibbonGroup(registry: CustomElementRegistry): void {
 		}
 		private observe(slot: HTMLSlotElement): void {
 			this.observer?.disconnect();
+			// `slotchange` is asynchronous and can fire after the group was removed: observing then
+			// would pin the detached subtree (a ResizeObserver holds its targets), so never re-arm.
+			if (!this.isConnected) {
+				return;
+			}
 			if (typeof ResizeObserver !== 'undefined') {
 				this.observer ??= new ResizeObserver(() => this.measure());
 			}

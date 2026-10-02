@@ -12,6 +12,7 @@ import type { AnchoredPopupHandle } from '../../anchored-popup';
 import { attachAnchoredPopup } from '../../anchored-popup';
 import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
+import { onDocumentPointerDown } from '../../outside-pointer';
 import type { RibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGallery } from '../gallery/ribbon-gallery';
 import type { RibbonDesignHandlers } from '../ribbon-types';
@@ -62,7 +63,7 @@ function createGalleryControl(
 		event.stopPropagation();
 		setOpen(!isOpen);
 	});
-	doc.addEventListener('pointerdown', (event) => {
+	onDocumentPointerDown(doc, el, (event) => {
 		if (isOpen && !el.contains(event.target as Node)) {
 			setOpen(false);
 		}
