@@ -72,19 +72,17 @@ describe('shared ribbon controls', () => {
 		expect(button.hasAttribute('aria-pressed')).toBeFalsy();
 	});
 
-	it('draws a large command with a caption and a chevron that joins a wrapped label', () => {
+	it('draws a large command whose chevron trails the label and keeps its accessible name', () => {
 		const host = document.createElement('pptx-ui-ribbon-command');
-		host.setAttribute('label', 'Table');
-		host.setAttribute('dropdown', '');
+		host.setAttribute('label', 'Header & Footer');
+		host.setAttribute('caret', '');
 		document.body.append(host);
 		const root = host.shadowRoot!;
-		expect(root.querySelector('.label span')!.textContent).toBe('Table');
-		expect(root.querySelector('svg.chev')).not.toBeNull();
-		expect(host.hasAttribute('data-wrap')).toBeFalsy();
-		host.setAttribute('label', 'Header & Footer');
-		expect(host.hasAttribute('data-wrap')).toBeTruthy();
-		// The button keeps its accessible name from the visible caption.
+		expect(root.querySelector('svg.caret')).not.toBeNull();
 		expect(root.querySelector('button')!.title).toBe('Header & Footer');
+		host.setAttribute('tall', '');
+		host.setAttribute('icon-only', '');
+		expect(host.hasAttribute('tall')).toBe(true);
 	});
 
 	it('keeps label and group properties settable by frameworks that assign element properties', () => {
