@@ -10,7 +10,7 @@ import React from 'react';
 
 import type { ElementClipboardPayload, TableCellEditorState } from '../../types';
 import { ClipboardGroup } from './ClipboardGroup';
-import { FontPickers } from './FontPickers';
+import { FontPickerGroup } from './FontPickerGroup';
 import { SlidesGroup } from './SlidesGroup';
 import { sep } from './toolbar-constants';
 
@@ -126,7 +126,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 				onAddSection={p.onAddSection}
 			/>
 
-			<FontPickers
+			<FontPickerGroup
 				enabled={canFormat}
 				fontFamily={fontFamily}
 				fontSize={fontSize}

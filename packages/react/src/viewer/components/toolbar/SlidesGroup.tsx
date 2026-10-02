@@ -1,14 +1,14 @@
 import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 import { slidesHomeControls } from 'pptx-viewer-shared';
-import type { PptxUiRibbonHomeElement, SlideTemplateId } from 'pptx-viewer-shared';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import type { HomeLayoutArtwork, RibbonHomeIntent, SlideTemplateId } from 'pptx-viewer-shared';
+import React, { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLayoutPreviews } from '../../hooks/useLayoutPreviews';
 import { SlideTemplateGalleryDialog } from '../SlideTemplateGalleryDialog';
-import { LayoutGalleryMenu } from './LayoutGalleryMenu';
+import { LayoutArtwork } from './LayoutGalleryMenu';
 import { sep } from './toolbar-constants';
-import { useHomeAnchor, useHomePopover, WebHomeControls } from './WebHomeControls';
+import { WebHomeControls } from './WebHomeControls';
 
 export interface SlidesGroupProps {
 	canEdit: boolean;
@@ -26,21 +26,29 @@ export interface SlidesGroupProps {
 	onAddSection?: () => void;
 }
 
+interface ArtworkTile {
+	key: number;
+	preview: PptxLayoutPreview;
+	name: string;
+	backgroundColor: string;
+	container: HTMLElement;
+}
+
+let nextTile = 0;
+
 /**
  * Home > Slides: the shared `pptx-ui-ribbon-home-slides` group renders the
- * split New Slide, Slide Templates, Layout, Reset and Section buttons. The
- * layout galleries and the template dialog stay native and are anchored on the
- * shared wrappers.
+ * split New Slide, Slide Templates, Layout, Reset and Section buttons and their
+ * layout galleries. This adapter supplies the layouts, portals the real layout
+ * artwork (so React context is kept) into the gallery tiles and runs the edits;
+ * the template dialog stays native.
  */
 export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
-	const elementRef = useRef<PptxUiRibbonHomeElement | null>(null);
-	const newSlide = useHomePopover(useHomeAnchor(elementRef, 'home.slides.newSlide'));
-	const layout = useHomePopover(useHomeAnchor(elementRef, 'home.slides.layout'));
 	const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
-	const previews = useLayoutPreviews(p.loadLayoutPreviews, newSlide.open || layout.open);
-	const { layoutOptions, onInsertSlideFromLayout, onResetSlide, onAddSection } = p;
-	const { setOpen: setNewSlideOpen } = newSlide;
-	const { setOpen: setLayoutOpen } = layout;
+	const [galleryOpen, setGalleryOpen] = useState(false);
+	const [tiles, setTiles] = useState<readonly ArtworkTile[]>([]);
+	const previews = useLayoutPreviews(p.loadLayoutPreviews, galleryOpen);
+	const { layoutOptions, onInsertSlideFromLayout, onApplyLayout, onResetSlide, onAddSection } = p;
 
 	const controls = useMemo(
 		() =>
@@ -51,26 +59,33 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 				showTemplates: Boolean(p.onInsertSlideFromTemplate),
 				newSlideNeedsLayout: true,
 				resetNeedsSlide: false,
-				newSlideOpen: newSlide.open,
-				layoutOpen: layout.open,
+				layouts: {
+					layouts: layoutOptions.map(({ path, name }) => ({ path, name })),
+					current: p.currentLayoutPath,
+					previews,
+				},
 			}),
-		[p.canEdit, layoutOptions.length, p.onInsertSlideFromTemplate, newSlide.open, layout.open],
+		[p.canEdit, layoutOptions, p.onInsertSlideFromTemplate, p.currentLayoutPath, previews],
 	);
 	const request = useCallback(
-		(id: string, part?: string) => {
+		(id: string, _part?: string, intent?: RibbonHomeIntent) => {
+			const value = intent?.value;
 			switch (id) {
-				case 'home.slides.newSlide':
-					if (part === 'caret') {
-						setNewSlideOpen((v) => !v);
-					} else if (layoutOptions.length > 0) {
-						onInsertSlideFromLayout(layoutOptions[0].path, layoutOptions[0].name);
+				case 'home.slides.newSlide': {
+					const layout =
+						value === undefined ? layoutOptions[0] : layoutOptions.find((l) => l.path === value);
+					if (layout) {
+						onInsertSlideFromLayout(layout.path, layout.name);
 					}
 					break;
+				}
 				case 'home.slides.slideTemplates':
 					setTemplateGalleryOpen(true);
 					break;
 				case 'home.slides.layout':
-					setLayoutOpen((v) => !v);
+					if (value !== undefined) {
+						onApplyLayout?.(String(value));
+					}
 					break;
 				case 'home.slides.reset':
 					onResetSlide?.();
@@ -79,15 +94,20 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 					onAddSection?.();
 			}
 		},
-		[
-			layoutOptions,
-			onInsertSlideFromLayout,
-			onResetSlide,
-			onAddSection,
-			setNewSlideOpen,
-			setLayoutOpen,
-		],
+		[layoutOptions, onInsertSlideFromLayout, onApplyLayout, onResetSlide, onAddSection],
 	);
+	const popup = useCallback((_id: string, open: boolean) => setGalleryOpen(open), []);
+	const artwork = useCallback<HomeLayoutArtwork>((preview, geometry, container) => {
+		const tile: ArtworkTile = {
+			key: nextTile++,
+			preview,
+			name: preview.path,
+			backgroundColor: geometry.backgroundColor,
+			container,
+		};
+		setTiles((all) => [...all, tile]);
+		return () => setTiles((all) => all.filter((entry) => entry.key !== tile.key));
+	}, []);
 
 	return (
 		<>
@@ -95,37 +115,20 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 				family='slides'
 				controls={controls}
 				onRequest={request}
-				elementRef={elementRef}
+				onPopup={popup}
+				layoutArtwork={artwork}
 			/>
-			{newSlide.open &&
-				newSlide.anchorRef.current &&
+			{tiles.map((tile) =>
 				createPortal(
-					<LayoutGalleryMenu
-						anchorRef={newSlide.anchorRef}
-						layoutOptions={layoutOptions}
-						previews={previews}
-						onSelect={(l) => {
-							onInsertSlideFromLayout(l.path, l.name);
-							setNewSlideOpen(false);
-						}}
+					<LayoutArtwork
+						preview={tile.preview}
+						name={tile.name}
+						backgroundColor={tile.backgroundColor}
 					/>,
-					newSlide.anchorRef.current,
-				)}
-			{layout.open &&
-				layout.anchorRef.current &&
-				createPortal(
-					<LayoutGalleryMenu
-						anchorRef={layout.anchorRef}
-						layoutOptions={layoutOptions}
-						previews={previews}
-						currentLayoutPath={p.currentLayoutPath}
-						onSelect={(l) => {
-							p.onApplyLayout?.(l.path);
-							setLayoutOpen(false);
-						}}
-					/>,
-					layout.anchorRef.current,
-				)}
+					tile.container,
+					String(tile.key),
+				),
+			)}
 
 			{sep}
 

@@ -1,20 +1,18 @@
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import type { MergeShapeOperation, PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { RibbonHomeIntent, ToolbarActionId } from 'pptx-viewer-shared';
 import {
+	arrangeShapeHomeControls,
 	canGroupSelection,
 	canSetStrokeWidth,
 	canUngroupSelection,
+	parseCropValue,
 	strokeWidthOf,
 } from 'pptx-viewer-shared';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { LuGroup, LuUngroup } from 'react-icons/lu';
+import React, { useCallback, useMemo } from 'react';
 
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
-import { CropRibbonControls } from './CropRibbonControls';
-import { MergeShapesMenu } from './MergeShapesMenu';
-import { controlAttr } from './PowerPointRibbonControls';
-import { gB, gL, grp, ic } from './toolbar-constants';
+import { useShapeFormatContext } from '../shape-format-context';
+import { WebHomeControls } from './WebHomeControls';
 
 export interface ShapeArrangeExtrasProps {
 	canEdit: boolean;
@@ -31,72 +29,72 @@ export interface ShapeArrangeExtrasProps {
 }
 
 /**
- * The Arrange group's shape-level extras: Group, Ungroup, Merge Shapes, Crop,
- * and the outline width spinner.
- *
- * Kept out of `ArrangeSection` so neither file drifts past the 300-LOC budget,
- * and grouped together because all three are gated on the same thing: a
- * selection that is actually a shape (or, for Group, two of them). They were
- * shipped by the Svelte binding first and missing from React, which made React
- * the thin side of the ribbon comparison rather than the reference it is meant
- * to be.
+ * The Arrange group's shape-level extras (Group, Ungroup, Merge Shapes, Crop
+ * and the outline width) as the shared `pptx-ui-ribbon-home-arrange-shape`
+ * strip. Gating comes from shared; the merge and crop commands come from the
+ * viewer's shape-format context.
  */
 export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactElement {
-	const { t } = useTranslation();
-	const canGroup = canGroupSelection(p.canEdit, p.selectedCount, p.selectionGroupable);
-	const canUngroup = canUngroupSelection(p.canEdit, p.selectedElement);
-	const canStrokeWidth = canSetStrokeWidth(p.canEdit, p.selectedElement);
-	const strokeWidth = strokeWidthOf(p.selectedElement);
+	const commands = useShapeFormatContext();
+	const crop = commands?.crop;
 	const { isHidden } = useToolbarVisibility(p.hiddenActions);
-
-	return (
-		<>
-			<div className={grp}>
-				<button
-					type='button'
-					onClick={p.onGroupElements}
-					disabled={!canGroup}
-					className={gB}
-					title={t('pptx.contextMenu.group')}
-					{...controlAttr('home.arrange.group')}
-					aria-label={t('pptx.contextMenu.group')}
-				>
-					<LuGroup className={ic} />
-				</button>
-				<button
-					type='button'
-					onClick={p.onUngroupElement}
-					disabled={!canUngroup}
-					className={gL}
-					title={t('pptx.contextMenu.ungroup')}
-					{...controlAttr('home.arrange.ungroup')}
-					aria-label={t('pptx.contextMenu.ungroup')}
-				>
-					<LuUngroup className={ic} />
-				</button>
-			</div>
-			{!isHidden('mergeShapes') && <MergeShapesMenu canEdit={p.canEdit} />}
-			{!isHidden('crop') && <CropRibbonControls canEdit={p.canEdit} />}
-			<input
-				type='number'
-				min='0'
-				max='120'
-				step='0.5'
-				disabled={!canStrokeWidth}
-				// Named explicitly: the spinner has no visible caption in the ribbon,
-				// so without this it announces itself as an anonymous number box.
-				aria-label={t('pptx.ribbon.strokeWidth')}
-				title={t('pptx.ribbon.strokeWidth')}
-				{...controlAttr('home.arrange.outlineWidth')}
-				value={strokeWidth}
-				onChange={(event) => {
-					const next = Number(event.target.value);
-					if (Number.isFinite(next)) {
-						p.onUpdateElementStyle({ strokeWidth: Math.max(0, next) });
-					}
-				}}
-				className='h-[26px] w-[52px] rounded border border-border bg-muted px-1 text-center text-[11px] text-foreground disabled:opacity-40'
-			/>
-		</>
+	const { onGroupElements, onUngroupElement, onUpdateElementStyle } = p;
+	const controls = useMemo(
+		() =>
+			arrangeShapeHomeControls({
+				editable: p.canEdit,
+				canGroup: canGroupSelection(p.canEdit, p.selectedCount, p.selectionGroupable),
+				canUngroup: canUngroupSelection(p.canEdit, p.selectedElement),
+				canMerge: Boolean(commands?.canMergeShapes),
+				canCrop: Boolean(crop?.canCrop),
+				cropActive: Boolean(crop?.element),
+				canStrokeWidth: canSetStrokeWidth(p.canEdit, p.selectedElement),
+				strokeWidth: strokeWidthOf(p.selectedElement),
+				hideMerge: isHidden('mergeShapes'),
+				hideCrop: isHidden('crop'),
+			}),
+		[
+			p.canEdit,
+			p.selectedCount,
+			p.selectionGroupable,
+			p.selectedElement,
+			commands?.canMergeShapes,
+			crop?.canCrop,
+			crop?.element,
+			isHidden,
+		],
 	);
+	const request = useCallback(
+		(id: string, _part?: string, intent?: RibbonHomeIntent) => {
+			const value = intent?.value;
+			switch (id) {
+				case 'home.arrange.group':
+					onGroupElements();
+					break;
+				case 'home.arrange.ungroup':
+					onUngroupElement();
+					break;
+				case 'home.arrange.mergeShapes':
+					commands?.mergeShapes(value as MergeShapeOperation);
+					break;
+				case 'home.arrange.outlineWidth':
+					onUpdateElementStyle({ strokeWidth: Math.max(0, Number(value)) });
+					break;
+				case 'home.arrange.crop': {
+					const action = parseCropValue(value);
+					if (!action) {
+						crop?.toggle();
+					} else if (action.kind === 'aspect') {
+						crop?.cropToAspect(action.width, action.height);
+					} else if (action.kind === 'fill') {
+						crop?.fill();
+					} else {
+						crop?.fit();
+					}
+				}
+			}
+		},
+		[onGroupElements, onUngroupElement, onUpdateElementStyle, commands, crop],
+	);
+	return <WebHomeControls family='arrange-shape' controls={controls} onRequest={request} />;
 }

@@ -77,6 +77,55 @@ describe('paragraph group', () => {
 	});
 });
 
+describe('paragraph menus and lists', () => {
+	const select = (id: string, value: string) => {
+		const field = container.querySelector<HTMLElement & { value: string }>(
+			`[data-ribbon-control="${id}"]`,
+		)!;
+		field.value = value;
+		act(() => void field.dispatchEvent(new Event('change', { bubbles: true })));
+	};
+	const toggle = (id: string) =>
+		container.querySelector<HTMLButtonElement>(`[data-ribbon-control="${id}"] button`)!;
+
+	it('runs line spacing, direction and columns through the text-style edit', () => {
+		const p = props();
+		act(() => root.render(<ParagraphGroup {...p} />));
+		select('home.paragraph.lineSpacing', '1.5');
+		expect(p.onUpdateTextStyle).toHaveBeenLastCalledWith({ lineSpacing: 1.5 });
+		select('home.paragraph.textDirection', 'vertical');
+		expect(p.onUpdateTextStyle).toHaveBeenLastCalledWith({ textDirection: 'vertical' });
+		select('home.paragraph.columns', '3');
+		expect(p.onUpdateTextStyle).toHaveBeenLastCalledWith({ columnCount: 3 });
+	});
+
+	it('toggles bullets and numbering and reflects the list kind', () => {
+		const p = props({ bulletKind: 'numbered' });
+		act(() => root.render(<ParagraphGroup {...p} />));
+		expect(toggle('home.paragraph.numbering').getAttribute('aria-pressed')).toBe('true');
+		expect(toggle('home.paragraph.bullets').getAttribute('aria-pressed')).toBe('false');
+		act(() => toggle('home.paragraph.bullets').click());
+		expect(p.onToggleBullets).toHaveBeenLastCalledWith('bullet');
+		act(() => toggle('home.paragraph.numbering').click());
+		expect(p.onToggleBullets).toHaveBeenLastCalledWith('numbered');
+	});
+
+	it('hosts the library galleries inside the toggle wrappers', () => {
+		act(() => root.render(<ParagraphGroup {...props()} />));
+		for (const id of ['bullets', 'numbering']) {
+			const slot = container.querySelector(`[data-ribbon-control="home.paragraph.${id}"]`)!;
+			expect(slot.querySelector('pptx-ui-ribbon-gallery')).not.toBeNull();
+		}
+	});
+
+	it('does nothing for a menu pick when the selection cannot be formatted', () => {
+		const p = props({ canFormat: false });
+		act(() => root.render(<ParagraphGroup {...p} />));
+		select('home.paragraph.columns', '2');
+		expect(p.onUpdateTextStyle).not.toHaveBeenCalled();
+	});
+});
+
 describe('editing section', () => {
 	it('opens the find panel from both Find and Replace', () => {
 		const onToggleFindReplace = vi.fn<() => void>();
@@ -86,5 +135,20 @@ describe('editing section', () => {
 		expect(onToggleFindReplace).toHaveBeenCalledTimes(2);
 		expect(container.querySelector('[data-ribbon-group="home.editing"]')).not.toBeNull();
 		expect(container.querySelector('[data-ribbon-control="home.editing.select"]')).not.toBeNull();
+	});
+
+	it('runs Select All from the shared Select menu and disables it without a handler', () => {
+		const onSelectAll = vi.fn<() => void>();
+		act(() =>
+			root.render(<EditingSection onToggleFindReplace={vi.fn()} onSelectAll={onSelectAll} />),
+		);
+		const slot = container.querySelector<HTMLElement>(
+			'[data-ribbon-control="home.editing.select"]',
+		)!;
+		act(() => slot.querySelector('button')!.click());
+		act(() => slot.querySelector<HTMLElement>('[role="menuitem"]')!.click());
+		expect(onSelectAll).toHaveBeenCalledOnce();
+		act(() => root.render(<EditingSection onToggleFindReplace={vi.fn()} />));
+		expect(slot.querySelector('button')!.disabled).toBeTruthy();
 	});
 });

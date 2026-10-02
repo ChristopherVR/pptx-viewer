@@ -86,16 +86,6 @@ interface LayoutThumbnailProps {
 function LayoutThumbnail({ preview, name }: LayoutThumbnailProps): React.ReactElement {
 	const geometry = buildLayoutPreviewGeometry(preview, THUMB_WIDTH, THUMB_HEIGHT);
 
-	// StaticElementRenderer resolves colours and fills against a slide, so the
-	// layout's artwork is handed one standing in for the thumbnail.
-	const slide: PptxSlide = {
-		id: `layout-preview-${preview?.path ?? name}`,
-		rId: '',
-		slideNumber: 0,
-		elements: preview?.elements ?? [],
-		backgroundColor: geometry.backgroundColor,
-	};
-
 	return (
 		<div
 			className='relative shrink-0 overflow-hidden rounded-sm border border-border/70 shadow-sm'
@@ -114,15 +104,7 @@ function LayoutThumbnail({ preview, name }: LayoutThumbnailProps): React.ReactEl
 					backgroundColor: geometry.backgroundColor,
 				}}
 			>
-				{(preview?.elements ?? []).slice(0, MAX_PREVIEW_ELEMENTS).map((element, index) => (
-					<StaticElementRenderer
-						key={element.id}
-						element={element}
-						activeSlide={slide}
-						allSlides={[slide]}
-						zIndex={index}
-					/>
-				))}
+				<LayoutArtwork preview={preview} name={name} backgroundColor={geometry.backgroundColor} />
 				{geometry.frames.map((frame) => (
 					<div
 						key={frame.key}
@@ -139,5 +121,43 @@ function LayoutThumbnail({ preview, name }: LayoutThumbnailProps): React.ReactEl
 				))}
 			</div>
 		</div>
+	);
+}
+
+/**
+ * A layout's real artwork drawn at slide scale (no wrapper box): used by the
+ * New Slide / Layout gallery tiles and by the shared Home gallery, which hands
+ * this component a scaled surface to portal into.
+ */
+export function LayoutArtwork({
+	preview,
+	name,
+	backgroundColor,
+}: {
+	preview: PptxLayoutPreview | undefined;
+	name: string;
+	backgroundColor: string;
+}): React.ReactElement {
+	// StaticElementRenderer resolves colours and fills against a slide, so the
+	// layout's artwork is handed one standing in for the thumbnail.
+	const slide: PptxSlide = {
+		id: `layout-preview-${preview?.path ?? name}`,
+		rId: '',
+		slideNumber: 0,
+		elements: preview?.elements ?? [],
+		backgroundColor,
+	};
+	return (
+		<>
+			{(preview?.elements ?? []).slice(0, MAX_PREVIEW_ELEMENTS).map((element, index) => (
+				<StaticElementRenderer
+					key={element.id}
+					element={element}
+					activeSlide={slide}
+					allSlides={[slide]}
+					zIndex={index}
+				/>
+			))}
+		</>
 	);
 }

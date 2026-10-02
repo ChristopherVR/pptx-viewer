@@ -48,7 +48,11 @@ function mountGroup(overrides: Partial<FontFormatGroupProps> = {}) {
 		isTextEl: true,
 		selectedElement,
 		effectiveTs: (selectedElement as { textStyle?: object }).textStyle,
+		isTable: false,
+		currentColor: '#336699',
+		currentHighlight: '#ffff00',
 		onUpdateTextStyle: vi.fn<() => void>(),
+		onTransformTextCase: vi.fn<() => void>(),
 		...overrides,
 	};
 	act(() => root.render(<FontFormatGroup {...props} />));
@@ -121,6 +125,45 @@ describe('font format group', () => {
 	});
 });
 
+describe('font extras', () => {
+	const slot = (id: string) =>
+		container.querySelector<HTMLElement>(`[data-ribbon-control="home.font.${id}"]`)!;
+
+	it('runs spacing, case and colour intents through the native text-style edit', () => {
+		const { props } = mountGroup();
+		const spacing = slot('characterSpacing') as HTMLElement & { value: string };
+		spacing.value = '75';
+		act(() => void spacing.dispatchEvent(new Event('change', { bubbles: true })));
+		expect(props.onUpdateTextStyle).toHaveBeenLastCalledWith({ characterSpacing: 75 });
+		act(() => slot('changeCase').querySelector('button')!.click());
+		act(() => slot('changeCase').querySelector<HTMLElement>('[data-value="upper"]')!.click());
+		expect(props.onTransformTextCase).toHaveBeenCalledWith('upper');
+		act(() => slot('fontColor').querySelector('button')!.click());
+		act(() => slot('fontColor').querySelector<HTMLElement>('.std-grid button')!.click());
+		expect(props.onUpdateTextStyle).toHaveBeenLastCalledWith(
+			expect.objectContaining({ color: expect.stringMatching(/^#/u), colorRef: undefined }),
+		);
+		act(() => slot('highlightColor').querySelector('button')!.click());
+		act(() => slot('highlightColor').querySelector<HTMLElement>('.std-grid button')!.click());
+		expect(props.onUpdateTextStyle).toHaveBeenLastCalledWith({ highlightColor: '#ffff00' });
+	});
+
+	it('falls back to the all-caps hint for a table cell', () => {
+		const { props } = mountGroup({ isTable: true });
+		act(() => slot('changeCase').querySelector('button')!.click());
+		act(() => slot('changeCase').querySelector<HTMLElement>('[data-value="upper"]')!.click());
+		expect(props.onUpdateTextStyle).toHaveBeenLastCalledWith({ textCaps: 'all' });
+		expect(props.onTransformTextCase).not.toHaveBeenCalled();
+	});
+
+	it('disables the extras with the rest of the strip when nothing can be formatted', () => {
+		mountGroup({ canFormat: false });
+		for (const id of ['changeCase', 'fontColor', 'highlightColor']) {
+			expect(slot(id).querySelector('button')!.disabled).toBeTruthy();
+		}
+	});
+});
+
 function mountProps(overrides: Partial<FontFormatGroupProps>): FontFormatGroupProps {
 	return {
 		canMut: true,
@@ -128,7 +171,11 @@ function mountProps(overrides: Partial<FontFormatGroupProps>): FontFormatGroupPr
 		isTextEl: true,
 		selectedElement: text({ italic: true }),
 		effectiveTs: { italic: true },
+		isTable: false,
+		currentColor: '#336699',
+		currentHighlight: '#ffff00',
 		onUpdateTextStyle: vi.fn<() => void>(),
+		onTransformTextCase: vi.fn<() => void>(),
 		...overrides,
 	};
 }

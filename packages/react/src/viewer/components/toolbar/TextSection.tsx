@@ -1,17 +1,14 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { TableCellEditorState } from '../../types';
 import type { ChangeCaseMode } from '../../utils/text-case-transform';
-import { useRecentColors } from '../inspector/RecentColorsContext';
 import { FontFormatGroup } from './FontFormatGroup';
 import { ParagraphGroup } from './ParagraphGroup';
 import { groupAttr } from './PowerPointRibbonControls';
 import { getEffectiveTextStyle, textSectionBulletKind } from './text-section-state';
-import { TextColorMenus } from './TextColorMenus';
-import { TextSpacingCaseMenus } from './TextSpacingCaseMenus';
 import { sep } from './toolbar-constants';
 import { useParagraphListKind } from './useParagraphListKind';
 
@@ -70,27 +67,6 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 				'#ffff00')
 			: '#ffff00';
 
-	const { pushColor } = useRecentColors();
-	const handleColorChange = useCallback(
-		(color: string, ref?: PptxThemeColorRef) => {
-			if (!canFormat) {
-				return;
-			}
-			p.onUpdateTextStyle({ color, colorRef: ref });
-			pushColor(color);
-		},
-		[canFormat, p, pushColor],
-	);
-	const handleHighlightChange = useCallback(
-		(highlightColor: string) => {
-			if (!canFormat) {
-				return;
-			}
-			p.onUpdateTextStyle({ highlightColor });
-			pushColor(highlightColor);
-		},
-		[canFormat, p, pushColor],
-	);
 	return (
 		<>
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.font')}>
@@ -102,22 +78,12 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						selectedElement={p.selectedElement}
 						tableEditorState={p.tableEditorState}
 						effectiveTs={effectiveTs}
-						onUpdateTextStyle={p.onUpdateTextStyle}
-					/>
-					<TextSpacingCaseMenus
-						canMut={canMut}
-						canFormat={canFormat}
 						isTable={isTable}
+						currentColor={currentColor}
+						currentColorRef={currentColorThemeRef}
+						currentHighlight={currentHighlight}
 						onUpdateTextStyle={p.onUpdateTextStyle}
 						onTransformTextCase={p.onTransformTextCase}
-					/>
-					<TextColorMenus
-						canMut={canMut}
-						currentColor={currentColor}
-						currentColorThemeRef={currentColorThemeRef}
-						currentHighlight={currentHighlight}
-						handleColorChange={handleColorChange}
-						handleHighlightChange={handleHighlightChange}
 					/>
 				</div>
 				<span className='text-[9px] text-muted-foreground leading-none'>

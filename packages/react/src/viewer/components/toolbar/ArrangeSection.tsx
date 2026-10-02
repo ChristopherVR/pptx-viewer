@@ -1,14 +1,15 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import { arrangeAlignAction, arrangeHomeControls } from 'pptx-viewer-shared';
+import {
+	arrangeAlignAction,
+	arrangeHomeControls,
+	arrangePainterHomeControls,
+} from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuPaintbrush } from 'react-icons/lu';
 
-import { cn } from '../../utils';
-import { controlAttr, groupAttr } from './PowerPointRibbonControls';
+import { groupAttr } from './PowerPointRibbonControls';
 import { ShapeArrangeExtras } from './ShapeArrangeExtras';
-import { ic, pill } from './toolbar-constants';
 import { WebHomeControls } from './WebHomeControls';
 
 export interface ArrangeSectionProps {
@@ -38,8 +39,8 @@ export interface ArrangeSectionProps {
 
 /**
  * Home > Arrange. Align/Distribute, Flip, layer order and Duplicate/Delete are
- * the shared `pptx-ui-ribbon-home-arrange-*` strips; the second Format Painter,
- * Group, Ungroup, Merge Shapes, Crop and the outline width stay native.
+ * the shared `pptx-ui-ribbon-home-arrange-*` strips, as are the second Format
+ * Painter and the shape extras (Group, Ungroup, Merge Shapes, Crop, outline width).
  */
 export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 	const { t } = useTranslation();
@@ -61,6 +62,18 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 			}),
 		[p.canEdit, p.selectedElement, p.canDistribute],
 	);
+	const painterControls = useMemo(
+		() =>
+			arrangePainterHomeControls({
+				editable: p.canEdit,
+				active: Boolean(p.formatPainterActive),
+				canFormatPaint: p.canActivateFormatPainter !== false,
+				show: true,
+			}),
+		[p.canEdit, p.formatPainterActive, p.canActivateFormatPainter],
+	);
+	const { onToggleFormatPainter } = p;
+	const requestPainter = useCallback(() => onToggleFormatPainter?.(), [onToggleFormatPainter]);
 	const requestAlign = useCallback(
 		(_id: string, part?: string) => {
 			const action = arrangeAlignAction(part);
@@ -104,24 +117,11 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 			<div className='flex items-center gap-1' data-pptx-chrome='arrange-controls'>
 				<WebHomeControls family='arrange-align' controls={controls} onRequest={requestAlign} />
 				{p.onToggleFormatPainter && (
-					<button
-						type='button'
-						onClick={p.onToggleFormatPainter}
-						disabled={
-							!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)
-						}
-						data-testid='format-painter-toggle'
-						data-active={p.formatPainterActive ? 'true' : 'false'}
-						className={cn(
-							pill,
-							p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
-						)}
-						title={t('pptx.arrange.formatPainter')}
-						{...controlAttr('home.clipboard.formatPainter')}
-					>
-						<LuPaintbrush className={ic} />
-						{t('pptx.arrange.format')}
-					</button>
+					<WebHomeControls
+						family='arrange-painter'
+						controls={painterControls}
+						onRequest={requestPainter}
+					/>
 				)}
 				<WebHomeControls family='arrange-flip' controls={controls} onRequest={requestFlip} />
 				<ShapeArrangeExtras

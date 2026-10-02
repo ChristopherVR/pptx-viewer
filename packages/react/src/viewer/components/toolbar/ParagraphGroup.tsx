@@ -1,29 +1,19 @@
 import type { TextStyle } from 'pptx-viewer-core';
-import type { ElementBulletKind, RibbonGalleryPlacement } from 'pptx-viewer-shared';
+import type { ElementBulletKind, RibbonHomeIntent } from 'pptx-viewer-shared';
 import {
-	FIXED_TAB_GALLERIES,
+	homeGalleryApply,
+	homeGalleryControls,
 	paragraphHomeAction,
 	paragraphHomeAlign,
 	paragraphHomeControls,
+	withHomeGalleries,
 } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuList, LuListOrdered } from 'react-icons/lu';
 
-import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
-import { controlAttr, groupAttr } from './PowerPointRibbonControls';
-import { RibbonGallery } from './RibbonGallery';
-import { gB, gL, grp, ic } from './toolbar-constants';
+import { useRibbonGalleryCommands } from '../ribbon-gallery-context';
+import { groupAttr } from './PowerPointRibbonControls';
 import { WebHomeControls } from './WebHomeControls';
-
-/** Pressed look for a toggle whose state is on. */
-const ON = 'bg-primary/20 ring-1 ring-primary';
-
-function fixedGallery(control: string): RibbonGalleryPlacement | undefined {
-	return FIXED_TAB_GALLERIES.find((placement) => placement.control === control);
-}
-const BULLETS_GALLERY = fixedGallery('home.paragraph.bullets');
-const NUMBERING_GALLERY = fixedGallery('home.paragraph.numbering');
 
 export interface ParagraphGroupProps {
 	canMut: boolean;
@@ -35,93 +25,84 @@ export interface ParagraphGroupProps {
 }
 
 /**
- * Home > Paragraph: the Bullets / Numbering toggles (each followed by its
- * shared library gallery), the shared indent and alignment strip, line
- * spacing, text direction and columns.
+ * Home > Paragraph: the shared strip renders the Bullets / Numbering toggles
+ * with their library galleries, the indent and alignment buttons, line spacing,
+ * text direction and columns. Each intent runs this binding's undoable edit.
  */
 export function ParagraphGroup(p: ParagraphGroupProps): React.ReactElement {
 	const { t } = useTranslation();
-	const { canMut, canFormat, effectiveTs, onUpdateTextStyle } = p;
+	const { canMut, canFormat, effectiveTs, onUpdateTextStyle, onToggleBullets } = p;
+	const commands = useRibbonGalleryCommands();
 	const align = paragraphHomeAlign(effectiveTs?.align);
-	const paragraphControls = useMemo(
-		() => paragraphHomeControls({ enabled: canMut && canFormat, align }),
-		[canMut, canFormat, align],
+	const enabled = canMut && canFormat;
+	const controls = useMemo(
+		() =>
+			withHomeGalleries(
+				paragraphHomeControls({
+					enabled,
+					align,
+					list: p.bulletKind === 'mixed' ? 'none' : p.bulletKind,
+					lineSpacing: effectiveTs?.lineSpacing,
+					columns: effectiveTs?.columnCount,
+					textDirection: effectiveTs?.textDirection,
+				}),
+				homeGalleryControls('paragraph', commands?.context ?? { element: null }, enabled),
+				Boolean(commands?.editable) && enabled,
+			),
+		[
+			enabled,
+			align,
+			p.bulletKind,
+			effectiveTs?.lineSpacing,
+			effectiveTs?.columnCount,
+			effectiveTs?.textDirection,
+			commands?.context,
+			commands?.editable,
+		],
 	);
-	const requestParagraph = useCallback(
-		(id: string) => {
-			const action = paragraphHomeAction(id);
-			if (!canFormat || !action) {
+	const request = useCallback(
+		(id: string, _part?: string, intent?: RibbonHomeIntent) => {
+			if (!canFormat) {
 				return;
 			}
-			if (action.kind === 'indent') {
+			const value = intent?.value;
+			switch (id) {
+				case 'home.paragraph.bullets':
+				case 'home.paragraph.numbering':
+					if (value === undefined) {
+						onToggleBullets(id === 'home.paragraph.bullets' ? 'bullet' : 'numbered');
+					} else if (commands?.editable) {
+						const result = homeGalleryApply('paragraph', id, String(value), commands.context);
+						if (result) {
+							commands.dispatch(result);
+						}
+					}
+					return;
+				case 'home.paragraph.lineSpacing':
+					onUpdateTextStyle({ lineSpacing: Number(value) });
+					return;
+				case 'home.paragraph.textDirection':
+					onUpdateTextStyle({ textDirection: value as TextStyle['textDirection'] });
+					return;
+				case 'home.paragraph.columns':
+					onUpdateTextStyle({ columnCount: Number(value) });
+					return;
+			}
+			const action = paragraphHomeAction(id);
+			if (action?.kind === 'indent') {
 				const current = effectiveTs?.paragraphMarginLeft ?? 0;
 				onUpdateTextStyle({ paragraphMarginLeft: Math.max(0, current + action.delta) });
-			} else {
+			} else if (action) {
 				onUpdateTextStyle({ align: action.align });
 			}
 		},
-		[canFormat, effectiveTs, onUpdateTextStyle],
-	);
-	const listToggle = (
-		kind: 'bullet' | 'numbered',
-		placement: RibbonGalleryPlacement | undefined,
-		title: string,
-		icon: React.ReactNode,
-	) => (
-		<div className={grp} {...controlAttr(placement?.control)}>
-			<button
-				type='button'
-				disabled={!canMut}
-				aria-pressed={p.bulletKind === kind}
-				onMouseDown={(e) => e.preventDefault()}
-				onClick={() => p.onToggleBullets(kind)}
-				className={`${placement ? gB : gL}${p.bulletKind === kind ? ` ${ON}` : ''}`}
-				title={title}
-			>
-				{icon}
-			</button>
-			{placement && <RibbonGallery placement={placement} chevronOnly tagControl={false} />}
-		</div>
+		[canFormat, effectiveTs, onUpdateTextStyle, onToggleBullets, commands],
 	);
 
 	return (
 		<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.paragraph')}>
 			<div className='flex items-center gap-1'>
-				{listToggle(
-					'bullet',
-					BULLETS_GALLERY,
-					t('pptx.text.bulletList'),
-					<LuList className={ic} />,
-				)}
-				{listToggle(
-					'numbered',
-					NUMBERING_GALLERY,
-					t('pptx.text.numberedList'),
-					<LuListOrdered className={ic} />,
-				)}
-
-				<WebHomeControls
-					family='paragraph'
-					controls={paragraphControls}
-					onRequest={requestParagraph}
-				/>
-
-				<LineSpacingDropdown
-					canMut={canMut}
-					canFormat={canFormat}
-					effectiveTs={p.effectiveTs}
-					onUpdateTextStyle={p.onUpdateTextStyle}
-				/>
-				<TextDirectionDropdown
-					canMut={canMut}
-					canFormat={canFormat}
-					onUpdateTextStyle={p.onUpdateTextStyle}
-				/>
-				<ColumnsDropdown
-					canMut={canMut}
-					canFormat={canFormat}
-					onUpdateTextStyle={p.onUpdateTextStyle}
-				/>
+				<WebHomeControls family='paragraph' controls={controls} onRequest={request} />
 			</div>
 			<span className='text-[9px] text-muted-foreground leading-none'>
 				{t('pptx.ribbon.paragraph')}

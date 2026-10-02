@@ -1,80 +1,35 @@
 import { editingHomeControls } from 'pptx-viewer-shared';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuMousePointer2 } from 'react-icons/lu';
 
-import { controlAttr, groupAttr } from './PowerPointRibbonControls';
-import { RibbonMenu } from './RibbonMenu';
-import { ic, pill, sep } from './toolbar-constants';
+import { groupAttr } from './PowerPointRibbonControls';
+import { sep } from './toolbar-constants';
 import { WebHomeControls } from './WebHomeControls';
-
-const editingControls = editingHomeControls();
 
 export interface EditingSectionProps {
 	onToggleFindReplace: () => void;
 	onSelectAll?: () => void;
 }
 
+/** Home > Editing: the shared Find, Replace and Select strip. */
 export function EditingSection(p: EditingSectionProps): React.ReactElement {
 	const { t } = useTranslation();
-	const [selectMenuOpen, setSelectMenuOpen] = useState(false);
-	const menuRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (!selectMenuOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-				setSelectMenuOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [selectMenuOpen]);
-
+	const { onToggleFindReplace, onSelectAll } = p;
+	const controls = useMemo(
+		() => editingHomeControls({ selectAll: Boolean(onSelectAll) }),
+		[onSelectAll],
+	);
+	const request = useCallback(
+		(id: string) => (id === 'home.editing.select' ? onSelectAll?.() : onToggleFindReplace()),
+		[onSelectAll, onToggleFindReplace],
+	);
 	return (
 		<>
 			{sep}
 
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.editing')}>
 				<div className='flex items-center gap-1'>
-					{/* Find & Replace: the shared Editing strip; both open the find panel. */}
-					<WebHomeControls
-						family='editing'
-						controls={editingControls}
-						onRequest={p.onToggleFindReplace}
-					/>
-
-					{/* Select dropdown */}
-					<div className='relative' ref={menuRef} {...controlAttr('home.editing.select')}>
-						<button
-							type='button'
-							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => setSelectMenuOpen((v) => !v)}
-							className={pill}
-							title={t('pptx.ribbon.tool.select')}
-						>
-							<LuMousePointer2 className={ic} />
-						</button>
-						{selectMenuOpen && (
-							<RibbonMenu anchorRef={menuRef} className='pt-1'>
-								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-32'>
-									<button
-										type='button'
-										className='flex items-center w-full px-3 py-1.5 text-xs hover:bg-muted transition-colors'
-										onMouseDown={(e) => e.preventDefault()}
-										onClick={() => {
-											p.onSelectAll?.();
-											setSelectMenuOpen(false);
-										}}
-									>
-										{t('pptx.editing.selectAll')}
-									</button>
-								</div>
-							</RibbonMenu>
-						)}
-					</div>
+					<WebHomeControls family='editing' controls={controls} onRequest={request} />
 				</div>
 				<span className='text-[9px] text-muted-foreground leading-none'>
 					{t('pptx.ribbon.editing')}

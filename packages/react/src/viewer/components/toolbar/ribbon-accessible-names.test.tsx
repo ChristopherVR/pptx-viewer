@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import type { PptxElement } from 'pptx-viewer-core';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { keyToLabel, translationsEn } from 'pptx-viewer-shared/i18n';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -43,9 +44,26 @@ function render(el: React.ReactElement): string {
 	return renderToStaticMarkup(el);
 }
 
+registerPptxWebControls();
+
+/** Mount into the document so the shared elements render their own buttons. */
+async function mountInto(element: React.ReactElement) {
+	const target = document.createElement('div');
+	document.body.append(target);
+	const root = createRoot(target);
+	await act(async () => root.render(element));
+	return {
+		target,
+		unmount: async () => {
+			await act(async () => root.unmount());
+			target.remove();
+		},
+	};
+}
+
 describe('list command state', () => {
-	const renderLists = (selectedElement: PptxElement | null, canEdit = true): string =>
-		render(
+	const renderLists = async (selectedElement: PptxElement | null, canEdit = true) =>
+		mountInto(
 			React.createElement(TextSection, {
 				selectedElement,
 				canEdit,
@@ -54,8 +72,8 @@ describe('list command state', () => {
 				onTransformTextCase: vi.fn(),
 			}),
 		);
-	const button = (html: string, name: string): string =>
-		html.match(new RegExp(`<button[^>]*title="${name}"[^>]*>`))?.[0] ?? '';
+	const button = (target: HTMLElement, name: string) =>
+		target.querySelector<HTMLButtonElement>(`button[title="${name}"]`)!;
 	const listed: PptxElement = {
 		type: 'text',
 		id: 'text',
@@ -69,16 +87,22 @@ describe('list command state', () => {
 		],
 	};
 
-	it('announces loaded semantic bullets without a legacy listType flag', () => {
-		const html = renderLists(listed);
-		expect(button(html, 'Bullet List')).toContain('aria-pressed="true"');
-		expect(button(html, 'Numbered List')).toContain('aria-pressed="false"');
+	it('announces loaded semantic bullets without a legacy listType flag', async () => {
+		const { target, unmount } = await renderLists(listed);
+		expect(button(target, 'Bullet List').getAttribute('aria-pressed')).toBe('true');
+		expect(button(target, 'Numbered List').getAttribute('aria-pressed')).toBe('false');
+		await unmount();
 	});
 
-	it('disables list commands for missing selection and read-only mode', () => {
-		for (const html of [renderLists(null), renderLists(listed, false)]) {
-			expect(button(html, 'Bullet List')).toContain('disabled=""');
-			expect(button(html, 'Numbered List')).toContain('disabled=""');
+	it('disables list commands for missing selection and read-only mode', async () => {
+		for (const [element, canEdit] of [
+			[null, true],
+			[listed, false],
+		] as const) {
+			const { target, unmount } = await renderLists(element, canEdit);
+			expect(button(target, 'Bullet List').disabled).toBeTruthy();
+			expect(button(target, 'Numbered List').disabled).toBeTruthy();
+			await unmount();
 		}
 	});
 
@@ -159,31 +183,36 @@ describe('list command state', () => {
 });
 
 describe('home tab font controls', () => {
-	const html = render(
-		React.createElement(HomeSection, {
-			canEdit: true,
-			clipboardPayload: null,
-			onCopy: vi.fn<() => void>(),
-			onCut: vi.fn<() => void>(),
-			onPaste: vi.fn<() => void>(),
-			layoutOptions: [],
-			onInsertSlideFromLayout: vi.fn<() => void>(),
-			selectedElement: null,
-			onUpdateTextStyle: vi.fn<() => void>(),
-		}),
-	);
+	const mountHome = () =>
+		mountInto(
+			React.createElement(HomeSection, {
+				canEdit: true,
+				clipboardPayload: null,
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
+				layoutOptions: [],
+				onInsertSlideFromLayout: vi.fn<() => void>(),
+				selectedElement: null,
+				onUpdateTextStyle: vi.fn<() => void>(),
+			}),
+		);
 
-	it('names the font-family picker after the control, not its current value', () => {
-		expect(html).toContain('aria-label="Font family"');
+	it('names the font-family picker after the control, not its current value', async () => {
+		const { target, unmount } = await mountHome();
+		const family = target.querySelector<HTMLElement>('[data-font-picker="family"]')!;
+		expect(family.getAttribute('aria-label')).toBe('Font family');
 		// Still shows the value; it just no longer IS the name.
-		expect(html).toContain('Segoe UI');
+		expect((family as HTMLElement & { value: string }).value).toBe('Segoe UI');
+		await unmount();
 	});
 
-	it('names the font-size picker after the control, not its current value', () => {
-		expect(html).toContain('aria-label="Font size"');
-		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
-			'value="24"',
-		);
+	it('names the font-size picker after the control, not its current value', async () => {
+		const { target, unmount } = await mountHome();
+		const size = target.querySelector<HTMLElement>('[data-font-picker="size"]')!;
+		expect(size.getAttribute('aria-label')).toBe('Font size');
+		expect((size as HTMLElement & { value: string }).value).toBe('24');
+		await unmount();
 	});
 });
 

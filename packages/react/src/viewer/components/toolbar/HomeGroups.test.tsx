@@ -132,7 +132,7 @@ describe('home slides group', () => {
 		expect(button('home.slides.layout').getAttribute('aria-expanded')).toBe('true');
 		act(() => menu!.querySelectorAll<HTMLElement>('button')[1].click());
 		expect(props.onApplyLayout).toHaveBeenCalledWith('/l2');
-		expect(gallery('home.slides.layout')).toBeNull();
+		expect(gallery('home.slides.layout')!.hidden).toBeTruthy();
 	});
 
 	it('opens the New Slide gallery from the caret and hides it without layouts', () => {
@@ -147,6 +147,26 @@ describe('home slides group', () => {
 		mountSlides(true, []);
 		expect(caret().hidden).toBeTruthy();
 		expect(button('home.slides.newSlide').hasAttribute('disabled')).toBeTruthy();
+	});
+
+	it('loads previews on open and portals the host artwork into the tiles', async () => {
+		const loadLayoutPreviews = vi.fn(() =>
+			Promise.resolve([{ path: '/l1', width: 960, height: 540, elements: [], placeholders: [] }]),
+		);
+		act(() =>
+			root.render(
+				<SlidesGroup
+					canEdit
+					layoutOptions={layouts}
+					loadLayoutPreviews={loadLayoutPreviews as never}
+					onInsertSlideFromLayout={vi.fn()}
+				/>,
+			),
+		);
+		expect(loadLayoutPreviews).not.toHaveBeenCalled();
+		await act(async () => button('home.slides.layout').click());
+		expect(loadLayoutPreviews).toHaveBeenCalledOnce();
+		expect(gallery('home.slides.layout')!.querySelectorAll('.thumb .surface')).toHaveLength(2);
 	});
 
 	it('hides Slide Templates until a template handler is wired', () => {
@@ -199,14 +219,28 @@ describe('home drawing triggers', () => {
 		const props = mountDrawing();
 		act(() => button('home.drawing.arrange').click());
 		const items =
-			control('home.drawing.arrange').querySelectorAll<HTMLElement>('.shadow-2xl button');
+			control('home.drawing.arrange').querySelectorAll<HTMLElement>('[role="menuitem"]');
 		expect(items).toHaveLength(4);
 		act(() => items[0].click());
 		expect(props.onMoveLayer).toHaveBeenCalledWith('forward');
-		expect(control('home.drawing.arrange').querySelector('.shadow-2xl')).toBeNull();
+		act(() => items[3].click());
+		expect(props.onMoveLayerToEdge).toHaveBeenCalledWith('back');
+		expect(
+			control('home.drawing.arrange').querySelector<HTMLElement>('.popup')!.hidden,
+		).toBeTruthy();
 	});
 
-	it('applies a standard fill colour from the native swatch popover', () => {
+	it('picks a shape from the shared Shapes menu and adds it', () => {
+		const props = mountDrawing();
+		act(() => button('home.drawing.shapes').click());
+		const rows = control('home.drawing.shapes').querySelectorAll<HTMLElement>('button.item');
+		expect(rows).toHaveLength(12);
+		act(() => rows[2].click());
+		expect(props.onSetNewShapeType).toHaveBeenCalledWith('ellipse');
+		expect(props.onAddShape).toHaveBeenCalledOnce();
+	});
+
+	it('applies a standard fill colour from the shared swatch popover', () => {
 		const props = mountDrawing();
 		act(() => button('home.drawing.shapeFill').click());
 		const swatch = control('home.drawing.shapeFill').querySelector<HTMLElement>(

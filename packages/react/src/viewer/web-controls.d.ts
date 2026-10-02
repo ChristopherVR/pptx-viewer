@@ -44,6 +44,12 @@ declare module 'react' {
 			'pptx-ui-ribbon-home-arrange-flip': WebControlProps;
 			'pptx-ui-ribbon-home-arrange-order': WebControlProps;
 			'pptx-ui-ribbon-home-arrange-edit': WebControlProps;
+			'pptx-ui-ribbon-home-font-picker': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-painter': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-shape': WebControlProps;
+			'pptx-ui-ribbon-home-font-picker': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-painter': WebControlProps;
+			'pptx-ui-ribbon-home-arrange-shape': WebControlProps;
 			'pptx-ui-ribbon-transitions': WebControlProps;
 			'pptx-ui-ribbon-insert': WebControlProps;
 			'pptx-ui-ribbon-view': WebControlProps;

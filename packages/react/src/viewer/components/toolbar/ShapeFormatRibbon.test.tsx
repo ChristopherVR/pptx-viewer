@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PictureCropController } from '../../hooks/usePictureCropMode';
 
 vi.mock(import('react-i18next'), () => ({
-	useTranslation: () => ({ t: (key: string) => key }),
+	useTranslation: () => ({ t: (key: string) => `t:${key}` }),
 }));
 
 const { ShapeArrangeExtras } = await import('./ShapeArrangeExtras');
@@ -148,8 +148,8 @@ describe('ribbon Merge Shapes', () => {
 		render({ selectedIds: ['a'] });
 		const button = control('merge-shapes');
 		expect(button?.disabled).toBeTruthy();
-		expect(button?.title).toBe('pptx.shape.mergeShapesHint');
-		expect(button?.getAttribute('aria-label')).toBe('pptx.shape.mergeShapes');
+		expect(button?.title).toBe('t:pptx.shape.mergeShapesHint');
+		expect(button?.getAttribute('aria-label')).toBe('t:pptx.shape.mergeShapes');
 	});
 
 	it('lists the five operations and Union replaces two shapes with one freeform', () => {
@@ -185,8 +185,8 @@ describe('ribbon Merge Shapes', () => {
 
 	it('disappears when the host hides mergeShapes', () => {
 		render({ selectedIds: ['a', 'b'], hiddenActions: ['mergeShapes'] });
-		expect(control('merge-shapes')).toBeNull();
-		expect(control('crop')).not.toBeNull();
+		expect(control('merge-shapes')?.closest<HTMLElement>('.slot')?.hidden).toBeTruthy();
+		expect(control('crop')?.hidden).toBeFalsy();
 	});
 });
 
@@ -194,7 +194,7 @@ describe('ribbon Crop', () => {
 	it('is disabled with the hint when nothing croppable is selected', () => {
 		render({ selectedIds: ['a'] });
 		expect(control('crop')?.disabled).toBeTruthy();
-		expect(control('crop')?.title).toBe('pptx.image.cropHint');
+		expect(control('crop')?.title).toBe('t:pptx.image.cropHint');
 		expect(control('crop-menu')?.disabled).toBeTruthy();
 	});
 
@@ -231,7 +231,7 @@ describe('ribbon Crop', () => {
 
 	it('disappears when the host hides crop', () => {
 		render({ selectedIds: ['pic'], crop: cropStub({ canCrop: true }), hiddenActions: ['crop'] });
-		expect(control('crop')).toBeNull();
-		expect(control('crop-menu')).toBeNull();
+		expect(control('crop')?.hidden).toBeTruthy();
+		expect(control('crop-menu')?.hidden).toBeTruthy();
 	});
 });

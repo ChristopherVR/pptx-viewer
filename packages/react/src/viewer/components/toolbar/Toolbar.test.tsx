@@ -522,36 +522,10 @@ describe('toolbar - tab navigation', () => {
 // ===========================================================================
 
 describe('toolbar - Home tab', () => {
-	it.each([
-		['empty selection', null, true, undefined, true],
-		['image selection', { type: 'image', id: 'i1' }, true, undefined, true],
-		['read-only text', { type: 'text', id: 't1' }, false, undefined, true],
-		['text selection', { type: 'text', id: 't1' }, true, undefined, false],
-		['empty shape', { type: 'shape', id: 's1' }, true, undefined, false],
-		['table without a selected cell', { type: 'table', id: 'tb1' }, true, undefined, true],
-		[
-			'selected table cell',
-			{ type: 'table', id: 'tb1' },
-			true,
-			{ rowIndex: 0, columnIndex: 0 },
-			false,
-		],
-	] as const)('gates font pickers for %s', (_name, element, canEdit, cell, disabled) => {
-		const html = render(
-			React.createElement(
-				Toolbar,
-				createMockToolbarProps({
-					selectedElement: element as ToolbarProps['selectedElement'],
-					canEdit,
-					tableEditorState: cell,
-				}),
-			),
-		);
-		for (const label of ['Font family', 'Font size']) {
-			const button = html.match(new RegExp(`<pptx-ui-select[^>]*aria-label="${label}"[^>]*>`))?.[0];
-			expect(button).toBeDefined();
-			expect(/\sdisabled(?:=|\s|>)/u.test(button!)).toBe(disabled);
-		}
+	it('renders the shared font picker host in the Home tab', () => {
+		const html = render(React.createElement(Toolbar, createMockToolbarProps()));
+		// Gating and values are asserted against the mounted element in FontPickerGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-font-picker');
 	});
 
 	it('renders clipboard group with Paste, Cut, Copy, Format Painter', () => {
@@ -609,7 +583,7 @@ describe('toolbar - Home tab', () => {
 		expect(html).toContain('<pptx-ui-ribbon-home-slides');
 	});
 
-	it('font family display shows default value', () => {
+	it('renders the shared font picker group host', () => {
 		const html = render(
 			React.createElement(HomeSection, {
 				canEdit: true,
@@ -623,73 +597,8 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('Segoe UI');
-	});
-
-	it('font size display shows default value', () => {
-		const html = render(
-			React.createElement(HomeSection, {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
-			'value="24"',
-		);
-	});
-
-	it('font size display converts model pixels to exact PowerPoint points', () => {
-		const html = render(
-			React.createElement(HomeSection, {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
-				selectedElement: {
-					type: 'text',
-					id: 'font-size',
-					x: 0,
-					y: 0,
-					width: 100,
-					height: 20,
-					text: 'Hello',
-					textStyle: { fontSize: 32 },
-					textSegments: [{ text: 'Hello', style: { fontSize: 48.1 * (96 / 72) } }],
-				} as never,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
-			'value="48.1"',
-		);
-		expect(html).not.toContain('64.133333');
-	});
-
-	it('font group label is present', () => {
-		const html = render(
-			React.createElement(HomeSection, {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('>Font</span>');
+		// Default family, point size and the Font caption are asserted in FontPickerGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-font-picker');
 	});
 });
 
@@ -1170,25 +1079,12 @@ describe('toolbar - Arrange tab', () => {
 		expect(html).not.toContain('title="Paste"');
 	});
 
-	it('renders Group, Ungroup and the stroke-width spinner', () => {
+	it('renders the shared shape extras and Format Painter strips', () => {
 		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toContain('aria-label="Group"');
-		expect(html).toContain('aria-label="Ungroup"');
-		expect(html).toContain('aria-label="Stroke width"');
-	});
-
-	it('enables Group only once two elements are selected', () => {
-		const single = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(single).toMatch(/<button[^>]*disabled=""[^>]*aria-label="Group"/u);
-		const pair = render(
-			React.createElement(ArrangeSection, createArrangeProps({ selectedCount: 2 })),
-		);
-		expect(pair).not.toMatch(/<button[^>]*disabled=""[^>]*aria-label="Group"/u);
-	});
-
-	it('renders Format Painter button', () => {
-		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toContain('title="Format Painter"');
+		// Group, Ungroup, Merge, Crop, the outline width and the second painter render in the
+		// browser; see ShapeFormatRibbon.test.tsx and HomeGroups.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-arrange-shape');
+		expect(html).toContain('<pptx-ui-ribbon-home-arrange-painter');
 	});
 });
 
@@ -1229,7 +1125,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Font Color"');
+		// The Font Color popover is part of the shared strip; see FontFormatGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 });
 
