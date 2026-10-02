@@ -15,7 +15,6 @@
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
 	import FontFormattingGroup from './FontFormattingGroup.svelte';
-	import FontPickerGroup from './FontPickerGroup.svelte';
 	import ArrangeExtras from './ArrangeExtras.svelte';
 	import ArrangeHomeStrip from './ArrangeHomeStrip.svelte';
 	import ClipboardGroup from './ClipboardGroup.svelte';
@@ -44,7 +43,6 @@
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<SlidesGroup {editor} onnavigate={onnavigateslide} />
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<FontPickerGroup {editor} />
 	<div class="pptx-svelte-hometab-group" data-pptx-chrome="home-group" data-ribbon-group="home.font">
 		<FontFormattingGroup {editor} />
 		<span data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.font')}</span>
@@ -56,7 +54,6 @@
 		<span class="pptx-svelte-hometab-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.paragraph')}</span>
 	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<EditingGroup {editor} {findReplace} />
 	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.drawing">
 		<div class="pptx-svelte-hometab-row" data-pptx-chrome="drawing-controls">
 			<DrawingGroup {editor} />
@@ -64,6 +61,7 @@
 		<span class="pptx-svelte-hometab-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.groupDrawing')}</span>
 	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
+	<EditingGroup {editor} {findReplace} />
 	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.arrange">
 		<div class="pptx-svelte-hometab-row" data-pptx-chrome="arrange-controls">
 			<ArrangeExtras {editor} {hiddenActions} />

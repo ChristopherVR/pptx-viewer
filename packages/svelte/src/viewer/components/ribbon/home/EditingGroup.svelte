@@ -38,7 +38,7 @@
 	<div class="pptx-svelte-rgroup-cluster" data-pptx-chrome="editing-controls">
 		<pptx-ui-ribbon-home-editing {state} onhome-request={request}></pptx-ui-ribbon-home-editing>
 	</div>
-	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.editing')}</span>
+	<span class="pptx-svelte-rgroup-label" data-pptx-chrome="ribbon-group-label">{t('pptx.ribbon.editing')}</span>
 </div>
 
 <style>

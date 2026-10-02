@@ -119,8 +119,9 @@ export function createFontGroup(
 	const strip = createSharedHomeStrip(doc, t, 'font', ({ id, value, ref }) =>
 		actions[id]?.(value, ref),
 	);
-	row.append(strip.el);
-	el.append(picker.el, formatting);
+	// One group, two rows: family, size and the size steps above the character formatting.
+	row.append(picker.el, strip.el);
+	el.append(formatting);
 
 	const update = ({
 		canFormat,

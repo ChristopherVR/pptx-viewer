@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
 import FontHomeControls from './FontHomeControls.vue';
-import HomeSection from './HomeSection.vue';
+import FontPickers from './FontPickers.vue';
 
 enableAutoUnmount(afterEach);
 
@@ -36,16 +36,11 @@ function textShape(overrides: Partial<PptxElement> = {}): PptxElement {
 }
 
 function mountHome(overrides: Record<string, unknown> = {}) {
-	return mount(HomeSection, {
+	// The family and size boxes sit on the first row of the Font group (FontPickers).
+	return mount(FontPickers, {
 		attachTo: document.body,
 		props: {
 			canEdit: true,
-			clipboardPayload: null,
-			onCopy: vi.fn(),
-			onCut: vi.fn(),
-			onPaste: vi.fn(),
-			layoutOptions: [],
-			onInsertSlideFromLayout: vi.fn(),
 			onUpdateTextStyle: vi.fn(),
 			...overrides,
 		},

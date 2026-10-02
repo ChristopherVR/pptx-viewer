@@ -59,6 +59,9 @@ export function createRibbonHomeView(
 	const spec = RIBBON_HOME_FAMILIES[family];
 	const root = doc.createElement('div');
 	root.className = 'home';
+	if (spec.group) {
+		root.dataset.grouped = '';
+	}
 	const buttons = new Map<string, HTMLElement>();
 	/** Elements the host anchors to (the control's wrapper or button). */
 	const anchors = new Map<string, HTMLElement>();
@@ -69,6 +72,9 @@ export function createRibbonHomeView(
 		const strip = doc.createElement('div');
 		strip.className = cluster.free ? 'free' : 'cluster';
 		strip.dataset.pptxChrome = cluster.chrome ?? 'control-cluster';
+		if (cluster.stack) {
+			strip.dataset.stack = '';
+		}
 		for (const control of cluster.controls) {
 			const item = buildControl(ctx, control);
 			built.push(item);

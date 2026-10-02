@@ -14,7 +14,7 @@ import { translationsDe, translationsFr } from '../../../../../locales/src';
 import { toVueI18nSyntax, translationsEn } from '../../../i18n';
 import DrawingGroup from './DrawingGroup.vue';
 import EditingSection from './EditingSection.vue';
-import HomeSection from './HomeSection.vue';
+import FontPickers from './FontPickers.vue';
 import SlidesGroup from './SlidesGroup.vue';
 import TextSection from './TextSection.vue';
 
@@ -106,18 +106,8 @@ describe('home controls follow the runtime locale', () => {
 			},
 			attachTo: document.body,
 		});
-		const home = mount(HomeSection, {
-			props: {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: noop,
-				onCut: noop,
-				onPaste: noop,
-				layoutOptions: [],
-				onInsertSlideFromLayout: noop,
-				selectedElement: shape,
-				onUpdateTextStyle: noop,
-			},
+		const home = mount(FontPickers, {
+			props: { canEdit: true, selectedElement: shape, onUpdateTextStyle: noop },
 			attachTo: document.body,
 		});
 		const expectLocale = (dictionary: Record<string, string>) => {

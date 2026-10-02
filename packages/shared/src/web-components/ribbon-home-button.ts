@@ -61,7 +61,10 @@ export function addButtonContent(
 		bar.dataset.pptxChrome = 'color-swatch';
 		button.append(bar);
 	}
-	if (control.chevron) {
+	if (control.large) {
+		button.dataset.size = 'large';
+	}
+	if (control.chevron || (control.large && control.popup)) {
 		const chevron = createRibbonControlIcon(doc, 'home.slides.caret');
 		chevron.classList.add('chev');
 		button.append(chevron);

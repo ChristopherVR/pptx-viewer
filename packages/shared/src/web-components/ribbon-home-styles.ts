@@ -19,23 +19,63 @@ export const RIBBON_HOME_TAGS = [
 const RIBBON_HOME_STYLES = `
 :host { display:contents; }
 .home { display:contents; }
-.group { display:flex; flex-direction:column; align-items:center; gap:2px; }
-.row { display:flex; align-items:center; gap:4px; }
-.wrap { display:inline-flex; align-items:center; gap:4px; }
-.free { display:inline-flex; align-items:center; gap:4px; }
+.slot[hidden] { display:none !important; }
+.free pptx-ui-select, .wrap pptx-ui-select { flex:none; }
+/* Groups the element renders itself (Clipboard, Slides): Office's column of rows over a caption. */
+.group { position:relative; box-sizing:border-box; display:flex; flex-direction:column; align-items:stretch; justify-content:space-between; min-height:84px; padding:3px 6px 0; }
+.group::after { content:''; position:absolute; top:6px; bottom:6px; right:0; width:1px; background:color-mix(in srgb,var(--pptx-border,#475569) 80%,transparent); }
+.row { display:flex; align-items:flex-start; gap:2px; flex:1; }
+.wrap { display:inline-flex; align-items:center; gap:2px; }
+.free { display:inline-flex; align-items:flex-start; gap:2px; }
 .slot { position:relative; display:inline-flex; align-items:center; }
 .slot[hidden] { display:none !important; }
-.free button.b { border-radius:4px; background:var(--pptx-muted,#2a2a3d); gap:6px; white-space:nowrap; }
-.free button.b[data-tone=danger] { background:color-mix(in srgb,#b91c1c 80%,transparent); }
-.free button.b[data-tone=danger]:hover:not(:disabled) { background:#dc2626; }
-.slot > button.b[data-pptx-chrome=split-main] { border-radius:4px 0 0 4px; background:var(--pptx-muted,#2a2a3d); gap:6px; white-space:nowrap; }
-.slot > button.b[data-pptx-chrome=split-caret] { min-width:20px; padding:0 4px; border-radius:0 4px 4px 0; border-left:1px solid color-mix(in srgb,var(--pptx-border,#475569) 40%,transparent); background:var(--pptx-muted,#2a2a3d); align-self:stretch; height:auto; }
-.slot > button.b[data-pptx-chrome=split-caret] svg { width:12px; height:12px; }
 .text { white-space:nowrap; }
-button.b .chev { width:12px; height:12px; }
-.free button.b[aria-pressed=true] { background:var(--pptx-accent,#33334d); }
-.free button.b[data-testid=format-painter-toggle][aria-pressed=true] { background:#d97706; color:#fffbeb; box-shadow:none; }
-.free pptx-ui-select, .wrap pptx-ui-select { flex:none; }
+.caption { padding-top:0; color:var(--pptx-muted-foreground,#94a3b8); font-size:11px; line-height:16px; text-align:center; white-space:nowrap; }
+/* Clusters are plain flow containers: Office buttons are flat and joined by position, not by a pill. */
+.cluster { display:inline-flex; align-items:center; gap:0; }
+.cluster[data-stack] { flex-direction:column; align-items:stretch; justify-content:flex-start; gap:0; }
+.cluster[data-stack] > button.b { height:22px; min-height:22px; }
+.home:not([data-grouped]) .cluster, .home:not([data-grouped]) .free { display:contents; }
+button.b { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:24px; padding:0 6px; border:0; border-radius:4px; background:transparent; color:var(--pptx-foreground,#f8fafc); font:inherit; font-size:12px; line-height:16px; gap:6px; white-space:nowrap; cursor:pointer; }
+button.b[hidden] { display:none !important; }
+button.b svg { width:16px; height:16px; flex:none; stroke-width:1.5; }
+button.b svg.chev { width:10px; height:10px; stroke-width:2.2; }
+.cluster[data-stack] > button.b, .cluster[data-stack] > .slot > button.b { justify-content:flex-start; }
+/* Large command: a 32px glyph over a one- or two-line caption, chevron beneath. */
+button.b[data-size=large] { flex-direction:column; justify-content:flex-start; min-width:48px; height:66px; padding:3px 6px; gap:2px; line-height:15px; }
+button.b[data-size=large] svg:not(.chev) { width:32px; height:32px; stroke-width:1.35; }
+button.b[data-size=large] svg.chev { width:9px; height:9px; margin-top:-1px; }
+/* The split halves (New Slide): glyph and caption press the main action, the strip below opens the menu. */
+.slot[data-pptx-chrome=split-button]:has([data-size=large]) { flex-direction:column; align-items:stretch; }
+.slot > button.b[data-pptx-chrome=split-main][data-size=large] { height:52px; min-width:56px; border-radius:4px 4px 0 0; }
+.slot > button.b[data-pptx-chrome=split-caret][data-size=caret] { min-width:0; height:14px; padding:0; border-radius:0 0 4px 4px; border-left:0; align-self:stretch; }
+.slot > button.b[data-pptx-chrome=split-caret][data-size=caret] svg { width:10px; height:10px; stroke-width:2.2; }
+.slot > button.b[data-pptx-chrome=split-caret]:not([data-size]) { min-width:16px; padding:0 2px; border-radius:0 4px 4px 0; align-self:stretch; height:auto; }
+.slot > button.b[data-pptx-chrome=split-caret]:not([data-size]) svg { width:10px; height:10px; }
+button.b:hover:not(:disabled) { background:var(--pptx-accent,#33334d); }
+button.b:active:not(:disabled) { background:color-mix(in srgb,var(--pptx-accent,#33334d) 70%,var(--pptx-primary,#6366f1)); }
+button.b[aria-pressed=true] { background:color-mix(in srgb,var(--pptx-primary,#6366f1) 22%,transparent); box-shadow:inset 0 0 0 1px var(--pptx-primary,#6366f1); }
+button.b:disabled { opacity:.4; cursor:default; }
+button.b:focus-visible { outline:2px solid var(--pptx-ring,#818cf8); outline-offset:-2px; }
+/* Row placement for the shared buttons that sit among native controls (see home-rows-css). */
+[data-ribbon-control="home.font.increaseFontSize"] { order:3; }
+[data-ribbon-control="home.font.decreaseFontSize"] { order:4; }
+[data-ribbon-control="home.font.clearFormatting"] { order:5; }
+[data-ribbon-control="home.font.bold"] { order:10; }
+[data-ribbon-control="home.font.italic"] { order:11; }
+[data-ribbon-control="home.font.underline"] { order:12; }
+[data-ribbon-control="home.font.shadow"] { order:13; }
+[data-ribbon-control="home.font.strikethrough"] { order:14; }
+[data-ribbon-control="home.paragraph.decreaseIndent"] { order:3; }
+[data-ribbon-control="home.paragraph.increaseIndent"] { order:4; }
+[data-ribbon-control="home.paragraph.alignLeft"] { order:10; }
+[data-ribbon-control="home.paragraph.alignCenter"] { order:11; }
+[data-ribbon-control="home.paragraph.alignRight"] { order:12; }
+[data-ribbon-control="home.paragraph.justify"] { order:13; }
+[data-ribbon-control="home.drawing.shapes"] { order:1; }
+[data-ribbon-control="home.drawing.arrange"] { order:2; }
+[data-ribbon-control="home.drawing.shapeFill"] { order:4; }
+[data-ribbon-control="home.drawing.shapeOutline"] { order:5; }
 input.num { box-sizing:border-box; width:52px; height:26px; padding:0 4px; border:1px solid var(--pptx-border,#475569); border-radius:4px; background:var(--pptx-muted,#2a2a3d); color:var(--pptx-foreground,#f8fafc); font:inherit; font-size:11px; text-align:center; }
 input.num:disabled { opacity:.4; }
 input.num:focus-visible { outline:2px solid var(--pptx-ring,#818cf8); outline-offset:-2px; }
@@ -73,15 +113,7 @@ input.num:focus-visible { outline:2px solid var(--pptx-ring,#818cf8); outline-of
 .popup .surface { position:absolute; left:0; top:0; transform-origin:top left; overflow:hidden; }
 .popup .frame { position:absolute; box-sizing:border-box; border:0 dashed color-mix(in srgb,var(--pptx-muted-foreground,#94a3b8) 70%,transparent); background:color-mix(in srgb,var(--pptx-background,#111827) 20%,transparent); }
 .popup .name { width:100%; overflow:hidden; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
-.caption { color:var(--pptx-muted-foreground,#94a3b8); font-size:9px; line-height:9px; text-align:center; }
-.cluster { display:inline-flex; align-items:center; border-radius:3px; overflow:hidden; background:var(--pptx-muted,#2a2a3d); }
-button.b { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:28px; padding:6px 10px; border:0; border-radius:0; background:transparent; color:var(--pptx-foreground,#f8fafc); font:inherit; font-size:12px; cursor:pointer; }
 button.b[hidden] { display:none !important; }
-button.b svg { width:16px; height:16px; flex:none; }
-button.b:hover:not(:disabled) { background:var(--pptx-accent,#33334d); }
-button.b[aria-pressed=true] { background:var(--pptx-accent,#33334d); box-shadow:inset 0 0 0 1px var(--pptx-primary,#6366f1); }
-button.b:disabled { opacity:.4; cursor:default; }
-button.b:focus-visible { outline:2px solid var(--pptx-ring,#818cf8); outline-offset:-2px; }
 @media (pointer:coarse),(max-width:900px) {
 	button.b { min-width:44px !important; min-height:44px !important; }
 	input.num { min-height:44px; }

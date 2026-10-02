@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /**
- * The Home font family and size fields. They sit on the first row of the Font group
- * (see TextSection), beside Grow, Shrink and Clear.
+ * The Home font family and size fields (the shared `font-picker` element). They sit on the
+ * first row of the Font group (see TextSection), beside Grow, Shrink and Clear.
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import {
-	buildFontCatalog,
-	COMMON_FONT_SIZES,
+	fontPickerHomeControls,
+	homeSnapshotTranslator,
 	resolveDefaultFontFamily,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
 } from 'pptx-viewer-shared';
+import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -31,7 +32,7 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 /**
  * With nothing overriding it on the element, the font box shows the family the
@@ -81,60 +82,39 @@ const canFormat = computed(
 const fontFamily = computed(() => fontInfo.value.fontFamily);
 const fontSize = computed(() => fontInfo.value.fontSize);
 
-const fontGroups = computed(() =>
-	buildFontCatalog({
-		themeFonts: props.themeFonts,
-		embeddedFonts: props.embeddedFontFamilies,
-		customFonts: props.customFontFamilies,
-	}),
-);
+const fontState = computed(() => ({
+	controls: fontPickerHomeControls(
+		{
+			enabled: canFormat.value,
+			fontFamily: fontFamily.value,
+			fontSize: fontSize.value,
+			themeFonts: props.themeFonts,
+			embeddedFonts: props.embeddedFontFamilies,
+			customFonts: props.customFontFamilies,
+		},
+		t,
+	),
+	// The locale is read so a language switch re-translates the shared labels.
+	locale: locale.value,
+	translate: homeSnapshotTranslator(['font-picker'], t),
+}));
 
-function handlePickFont(f: string): void {
-	props.onUpdateTextStyle?.({ fontFamily: f });
-}
-
-function handlePickSize(s: number): void {
-	props.onUpdateTextStyle?.({
-		fontSize:
-			props.selectedElement && hasTextProperties(props.selectedElement) ? textFontSizePtToPx(s) : s,
-	});
+function requestFont(event: RibbonHomeRequestEvent): void {
+	const { id, value } = event.detail;
+	if (id === 'home.font.fontFamily') {
+		props.onUpdateTextStyle?.({ fontFamily: String(value) });
+	} else if (id === 'home.font.fontSize') {
+		const size = Number(value);
+		props.onUpdateTextStyle?.({
+			fontSize:
+				props.selectedElement && hasTextProperties(props.selectedElement)
+					? textFontSizePtToPx(size)
+					: size,
+		});
+	}
 }
 </script>
 
 <template>
-	<div data-pptx-chrome="font-picker-controls">
-		<pptx-ui-select
-			variant="ribbon-font"
-			data-font-picker="family"
-			data-ribbon-control="home.font.fontFamily"
-			:aria-label="t('pptx.ribbon.fontFamily')"
-			:disabled="!canFormat"
-			:value="fontFamily"
-			@change="handlePickFont(($event.target as HTMLSelectElement).value)"
-		>
-			<optgroup v-for="group in fontGroups" :key="group.id" :label="t(group.labelKey)">
-				<option
-					v-for="entry in group.entries"
-					:key="entry.family"
-					:value="entry.family"
-					:style="{ fontFamily: entry.family }"
-					:data-display-label="entry.family"
-					:data-description="entry.themeRole ? t(`pptx.font.role.${entry.themeRole}`) : undefined"
-				>
-					{{ entry.family }}
-				</option>
-			</optgroup>
-		</pptx-ui-select>
-		<pptx-ui-select
-			variant="ribbon-font"
-			data-font-picker="size"
-			data-ribbon-control="home.font.fontSize"
-			:aria-label="t('pptx.ribbon.fontSize')"
-			:disabled="!canFormat"
-			:value="fontSize"
-			@change="handlePickSize(Number(($event.target as HTMLSelectElement).value))"
-		>
-			<option v-for="size in COMMON_FONT_SIZES" :key="size" :value="size">{{ size }}</option>
-		</pptx-ui-select>
-	</div>
+	<pptx-ui-ribbon-home-font-picker :state.prop="fontState" @home-request="requestFont" />
 </template>

@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n';
 
 import { getEffectiveTextStyle } from './effective-text-style';
 import FontHomeControls from './FontHomeControls.vue';
+import FontPickers from './FontPickers.vue';
 import ParagraphGroup from './ParagraphGroup.vue';
 import { SEP } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
@@ -19,6 +20,12 @@ interface Props {
 	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 	onTransformTextCase: (mode: ChangeCaseMode) => void;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 }
 
 const props = defineProps<Props>();
@@ -166,6 +173,15 @@ function handleChangeCase(value: ChangeCaseMode): void {
 	<!-- ── Font group ── -->
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
 		<div class="flex items-center gap-1" data-pptx-chrome="font-controls">
+			<FontPickers
+				:can-edit="props.canEdit"
+				:selected-element="props.selectedElement"
+				:table-editor-state="props.tableEditorState"
+				:on-update-text-style="props.onUpdateTextStyle"
+				:theme-fonts="props.themeFonts"
+				:embedded-font-families="props.embeddedFontFamilies"
+				:custom-font-families="props.customFontFamilies"
+			/>
 			<FontHomeControls
 				:disabled="!canMut || !canFormat"
 				:text-style="effectiveTs"
@@ -183,7 +199,7 @@ function handleChangeCase(value: ChangeCaseMode): void {
 				@case="handleChangeCase"
 			/>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
+		<span data-pptx-chrome="ribbon-group-label">{{ t('pptx.ribbon.font') }}</span>
 	</div>
 
 	<div :class="SEP" />

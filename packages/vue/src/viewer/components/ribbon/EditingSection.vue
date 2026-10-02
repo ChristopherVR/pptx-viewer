@@ -44,7 +44,7 @@ function request(event: RibbonHomeRequestEvent): void {
 		<div class="flex items-center gap-1" data-pptx-chrome="editing-controls">
 			<pptx-ui-ribbon-home-editing :state.prop="editingState" @home-request="request" />
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
+		<span data-pptx-chrome="ribbon-group-label">{{
 			t('pptx.shortcuts.group.editing')
 		}}</span>
 	</div>

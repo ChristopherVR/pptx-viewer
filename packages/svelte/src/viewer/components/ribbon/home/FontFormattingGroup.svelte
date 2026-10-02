@@ -4,6 +4,7 @@
 	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import FontPickerGroup from './FontPickerGroup.svelte';
 	import {
 		adjustFontSizePatch,
 		changeCasePatch,
@@ -103,5 +104,6 @@
 </script>
 
 <div data-pptx-chrome="font-controls">
+	<FontPickerGroup {editor} />
 	<pptx-ui-ribbon-home-font {state} onhome-request={request}></pptx-ui-ribbon-home-font>
 </div>

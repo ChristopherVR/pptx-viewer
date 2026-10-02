@@ -14,6 +14,12 @@ export const strip = (...controls: RibbonHomeControlSpec[]): RibbonHomeClusterSp
 	controls,
 });
 
+/** A column of small, captioned rows (Office's three-row groups). */
+export const column = (...controls: RibbonHomeControlSpec[]): RibbonHomeClusterSpec => ({
+	controls,
+	stack: true,
+});
+
 export const pills = (
 	chrome: string | undefined,
 	...controls: RibbonHomeControlSpec[]

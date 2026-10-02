@@ -50,6 +50,9 @@ export function buildPopupControl(
 		main.dataset.pptxChrome ??= 'split-main';
 		caret = makeHomeButton(doc, control, () => popup.toggle(), 'caret');
 		caret.dataset.pptxChrome = 'split-caret';
+		if (control.large) {
+			caret.dataset.size = 'caret';
+		}
 		caret.append(createRibbonControlIcon(doc, 'home.slides.caret'));
 		for (const [name, value] of Object.entries(control.caret.attrs ?? {})) {
 			caret.setAttribute(name, value);

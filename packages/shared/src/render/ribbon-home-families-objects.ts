@@ -51,6 +51,7 @@ export const RIBBON_HOME_OBJECT_FAMILIES: Readonly<
 				undefined,
 				control('home.slides.newSlide', 'pptx.home.newSlide', 'New Slide', undefined, {
 					text: text('pptx.home.newSlide', 'New Slide'),
+					large: true,
 					kind: 'layout',
 					caret: { labelKey: 'pptx.home.chooseLayout', fallback: 'Choose layout' },
 				}),
@@ -61,18 +62,22 @@ export const RIBBON_HOME_OBJECT_FAMILIES: Readonly<
 					undefined,
 					{
 						text: text('pptx.home.slideTemplates', 'Slide templates'),
+						large: true,
 					},
 				),
 				control('home.slides.layout', 'pptx.master.layout', 'Layout', undefined, {
 					text: text('pptx.master.layout', 'Layout'),
+					large: true,
 					kind: 'layout',
 					popup: true,
 				}),
 				control('home.slides.reset', 'pptx.sections.resetSlideTitle', 'Reset slide', undefined, {
 					text: text('pptx.animations.reset', 'Reset'),
+					large: true,
 				}),
 				control('home.slides.section', 'pptx.sections.addSection', 'Add section', undefined, {
 					text: text('pptx.sections.sectionButtonLabel', 'Section'),
+					large: true,
 				}),
 			),
 		],
@@ -83,17 +88,21 @@ export const RIBBON_HOME_OBJECT_FAMILIES: Readonly<
 				undefined,
 				control('home.drawing.shapes', 'pptx.drawing.shapes', 'Shapes', undefined, {
 					text: text('pptx.drawing.shapes', 'Shapes'),
+					large: true,
 					kind: 'menu',
 					items: HOME_SHAPE_ITEMS,
 					popup: true,
 				}),
 				control('home.drawing.arrange', 'pptx.ribbon.arrange', 'Arrange', undefined, {
 					text: text('pptx.ribbon.arrange', 'Arrange'),
+					large: true,
 					kind: 'menu',
 					items: HOME_DRAWING_ARRANGE_ITEMS,
 					popup: true,
 				}),
 				control('home.drawing.shapeFill', 'pptx.drawing.shapeFill', 'Shape Fill', undefined, {
+					text: text('pptx.drawing.shapeFill', 'Shape Fill'),
+					chevron: true,
 					kind: 'colour',
 					popup: true,
 					colour: { swatches: 'shape', theme: true, swatchLabelPrefix: 'Fill colour' },
@@ -104,6 +113,8 @@ export const RIBBON_HOME_OBJECT_FAMILIES: Readonly<
 					'Shape Outline',
 					undefined,
 					{
+						text: text('pptx.drawing.shapeOutline', 'Shape Outline'),
+						chevron: true,
 						kind: 'colour',
 						popup: true,
 						colour: { swatches: 'shape', theme: true, swatchLabelPrefix: 'Outline colour' },

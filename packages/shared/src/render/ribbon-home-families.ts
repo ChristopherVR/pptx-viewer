@@ -1,5 +1,5 @@
 import { RIBBON_HOME_OBJECT_FAMILIES } from './ribbon-home-families-objects';
-import { control, pills, strip } from './ribbon-home-family-helpers';
+import { column, control, pills, strip, text } from './ribbon-home-family-helpers';
 import {
 	HOME_CHANGE_CASE_ITEMS,
 	HOME_CHARACTER_SPACING_ITEMS,
@@ -17,14 +17,24 @@ export const RIBBON_HOME_FAMILIES: Readonly<Record<RibbonHomeFamily, RibbonHomeF
 		group: { id: 'home.clipboard', captionKey: 'pptx.ribbon.clipboard', fallback: 'Clipboard' },
 		clusters: [
 			strip(
-				control('home.clipboard.paste', 'pptx.arrange.paste', 'Paste'),
-				control('home.clipboard.cut', 'pptx.arrange.cut', 'Cut'),
-				control('home.clipboard.copy', 'pptx.arrange.copy', 'Copy'),
+				control('home.clipboard.paste', 'pptx.arrange.paste', 'Paste', undefined, {
+					large: true,
+					text: text('pptx.arrange.paste', 'Paste'),
+				}),
+			),
+			column(
+				control('home.clipboard.cut', 'pptx.arrange.cut', 'Cut', undefined, {
+					text: text('pptx.arrange.cut', 'Cut'),
+				}),
+				control('home.clipboard.copy', 'pptx.arrange.copy', 'Copy', undefined, {
+					text: text('pptx.arrange.copy', 'Copy'),
+				}),
 				control(
 					'home.clipboard.formatPainter',
 					'pptx.arrange.formatPainter',
 					'Format Painter',
 					'format-painter-toggle',
+					{ text: text('pptx.arrange.formatPainter', 'Format Painter') },
 				),
 			),
 		],
@@ -123,13 +133,18 @@ export const RIBBON_HOME_FAMILIES: Readonly<Record<RibbonHomeFamily, RibbonHomeF
 	},
 	editing: {
 		clusters: [
-			strip(
-				control('home.editing.find', 'pptx.editing.find', 'Find'),
-				control('home.editing.replace', 'pptx.ribbon.replace', 'Replace'),
+			column(
+				control('home.editing.find', 'pptx.editing.find', 'Find', undefined, {
+					text: text('pptx.editing.find', 'Find'),
+				}),
+				control('home.editing.replace', 'pptx.ribbon.replace', 'Replace', undefined, {
+					text: text('pptx.ribbon.replace', 'Replace'),
+				}),
 			),
 			pills(
 				undefined,
 				control('home.editing.select', 'pptx.ribbon.tool.select', 'Select', undefined, {
+					text: text('pptx.ribbon.tool.select', 'Select'),
 					kind: 'menu',
 					popup: true,
 					items: HOME_SELECT_ITEMS,

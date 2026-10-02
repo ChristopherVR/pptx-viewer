@@ -28,10 +28,10 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 			{sep}
 
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.editing')}>
-				<div className='flex items-center gap-1'>
+				<div className='flex items-center gap-1' data-pptx-chrome='editing-controls'>
 					<WebHomeControls family='editing' controls={controls} onRequest={request} />
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>
+				<span data-pptx-chrome='ribbon-group-label'>
 					{t('pptx.ribbon.editing')}
 				</span>
 			</div>
