@@ -6,7 +6,7 @@
 	 * every edit, so operations keep history and active-slide navigation.
 	 */
 	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-	import { scopeLayoutOptionsToSlide, slidesHomeControls } from 'pptx-viewer-shared';
+	import { scopeLayoutOptionsToSlide, slidesHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 	import type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -56,7 +56,7 @@
 			}),
 			'home.slides.section': { disabled: !editor.editable || editor.slides.length === 0 },
 		},
-		translate: t,
+		translate: homeSnapshotTranslator(['slides'], t),
 	});
 
 	function run(action: () => number | null): void {

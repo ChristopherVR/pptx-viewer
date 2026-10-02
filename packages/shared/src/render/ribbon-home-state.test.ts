@@ -99,3 +99,21 @@ describe('editing state', () => {
 		expect(editingHomeControls()['home.editing.find']?.pressed).toBeUndefined();
 	});
 });
+
+describe('homeSnapshotTranslator', () => {
+	it('resolves every key of the families up front and falls back to the translator', async () => {
+		const { homeFamilyKeys, homeSnapshotTranslator } = await import('./ribbon-home-state');
+		const calls: string[] = [];
+		const t = (key: string) => {
+			calls.push(key);
+			return `de:${key}`;
+		};
+		const translate = homeSnapshotTranslator(['arrange-flip', 'slides'], t);
+		expect(calls).toStrictEqual(expect.arrayContaining(homeFamilyKeys('slides')));
+		expect(calls).toContain('pptx.arrange.flipH');
+		const before = calls.length;
+		expect(translate('pptx.arrange.flipH')).toBe('de:pptx.arrange.flipH');
+		expect(calls).toHaveLength(before);
+		expect(translate('other.key')).toBe('de:other.key');
+	});
+});

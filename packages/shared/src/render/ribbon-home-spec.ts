@@ -111,3 +111,37 @@ export function canRequestHome(
 	const current = state.controls[homeControlKey(intent)];
 	return !current?.disabled && !current?.hidden;
 }
+
+/** Every translation key a family renders (labels, visible text, caret name, caption). */
+export function homeFamilyKeys(family: RibbonHomeFamily): string[] {
+	const spec = RIBBON_HOME_FAMILIES[family];
+	const keys = spec.group ? [spec.group.captionKey] : [];
+	for (const control of homeFamilyControls(family)) {
+		keys.push(control.labelKey);
+		if (control.text) {
+			keys.push(control.text.key);
+		}
+		if (control.caret) {
+			keys.push(control.caret.labelKey);
+		}
+	}
+	return keys;
+}
+
+/**
+ * Resolve a family's labels now, so a reactive host that re-derives its state when
+ * the locale changes picks the new language up: the element itself only calls
+ * `translate` while rendering, outside any framework's dependency tracking.
+ */
+export function homeSnapshotTranslator(
+	families: readonly RibbonHomeFamily[],
+	t: (key: string) => string,
+): (key: string) => string {
+	const labels = new Map<string, string>();
+	for (const family of families) {
+		for (const key of homeFamilyKeys(family)) {
+			labels.set(key, t(key));
+		}
+	}
+	return (key) => labels.get(key) ?? t(key);
+}

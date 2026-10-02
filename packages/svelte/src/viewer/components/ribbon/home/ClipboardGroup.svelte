@@ -5,7 +5,7 @@
 	 * element; every mutation still routes through `EditorState`
 	 * (`clipboardOps`, `formatPainter`) so undo/redo covers each action.
 	 */
-	import { clipboardHomeControls } from 'pptx-viewer-shared';
+	import { clipboardHomeControls, homeSnapshotTranslator } from 'pptx-viewer-shared';
 	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -23,7 +23,7 @@
 			canFormatPaint: editor.formatPainter.enabled,
 			showFormatPainter: true,
 		}),
-		translate: t,
+		translate: homeSnapshotTranslator(['clipboard'], t),
 	});
 
 	function request(event: RibbonHomeRequestEvent): void {
