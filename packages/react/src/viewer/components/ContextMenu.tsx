@@ -1,13 +1,15 @@
-import { buildContextMenuEntries, customizeContextMenuEntries } from 'pptx-viewer-shared';
+import {
+	buildContextMenuEntries,
+	contextMenuViewItems,
+	customizeContextMenuEntries,
+} from 'pptx-viewer-shared';
 import type React from 'react';
-import { Fragment, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
-import { ContextMenuItem, ContextMenuSeparator } from './context-menu-parts';
 import type { ContextMenuProps } from './context-menu-types';
+import { ContextMenuSurface } from './ContextMenuSurface';
 import { useShapeFormatContext } from './shape-format-context';
-import { useClampedMenuPosition } from './useClampedMenuPosition';
 import { useViewerCustomizationContext } from './viewer-customization-context';
 
 /**
@@ -15,10 +17,9 @@ import { useViewerCustomizationContext } from './viewer-customization-context';
  *
  * The command list, its order and its separators come from
  * `pptx-viewer-shared`, not from this file: the five bindings each hand-wrote
- * their own menu and quietly ended up offering different things (no Bring to
- * Front here, no Edit Hyperlink there, no table commands at all somewhere
- * else). Rendering React's reference menu from the same list the other four use
- * is what keeps them honest.
+ * their own menu and quietly ended up offering different things. The rows are
+ * drawn by the shared `pptx-ui-context-menu`; this adapter keeps the entries,
+ * the gating and the editor handlers.
  */
 export function ContextMenu(props: ContextMenuProps): React.ReactElement | null {
 	const { contextMenuState, mode, onClose } = props;
@@ -26,31 +27,6 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 	const customization = useViewerCustomizationContext();
 	const shapeFormat = useShapeFormatContext();
 	const open = Boolean(contextMenuState) && mode === 'edit';
-	const menuPosition = useClampedMenuPosition<HTMLDivElement>(
-		contextMenuState?.x ?? 0,
-		contextMenuState?.y ?? 0,
-	);
-
-	// Escape dismisses the menu, as it does in the other four bindings; this
-	// one only closed on an outside click.
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				onClose();
-			}
-		};
-		document.addEventListener('keydown', onKeyDown);
-		return () => document.removeEventListener('keydown', onKeyDown);
-	}, [open, onClose]);
-
-	if (!open) {
-		return null;
-	}
-
 	const handlers = contextMenuHandlers(props, shapeFormat);
 	// Host customisation drops hidden commands; a menu left empty (or one the
 	// host disabled outright) renders nothing at all.
@@ -62,57 +38,34 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 			elementIds: props.elementIds ?? (props.selectedElement ? [props.selectedElement.id] : []),
 		},
 	);
-	if (entries.length === 0) {
+	const request = (id: string): void => {
+		const entry = entries.find((candidate) => candidate.id === id);
+		if (entry && 'host' in entry) {
+			onClose();
+			entry.onSelect();
+		} else if (entry) {
+			handlers[entry.id]?.();
+		}
+	};
+	if (!open || entries.length === 0) {
 		return null;
 	}
-
 	return (
-		<>
-			{/* Invisible backdrop to close menu on outside click */}
-			<div
-				className='fixed inset-0 z-[119]'
-				onClick={onClose}
-				onContextMenu={(e) => {
-					e.preventDefault();
-					onClose();
-				}}
-			/>
-			<div
-				ref={menuPosition.ref}
-				data-pptx-context-menu='true'
-				role='menu'
-				aria-label={t('pptx.contextMenu.ariaLabel')}
-				className='fixed z-[120] min-w-[180px] rounded border border-border bg-popover shadow-2xl py-1.5 text-xs text-foreground'
-				style={{
-					left: menuPosition.left,
-					top: menuPosition.top,
-				}}
-			>
-				{entries.map((entry) => {
-					const run =
-						'host' in entry
-							? () => {
-									onClose();
-									entry.onSelect();
-								}
-							: handlers[entry.id];
-					return (
-						<Fragment key={entry.id}>
-							{entry.separatorBefore && <ContextMenuSeparator />}
-							<ContextMenuItem
-								danger={entry.danger}
-								// A command the host wired no handler for is offered and greyed,
-								// never dropped: a menu that changes shape per viewer is exactly
-								// the drift this shared list exists to prevent.
-								disabled={entry.disabled || !run}
-								onSelect={() => run?.()}
-							>
-								{'host' in entry ? entry.label : t(entry.labelKey)}
-							</ContextMenuItem>
-						</Fragment>
-					);
-				})}
-			</div>
-		</>
+		<ContextMenuSurface
+			x={contextMenuState?.x ?? 0}
+			y={contextMenuState?.y ?? 0}
+			label={t('pptx.contextMenu.ariaLabel')}
+			markers={['data-pptx-context-menu']}
+			// A command the host wired no handler for is offered and greyed, never
+			// dropped: a menu that changes shape per viewer is the drift the shared
+			// list exists to prevent.
+			items={contextMenuViewItems(
+				entries,
+				t,
+				(id) => id.startsWith('host:') || Boolean(handlers[id as keyof typeof handlers]),
+			)}
+			onRequest={request}
+			onClose={onClose}
+		/>
 	);
 }

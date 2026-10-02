@@ -8,6 +8,7 @@ import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import type { ViewerState } from '../state';
 import { mountCanvasContextMenu } from './canvas-context-menu';
+import { menuButtons } from './context-menu.test-support';
 
 const t = createTranslator('en');
 
@@ -76,7 +77,7 @@ function openMenu(): HTMLElement | null {
 }
 
 function items(): HTMLButtonElement[] {
-	return Array.from(document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'));
+	return menuButtons();
 }
 
 function clickCommand(label: string): void {
@@ -108,7 +109,7 @@ describe('mountCanvasContextMenu', () => {
 		rightClick(context.viewport);
 		const menu = openMenu();
 		expect(menu).not.toBeNull();
-		expect(menu?.getAttribute('role')).toBe('menu');
+		expect(menu?.shadowRoot?.querySelector('[role="menu"]')).not.toBeNull();
 		expect(items()).toHaveLength(6);
 		context.destroy();
 	});
@@ -131,7 +132,7 @@ describe('mountCanvasContextMenu', () => {
 	it('renders Grid and Guides / Ruler as menuitemcheckbox, reflecting state', () => {
 		const context = harness({ showGrid: true, showRulers: false });
 		rightClick(context.viewport);
-		const checkboxes = document.querySelectorAll('[role="menuitemcheckbox"]');
+		const checkboxes = menuButtons().filter((b) => b.getAttribute('role') === 'menuitemcheckbox');
 		expect(checkboxes).toHaveLength(2);
 		expect(checkboxes[0].getAttribute('aria-checked')).toBe('true');
 		expect(checkboxes[1].getAttribute('aria-checked')).toBe('false');
@@ -171,9 +172,7 @@ describe('mountCanvasContextMenu', () => {
 		const context = harness(state);
 		rightClick(context.viewport);
 		clickCommand(t('pptx.canvasContextMenu.layout'));
-		const layoutBtn = Array.from(
-			document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'),
-		).find((b) => b.textContent === 'Title Slide');
+		const layoutBtn = menuButtons().find((b) => b.textContent === 'Title Slide');
 		expect(layoutBtn).toBeTruthy();
 		layoutBtn?.click();
 		expect(context.actions.applyLayout).toHaveBeenCalledWith('ppt/slideLayouts/slideLayout1.xml');

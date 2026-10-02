@@ -9,8 +9,8 @@
  * bindings render, so a command added there appears here for free and cannot
  * drift.
  *
- * Only the view is local: mount at the pointer, clamp into the viewport,
- * dismiss on Escape or an outside press. Routing lives in
+ * The rows, clamping, keyboard navigation and dismissal belong to the shared
+ * `pptx-ui-context-menu` (see `context-menu-surface.ts`). Routing lives in
  * `element-context-menu-commands.ts`.
  */
 import {
@@ -18,7 +18,7 @@ import {
 	canCropElement,
 	canInteractWithElement,
 	canMergeShapes,
-	clampFlyoutPosition,
+	contextMenuViewItems,
 	customizeContextMenuEntries,
 	EMPTY_RESOLVED_CUSTOMIZATION,
 	isElementIdInteractive,
@@ -30,7 +30,8 @@ import type { CustomizedContextMenuEntry, ResolvedCustomization } from 'pptx-vie
 import { findActiveElement } from '../editor/editor-active-elements';
 import { resolveTopLevelElementId } from '../editor/element-hit';
 import type { Translator } from '../i18n';
-import { createEl } from '../render';
+import { mountContextMenuSurface } from './context-menu-surface';
+import type { ContextMenuSurface } from './context-menu-surface';
 import type {
 	ContextMenuCommandDeps,
 	ContextMenuTableTarget,
@@ -63,66 +64,14 @@ export interface ElementContextMenu {
 	destroy(): void;
 }
 
-/**
- * Keep the menu inside the window: at the right/bottom edge it flips back
- * inwards. The clamp itself is shared (`clampFlyoutPosition`), because Vanilla
- * was the only binding that had a correct two-sided version of it and Svelte
- * shipped a one-sided copy that put its menu below the fold.
- */
-function positionMenu(menu: HTMLElement, doc: Document, x: number, y: number): void {
-	const view = doc.defaultView;
-	const box = menu.getBoundingClientRect();
-	const { left, top } = clampFlyoutPosition({
-		x,
-		y,
-		width: box.width,
-		height: box.height,
-		viewportWidth: view?.innerWidth ?? box.right,
-		viewportHeight: view?.innerHeight ?? box.bottom,
-		margin: 4,
-	});
-	menu.style.left = `${left}px`;
-	menu.style.top = `${top}px`;
-}
-
 /** Attach the element context menu to the editing canvas. */
 export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementContextMenu {
 	const { doc, store, viewport } = deps;
-	let menu: HTMLElement | null = null;
-	let onDismiss: ((event: Event) => void) | null = null;
+	let surface: ContextMenuSurface | null = null;
 
 	const close = (): void => {
-		menu?.remove();
-		menu = null;
-		if (onDismiss) {
-			doc.removeEventListener('pointerdown', onDismiss, true);
-			doc.removeEventListener('keydown', onDismiss, true);
-			onDismiss = null;
-		}
-	};
-
-	const buildItem = (
-		entry: CustomizedContextMenuEntry,
-		table: ContextMenuTableTarget | null,
-	): HTMLElement => {
-		const button = createEl(
-			doc,
-			'button',
-			`pptxv-context-menu-item${entry.danger ? ' is-danger' : ''}`,
-		);
-		button.type = 'button';
-		button.setAttribute('role', 'menuitem');
-		button.textContent = 'host' in entry ? entry.label : deps.getTranslator()(entry.labelKey);
-		button.disabled = entry.disabled === true;
-		button.addEventListener('click', () => {
-			close();
-			if ('host' in entry) {
-				entry.onSelect();
-				return;
-			}
-			runContextMenuCommand(entry.id, deps, table);
-		});
-		return button;
+		surface?.close();
+		surface = null;
 	};
 
 	const open = (
@@ -131,36 +80,35 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 		x: number,
 		y: number,
 	): void => {
-		menu = createEl(doc, 'div', 'pptxv-context-menu', { left: `${x}px`, top: `${y}px` });
-		menu.dataset.pptxContextMenu = 'true';
-		menu.setAttribute('role', 'menu');
-		menu.setAttribute('aria-label', deps.getTranslator()('pptx.contextMenu.ariaLabel'));
-		for (const entry of entries) {
-			if (entry.separatorBefore) {
-				const separator = createEl(doc, 'div', 'pptxv-context-menu-separator');
-				separator.setAttribute('role', 'separator');
-				menu.appendChild(separator);
-			}
-			menu.appendChild(buildItem(entry, table));
-		}
+		const t = deps.getTranslator();
 		// Mounted into the viewer root rather than the body: a host `ViewerTheme`
 		// is applied as inline `--pptx-*` variables on `.pptxv`, and a body-level
 		// menu would inherit none of them. `position: fixed` still escapes the
 		// root's `overflow: hidden` because the root sets no transform/filter.
-		(viewport.closest<HTMLElement>('.pptxv') ?? doc.body).appendChild(menu);
-		positionMenu(menu, doc, x, y);
-
-		onDismiss = (event: Event): void => {
-			if (event instanceof KeyboardEvent && event.key !== 'Escape') {
-				return;
-			}
-			if (event.target instanceof Node && menu?.contains(event.target)) {
-				return;
-			}
-			close();
-		};
-		doc.addEventListener('pointerdown', onDismiss, true);
-		doc.addEventListener('keydown', onDismiss, true);
+		surface = mountContextMenuSurface({
+			doc,
+			parent: viewport.closest<HTMLElement>('.pptxv') ?? doc.body,
+			state: {
+				x,
+				y,
+				label: t('pptx.contextMenu.ariaLabel'),
+				markers: ['data-pptx-context-menu'],
+				items: contextMenuViewItems(entries, t),
+			},
+			onRequest: (id) => {
+				const entry = entries.find((candidate) => candidate.id === id);
+				close();
+				if (!entry) {
+					return;
+				}
+				if ('host' in entry) {
+					entry.onSelect();
+					return;
+				}
+				runContextMenuCommand(entry.id, deps, table);
+			},
+			onClose: close,
+		});
 	};
 
 	const onContextMenu = (event: MouseEvent): void => {

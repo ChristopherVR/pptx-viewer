@@ -45,6 +45,7 @@ declare module 'react' {
 			'pptx-ui-ribbon-toggle': WebControlProps;
 			'pptx-ui-status-bar': WebControlProps;
 			'pptx-ui-notes-toolbar': WebControlProps;
+			'pptx-ui-context-menu': WebControlProps;
 			'pptx-ui-subtitle-settings': WebControlProps;
 			'pptx-ui-theme-editor': WebControlProps;
 			'pptx-ui-title-bar': WebControlProps;

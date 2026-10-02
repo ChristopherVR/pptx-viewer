@@ -1,16 +1,17 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { buildSlidePaneContextMenuEntries } from 'pptx-viewer-shared';
+import { buildSlidePaneContextMenuEntries, slidePaneViewItems } from 'pptx-viewer-shared';
+import type { SlidePaneContextMenuCommandId } from 'pptx-viewer-shared';
 import type React from 'react';
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ContextMenuItem, ContextMenuSeparator } from '../context-menu-parts';
+import { ContextMenuSurface } from '../ContextMenuSurface';
 import type { SlideContextMenuState } from './types';
 
 /**
  * The thumbnail right-click menu: New Slide, Duplicate, Delete, Layout, Hide,
  * Add Section, driven by the shared `buildSlidePaneContextMenuEntries` list so
  * this menu cannot drift from the other four bindings' one command at a time.
+ * The rows are drawn by the shared `pptx-ui-context-menu`.
  */
 interface SlideContextMenuProps {
 	state: SlideContextMenuState;
@@ -36,18 +37,6 @@ export function SlideContextMenu({
 	onClose,
 }: SlideContextMenuProps): React.ReactElement {
 	const { t } = useTranslation();
-
-	useEffect(() => {
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				onClose();
-			}
-		};
-		document.addEventListener('keydown', onKeyDown);
-		return () => document.removeEventListener('keydown', onKeyDown);
-	}, [onClose]);
-
 	const selected = state.selectedIndexes;
 	const selectedSlides = selected.map((i) => slides[i]).filter((s): s is PptxSlide => Boolean(s));
 	const entries = buildSlidePaneContextMenuEntries({
@@ -57,7 +46,7 @@ export function SlideContextMenu({
 		wouldDeleteAllSlides: selected.length >= slides.length,
 	});
 
-	const run = (id: (typeof entries)[number]['id']): void => {
+	const run = (id: SlidePaneContextMenuCommandId): void => {
 		switch (id) {
 			case 'new-slide':
 				onAddSlideAfter(state.slideIndex);
@@ -84,31 +73,14 @@ export function SlideContextMenu({
 	};
 
 	return (
-		<>
-			<div className='fixed inset-0 z-[119]' onClick={onClose} />
-			<div
-				data-pptx-context-menu='true'
-				data-pptx-slide-pane-context-menu='true'
-				role='menu'
-				aria-label={t('pptx.slidesPane.contextMenu.newSlide')}
-				className='fixed z-[120] min-w-[190px] rounded border border-border bg-popover shadow-2xl py-1.5 text-xs text-foreground'
-				style={{ left: state.x, top: state.y }}
-			>
-				{entries.map((entry) => (
-					<span key={entry.id}>
-						{entry.separatorBefore && <ContextMenuSeparator />}
-						<ContextMenuItem
-							danger={entry.id === 'delete'}
-							disabled={entry.disabled}
-							onSelect={() => run(entry.id)}
-						>
-							{entry.countLabelKey
-								? t(entry.labelKey, { count: selected.length })
-								: t(entry.labelKey)}
-						</ContextMenuItem>
-					</span>
-				))}
-			</div>
-		</>
+		<ContextMenuSurface
+			x={state.x}
+			y={state.y}
+			label={t('pptx.slidesPane.contextMenu.newSlide')}
+			markers={['data-pptx-context-menu', 'data-pptx-slide-pane-context-menu']}
+			items={slidePaneViewItems(entries, t, selected.length)}
+			onRequest={(id) => run(id as SlidePaneContextMenuCommandId)}
+			onClose={onClose}
+		/>
 	);
 }

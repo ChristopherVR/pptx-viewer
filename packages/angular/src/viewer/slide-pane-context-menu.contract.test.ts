@@ -19,25 +19,23 @@ const SOURCE = readFileSync(
 );
 
 describe('slide pane context menu contract', () => {
-	it('carries the neutral context-menu marker, plus its own rail marker', () => {
-		expect(SOURCE).toContain('data-pptx-context-menu="true"');
-		expect(SOURCE).toContain('data-pptx-slide-pane-context-menu="true"');
+	it('renders through the shared element and routes its typed events', () => {
+		expect(SOURCE).toContain('<pptx-ui-context-menu');
+		expect(SOURCE).toContain('(menu-request)="request($event)"');
+		expect(SOURCE).toContain('(menu-close)="closed.emit()"');
+		expect(SOURCE).not.toContain('<button');
 	});
 
-	it('declares menu semantics', () => {
-		expect(SOURCE).toContain('role="menu"');
-	});
-
-	it('roles every command as a menuitem', () => {
-		const commands = SOURCE.match(/<button\b/gu)?.length ?? 0;
-		const roled = SOURCE.match(/role="menuitem"/gu)?.length ?? 0;
-		expect(commands).toBeGreaterThan(0);
-		expect(roled).toBe(commands);
+	it('carries the neutral context-menu marker, plus its own rail marker and name', () => {
+		expect(SOURCE).toContain(
+			`markers: ['data-pptx-context-menu', 'data-pptx-slide-pane-context-menu']`,
+		);
+		expect(SOURCE).toContain(`this.t('pptx.slidesPane.contextMenu.newSlide')`);
 	});
 
 	it('renders the shared command list rather than a hand-written one', () => {
 		expect(SOURCE).toContain('buildSlidePaneContextMenuEntries');
-		expect(SOURCE).toContain('@for (entry of entries(); track entry.id)');
+		expect(SOURCE).toContain('slidePaneViewItems(this.entries(), this.t');
 		expect(
 			buildSlidePaneContextMenuEntries({
 				selectedCount: 1,

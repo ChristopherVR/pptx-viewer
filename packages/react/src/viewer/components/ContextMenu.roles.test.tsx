@@ -60,9 +60,16 @@ function render(overrides: Partial<ContextMenuProps> = {}): void {
 	});
 }
 
-/** The menu container, found through the neutral cross-binding hook. */
+/** The shared element carrying the neutral cross-binding hook. */
+function host(): HTMLElement | null {
+	return container.querySelector<HTMLElement>(
+		'pptx-ui-context-menu[data-pptx-context-menu="true"]',
+	);
+}
+
+/** The `role="menu"` surface inside the element's shadow root. */
 function menu(): HTMLElement | null {
-	return container.querySelector<HTMLElement>('[data-pptx-context-menu="true"]');
+	return host()?.shadowRoot?.querySelector<HTMLElement>('[role="menu"]') ?? null;
 }
 
 describe('contextMenu accessibility roles', () => {

@@ -592,3 +592,50 @@ binding's selection state). In Font and Paragraph the family and size
 selectors, character spacing, change case, font and highlight colour pickers,
 Bullets and Numbering (with their library galleries), line spacing, text
 direction, columns and the Select menu remain native for the same reason.
+
+Slides (New Slide split button, Slide Templates dialog, Layout and Reset menus,
+Section), Drawing (Shapes, Arrange, Shape Fill/Outline, Quick Styles and Shape
+Effects galleries and colour popovers) and Arrange (align/distribute/flip/order
+selects, Group/Ungroup, Merge Shapes, Crop, outline width, Duplicate, Delete and
+the second Format Painter) still live in each binding. They are built from
+labelled split buttons, galleries, anchored popovers, dialogs and colour
+pickers that each binding anchors and focuses natively, and their labels,
+ordering and gating differ between bindings in ways a shared strip cannot
+unify without a behaviour change. They are tracked as the next Home batches.
+The font family and size selectors, character spacing, change case, font and
+highlight colour pickers stay native for the same reason.
+
+## Context menu
+
+`pptx-ui-context-menu` draws every pointer-anchored context menu in all five
+bindings: the element, empty-canvas, slide-thumbnail and slide-show menus (and
+the Vanilla read-only AI menu). It is controlled and stateless about commands.
+
+| Property | Type                    | Notes                                                                                                                               |
+| -------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `state`  | `ContextMenuViewState`  | `x`, `y` (viewport pixels), `label`, `items`, optional `markers`, `zIndex`, `autoFocus`. Writing an equal state is a no-op.         |
+| `items`  | `ContextMenuViewItem[]` | `id`, translated `label`, and optional `separatorBefore`, `heading`, `danger`, `disabled`, `checked` (a toggle: `menuitemcheckbox`) |
+
+Events bubble and are composed: `menu-request` carries `{ id }` when a row is
+activated; `menu-close` carries `{ reason: 'escape' | 'outside' | 'tab' }`. The
+element never closes itself. The host runs the command and removes the element
+(or clears `items`). Gating, entry lists, host customization commands and
+editor handlers stay in each binding; `contextMenuViewItems`,
+`slidePaneViewItems` and `presentationViewItems` map the shared entry lists to
+rows, and `CONTEXT_MENU_PRESENTATION_LAYER` stacks a slide-show menu above every
+binding's presentation overlay.
+
+The host element carries the `data-pptx-*` test hooks named in `markers`
+(`data-pptx-context-menu`, `data-pptx-canvas-context-menu`,
+`data-pptx-slide-pane-context-menu`, `data-pptx-presentation-menu`); the
+`role="menu"` surface and its rows are in the open shadow root. Rows are
+`menuitem` or `menuitemcheckbox`, rules are `separator`, and headed sections are
+`group`s. Opening focuses the first enabled row; ArrowUp/Down (wrapping), Home,
+End and type-ahead move one roving tab stop and skip disabled rows; Enter and
+Space activate. Escape (consumed, so a slide show behind it keeps running), a
+press outside and Tab dismiss; the innermost of several open menus handles
+Escape. On removal focus returns to the element focused at open unless a command
+moved it. The menu clamps itself into the window, scrolls when taller than it,
+grows rows to 44px on coarse pointers and uses system colors under forced
+colors. There are no nested menus today: no binding has a submenu, so the model
+has no submenu entries.

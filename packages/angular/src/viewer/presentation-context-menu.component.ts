@@ -13,60 +13,46 @@
  * tools, and the black/white blank screen) and routes a chosen action id
  * back to the overlay via a single output.
  *
- * Closes on Escape and on an outside pointerdown, matching
- * `EditorContextMenuComponent`.
+ * The rows, keyboard navigation, clamping, dismissal (Escape, an outside press)
+ * and focus restore belong to the shared `pptx-ui-context-menu`.
  */
 
 import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	ElementRef,
-	HostListener,
-	inject,
+	CUSTOM_ELEMENTS_SCHEMA,
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
 
 import type {
+	ContextMenuRequestEvent,
+	ContextMenuViewState,
 	PresentationContextMenuActionId,
 	PresentationContextMenuSection,
 } from '../internal/shared';
-import { getPresentationContextMenuSections } from '../internal/shared';
-import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
+import {
+	CONTEXT_MENU_PRESENTATION_LAYER,
+	getPresentationContextMenuSections,
+	presentationViewItems,
+} from '../internal/shared';
+import type { MenuTranslate } from './context-menu-translate';
+import { injectMenuTranslate } from './context-menu-translate';
 
 @Component({
 	selector: 'pptx-presentation-context-menu',
 	standalone: true,
-	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { style: 'display: contents' },
 	template: `
-		<ul
-			class="pptx-ctx__menu"
-			data-pptx-presentation-menu="true"
-			role="menu"
-			(contextmenu)="$event.preventDefault()"
-		>
-			@for (section of sections(); track section.id; let sectionIndex = $index) {
-				@if (sectionIndex > 0) {
-					<li role="separator" class="pptx-ctx__divider"></li>
-				}
-				@for (item of section.items; track item.id) {
-					<li role="none">
-						<button type="button" class="pptx-ctx__item" role="menuitem" (click)="run(item.id)">
-							{{ item.labelKey | translate }}
-						</button>
-					</li>
-				}
-			}
-		</ul>
+		<pptx-ui-context-menu
+			[state]="view()"
+			(menu-request)="request($event)"
+			(menu-close)="closed.emit()"
+		></pptx-ui-context-menu>
 	`,
-	styles: EDITOR_CONTEXT_MENU_STYLES,
-	host: {
-		'[style.--pptx-ctx-x]': 'x() + "px"',
-		'[style.--pptx-ctx-y]': 'y() + "px"',
-	},
 })
 export class PresentationContextMenuComponent {
 	/** Horizontal viewport coordinate (px) of the top-left corner of the menu. */
@@ -79,7 +65,7 @@ export class PresentationContextMenuComponent {
 	/** The chosen action id; the overlay maps it onto its own navigator/annotations/etc. */
 	readonly action = output<PresentationContextMenuActionId>();
 
-	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+	private readonly t: MenuTranslate = injectMenuTranslate();
 
 	protected readonly sections = computed<PresentationContextMenuSection[]>(() =>
 		getPresentationContextMenuSections({
@@ -92,24 +78,20 @@ export class PresentationContextMenuComponent {
 		}),
 	);
 
-	@HostListener('document:keydown.escape')
-	onEscape(): void {
-		this.closed.emit();
-	}
+	/** The shared element's state, stacked above the presentation overlay. */
+	protected readonly view = computed<ContextMenuViewState>(() => ({
+		x: this.x(),
+		y: this.y(),
+		label: this.t('pptx.presentation.menuLabel'),
+		markers: ['data-pptx-presentation-menu'],
+		zIndex: CONTEXT_MENU_PRESENTATION_LAYER,
+		items: presentationViewItems(this.sections(), this.t),
+	}));
 
-	@HostListener('document:pointerdown', ['$event'])
-	onDocumentPointerDown(event: PointerEvent): void {
-		const target = event.target;
-		if (!(target instanceof Node)) {
-			return;
-		}
-		if (!this.host.nativeElement.contains(target)) {
-			this.closed.emit();
-		}
-	}
-
-	protected run(id: PresentationContextMenuActionId): void {
-		this.action.emit(id);
+	protected request(event: Event): void {
+		this.action.emit(
+			(event as ContextMenuRequestEvent).detail.id as PresentationContextMenuActionId,
+		);
 		this.closed.emit();
 	}
 }

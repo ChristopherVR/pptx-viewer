@@ -22,10 +22,10 @@ const toolbarSource = componentSource(here, 'presentation-toolbar.component.ts')
 
 describe('presentation-context-menu.component', () => {
 	it('renders every action id the shared descriptor produces (all capabilities on)', () => {
-		// The template dispatches through run(item.id), not a hardcoded
-		// per-item handler, so every item the shared descriptor can produce
-		// reaches the same `action` output.
-		expect(menuSource).toContain('run(item.id)');
+		// The shared element emits the chosen id; every item the shared descriptor can
+		// produce reaches the same `action` output through request().
+		expect(menuSource).toContain('presentationViewItems(this.sections(), this.t)');
+		expect(menuSource).toContain('this.action.emit(');
 		// The component itself declares every capability true, so it always
 		// requests the fully-populated descriptor.
 		expect(menuSource).toContain('seeAllSlides: true');
@@ -36,9 +36,13 @@ describe('presentation-context-menu.component', () => {
 		expect(menuSource).toContain('blankWhite: true');
 	});
 
-	it('closes on Escape and on an outside pointerdown, matching the editor context menu', () => {
-		expect(menuSource).toContain("@HostListener('document:keydown.escape')");
-		expect(menuSource).toContain("@HostListener('document:pointerdown'");
+	it('renders through the shared element, above the presentation overlay', () => {
+		expect(menuSource).toContain('<pptx-ui-context-menu');
+		expect(menuSource).toContain('(menu-close)="closed.emit()"');
+		expect(menuSource).toContain('CONTEXT_MENU_PRESENTATION_LAYER');
+		expect(menuSource).toContain(`markers: ['data-pptx-presentation-menu']`);
+		expect(menuSource).toContain(`this.t('pptx.presentation.menuLabel')`);
+		expect(menuSource).not.toContain('HostListener');
 	});
 });
 

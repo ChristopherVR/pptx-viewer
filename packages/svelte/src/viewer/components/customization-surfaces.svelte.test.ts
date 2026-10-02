@@ -144,10 +144,15 @@ function editorStub(): EditorState {
 	} as unknown as EditorState;
 }
 
+/** The shared element's shadow root, where the rows are drawn. */
+function menuRoot(target: HTMLElement): ParentNode {
+	return target.querySelector('pptx-ui-context-menu')?.shadowRoot ?? target;
+}
+
 function menuLabels(target: HTMLElement): string[] {
-	return Array.from(target.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]')).map(
-		(item) => (item.textContent ?? '').trim(),
-	);
+	return Array.from(
+		menuRoot(target).querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]'),
+	).map((item) => (item.textContent ?? '').trim());
 }
 
 describe('context menu customization', () => {
@@ -161,7 +166,7 @@ describe('context menu customization', () => {
 			{ x: 10, y: 10, editor, onclose },
 			{ contextMenu: { extraCanvasCommands: [{ id: 'slide', label: 'Send slide', onSelect }] } },
 		);
-		const button = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
+		const button = Array.from(menuRoot(target).querySelectorAll<HTMLButtonElement>('button')).find(
 			(item) => item.textContent?.trim() === 'Send slide',
 		)!;
 		button.click();
@@ -181,8 +186,8 @@ describe('context menu customization', () => {
 			{ x: 10, y: 10, editor, onclose },
 			{ contextMenu: { extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }] } },
 		);
-		const button = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
-			(item) => item.textContent === 'Send to chat',
+		const button = Array.from(menuRoot(target).querySelectorAll<HTMLButtonElement>('button')).find(
+			(item) => item.textContent?.trim() === 'Send to chat',
 		)!;
 		button.click();
 		flushSync();

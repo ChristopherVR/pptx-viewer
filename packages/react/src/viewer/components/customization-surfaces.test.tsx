@@ -145,6 +145,12 @@ function menuProps(): ContextMenuProps {
 	};
 }
 
+/** The rows of the shared context menu, drawn inside its open shadow root. */
+function menuRows(): HTMLButtonElement[] {
+	const host = container.querySelector('pptx-ui-context-menu');
+	return Array.from(host?.shadowRoot?.querySelectorAll('button') ?? []);
+}
+
 describe('element context menu customisation', () => {
 	it('runs a host element command with the effective selection and closes the menu', () => {
 		const onSelect = vi.fn();
@@ -153,18 +159,14 @@ describe('element context menu customisation', () => {
 			{ contextMenu: { extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }] } },
 			<ContextMenu {...menuProps()} slideIndex={2} elementIds={['a', 'b']} onClose={onClose} />,
 		);
-		const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
-			(item) => item.textContent === 'Send to chat',
-		)!;
+		const button = menuRows().find((item) => item.textContent === 'Send to chat')!;
 		act(() => button.click());
 		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 2, elementIds: ['a', 'b'] });
 		expect(onClose).toHaveBeenCalledOnce();
 	});
 
 	function menuLabels(): string[] {
-		return Array.from(container.querySelectorAll('[data-pptx-context-menu="true"] button')).map(
-			(button) => button.textContent ?? '',
-		);
+		return menuRows().map((button) => button.textContent ?? '');
 	}
 
 	it('omits a hidden command and keeps the rest', () => {

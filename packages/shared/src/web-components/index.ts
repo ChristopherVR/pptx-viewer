@@ -1,4 +1,5 @@
 import { definePptxCheckbox } from './checkbox';
+import { definePptxContextMenu } from './context-menu';
 import { HOST_STYLES } from './host-styles';
 import { definePptxNotesToolbar } from './notes-toolbar';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
@@ -59,6 +60,24 @@ export type {
 export type { PptxUiStatusBarElement, StatusBarRequestEvent } from './status-bar';
 export type { NotesToolbarRequestEvent, PptxUiNotesToolbarElement } from './notes-toolbar';
 export type { PptxUiTitleBarElement, TitleBarCommandSearchEvent, TitleBarEvent } from './title-bar';
+export type {
+	ContextMenuCloseEvent,
+	ContextMenuRequestEvent,
+	PptxUiContextMenuElement,
+} from './context-menu';
+export type {
+	ContextMenuCloseDetail,
+	ContextMenuCloseReason,
+	ContextMenuRequestDetail,
+	ContextMenuViewItem,
+	ContextMenuViewState,
+} from './context-menu-model';
+export { CONTEXT_MENU_EDITOR_LAYER, CONTEXT_MENU_PRESENTATION_LAYER } from './context-menu-model';
+export {
+	contextMenuViewItems,
+	presentationViewItems,
+	slidePaneViewItems,
+} from './context-menu-items';
 export type { PptxUiSelectElement } from './select-value';
 export type {
 	PptxUiSlideShowOptionsElement,
@@ -92,6 +111,7 @@ const controls = [
 	['pptx-ui-ribbon-toggle', definePptxRibbonToggle],
 	['pptx-ui-status-bar', definePptxStatusBar],
 	['pptx-ui-notes-toolbar', definePptxNotesToolbar],
+	['pptx-ui-context-menu', definePptxContextMenu],
 	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
 	['pptx-ui-theme-editor', definePptxThemeEditor],
 	['pptx-ui-title-bar', definePptxTitleBar],

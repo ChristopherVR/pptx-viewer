@@ -45,6 +45,8 @@ pptx-ui-checkbox[checked] { border-color: ${tok('--pptx-checkbox-accent')}; }
 	border-radius: ${tok('--pptx-field-radius')};
 	border-color: ${tok('--pptx-field-border')};
 }
+pptx-ui-context-menu { position: fixed; display: block; z-index: 9000; }
+pptx-ui-context-menu[hidden] { display: none; }
 @media (forced-colors: active) {
 	pptx-ui-search, pptx-ui-checkbox { border-color: CanvasText; }
 	pptx-ui-search:focus-within,

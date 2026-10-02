@@ -35,6 +35,11 @@ afterEach(() => {
 	container.remove();
 });
 
+/** The shared element's shadow root, where the rows are drawn. */
+function surface(): ShadowRoot {
+	return container.querySelector('pptx-ui-context-menu')!.shadowRoot!;
+}
+
 function props(overrides: Partial<CanvasContextMenuProps> = {}): CanvasContextMenuProps {
 	return {
 		canvasContextMenuState: { x: 40, y: 60 },
@@ -69,7 +74,7 @@ describe('canvasContextMenu', () => {
 				</ViewerCustomizationContext.Provider>,
 			),
 		);
-		const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
+		const button = Array.from(surface().querySelectorAll<HTMLButtonElement>('button')).find(
 			(item) => item.textContent === 'Send slide',
 		)!;
 		act(() => button.click());
@@ -88,10 +93,10 @@ describe('canvasContextMenu', () => {
 		act(() => {
 			root.render(<CanvasContextMenu {...props()} />);
 		});
-		const menu = container.querySelector('[data-pptx-canvas-context-menu="true"]');
-		expect(menu).not.toBeNull();
-		expect(menu?.getAttribute('role')).toBe('menu');
-		const items = container.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]');
+		expect(container.querySelector('[data-pptx-canvas-context-menu="true"]')).not.toBeNull();
+		expect(container.querySelector('[data-pptx-context-menu="true"]')).not.toBeNull();
+		expect(surface().querySelector('[role="menu"]')).not.toBeNull();
+		const items = surface().querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]');
 		expect(items).toHaveLength(6);
 	});
 
@@ -121,7 +126,7 @@ describe('canvasContextMenu', () => {
 		act(() => {
 			root.render(<CanvasContextMenu {...props({ hasClipboard: false })} />);
 		});
-		const paste = Array.from(container.querySelectorAll('button')).find(
+		const paste = Array.from(surface().querySelectorAll('button')).find(
 			(b) => b.textContent === 'pptx.contextMenu.paste',
 		);
 		expect(paste?.disabled).toBeTruthy();
@@ -131,7 +136,7 @@ describe('canvasContextMenu', () => {
 		act(() => {
 			root.render(<CanvasContextMenu {...props({ showGrid: true, showRulers: false })} />);
 		});
-		const checkboxes = container.querySelectorAll('[role="menuitemcheckbox"]');
+		const checkboxes = surface().querySelectorAll('[role="menuitemcheckbox"]');
 		expect(checkboxes).toHaveLength(2);
 		expect(checkboxes[0].getAttribute('aria-checked')).toBe('true');
 		expect(checkboxes[1].getAttribute('aria-checked')).toBe('false');
@@ -143,7 +148,7 @@ describe('canvasContextMenu', () => {
 		act(() => {
 			root.render(<CanvasContextMenu {...props({ onToggleGrid, onClose })} />);
 		});
-		const checkbox = container.querySelector('[role="menuitemcheckbox"]') as HTMLButtonElement;
+		const checkbox = surface().querySelector('[role="menuitemcheckbox"]') as HTMLButtonElement;
 		act(() => {
 			checkbox.click();
 		});

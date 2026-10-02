@@ -75,11 +75,8 @@ label.pptxv-options-row { cursor: pointer; }
 .pptxv-options-addins-detail p { margin: 0 0 4px; font-size: 11px; }
 .pptxv-options-addins-detail p:last-child { margin: 0; color: var(--pptx-muted-foreground); font-family: ui-monospace, monospace; font-size: 10px; }
 
-/* ── End of slide show (black slide) + in-show context menu ── */
+/* ── End of slide show (black slide) ── */
 .pptxv-endshow { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; border: 0; background: #000; color: #e5e7eb; font-size: 13px; cursor: pointer; }
-.pptxv-showmenu { position: absolute; z-index: 65; display: flex; flex-direction: column; min-width: 160px; padding: 4px; border: 1px solid var(--pptx-border); border-radius: 6px; background: var(--pptx-card); color: var(--pptx-card-foreground); box-shadow: 0 10px 28px rgb(0 0 0 / .35); }
-.pptxv-showmenu button { padding: 7px 10px; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
-.pptxv-showmenu button:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 
 /* ── Option-driven viewer root classes ── */
 .pptxv.pptxv-reduced-motion *, .pptxv.pptxv-reduced-motion *::before, .pptxv.pptxv-reduced-motion *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

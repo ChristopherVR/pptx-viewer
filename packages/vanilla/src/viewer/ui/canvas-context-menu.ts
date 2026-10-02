@@ -10,7 +10,7 @@
  */
 import {
 	buildCanvasContextMenuEntries,
-	clampFlyoutPosition,
+	contextMenuViewItems,
 	customizeCanvasContextMenuEntries,
 	EMPTY_RESOLVED_CUSTOMIZATION,
 	isElementIdInteractive,
@@ -22,8 +22,9 @@ import type { EditActions } from '../editor';
 import { collectLayoutOptions } from '../editor/editing-chrome-sync';
 import { resolveTopLevelElementId } from '../editor/element-hit';
 import type { Translator } from '../i18n';
-import { createEl } from '../render';
 import type { Store, ViewerState } from '../state';
+import { mountContextMenuSurface } from './context-menu-surface';
+import type { ContextMenuSurface } from './context-menu-surface';
 
 export interface CanvasContextMenuDeps {
 	doc: Document;
@@ -42,156 +43,106 @@ export interface CanvasContextMenu {
 	destroy(): void;
 }
 
-/** Keep the menu inside the window; shared two-sided clamp (see `element-context-menu.ts`). */
-function positionAt(menu: HTMLElement, doc: Document, x: number, y: number): void {
-	const view = doc.defaultView;
-	const box = menu.getBoundingClientRect();
-	const { left, top } = clampFlyoutPosition({
-		x,
-		y,
-		width: box.width,
-		height: box.height,
-		viewportWidth: view?.innerWidth ?? box.right,
-		viewportHeight: view?.innerHeight ?? box.bottom,
-		margin: 4,
-	});
-	menu.style.left = `${left}px`;
-	menu.style.top = `${top}px`;
-}
-
 /** Attach the empty-canvas context menu to the editing canvas. */
 export function mountCanvasContextMenu(deps: CanvasContextMenuDeps): CanvasContextMenu {
 	const { doc, store, viewport } = deps;
-	let menu: HTMLElement | null = null;
-	let layoutPopup: HTMLElement | null = null;
-	let onDismiss: ((event: Event) => void) | null = null;
+	let menu: ContextMenuSurface | null = null;
+	let layoutPopup: ContextMenuSurface | null = null;
+	const parent = (): HTMLElement => viewport.closest<HTMLElement>('.pptxv') ?? doc.body;
 
 	const close = (): void => {
-		menu?.remove();
+		menu?.close();
 		menu = null;
-		layoutPopup?.remove();
+		layoutPopup?.close();
 		layoutPopup = null;
-		if (onDismiss) {
-			doc.removeEventListener('pointerdown', onDismiss, true);
-			doc.removeEventListener('keydown', onDismiss, true);
-			onDismiss = null;
-		}
 	};
 
 	/**
 	 * "Layout": a plain named list of the deck's layouts, applied to the active
 	 * slide. Kept text-only (not the ribbon's thumbnail gallery) so it needs no
-	 * artwork fetch and no dependency on the ribbon's own popover positioning.
+	 * artwork fetch and no dependency on the ribbon's own popover positioning. It is
+	 * a second shared menu, so it clamps, navigates and dismisses like the first.
 	 */
 	const openLayoutList = (x: number, y: number): void => {
-		layoutPopup?.remove();
-		const list = createEl(doc, 'div', 'pptxv-context-menu', { left: `${x}px`, top: `${y}px` });
-		list.setAttribute('role', 'menu');
-		list.setAttribute('aria-label', deps.getTranslator()('pptx.master.layout'));
+		layoutPopup?.close();
 		const options = collectLayoutOptions(store.get());
-		for (const option of options) {
-			const btn = createEl(doc, 'button', 'pptxv-context-menu-item');
-			btn.type = 'button';
-			btn.setAttribute('role', 'menuitem');
-			btn.textContent = option.name;
-			btn.addEventListener('click', () => {
-				deps.getEditActions().applyLayout(option.path);
+		layoutPopup = mountContextMenuSurface({
+			doc,
+			parent: parent(),
+			state: {
+				x,
+				y,
+				label: deps.getTranslator()('pptx.master.layout'),
+				items: options.map((option) => ({ id: option.path, label: option.name })),
+			},
+			onRequest: (path) => {
 				close();
-			});
-			list.appendChild(btn);
-		}
-		(viewport.closest<HTMLElement>('.pptxv') ?? doc.body).appendChild(list);
-		positionAt(list, doc, x, y);
-		layoutPopup = list;
+				deps.getEditActions().applyLayout(path);
+			},
+			onClose: close,
+		});
 	};
 
-	const buildItem = (
-		entry: CustomizedCanvasContextMenuEntry,
-		x: number,
-		y: number,
-	): HTMLElement => {
-		const button = createEl(doc, 'button', 'pptxv-context-menu-item');
-		button.type = 'button';
-		button.setAttribute('role', entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox');
-		if (entry.checked !== undefined) {
-			button.setAttribute('aria-checked', String(entry.checked));
-			const check = createEl(doc, 'span', 'pptxv-context-menu-check');
-			check.textContent = entry.checked ? '✓' : '';
-			button.appendChild(check);
+	const run = (entry: CustomizedCanvasContextMenuEntry, x: number, y: number): void => {
+		if ('host' in entry) {
+			close();
+			entry.onSelect();
+			return;
 		}
-		button.append('host' in entry ? entry.label : deps.getTranslator()(entry.labelKey));
-		button.disabled = entry.disabled === true;
-		button.addEventListener('click', () => {
-			if ('host' in entry) {
+		const actions = deps.getEditActions();
+		switch (entry.id) {
+			case 'paste':
 				close();
-				entry.onSelect();
-				return;
-			}
-			const actions = deps.getEditActions();
-			switch (entry.id) {
-				case 'paste':
-					close();
-					actions.paste();
-					break;
-				case 'layout':
-					// The layout list is a companion popup, not a fresh menu: closing
-					// the command menu but leaving the list up.
-					menu?.remove();
-					menu = null;
-					openLayoutList(x, y);
-					break;
-				case 'reset-slide':
-					close();
-					actions.resetSlide();
-					break;
-				case 'format-background':
-					close();
-					store.set({ selectedElementId: null, selectedElementIds: [], inspectorOpen: true });
-					break;
-				case 'grid-and-guides':
-					close();
-					actions.toggleViewOption('showGrid');
-					break;
-				case 'ruler':
-					close();
-					actions.toggleViewOption('showRulers');
-					break;
-				default:
-					close();
-			}
-		});
-		return button;
+				actions.paste();
+				break;
+			case 'layout':
+				// The layout list is a companion menu, not a fresh command menu:
+				// the command menu closes and the list takes its place.
+				menu?.close();
+				menu = null;
+				openLayoutList(x, y);
+				break;
+			case 'reset-slide':
+				close();
+				actions.resetSlide();
+				break;
+			case 'format-background':
+				close();
+				store.set({ selectedElementId: null, selectedElementIds: [], inspectorOpen: true });
+				break;
+			case 'grid-and-guides':
+				close();
+				actions.toggleViewOption('showGrid');
+				break;
+			case 'ruler':
+				close();
+				actions.toggleViewOption('showRulers');
+				break;
+			default:
+				close();
+		}
 	};
 
 	const open = (entries: CustomizedCanvasContextMenuEntry[], x: number, y: number): void => {
-		menu = createEl(doc, 'div', 'pptxv-context-menu', { left: `${x}px`, top: `${y}px` });
-		menu.dataset.pptxContextMenu = 'true';
-		menu.dataset.pptxCanvasContextMenu = 'true';
-		menu.setAttribute('role', 'menu');
-		menu.setAttribute('aria-label', deps.getTranslator()('pptx.canvasContextMenu.ariaLabel'));
-		for (const entry of entries) {
-			if (entry.separatorBefore) {
-				const separator = createEl(doc, 'div', 'pptxv-context-menu-separator');
-				separator.setAttribute('role', 'separator');
-				menu.appendChild(separator);
-			}
-			menu.appendChild(buildItem(entry, x, y));
-		}
-		(viewport.closest<HTMLElement>('.pptxv') ?? doc.body).appendChild(menu);
-		positionAt(menu, doc, x, y);
-
-		onDismiss = (event: Event): void => {
-			if (event instanceof KeyboardEvent && event.key !== 'Escape') {
-				return;
-			}
-			const target = event.target;
-			if (target instanceof Node && (menu?.contains(target) || layoutPopup?.contains(target))) {
-				return;
-			}
-			close();
-		};
-		doc.addEventListener('pointerdown', onDismiss, true);
-		doc.addEventListener('keydown', onDismiss, true);
+		const t = deps.getTranslator();
+		menu = mountContextMenuSurface({
+			doc,
+			parent: parent(),
+			state: {
+				x,
+				y,
+				label: t('pptx.canvasContextMenu.ariaLabel'),
+				markers: ['data-pptx-context-menu', 'data-pptx-canvas-context-menu'],
+				items: contextMenuViewItems(entries, t),
+			},
+			onRequest: (id) => {
+				const entry = entries.find((candidate) => candidate.id === id);
+				if (entry) {
+					run(entry, x, y);
+				}
+			},
+			onClose: close,
+		});
 	};
 
 	const onContextMenu = (event: MouseEvent): void => {

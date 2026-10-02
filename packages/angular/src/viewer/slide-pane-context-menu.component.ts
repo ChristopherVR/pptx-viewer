@@ -14,62 +14,37 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	ElementRef,
-	HostListener,
-	inject,
+	CUSTOM_ELEMENTS_SCHEMA,
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { SlidePaneContextMenuCommandId, SlidePaneContextMenuEntry } from '../internal/shared';
-import { buildSlidePaneContextMenuEntries } from '../internal/shared';
-import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
+import type {
+	ContextMenuRequestEvent,
+	ContextMenuViewState,
+	SlidePaneContextMenuCommandId,
+	SlidePaneContextMenuEntry,
+} from '../internal/shared';
+import { buildSlidePaneContextMenuEntries, slidePaneViewItems } from '../internal/shared';
+import type { MenuTranslate } from './context-menu-translate';
+import { injectMenuTranslate } from './context-menu-translate';
 import type { SlidePaneContextMenuActions } from './slide-pane-context-menu-dispatch';
 import { runSlidePaneContextMenuCommand } from './slide-pane-context-menu-dispatch';
 
 @Component({
 	selector: 'pptx-slide-pane-context-menu',
 	standalone: true,
-	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { style: 'display: contents' },
 	template: `
-		<ul
-			class="pptx-ctx__menu"
-			data-pptx-context-menu="true"
-			data-pptx-slide-pane-context-menu="true"
-			role="menu"
-			[attr.aria-label]="'pptx.slidesPane.contextMenu.newSlide' | translate"
-		>
-			@for (entry of entries(); track entry.id) {
-				@if (entry.separatorBefore) {
-					<li role="separator" class="pptx-ctx__divider"></li>
-				}
-				<li role="none">
-					<button
-						type="button"
-						class="pptx-ctx__item"
-						[class.pptx-ctx__item--danger]="entry.id === 'delete'"
-						role="menuitem"
-						[disabled]="!!entry.disabled"
-						(click)="run(entry.id)"
-					>
-						{{
-							entry.countLabelKey
-								? (entry.labelKey | translate: { count: selectedIndexes().length })
-								: (entry.labelKey | translate)
-						}}
-					</button>
-				</li>
-			}
-		</ul>
+		<pptx-ui-context-menu
+			[state]="view()"
+			(menu-request)="request($event)"
+			(menu-close)="closed.emit()"
+		></pptx-ui-context-menu>
 	`,
-	styles: [EDITOR_CONTEXT_MENU_STYLES],
-	host: {
-		'[style.--pptx-ctx-x]': 'x() + "px"',
-		'[style.--pptx-ctx-y]': 'y() + "px"',
-	},
 })
 export class SlidePaneContextMenuComponent {
 	readonly x = input.required<number>();
@@ -87,7 +62,7 @@ export class SlidePaneContextMenuComponent {
 	readonly toggleHideSlides = output<number[]>();
 	readonly addSectionAt = output<number>();
 
-	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+	private readonly t: MenuTranslate = injectMenuTranslate();
 
 	protected readonly entries = computed<SlidePaneContextMenuEntry[]>(() => {
 		const selected = this.selectedIndexes()
@@ -110,20 +85,17 @@ export class SlidePaneContextMenuComponent {
 		addSectionAt: (index) => this.addSectionAt.emit(index),
 	};
 
-	@HostListener('document:keydown.escape')
-	onEscape(): void {
-		this.closed.emit();
-	}
+	/** The shared element's state: translated rows, the hook markers and the label. */
+	protected readonly view = computed<ContextMenuViewState>(() => ({
+		x: this.x(),
+		y: this.y(),
+		label: this.t('pptx.slidesPane.contextMenu.newSlide'),
+		markers: ['data-pptx-context-menu', 'data-pptx-slide-pane-context-menu'],
+		items: slidePaneViewItems(this.entries(), this.t, this.selectedIndexes().length),
+	}));
 
-	@HostListener('document:pointerdown', ['$event'])
-	onDocumentPointerDown(event: PointerEvent): void {
-		const target = event.target;
-		if (!(target instanceof Node)) {
-			return;
-		}
-		if (!this.host.nativeElement.contains(target)) {
-			this.closed.emit();
-		}
+	protected request(event: Event): void {
+		this.run((event as ContextMenuRequestEvent).detail.id as SlidePaneContextMenuCommandId);
 	}
 
 	/** Run the chosen command, then close: every item closes the menu. */

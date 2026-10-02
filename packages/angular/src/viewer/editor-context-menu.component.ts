@@ -4,32 +4,35 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	ElementRef,
-	HostListener,
+	CUSTOM_ELEMENTS_SCHEMA,
 	inject,
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
-import type { ContextMenuCommandId, CustomizedContextMenuEntry } from '../internal/shared';
+import type {
+	ContextMenuRequestEvent,
+	ContextMenuViewState,
+	CustomizedContextMenuEntry,
+} from '../internal/shared';
 import {
 	buildContextMenuEntries,
 	canCropElement,
 	contextMenuInspectorAnchor,
-	MERGE_SHAPES_LABEL_KEY,
+	contextMenuViewItems,
 	customizeContextMenuEntries,
-	hostMenuLabel,
+	MERGE_SHAPES_LABEL_KEY,
 	isEditPointsEnabled,
 	resolveEditPointsAvailability,
 	scrollInspectorSectionIntoView,
 } from '../internal/shared';
-import { clampedMenuPosition } from './context-menu-position';
+import type { MenuTranslate } from './context-menu-translate';
+import { injectMenuTranslate } from './context-menu-translate';
 import { tableMenuContext } from './editor-context-menu-context';
 import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-dispatch';
 import { runContextMenuCommand } from './editor-context-menu-dispatch';
-import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import { EditorStateService } from './editor-state.service';
 import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
 import { canMergeSelection, runMergeShapes } from './merge-shapes-action';
@@ -43,47 +46,21 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 @Component({
 	selector: 'pptx-editor-context-menu',
 	standalone: true,
-	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	host: { style: 'display: contents' },
+	// `data-pptx-context-menu` (set through the state's markers) is the neutral
+	// cross-binding hook for "this is the canvas context menu". An empty menu
+	// (host customisation removed every entry) renders nothing.
 	template: `
-		<!-- data-pptx-context-menu is the neutral cross-binding hook for "this is
-		     the canvas context menu", alongside the role. -->
-		<!-- An empty menu (host customisation removed every entry) renders nothing. -->
-		@if (entries().length > 0) {
-			<ul
-				class="pptx-ctx__menu"
-				data-pptx-context-menu="true"
-				role="menu"
-				[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
-			>
-				@for (entry of entries(); track entry.id) {
-					@if (entry.separatorBefore) {
-						<li role="separator" class="pptx-ctx__divider"></li>
-					}
-					<li role="none">
-						<button
-							type="button"
-							class="pptx-ctx__item"
-							[class.pptx-ctx__item--danger]="!!entry.danger"
-							role="menuitem"
-							[disabled]="!!entry.disabled"
-							(click)="run(entry)"
-						>
-							{{ hostLabel(entry) ?? (entry.labelKey | translate) }}
-						</button>
-					</li>
-				}
-			</ul>
-		}
+		<pptx-ui-context-menu
+			[state]="view()"
+			(menu-request)="request($event)"
+			(menu-close)="closed.emit()"
+		></pptx-ui-context-menu>
 	`,
-	styles: EDITOR_CONTEXT_MENU_STYLES,
-	host: {
-		'[style.--pptx-ctx-x]': 'position.left() + "px"',
-		'[style.--pptx-ctx-y]': 'position.top() + "px"',
-	},
 })
 export class EditorContextMenuComponent {
-	protected readonly hostLabel = hostMenuLabel;
 	/** Horizontal viewport coordinate (px) of the top-left corner of the menu. */
 	readonly x = input.required<number>();
 	/** Vertical viewport coordinate (px) of the top-left corner of the menu. */
@@ -110,8 +87,7 @@ export class EditorContextMenuComponent {
 
 	protected readonly editor = inject(EditorStateService);
 	private readonly tableSelection = inject(TableSelectionService, { optional: true });
-	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
-	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
+	private readonly t: MenuTranslate = injectMenuTranslate();
 	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
 	private readonly customization = injectResolvedCustomization();
 	private readonly outline = inject(OutlineAuthoringService, { optional: true });
@@ -211,37 +187,34 @@ export class EditorContextMenuComponent {
 		crop: () => this.crop?.enter(this.slideIndex(), this.selectedElement()),
 	};
 
-	// ── Close triggers ───────────────────────────────────────────────────────
+	/** The shared element's state: translated rows, the hook markers and the label. */
+	protected readonly view = computed<ContextMenuViewState>(() => ({
+		x: this.x(),
+		y: this.y(),
+		label: this.t('pptx.contextMenu.ariaLabel'),
+		markers: ['data-pptx-context-menu'],
+		items: contextMenuViewItems(this.entries(), this.t),
+	}));
 
-	@HostListener('document:keydown.escape')
-	onEscape(): void {
-		this.closed.emit();
+	protected request(event: Event): void {
+		this.run((event as ContextMenuRequestEvent).detail.id);
 	}
 
-	@HostListener('document:pointerdown', ['$event'])
-	onDocumentPointerDown(event: PointerEvent): void {
-		const target = event.target;
-		if (!(target instanceof Node)) {
+	/** Run the chosen command (an id or an entry), then close: every item closes the menu. */
+	protected run(target: string | CustomizedContextMenuEntry): void {
+		const entry =
+			typeof target === 'string'
+				? this.entries().find((candidate) => candidate.id === target)
+				: target;
+		if (!entry) {
 			return;
 		}
-		if (!this.host.nativeElement.contains(target)) {
+		if ('host' in entry) {
 			this.closed.emit();
+			entry.onSelect();
+			return;
 		}
-	}
-
-	// ── Command dispatch ─────────────────────────────────────────────────────
-
-	/** Run the chosen command, then close: every item closes the menu. */
-	protected run(id: ContextMenuCommandId | CustomizedContextMenuEntry): void {
-		if (typeof id !== 'string') {
-			if ('host' in id) {
-				this.closed.emit();
-				id.onSelect();
-				return;
-			}
-			id = id.id;
-		}
-		runContextMenuCommand(id, this.actions);
+		runContextMenuCommand(entry.id, this.actions);
 		this.closed.emit();
 	}
 

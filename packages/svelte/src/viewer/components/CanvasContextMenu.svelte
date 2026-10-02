@@ -4,10 +4,10 @@
 	 *
 	 * Sibling of `ElementContextMenu.svelte`: the item list comes from
 	 * `pptx-viewer-shared`'s `canvas-context-menu-commands` (via
-	 * `buildCanvasMenuEntries`), this component only positions and renders it.
+	 * `buildCanvasMenuEntries`); the rows are drawn by the shared
+	 * `pptx-ui-context-menu`.
 	 */
-	import { clampFlyoutPosition, customizeCanvasContextMenuEntries } from 'pptx-viewer-shared';
-	import type { CustomizedCanvasContextMenuEntry } from 'pptx-viewer-shared';
+	import { contextMenuViewItems, customizeCanvasContextMenuEntries } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import {
@@ -15,6 +15,7 @@
 		runCanvasContextMenuCommand,
 	} from '../editor/canvas-context-menu-dispatch';
 	import { useViewerCustomization } from '../state/viewer-customization.svelte';
+	import ContextMenuSurface from './ContextMenuSurface.svelte';
 	import type { CanvasContextMenuProps } from './props';
 
 	const {
@@ -32,19 +33,6 @@
 	}: CanvasContextMenuProps = $props();
 	const t = useTranslator();
 
-	let menuWidth = $state(0);
-	let menuHeight = $state(0);
-	const menuStyle = $derived.by(() => {
-		const { left, top } = clampFlyoutPosition({
-			x,
-			y,
-			width: menuWidth,
-			height: menuHeight,
-			viewportWidth: typeof window === 'undefined' ? 0 : window.innerWidth,
-			viewportHeight: typeof window === 'undefined' ? 0 : window.innerHeight,
-		});
-		return `left: ${left}px; top: ${top}px`;
-	});
 	const dispatch = $derived({
 		editor,
 		showGrid,
@@ -66,7 +54,11 @@
 		}
 	});
 
-	function run(entry: CustomizedCanvasContextMenuEntry): void {
+	function run(id: string): void {
+		const entry = entries.find((candidate) => candidate.id === id);
+		if (!entry) {
+			return;
+		}
 		if ('host' in entry) {
 			onclose();
 			entry.onSelect();
@@ -77,48 +69,14 @@
 	}
 </script>
 
-<svelte:window
-	onkeydown={(event) => {
-		if (event.key === 'Escape') onclose();
-	}}
-/>
-
 {#if entries.length > 0}
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="pptx-svelte-context-backdrop" aria-hidden="true" onclick={onclose} oncontextmenu={(event) => { event.preventDefault(); onclose(); }}></div>
-<div
-	class="pptx-svelte-context-menu"
-	data-pptx-context-menu="true"
-	data-pptx-canvas-context-menu="true"
-	role="menu"
-	aria-label={t('pptx.canvasContextMenu.ariaLabel')}
-	style={menuStyle}
-	bind:clientWidth={menuWidth}
-	bind:clientHeight={menuHeight}
->
-	{#each entries as entry (entry.id)}
-		{#if entry.separatorBefore}<div class="pptx-svelte-context-separator" role="separator"></div>{/if}
-		<button
-			type="button"
-			role={entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
-			aria-checked={entry.checked === undefined ? undefined : entry.checked}
-			disabled={entry.disabled}
-			onclick={() => run(entry)}
-		>
-			{#if entry.checked !== undefined}<span class="pptx-svelte-context-check" aria-hidden="true">{entry.checked ? '✓' : ''}</span>{/if}
-			{'host' in entry ? entry.label : t(entry.labelKey)}
-		</button>
-	{/each}
-</div>
+	<ContextMenuSurface
+		{x}
+		{y}
+		label={t('pptx.canvasContextMenu.ariaLabel')}
+		markers={['data-pptx-context-menu', 'data-pptx-canvas-context-menu']}
+		items={contextMenuViewItems(entries, t)}
+		onrequest={run}
+		{onclose}
+	/>
 {/if}
-
-<style>
-	.pptx-svelte-context-backdrop { position: fixed; inset: 0; z-index: 119; }
-	.pptx-svelte-context-menu { position: fixed; z-index: 120; display: flex; min-width: 180px; flex-direction: column; padding: 6px 0; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-card, #1e1e2e); box-shadow: 0 18px 40px rgb(0 0 0 / 35%); color: var(--pptx-card-foreground, #e2e8f0); font-family: system-ui, sans-serif; font-size: 12px; }
-	.pptx-svelte-context-menu button { padding: 6px 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-	.pptx-svelte-context-menu button:hover, .pptx-svelte-context-menu button:focus-visible { background: var(--pptx-accent, #33334d); outline: none; }
-	.pptx-svelte-context-menu button:disabled { opacity: 0.45; cursor: default; }
-	.pptx-svelte-context-menu button:disabled:hover { background: transparent; }
-	.pptx-svelte-context-separator { height: 1px; margin: 5px 0; background: var(--pptx-border, #33334d); }
-	.pptx-svelte-context-check { display: inline-block; width: 14px; }
-</style>

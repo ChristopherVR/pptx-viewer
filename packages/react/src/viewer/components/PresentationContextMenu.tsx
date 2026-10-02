@@ -1,6 +1,13 @@
-import type { PresentationPointerTool } from 'pptx-viewer-shared';
+import type { PresentationContextMenuActionId, PresentationPointerTool } from 'pptx-viewer-shared';
+import {
+	CONTEXT_MENU_PRESENTATION_LAYER,
+	getPresentationContextMenuSections,
+	presentationViewItems,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { ContextMenuSurface } from './ContextMenuSurface';
 
 export interface PresentationContextMenuState {
 	x: number;
@@ -25,93 +32,52 @@ export interface PresentationContextMenuProps {
 	onEraseInk?: () => void;
 }
 
-const itemClass =
-	'block w-full whitespace-nowrap px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-accent';
-const headingClass =
-	'px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground';
-
 /**
  * Slide-show right-click menu, shown while presenting when Options > Advanced >
  * "Show menu on right mouse click" is on.
  *
  * Mirrors PowerPoint's slideshow menu: navigation, See All Slides, the presenter
- * console, pointer options and the blank-screen commands. These are the routes
- * PowerPoint users reach mid-show without remembering a chord, so the menu
- * carries everything the keyboard map does.
+ * console, pointer options and the blank-screen commands. Item order, grouping
+ * and labels come from the shared `getPresentationContextMenuSections`; the rows
+ * are drawn by the shared `pptx-ui-context-menu`.
  */
 export function PresentationContextMenu(p: PresentationContextMenuProps): React.ReactElement {
 	const { t } = useTranslation();
-	const run = (action: () => void) => {
-		action();
-		p.onClose();
+	const sections = getPresentationContextMenuSections({
+		seeAllSlides: Boolean(p.onSeeAllSlides),
+		presenterView: Boolean(p.onShowPresenterView),
+		pointerTools: Boolean(p.onPointerTool),
+		eraseInk: Boolean(p.onEraseInk),
+		blankBlack: Boolean(p.onBlank),
+		blankWhite: Boolean(p.onBlank),
+	});
+	const actions: Record<PresentationContextMenuActionId, (() => void) | undefined> = {
+		next: p.onNext,
+		previous: p.onPrevious,
+		seeAllSlides: p.onSeeAllSlides,
+		presenterView: p.onShowPresenterView,
+		pointerArrow: () => p.onPointerTool?.('none'),
+		pointerPen: () => p.onPointerTool?.('pen'),
+		pointerHighlighter: () => p.onPointerTool?.('highlighter'),
+		pointerLaser: () => p.onPointerTool?.('laser'),
+		eraseInk: p.onEraseInk,
+		blankBlack: () => p.onBlank?.('black'),
+		blankWhite: () => p.onBlank?.('white'),
+		endShow: p.onEndShow,
 	};
-	const item = (label: string, action: (() => void) | undefined) =>
-		action ? (
-			<button type='button' role='menuitem' className={itemClass} onClick={() => run(action)}>
-				{label}
-			</button>
-		) : null;
-
 	return (
-		<>
-			{/* Transparent backdrop: any press outside the menu dismisses it. */}
-			<div
-				className='fixed inset-0 z-[1299]'
-				onClick={p.onClose}
-				onContextMenu={(e) => {
-					e.preventDefault();
-					p.onClose();
-				}}
-			/>
-			<div
-				data-pptx-presentation-menu=''
-				role='menu'
-				tabIndex={-1}
-				className='fixed z-[1300] min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-xl'
-				style={{ left: p.state.x, top: p.state.y }}
-				onContextMenu={(e) => e.preventDefault()}
-			>
-				{item(t('pptx.presenter.nextSlide'), p.onNext)}
-				{item(t('pptx.presenter.previousSlide'), p.onPrevious)}
-				{item(t('pptx.presenter.seeAllSlides'), p.onSeeAllSlides)}
-				{item(t('pptx.presenter.presenterView'), p.onShowPresenterView)}
-
-				{(p.onPointerTool || p.onEraseInk) && (
-					<>
-						<div className='my-1 border-t border-border/60' />
-						<div className={headingClass}>{t('pptx.presentation.pointerTools')}</div>
-						{item(
-							t('pptx.presenter.pointerArrow'),
-							p.onPointerTool && (() => p.onPointerTool?.('none')),
-						)}
-						{item(
-							t('pptx.presenter.pointerPen'),
-							p.onPointerTool && (() => p.onPointerTool?.('pen')),
-						)}
-						{item(
-							t('pptx.presenter.pointerHighlighter'),
-							p.onPointerTool && (() => p.onPointerTool?.('highlighter')),
-						)}
-						{item(
-							t('pptx.presentation.laserPointer'),
-							p.onPointerTool && (() => p.onPointerTool?.('laser')),
-						)}
-						{item(t('pptx.presenter.eraseAllInk'), p.onEraseInk)}
-					</>
-				)}
-
-				{p.onBlank && (
-					<>
-						<div className='my-1 border-t border-border/60' />
-						<div className={headingClass}>{t('pptx.presenter.screen')}</div>
-						{item(t('pptx.presenter.blackScreen'), () => p.onBlank?.('black'))}
-						{item(t('pptx.presenter.whiteScreen'), () => p.onBlank?.('white'))}
-					</>
-				)}
-
-				<div className='my-1 border-t border-border/60' />
-				{item(t('pptx.presenter.endPresentation'), p.onEndShow)}
-			</div>
-		</>
+		<ContextMenuSurface
+			x={p.state.x}
+			y={p.state.y}
+			label={t('pptx.presentation.menuLabel')}
+			markers={['data-pptx-presentation-menu']}
+			zIndex={CONTEXT_MENU_PRESENTATION_LAYER}
+			items={presentationViewItems(sections, t)}
+			onRequest={(id) => {
+				actions[id as PresentationContextMenuActionId]?.();
+				p.onClose();
+			}}
+			onClose={p.onClose}
+		/>
 	);
 }

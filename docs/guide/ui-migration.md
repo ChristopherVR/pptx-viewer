@@ -311,21 +311,21 @@ sharing is possible. Ribbon commands are out of scope: they already use
 `pptx-ui-ribbon-command` (#363). A family only migrates when one shared element
 can own its markup, gating and callbacks without changing behaviour.
 
-| Family                                                       | Where it appears                                                                                                                     | Duplicated markup or behaviour | Decision                                                                                                                           |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Status bar (counter, save state, notes, view modes, zoom)    | React `StatusBar.tsx`, Vue `StatusBar.vue`, Angular `status-bar.component.ts`, Svelte `StatusBar.svelte`, Vanilla `ui/status-bar.ts` | Yes, five hand-built copies    | **Migrate (this change)**: `pptx-ui-status-bar`. Same labels, gating and callbacks; hosts only map state and intents.              |
-| Read-only banner (Edit anyway, Dismiss, password prompt)     | `ReadOnlyBanner` in all five bindings                                                                                                | Yes                            | Keep native for now. It owns a password form with focus, error and busy states; migrate as its own element in a follow-up.         |
-| Paste options toolbar                                        | `PasteOptionsToolbar` in all five bindings                                                                                           | Yes                            | Keep native for now. Anchored to a canvas element with capture-phase dismissal; needs a shared popup-anchoring contract first.     |
-| Dialog footers (Cancel, OK, Apply, Close)                    | About 25 dialogs per binding, inside different modal shells (React `useModalFocus`, Vue `ModalDialog.vue`, others)                   | Yes, but per dialog            | Keep native. Footers are inseparable from each binding's focus trap and dismissal; a shared dialog shell contract must come first. |
-| Context menus (canvas, slide, section, sorter, presentation) | React 12 files, Vue 5, Angular 10, Svelte 6, Vanilla 7                                                                               | Yes, but not identical         | Keep native. Menu contents, nesting, positioning and roving focus differ by binding. Follow-up: shared menu contract.              |
-| Presentation toolbar and presenter console toolbar           | All five bindings                                                                                                                    | Partly                         | Keep native. Show-time overlay with auto-hide, touch and fullscreen coupling.                                                      |
-| Mobile bottom bar and mobile top toolbar                     | React, Vue, Angular, Vanilla; Svelte has no separate bottom bar                                                                      | No, differs by binding         | Keep native: not identical across bindings.                                                                                        |
-| File backstage navigation and cards                          | React, Angular, Svelte; Vue and Vanilla have no equivalent                                                                           | No, differs by binding         | Keep native: not present in all five bindings.                                                                                     |
-| Slide rail (thumbnails, drag reorder, section rows)          | All five bindings                                                                                                                    | Partly                         | Keep native. Hosts slide-content rendering and drag state, which the issue excludes.                                               |
-| Title bar and quick-access buttons                           | React `TitleBar.tsx`, Vue `TitleBar.vue`, Angular `title-bar.component.ts`, Svelte `TitleBar.svelte`, Vanilla `ui/title-bar.ts`      | Yes                            | **Migrate (#394)**: `pptx-ui-title-bar`. One order, tooltip rule and gating table; host-owned parts are slotted.                   |
-| Inspector panel actions                                      | React about 119 files, Vue 94, Svelte 74, Vanilla 63, Angular fewer, larger components                                               | Per panel                      | Keep native. Panel-by-panel owners; the generic contracts are the ribbon command, shared checkbox and select where they apply.     |
-| Compatibility toasts and collaboration status indicator      | All five bindings (the indicator is slotted into the status bar)                                                                     | Yes                            | Keep native; toast stacking and relay retry are host-owned. Follow-up.                                                             |
-| Notes toolbar and notes panel buttons                        | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Yes, with divergent behaviour  | **Migrated in #395**: `pptx-ui-notes-toolbar`; see the Notes toolbar section below. The collapse header and editor stay native.    |
+| Family                                                        | Where it appears                                                                                                                     | Duplicated markup or behaviour | Decision                                                                                                                           |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Status bar (counter, save state, notes, view modes, zoom)     | React `StatusBar.tsx`, Vue `StatusBar.vue`, Angular `status-bar.component.ts`, Svelte `StatusBar.svelte`, Vanilla `ui/status-bar.ts` | Yes, five hand-built copies    | **Migrate (this change)**: `pptx-ui-status-bar`. Same labels, gating and callbacks; hosts only map state and intents.              |
+| Read-only banner (Edit anyway, Dismiss, password prompt)      | `ReadOnlyBanner` in all five bindings                                                                                                | Yes                            | Keep native for now. It owns a password form with focus, error and busy states; migrate as its own element in a follow-up.         |
+| Paste options toolbar                                         | `PasteOptionsToolbar` in all five bindings                                                                                           | Yes                            | Keep native for now. Anchored to a canvas element with capture-phase dismissal; needs a shared popup-anchoring contract first.     |
+| Dialog footers (Cancel, OK, Apply, Close)                     | About 25 dialogs per binding, inside different modal shells (React `useModalFocus`, Vue `ModalDialog.vue`, others)                   | Yes, but per dialog            | Keep native. Footers are inseparable from each binding's focus trap and dismissal; a shared dialog shell contract must come first. |
+| Context menus: element, canvas, slide thumbnail, presentation | All five bindings                                                                                                                    | Yes                            | Migrated (#393): shared `pptx-ui-context-menu`; see "Context menus (#393)" below. Sorter and section menus are native (#397).      |
+| Presentation toolbar and presenter console toolbar            | All five bindings                                                                                                                    | Partly                         | Keep native. Show-time overlay with auto-hide, touch and fullscreen coupling.                                                      |
+| Mobile bottom bar and mobile top toolbar                      | React, Vue, Angular, Vanilla; Svelte has no separate bottom bar                                                                      | No, differs by binding         | Keep native: not identical across bindings.                                                                                        |
+| File backstage navigation and cards                           | React, Angular, Svelte; Vue and Vanilla have no equivalent                                                                           | No, differs by binding         | Keep native: not present in all five bindings.                                                                                     |
+| Slide rail (thumbnails, drag reorder, section rows)           | All five bindings                                                                                                                    | Partly                         | Keep native. Hosts slide-content rendering and drag state, which the issue excludes.                                               |
+| Title bar and quick-access buttons                            | React `TitleBar.tsx`, Vue `TitleBar.vue`, Angular `title-bar.component.ts`, Svelte `TitleBar.svelte`, Vanilla `ui/title-bar.ts`      | Yes                            | **Migrate (#394)**: `pptx-ui-title-bar`. One order, tooltip rule and gating table; host-owned parts are slotted.                   |
+| Inspector panel actions                                       | React about 119 files, Vue 94, Svelte 74, Vanilla 63, Angular fewer, larger components                                               | Per panel                      | Keep native. Panel-by-panel owners; the generic contracts are the ribbon command, shared checkbox and select where they apply.     |
+| Compatibility toasts and collaboration status indicator       | All five bindings (the indicator is slotted into the status bar)                                                                     | Yes                            | Keep native; toast stacking and relay retry are host-owned. Follow-up.                                                             |
+| Notes toolbar and notes panel buttons                         | React, Vue, Angular; Svelte and Vanilla inline                                                                                       | Yes, with divergent behaviour  | **Migrated in #395**: `pptx-ui-notes-toolbar`; see the Notes toolbar section below. The collapse header and editor stay native.    |
 
 ### Status bar (first batch)
 
@@ -377,7 +377,7 @@ projection and callback replacement for each binding.
 
 Not migrated, and to be split into owned follow-up issues before #386 closes:
 read-only banner, paste options toolbar, dialog footers with a shared dialog
-shell, context menus, presentation toolbars and compatibility toasts. This is why
+shell, presentation toolbars and compatibility toasts. This is why
 the issue stays open.
 
 ## Control primitives and tokens (#342)
@@ -728,3 +728,93 @@ the command-search rows across bindings. Adapter
 unit tests cover state mapping, event routing, gating, slots and the below-ribbon
 placement for each binding. Before and after screenshots are in
 `docs/public/assets/ui-migration/title-bar-before` and `title-bar-after`.
+
+shell, presentation toolbars, title bar and quick access, and compatibility
+toasts. This is why the issue stays open.
+
+## Context menus (#393)
+
+`pptx-ui-context-menu` is one controlled shared element behind the element,
+empty-canvas, slide-thumbnail and slide-show menus in all five bindings (and
+the Vanilla read-only AI menu). Each binding keeps its entry lists
+(`buildContextMenuEntries`, `buildCanvasContextMenuEntries`,
+`buildSlidePaneContextMenuEntries`, `getPresentationContextMenuSections`), host
+customization, gating and command dispatch (clipboard, table, crop, merge,
+inspector focus); an adapter maps those entries to rows and routes the typed
+`menu-request { id }` and `menu-close` events. The property and event contract is
+in `packages/shared/src/web-components/README.md`. The sorter and section menus
+are different in each binding (see the section and sorter parity issue) and stay
+native; Vue's sorter reuses the generic `ContextMenu.vue` and so also gets the
+shared look and keyboard model.
+
+Evidence read from the five bindings before the change:
+
+| Aspect                               | React                                        | Vue                                             | Angular                | Svelte                                | Vanilla                           |
+| ------------------------------------ | -------------------------------------------- | ----------------------------------------------- | ---------------------- | ------------------------------------- | --------------------------------- |
+| Element z-index                      | 120 (backdrop 119)                           | 120                                             | 9000                   | 120 (backdrop 119)                    | 1150                              |
+| Slide-show z                         | 1300 (backdrop 1299)                         | 120, under the 2147483000 fullscreen overlay    | 9000                   | 96 (scrim 95)                         | 65                                |
+| Slide-show clamp                     | None                                         | Shared with the element menu                    | None                   | None                                  | Shared two-sided clamp            |
+| Outside dismissal                    | Full-screen backdrop that swallows the click | Capture listeners on window                     | `document:pointerdown` | Full-screen backdrop that eats clicks | Capture `pointerdown` on document |
+| Slide-pane hooks                     | Marker and name                              | No `data-pptx-slide-pane-context-menu`, no name | Marker and name        | Marker and name                       | Marker and name                   |
+| Delete tint                          | Yes                                          | Element menu lost it                            | Yes                    | Yes                                   | Not on the thumbnail menu         |
+| Slide-show name                      | None                                         | None                                            | None                   | None                                  | None                              |
+| Group headings                       | Pointer and Screen headings                  | None                                            | None                   | None                                  | None                              |
+| Arrow keys, type-ahead, roving focus | None                                         | None                                            | None                   | None                                  | None                              |
+
+Real defects this exposed and fixed:
+
+- Vue's slide-show menu was teleported to `<body>` at z-index 120 while the show
+  is a fullscreen overlay, so the menu rendered behind the slides and could not
+  be clicked (`vue-presentation.png` in the before directory is a blank slide
+  fragment). The shared menu renders in place inside the fullscreen subtree
+  above every overlay layer.
+- Vue's slide-thumbnail menu had no accessible name and none of the
+  `data-pptx-slide-pane-context-menu` hook the other four bindings emit; its
+  element menu dropped the danger tint on Delete.
+- The slide-show menu had no accessible name in any binding, and only React drew
+  its Pointer Options and Screen headings. All five now share both, as `group`s.
+- Escape inside a slide show closes only the open menu; it is consumed before the
+  show's own key handling.
+
+Behaviour changed so all five now agree:
+
+- Rows are `menuitem` or `menuitemcheckbox`; rules are `separator`; the surface is
+  a named `role="menu"` inside the element's open shadow root. The host element
+  carries the `data-pptx-*` hooks, so existing selectors on the host keep working.
+- Opening focuses the first enabled row. Arrow keys wrap, Home and End jump,
+  type-ahead matches label prefixes and repeated letters cycle, and disabled rows
+  are skipped. Hovering a row moves the roving focus to it. Enter and Space
+  activate. Escape, an outside press and Tab dismiss; focus returns to the opener
+  unless the command moved it.
+- Outside presses no longer swallow the click (React and Svelte did): the menu
+  closes and the press continues, as Vue, Angular and Vanilla already did.
+- Every menu is clamped into the window and scrolls when taller than it.
+  Slide-show menus were unclamped in React, Angular and Svelte.
+- One stacking contract: 9000 for the editor and 2147483001 for the slide show.
+- Rows are 28px, growing to 44px on coarse pointers. Colours come from the shared
+  theme tokens; forced colors use system colors with no shadow.
+- The Vanilla read-only AI menu now uses the same element, so it loses its two
+  icons. No binding has submenus, so the model has none; Vanilla's canvas and
+  thumbnail "Layout" lists are second shared menus, not nested ones.
+
+Native code kept: the entry lists and host customization, `context-menu-dispatch`,
+`editor-context-menu-dispatch`, `element-context-menu-commands` and the
+equivalent dispatch in each binding, hit-testing and selection, and the Layout
+galleries that React, Vue, Angular and Svelte open from "Layout". The Edit Points
+node menu is anchored inside each binding's edit-points overlay rather than at
+the pointer and is not part of this inventory.
+
+Comparable screenshots use the sample deck at 1440 x 900, cropped around the
+menu: `/assets/ui-migration/context-menu/before/<binding>-<menu>.png` and
+`/after/` for `element`, `canvas`, `slide-rail` and `presentation` (for example
+`react-element.png`).
+
+`e2e/context-menu-migration.spec.ts` runs once per binding and covers markers and
+roles, the first-row focus, arrows, Home, End and type-ahead, Enter activation,
+Escape and outside dismissal with clean reopen, the canvas toggles, the thumbnail
+menu, the slide-show menu above the overlay with grouped sections, clamping at the
+bottom-right corner, theme tokens, forced colors and 44px touch rows. The existing
+`context-menu-parity`, `canvas-context-menu-parity`, `slides-pane-parity`,
+`host-context-menu-commands` and `edit-points` specs read the menus through the
+shared element's shadow root (`e2e/support/context-menu.ts`). Shared unit tests
+cover the element contract, the row mappers and each binding's adapter.
