@@ -9,8 +9,9 @@ import { savePptxViaBackstage } from './save-pptx';
 import { elementWithText, loadDeck, ribbonTab, selectElement, slideElements } from './support/deck';
 import { downloadBytes } from './support/exports';
 
-// Wide enough for every Home group; narrower windows collapse the right-hand groups to popups.
-test.use({ viewport: { width: 1920, height: 1000 } });
+// Wide enough for every Home group, including the viewer's Arrange extras; narrower windows
+// collapse the right-hand groups into popup buttons (see ribbon-parity-home-insert.spec.ts).
+test.use({ viewport: { width: 2600, height: 1000 } });
 
 const control = (page: Page, id: string) => page.locator(`[data-ribbon-control="${id}"]`).first();
 
@@ -658,6 +659,16 @@ test.describe('touch Home controls', () => {
 			control(page, 'home.arrange.sendToBack'),
 			inner(page, 'home.slides.reset'),
 		]) {
+			// At 900px the right-hand groups are collapsed: open the one that holds the control.
+			const group = await button.evaluate((el) => {
+				const owner = el.closest('[data-ribbon-group][data-collapsed]');
+				return owner?.getAttribute('data-ribbon-group') ?? null;
+			});
+			if (group) {
+				await page
+					.locator(`[data-ribbon-group="${group}"] > [data-pptx-chrome="ribbon-collapse"]`)
+					.click();
+			}
 			const box = await button.boundingBox();
 			expect(box!.width).toBeGreaterThanOrEqual(44);
 			expect(box!.height).toBeGreaterThanOrEqual(44);
