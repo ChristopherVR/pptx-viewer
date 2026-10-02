@@ -173,6 +173,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			editable: store.get().editable,
 			canUndo: ops.canUndo(),
 			canRedo: ops.canRedo(),
+			undoLabel: ops.undoLabel(),
+			redoLabel: ops.redoLabel(),
 		};
 		deps.getChrome().ribbon?.setEditState(state);
 		deps.getChrome().titleBar?.setEditState(state);

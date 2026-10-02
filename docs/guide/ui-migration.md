@@ -706,23 +706,25 @@ Behaviour that changed:
   bindings when the host forbids autosave; before, only Vanilla did this.
 - Vanilla now always shows Save, Undo and Redo first; a configured list that omitted
   them no longer hides them, which matches the other four. Its search box is now the
-  shared one (cap, keyboard selection) but still lists only Save, Undo and Redo and
-  has no "Find in Slides" row, because the viewer has no panel to open from there.
+  shared one, lists the shared command catalogue, runs every id through the ribbon's own
+  surfaces (SmartArt, Equation, Browse Themes and Slide Size open the matching ribbon
+  control) and offers the "Find in Slides" row, which toggles the Find & Replace panel.
 - The AI toggle is slotted into the `account` slot, and Vanilla's search box now shows
   its placeholder (it assigned a property the field never read, so it rendered empty).
 - Hiding the `quickAccessToolbar` panel now removes Save, Undo and Redo too in React;
   before, only the extras were hidden there.
 
-Not done: the Undo and Redo tooltips name the pending action only in React, Vue and
-Angular, because Svelte and Vanilla keep no history labels. Svelte's autosave status
-has no reason field, so its disabled-by-host status keys stay unreachable. Vanilla's
-command catalogue is not unified with the others, since its viewer has no runner for
-the shared command ids; it also has no "Find in Slides" panel to open from the row.
+All five bindings now pass the pending Undo and Redo action to the tooltip (Vue, Svelte
+and Vanilla gained the plumbing; no editing action in any binding records a label yet, so
+today every tooltip reads plain "Undo" and "Redo"). Svelte also passes the autosave
+disabled reason, so a host `autosave: false` or a missing file path shows the same status
+text everywhere. `review.language` has no action in any binding.
 
 `e2e/title-bar-migration.spec.ts` covers the names, order, AutoSave switch, roving
 focus and tab order, search results, panel customization, narrow widths, theme
 tokens, touch targets and forced colors on all five bindings.
-`chrome-shell-parity.spec.ts` now measures the bar through its shadow root. Adapter
+`chrome-shell-parity.spec.ts` now measures the bar through its shadow root and compares
+the command-search rows across bindings. Adapter
 unit tests cover state mapping, event routing, gating, slots and the below-ribbon
 placement for each binding. Before and after screenshots are in
 `docs/public/assets/ui-migration/title-bar-before` and `title-bar-after`.

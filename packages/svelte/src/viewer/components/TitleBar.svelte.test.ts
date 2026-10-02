@@ -1,3 +1,4 @@
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -47,6 +48,31 @@ function quickAccessNames(target: HTMLElement): (string | null)[] {
 		button.getAttribute('aria-label'),
 	);
 }
+
+describe('history labels and the disabled reason', () => {
+	it('names the pending action in the Undo/Redo tooltips', () => {
+		const target = renderTitleBar({
+			canUndo: true,
+			canRedo: true,
+			undoLabel: 'Delete shape',
+			redoLabel: 'Move',
+		});
+		const title = (name: string) =>
+			root(target).querySelector<HTMLButtonElement>(`.qat button[aria-label="${name}"]`)!.title;
+		expect(title('Undo')).toBe('Undo: Delete shape');
+		expect(title('Redo')).toBe('Redo: Move');
+	});
+
+	it('shows the disabled-by-host reason as the status text', () => {
+		const target = renderTitleBar({
+			autosaveStatus: 'disabled',
+			autosaveDisabledReason: 'no_file_path',
+		});
+		expect(root(target).querySelector('.status')!.textContent).toBe(
+			translationsEn['pptx.autosave.disabledNoFilePath'],
+		);
+	});
+});
 
 describe('the quick-access strip follows File > Options', () => {
 	it('renders the shipped default, which is four commands and not three', () => {

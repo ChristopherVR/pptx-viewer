@@ -260,6 +260,9 @@ export interface RibbonEditState {
 	editable: boolean;
 	canUndo: boolean;
 	canRedo: boolean;
+	/** Description of the step Undo/Redo would apply (title-bar tooltips). */
+	undoLabel?: string;
+	redoLabel?: string;
 }
 
 /** A slide layout the Home > Slides group offers for New Slide / Layout. */

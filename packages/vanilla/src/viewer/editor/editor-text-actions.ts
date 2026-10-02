@@ -8,6 +8,7 @@ import {
 	adjustFontSize,
 	changeTextCase,
 	clearFormatting,
+	patchTextStyle,
 	setCharacterSpacing,
 	setFontFamily,
 	setFontSize,
@@ -50,6 +51,8 @@ export interface TextActions {
 	setCharacterSpacing(value: number): void;
 	changeCase(mode: ChangeCaseMode): void;
 	clearFormatting(): void;
+	/** Set (not toggle) character/paragraph style fields on the selection, e.g. the title-bar search. */
+	patchSelectedTextStyle(patch: Partial<TextStyle>): void;
 	toggleBulletList(): void;
 	toggleNumberedList(): void;
 	increaseIndent(): void;
@@ -92,6 +95,7 @@ export function createTextActions(
 				return { text, textSegments };
 			}),
 		clearFormatting: () => applyToSelected((el) => clearFormatting(el)),
+		patchSelectedTextStyle: (patch) => applyToSelected((el) => patchTextStyle(el, patch)),
 		toggleBulletList: () =>
 			applyToSelected((el, snapshot) => toggleListType(el, 'bullet', snapshot)),
 		toggleNumberedList: () =>

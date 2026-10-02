@@ -14,7 +14,8 @@ function makeDeps(over: Partial<TitleBarDeps> = {}): TitleBarDeps {
 		save: vi.fn(),
 		undo: vi.fn(),
 		redo: vi.fn(),
-		commands: [],
+		runCommand: vi.fn(),
+		findInSlides: vi.fn(),
 		...over,
 	};
 }
@@ -62,9 +63,7 @@ describe('createTitleBar', () => {
 
 	it('routes strip activations and command search to the viewer handlers', () => {
 		const t = createTranslator();
-		const deps = makeDeps({
-			commands: [{ labelKey: 'pptx.titleBar.save', run: vi.fn() }],
-		});
+		const deps = makeDeps();
 		const titleBar = createTitleBar(document, t, deps);
 		titleBar.setEditState({ editable: true, canUndo: true, canRedo: true });
 		(named(titleBar.el, t('pptx.titleBar.save')) as HTMLButtonElement).click();
@@ -74,9 +73,29 @@ describe('createTitleBar', () => {
 		expect(deps.undo).toHaveBeenCalledOnce();
 		expect(deps.redo).toHaveBeenCalledOnce();
 		titleBar.el.dispatchEvent(
-			new CustomEvent('command-search', { detail: { query: 'sa', command: '0' } }),
+			new CustomEvent('command-search', { detail: { query: 'bo', command: 'format.bold' } }),
 		);
-		expect(deps.commands[0]?.run).toHaveBeenCalledOnce();
+		expect(deps.runCommand).toHaveBeenCalledWith('format.bold');
+		titleBar.el.dispatchEvent(new CustomEvent('command-search', { detail: { query: 'zz' } }));
+		expect(deps.findInSlides).toHaveBeenCalledOnce();
+	});
+
+	it('names the pending action in the Undo and Redo tooltips', () => {
+		const t = createTranslator();
+		const titleBar = createTitleBar(document, t, makeDeps());
+		titleBar.setEditState({
+			editable: true,
+			canUndo: true,
+			canRedo: true,
+			undoLabel: 'Delete shape',
+			redoLabel: 'Move shape',
+		});
+		expect(named(titleBar.el, t('pptx.toolbar.undo'))?.getAttribute('title')).toBe(
+			t('pptx.toolbar.undoAction', { action: 'Delete shape' }),
+		);
+		expect(named(titleBar.el, t('pptx.toolbar.redo'))?.getAttribute('title')).toBe(
+			t('pptx.toolbar.redoAction', { action: 'Move shape' }),
+		);
 	});
 
 	it('enables undo/redo from the edit state and hides editing parts when read-only', () => {

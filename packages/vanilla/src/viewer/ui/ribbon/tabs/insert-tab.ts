@@ -18,6 +18,8 @@ export interface InsertTab {
 	setHasSelection(hasSelection: boolean): void;
 	/** Reflect the armed Freeform: Shape / Curve tool. */
 	setFreeformTool(tool: FreeformToolKind | null): void;
+	/** Open the SmartArt gallery dialog (title-bar command search). */
+	openSmartArt(): void;
 }
 
 /**
@@ -117,6 +119,7 @@ export function createInsertTab(
 	sync();
 	return {
 		el,
+		openSmartArt: () => smartArt.open(el.closest<HTMLElement>('.pptxv') ?? doc.body, () => {}),
 		setEditable(editable) {
 			state = { ...state, editable };
 			if (!editable) {

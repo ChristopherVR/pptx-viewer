@@ -1853,6 +1853,8 @@ defineExpose<PowerPointViewerExpose>({
 					:autosave-toggle-available="autosaveToggleAvailable"
 					:on-toggle-autosave="toggleAutosave"
 					:can-undo="history.canUndo.value"
+					:undo-label="history.undoLabel.value"
+					:redo-label="history.redoLabel.value"
 					:can-redo="history.canRedo.value"
 					:on-undo="history.undo"
 					:on-redo="history.redo"

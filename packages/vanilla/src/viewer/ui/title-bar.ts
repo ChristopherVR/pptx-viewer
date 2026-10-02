@@ -4,7 +4,6 @@ import {
 	resolveTitleBarStrip,
 } from 'pptx-viewer-shared';
 import type {
-	CommandSearchEntry,
 	PptxUiTitleBarElement,
 	TitleBarCommandSearchEvent,
 	TitleBarEvent,
@@ -12,7 +11,6 @@ import type {
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
-import type { CommandSearchCommand } from './command-search';
 import type { RibbonEditState } from './ribbon/ribbon-types';
 
 /** Autosave lifecycle states the title-bar status text reflects. */
@@ -51,8 +49,10 @@ export interface TitleBarDeps {
 	save(): void;
 	undo(): void;
 	redo(): void;
-	/** Command-search entries (save / undo / redo here; vanilla has no catalogue runner). */
-	commands: readonly CommandSearchCommand[];
+	/** Run a shared command-search id (`COMMAND_SEARCH_ENTRIES`), see `title-bar-commands.ts`. */
+	runCommand(id: string): void;
+	/** The search box's "Find in Slides" row: toggle the Find & Replace panel. */
+	findInSlides(): void;
 	/** Individually hidden toolbar buttons (gates undo/redo independently). */
 	hiddenActions?: readonly ToolbarActionId[];
 	/** Options-driven Quick Access strip; omitted = the classic Save/Undo/Redo. */
@@ -115,10 +115,6 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 	let dirty = false;
 	let detached = false;
 	let edit: RibbonEditState = { editable: true, canUndo: false, canRedo: false };
-	const searchCommands: CommandSearchEntry[] = deps.commands.map((command, index) => ({
-		labelKey: command.labelKey,
-		command: String(index),
-	}));
 
 	const sync = (): void => {
 		const qa = deps.quickAccess?.getState() ?? DEFAULT_QUICK_ACCESS;
@@ -131,6 +127,8 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 			autosaveToggleAvailable: deps.autosaveToggleAvailable ?? true,
 			canUndo: edit.canUndo,
 			canRedo: edit.canRedo,
+			undoLabel: edit.undoLabel,
+			redoLabel: edit.redoLabel,
 			hiddenActions: deps.hiddenActions,
 			quickAccess: {
 				visible: qa.visible,
@@ -138,9 +136,6 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 				showCommandLabels: qa.showCommandLabels,
 				commandIds: qa.commandIds,
 			},
-			commands: searchCommands,
-			// Vanilla has no Find in Slides panel to open from the title bar.
-			contentSearch: false,
 			screenTip: deps.quickAccess ? (label) => deps.quickAccess?.screenTip(label) : undefined,
 			translate: t,
 		});
@@ -162,8 +157,10 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 		);
 		host.addEventListener('command-search', (event) => {
 			const { command } = (event as TitleBarCommandSearchEvent).detail;
-			if (command !== undefined) {
-				deps.commands[Number(command)]?.run();
+			if (command === undefined) {
+				deps.findInSlides();
+			} else {
+				deps.runCommand(command);
 			}
 		});
 	};

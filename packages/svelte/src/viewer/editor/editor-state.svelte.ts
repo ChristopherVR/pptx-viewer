@@ -261,6 +261,14 @@ export class EditorState {
 		return this.history.canUndo;
 	}
 
+	get undoLabel(): string | undefined {
+		return this.history.undoLabel;
+	}
+
+	get redoLabel(): string | undefined {
+		return this.history.redoLabel;
+	}
+
 	get headerFooter(): PptxHeaderFooter {
 		return this.presentationMetadata.headerFooter;
 	}

@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { h } from 'vue';
 
@@ -99,6 +100,24 @@ describe('titleBar adapter', () => {
 		expect(root.querySelector<HTMLElement>('.autosave')!.hidden).toBeTruthy();
 		expect(root.querySelector<HTMLElement>('.box')!.hidden).toBeTruthy();
 		expect(button('Undo')).toBeNull();
+	});
+
+	it('names the pending action in the Undo/Redo tooltips', () => {
+		const { button } = open({
+			canUndo: true,
+			canRedo: true,
+			undoLabel: 'Delete shape',
+			redoLabel: 'Move',
+		});
+		expect(button('Undo')!.title).toBe('Undo: Delete shape');
+		expect(button('Redo')!.title).toBe('Redo: Move');
+	});
+
+	it('shows the disabled-by-host reason as the status text', () => {
+		const { root } = open({ autosaveStatus: 'disabled', autosaveDisabledReason: 'no_file_path' });
+		expect(root.querySelector('.status')!.textContent).toBe(
+			translationsEn['pptx.autosave.disabledNoFilePath'],
+		);
 	});
 
 	it('renders the options-driven commands after Save/Undo/Redo', () => {

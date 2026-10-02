@@ -20,6 +20,9 @@
 		isDirty,
 		autosaveEnabled,
 		autosaveStatus,
+		autosaveDisabledReason,
+		undoLabel,
+		redoLabel,
 		canUndo,
 		canRedo,
 		onautosavetoggle,
@@ -55,6 +58,11 @@
 		hiddenActions?: readonly ToolbarActionId[];
 		/** False when the host policy forbids autosave (the switch renders inert). */
 		autosaveToggleAvailable?: boolean;
+		/** Why autosave is off while `autosaveStatus` is 'disabled'. */
+		autosaveDisabledReason?: string;
+		/** Pending-action descriptions for the Undo/Redo tooltips. */
+		undoLabel?: string | null;
+		redoLabel?: string | null;
 		collaborationSlot?: Snippet;
 		accountSlot?: Snippet;
 	} = $props();
@@ -69,8 +77,11 @@
 			isDirty,
 			autosaveEnabled,
 			autosaveStatus,
+			autosaveReason: autosaveDisabledReason,
 			canUndo,
 			canRedo,
+			undoLabel,
+			redoLabel,
 			hiddenActions,
 			quickAccess: optionsState.options.quickAccess,
 			quickAccessAllowed: customization.isPanelVisible('quickAccessToolbar'),

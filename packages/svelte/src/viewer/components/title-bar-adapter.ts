@@ -13,8 +13,13 @@ export interface TitleBarAdapterInput {
 	isDirty: boolean;
 	autosaveEnabled: boolean;
 	autosaveStatus?: TitleBarAutosaveState;
+	/** Why autosave is off while the status is 'disabled' (host policy, no file path, ...). */
+	autosaveReason?: string;
 	canUndo: boolean;
 	canRedo: boolean;
+	/** Pending-action descriptions for the Undo/Redo tooltips; empty means none. */
+	undoLabel?: string | null;
+	redoLabel?: string | null;
 	hiddenActions?: readonly ToolbarActionId[];
 	quickAccess: ViewerQuickAccessOptions;
 	/** False when the host removed the strip (`quickAccessToolbar` panel). */
@@ -30,9 +35,12 @@ export function titleBarViewState(input: TitleBarAdapterInput): TitleBarViewStat
 		fileName: input.fileName,
 		isDirty: input.isDirty,
 		autosaveState: input.autosaveStatus,
+		autosaveReason: input.autosaveReason,
 		autosaveEnabled: input.autosaveEnabled,
 		canUndo: input.canUndo,
 		canRedo: input.canRedo,
+		undoLabel: input.undoLabel || undefined,
+		redoLabel: input.redoLabel || undefined,
 		hiddenActions: input.hiddenActions,
 		quickAccess: {
 			...input.quickAccess,

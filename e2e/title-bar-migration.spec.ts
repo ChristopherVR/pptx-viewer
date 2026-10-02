@@ -80,6 +80,20 @@ test('typing in the command search shows a result list, Escape clears it', async
 	await expect(search(page)).toHaveValue('');
 });
 
+test('the search offers the shared command catalogue and a Find in Slides row', async ({
+	page,
+}) => {
+	await open(page);
+	await search(page).fill('bold');
+	const list = bar(page).getByRole('listbox');
+	await expect(list.getByRole('option', { name: /^Bold/u })).toBeVisible();
+	await expect(list.getByText('Find in Slides', { exact: false })).toBeVisible();
+	// Every binding offers the same rows for the same query.
+	const rows = await list.getByRole('option').allInnerTexts();
+	expect(rows.length).toBeGreaterThan(0);
+	await page.keyboard.press('Escape');
+});
+
 test('the quickAccessToolbar panel customization removes the strip', async ({ page }) => {
 	const customization = { hiddenPanels: ['quickAccessToolbar'] };
 	await open(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);

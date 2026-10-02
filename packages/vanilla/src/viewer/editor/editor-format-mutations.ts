@@ -126,7 +126,7 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 }
 
 /** Apply `patch` to the element `textStyle` and to every run style. */
-function patchTextStyle(el: PptxElement, patch: Partial<TextStyle>): Partial<PptxElement> {
+export function patchTextStyle(el: PptxElement, patch: Partial<TextStyle>): Partial<PptxElement> {
 	if (!canFormatText(el)) {
 		return {};
 	}
