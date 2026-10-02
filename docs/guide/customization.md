@@ -539,7 +539,10 @@ unit test fails if an id is missing here.
 | `tableDesign.tableStyles`           | Table Styles             |
 | `chartDesign.chartLayouts`          | Chart Layouts            |
 | `chartDesign.chartStyles`           | Chart Styles             |
+| `smartArtDesign.createGraphic`      | Create Graphic           |
+| `smartArtDesign.layouts`            | Layouts                  |
 | `smartArtDesign.smartArtStyles`     | SmartArt Styles          |
+| `smartArtDesign.reset`              | Reset                    |
 
 ### Ribbon controls (`ribbon.hiddenButtons`)
 
@@ -723,8 +726,19 @@ unit test fails if an id is missing here.
 | `chartDesign.chartLayouts.quickLayout`            | Quick Layout gallery                |
 | `chartDesign.chartStyles.changeColors`            | Change Colors gallery               |
 | `chartDesign.chartStyles.gallery`                 | Chart Styles gallery                |
+| `smartArtDesign.createGraphic.addShape`           | Add Shape                           |
+| `smartArtDesign.createGraphic.addBullet`          | Add Bullet                          |
+| `smartArtDesign.createGraphic.textPane`           | Text Pane                           |
+| `smartArtDesign.createGraphic.promote`            | Promote                             |
+| `smartArtDesign.createGraphic.demote`             | Demote                              |
+| `smartArtDesign.createGraphic.rightToLeft`        | Right to Left                       |
+| `smartArtDesign.createGraphic.moveUp`             | Move Up                             |
+| `smartArtDesign.createGraphic.moveDown`           | Move Down                           |
+| `smartArtDesign.layouts.gallery`                  | Layouts gallery                     |
 | `smartArtDesign.smartArtStyles.changeColors`      | Change Colors gallery               |
 | `smartArtDesign.smartArtStyles.gallery`           | SmartArt Styles gallery             |
+| `smartArtDesign.reset.resetGraphic`               | Reset Graphic                       |
+| `smartArtDesign.reset.convert`                    | Convert                             |
 
 ### Toolbar buttons (`ribbon.hiddenButtons`)
 
