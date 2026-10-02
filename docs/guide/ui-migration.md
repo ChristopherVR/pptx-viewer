@@ -1098,7 +1098,7 @@ Legend: **M** migrated, **N** kept native, **-** the binding has no such dialog.
 
 Tests: shared (`chrome-controls`) covers the new action fields; each binding's
 adapter and dialog tests find footer buttons through the open shadow root
-(`dialog-footer.test-support`); `e2e/dialog-footers-migration.spec.ts` opens ten
+(`dialog-footer.test-support`); `e2e/dialog-footers-migration.spec.ts` opens nine
 dialogs in every binding and checks the footer element, the primary action last,
-Escape and Enter on a focused Cancel. Before and after captures are in
+Escape (which leaves the footer intact) and Enter on a focused Cancel. Escape itself is the shell's and is not uniform: React Print, Hyperlink, Set Up Slide Show and Document Properties, the same Svelte dialogs, and the Vanilla Document Properties and Password dialogs have no Escape handler (pre-existing, unchanged by this work, tracked as a follow-up). Before and after captures are in
 `docs/public/assets/ui-migration/dialog-footers/`.
