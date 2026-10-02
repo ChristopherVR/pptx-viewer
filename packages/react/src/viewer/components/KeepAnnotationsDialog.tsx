@@ -5,7 +5,9 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuPenTool, LuTrash2 } from 'react-icons/lu';
+import { LuPenTool } from 'react-icons/lu';
+
+import { DialogFooter } from './DialogFooter';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -61,23 +63,23 @@ export function KeepAnnotationsDialog({
 				</div>
 
 				{/* Actions */}
-				<div className='flex justify-end gap-2 mt-6'>
-					<button
-						type='button'
-						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-accent transition-colors'
-						onClick={onDiscard}
-					>
-						<LuTrash2 className='w-4 h-4' />
-						{t('pptx.presentation.discardAnnotations')}
-					</button>
-					<button
-						type='button'
-						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors'
-						onClick={onKeep}
-					>
-						<LuPenTool className='w-4 h-4' />
-						{t('pptx.presentation.keepAnnotations')}
-					</button>
+				<div className='mt-6'>
+					<DialogFooter
+						actions={[
+							{
+								id: 'discard',
+								label: t('pptx.presentation.discardAnnotations'),
+								icon: 'trash',
+							},
+							{
+								id: 'keep',
+								label: t('pptx.presentation.keepAnnotations'),
+								variant: 'primary',
+								icon: 'pen',
+							},
+						]}
+						onAction={(id) => (id === 'keep' ? onKeep() : onDiscard())}
+					/>
 				</div>
 			</div>
 		</div>

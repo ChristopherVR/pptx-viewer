@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ReadOnlyBanner from './ReadOnlyBanner.svelte';
 
+/** The banner renders inside the shared element's open shadow root. */
+const inner = (target: HTMLElement, selector: string): HTMLElement | null =>
+	target
+		.querySelector('pptx-ui-read-only-banner')
+		?.shadowRoot?.querySelector<HTMLElement>(selector) ?? null;
+const visible = (target: HTMLElement, selector: string): boolean =>
+	inner(target, selector)?.hidden === false;
+
 let cleanup: (() => void) | undefined;
 afterEach(() => {
 	cleanup?.();
@@ -47,12 +55,10 @@ describe('readOnlyBanner', () => {
 		expect(banner).not.toBeNull();
 		expect(banner?.getAttribute('data-kind')).toBe('modifyVerifier');
 
-		(
-			target.querySelector('[data-testid="pptx-readonly-edit-anyway"]') as HTMLButtonElement
-		).click();
+		(inner(target, '[data-testid="pptx-readonly-edit-anyway"]') as HTMLButtonElement).click();
 		expect(oneditanyway).toHaveBeenCalledOnce();
 
-		(target.querySelector('[data-testid="pptx-readonly-dismiss"]') as HTMLButtonElement).click();
+		(inner(target, '[data-testid="pptx-readonly-dismiss"]') as HTMLButtonElement).click();
 		expect(ondismiss).toHaveBeenCalledOnce();
 	});
 
@@ -82,10 +88,11 @@ describe('readOnlyBanner', () => {
 
 		it('renders the password form instead of the two buttons when open', () => {
 			const target = mountBanner({ passwordpromptopen: true });
-			expect(target.querySelector('[data-testid="pptx-readonly-password-form"]')).not.toBeNull();
-			expect(target.querySelector('[data-testid="pptx-readonly-edit-anyway"]')).toBeNull();
-			expect(target.querySelector('[data-testid="pptx-readonly-dismiss"]')).toBeNull();
-			const input = target.querySelector(
+			expect(visible(target, '[data-testid="pptx-readonly-password-form"]')).toBeTruthy();
+			expect(visible(target, '[data-testid="pptx-readonly-edit-anyway"]')).toBeFalsy();
+			expect(visible(target, '[data-testid="pptx-readonly-dismiss"]')).toBeFalsy();
+			const input = inner(
+				target,
 				'[data-testid="pptx-readonly-password-input"]',
 			) as HTMLInputElement;
 			expect(input.type).toBe('password');
@@ -95,37 +102,33 @@ describe('readOnlyBanner', () => {
 		it('submits the typed password when "Unlock" is clicked', () => {
 			const onsubmitpassword = vi.fn();
 			const target = mountBanner({ passwordpromptopen: true, onsubmitpassword });
-			const input = target.querySelector(
+			const input = inner(
+				target,
 				'[data-testid="pptx-readonly-password-input"]',
 			) as HTMLInputElement;
-			const nativeSetter = Object.getOwnPropertyDescriptor(
-				window.HTMLInputElement.prototype,
-				'value',
-			)?.set;
-			nativeSetter?.call(input, 'secret');
-			input.dispatchEvent(new Event('input', { bubbles: true }));
-			flushSync();
-			(target.querySelector('[data-testid="pptx-readonly-unlock"]') as HTMLButtonElement).click();
+			input.value = 'secret';
+			(
+				inner(target, '[data-testid="pptx-readonly-password-form"]') as HTMLFormElement
+			).dispatchEvent(new Event('submit', { cancelable: true }));
 			expect(onsubmitpassword).toHaveBeenCalledWith('secret');
 		});
 
 		it('calls oncancelpassword when "Cancel" is clicked', () => {
 			const oncancelpassword = vi.fn();
 			const target = mountBanner({ passwordpromptopen: true, oncancelpassword });
-			(
-				target.querySelector('[data-testid="pptx-readonly-password-cancel"]') as HTMLButtonElement
-			).click();
+			(inner(target, '[data-testid="pptx-readonly-password-cancel"]') as HTMLButtonElement).click();
 			expect(oncancelpassword).toHaveBeenCalledOnce();
 		});
 
 		it('marks the input aria-invalid and shows the error text on wrong-password', () => {
 			const target = mountBanner({ passwordpromptopen: true, passworderror: 'wrong-password' });
-			const input = target.querySelector(
+			const input = inner(
+				target,
 				'[data-testid="pptx-readonly-password-input"]',
 			) as HTMLInputElement;
 			expect(input.getAttribute('aria-invalid')).toBe('true');
-			const error = target.querySelector('[data-testid="pptx-readonly-password-error"]');
-			expect(error).not.toBeNull();
+			const error = inner(target, '[data-testid="pptx-readonly-password-error"]');
+			expect(visible(target, '[data-testid="pptx-readonly-password-error"]')).toBeTruthy();
 			expect(error?.getAttribute('role')).toBe('alert');
 		});
 	});

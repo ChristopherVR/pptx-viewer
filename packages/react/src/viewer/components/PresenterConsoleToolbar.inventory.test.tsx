@@ -56,6 +56,10 @@ const BASE_SNAPSHOT: PresentationSnapshot = {
 	elapsedMs: 0,
 };
 
+/** The strip renders inside the shared element's open shadow root. */
+const strip = (): ParentNode =>
+	container.querySelector('pptx-ui-presenter-console')?.shadowRoot ?? container;
+
 function renderConsole(overrides: Record<string, unknown> = {}): void {
 	act(() => {
 		root.render(
@@ -80,13 +84,13 @@ function renderConsole(overrides: Record<string, unknown> = {}): void {
 }
 
 function controlIds(): (string | null)[] {
-	return [...container.querySelectorAll('[data-pptx-presenter-control]')].map((node) =>
+	return [...strip().querySelectorAll('[data-pptx-presenter-control]')].map((node) =>
 		node.getAttribute('data-pptx-presenter-control'),
 	);
 }
 
 function slot(id: string): HTMLElement | null {
-	return container.querySelector<HTMLElement>(`[data-pptx-presenter-control="${id}"]`);
+	return strip().querySelector<HTMLElement>(`[data-pptx-presenter-control="${id}"]`);
 }
 
 function nameOf(id: string): string | null {

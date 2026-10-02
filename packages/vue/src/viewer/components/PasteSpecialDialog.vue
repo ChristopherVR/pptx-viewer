@@ -12,6 +12,7 @@ import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 const { t } = useI18n();
@@ -56,20 +57,13 @@ watch(
 		</ul>
 
 		<template #footer>
-			<button
-				type="button"
-				class="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-				@click="emit('cancel')"
-			>
-				{{ t('pptx.common.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-				@click="emit('confirm', selected)"
-			>
-				{{ t('pptx.common.ok') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.common.cancel') },
+					{ id: 'ok', label: t('pptx.common.ok'), variant: 'primary' },
+				]"
+				@action="(id) => (id === 'ok' ? emit('confirm', selected) : emit('cancel'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

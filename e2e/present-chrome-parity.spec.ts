@@ -68,7 +68,14 @@ async function startShow(page: Page, origin: string): Promise<void> {
 async function probeToolbar(page: Page): Promise<ToolbarProbe> {
 	return page.evaluate(() => {
 		const bar = document.querySelector('[data-pptx-present-toolbar]');
-		const controls = [...document.querySelectorAll('[data-pptx-present-control]')];
+		// The shared toolbar renders its controls inside an open shadow root.
+		const deepAll = (selector: string, root: ParentNode = document): Element[] => [
+			...root.querySelectorAll(selector),
+			...[...root.querySelectorAll('*')].flatMap((node) =>
+				node.shadowRoot ? deepAll(selector, node.shadowRoot) : [],
+			),
+		];
+		const controls = deepAll('[data-pptx-present-control]');
 		const names: Record<string, string> = {};
 		const boxes: Record<string, { width: number; height: number }> = {};
 		const ids: string[] = [];

@@ -21,6 +21,10 @@ afterEach(() => {
 	container.remove();
 });
 
+/** The toast stack renders inside the shared element's open shadow root. */
+const inner = (selector: string) =>
+	container.querySelector('pptx-ui-compat-toasts')?.shadowRoot?.querySelector(selector) ?? null;
+
 const toasts: CompatibilityWarningToast[] = [
 	{
 		id: 'UNMODELLED_SLIDE_MARKUP',
@@ -46,7 +50,7 @@ describe('compatibilityToasts', () => {
 		);
 		const stack = container.querySelector('[data-testid="pptx-compat-toasts"]');
 		expect(stack).not.toBeNull();
-		const toast = container.querySelector('[data-testid="pptx-compat-toast"]');
+		const toast = inner('[data-testid="pptx-compat-toast"]');
 		expect(toast?.getAttribute('data-code')).toBe('UNMODELLED_SLIDE_MARKUP');
 		expect(toast?.getAttribute('data-severity')).toBe('warning');
 	});
@@ -58,9 +62,7 @@ describe('compatibilityToasts', () => {
 				<CompatibilityToasts toasts={toasts} onDismiss={onDismiss} onDismissAll={() => {}} />,
 			),
 		);
-		const button = container.querySelector(
-			'[data-testid="pptx-compat-toast-dismiss"]',
-		) as HTMLButtonElement;
+		const button = inner('[data-testid="pptx-compat-toast-dismiss"]') as HTMLButtonElement;
 		act(() => button.click());
 		expect(onDismiss).toHaveBeenCalledWith('UNMODELLED_SLIDE_MARKUP');
 	});
@@ -72,9 +74,7 @@ describe('compatibilityToasts', () => {
 				<CompatibilityToasts toasts={toasts} onDismiss={() => {}} onDismissAll={onDismissAll} />,
 			),
 		);
-		const button = container.querySelector(
-			'[data-testid="pptx-compat-toasts-dismiss-all"]',
-		) as HTMLButtonElement;
+		const button = inner('[data-testid="pptx-compat-toasts-dismiss-all"]') as HTMLButtonElement;
 		expect(button).not.toBeNull();
 		act(() => button.click());
 		expect(onDismissAll).toHaveBeenCalledOnce();

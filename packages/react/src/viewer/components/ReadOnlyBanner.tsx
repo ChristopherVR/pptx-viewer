@@ -1,7 +1,11 @@
-import type { ReadOnlyRecommendation } from 'pptx-viewer-shared';
-import { useId, useState } from 'react';
-import type { FormEvent } from 'react';
+import type {
+	PptxUiReadOnlyBannerElement,
+	ReadOnlyBannerIntent,
+	ReadOnlyRecommendation,
+} from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
+
+import { useWebControl } from '../hooks/useWebControl';
 
 /** Why the last password attempt failed; see `checkModifyPassword` (`pptx-viewer-shared`). */
 export type ModifyPasswordErrorReason = 'wrong-password' | 'unsupported-algorithm';
@@ -17,6 +21,10 @@ export type ModifyPasswordErrorReason = 'wrong-password' | 'unsupported-algorith
  * inline password prompt instead of unlocking immediately: PowerPoint's own
  * "read-only recommended" file keeps the deck locked until the correct
  * password is entered, and a wrong one leaves it locked.
+ *
+ * A thin adapter around the shared `pptx-ui-read-only-banner`: the markup, the
+ * password form and its focus live in the element; this maps state and routes
+ * its `read-only-request` intents to the callbacks.
  */
 export interface ReadOnlyBannerProps {
 	recommendation: ReadOnlyRecommendation;
@@ -32,107 +40,35 @@ export interface ReadOnlyBannerProps {
 	onCancelPassword?: () => void;
 }
 
-export function ReadOnlyBanner({
-	recommendation,
-	onEditAnyway,
-	onDismiss,
-	passwordPromptOpen = false,
-	passwordError = null,
-	checkingPassword = false,
-	onSubmitPassword,
-	onCancelPassword,
-}: ReadOnlyBannerProps) {
+export function ReadOnlyBanner(p: ReadOnlyBannerProps) {
 	const { t } = useTranslation();
-	const [password, setPassword] = useState('');
-	const inputId = useId();
-	const errorId = useId();
-
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		onSubmitPassword?.(password);
-	};
-
-	return (
-		<div
-			data-testid='pptx-readonly-banner'
-			data-kind={recommendation.kind ?? undefined}
-			className='flex items-center gap-3 px-3 py-1.5 bg-amber-600/10 border-b border-amber-600/30 text-[12px] text-amber-900 dark:text-amber-200'
-		>
-			<span className='flex-1 min-w-0'>{t(recommendation.messageKey)}</span>
-			{passwordPromptOpen ? (
-				<form
-					data-testid='pptx-readonly-password-form'
-					onSubmit={handleSubmit}
-					className='flex shrink-0 items-center gap-2'
-				>
-					<label htmlFor={inputId} className='sr-only'>
-						{t('pptx.readOnly.passwordLabel')}
-					</label>
-					<input
-						id={inputId}
-						data-testid='pptx-readonly-password-input'
-						type='password'
-						autoFocus
-						value={password}
-						disabled={checkingPassword}
-						onChange={(event) => setPassword(event.target.value)}
-						placeholder={t('pptx.readOnly.passwordPlaceholder')}
-						aria-invalid={passwordError !== null}
-						aria-describedby={passwordError !== null ? errorId : undefined}
-						className='rounded-sm border border-amber-600/40 bg-white/80 px-1.5 py-0.5 text-[11px] text-amber-950 dark:bg-black/20 dark:text-amber-100'
-					/>
-					<button
-						type='submit'
-						data-testid='pptx-readonly-unlock'
-						disabled={checkingPassword}
-						className='shrink-0 rounded-sm bg-amber-600/90 px-2 py-0.5 text-[11px] text-amber-50 transition-colors hover:bg-amber-600 disabled:opacity-60'
-					>
-						{t('pptx.readOnly.unlock')}
-					</button>
-					<button
-						type='button'
-						data-testid='pptx-readonly-password-cancel'
-						onClick={onCancelPassword}
-						className='shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] text-amber-900/80 transition-colors hover:bg-amber-600/20 dark:text-amber-200/80'
-					>
-						{t('pptx.common.cancel')}
-					</button>
-					{passwordError !== null && (
-						<span
-							id={errorId}
-							role='alert'
-							data-testid='pptx-readonly-password-error'
-							className='shrink-0 text-[11px] text-red-700 dark:text-red-300'
-						>
-							{t(
-								passwordError === 'wrong-password'
-									? 'pptx.readOnly.wrongPassword'
-									: 'pptx.readOnly.unsupportedAlgorithm',
-							)}
-						</span>
-					)}
-				</form>
-			) : (
-				<>
-					<button
-						type='button'
-						data-testid='pptx-readonly-edit-anyway'
-						onClick={onEditAnyway}
-						className='shrink-0 rounded-sm bg-amber-600/90 px-2 py-0.5 text-[11px] text-amber-50 transition-colors hover:bg-amber-600'
-					>
-						{t('pptx.readOnly.editAnyway')}
-					</button>
-					<button
-						type='button'
-						data-testid='pptx-readonly-dismiss'
-						onClick={onDismiss}
-						aria-label={t('pptx.readOnly.dismiss')}
-						className='shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] text-amber-900/80 transition-colors hover:bg-amber-600/20 dark:text-amber-200/80'
-					>
-						{t('pptx.readOnly.dismiss')}
-					</button>
-				</>
-			)}
-		</div>
+	const ref = useWebControl<PptxUiReadOnlyBannerElement>(
+		{
+			kind: p.recommendation.kind ?? null,
+			messageKey: p.recommendation.messageKey,
+			passwordPromptOpen: p.passwordPromptOpen ?? false,
+			passwordError: p.passwordError ?? null,
+			checkingPassword: p.checkingPassword ?? false,
+			translate: t,
+		},
+		{
+			'read-only-request': (event) => {
+				const intent = event.detail as ReadOnlyBannerIntent;
+				switch (intent.id) {
+					case 'editAnyway':
+						p.onEditAnyway();
+						break;
+					case 'dismiss':
+						p.onDismiss();
+						break;
+					case 'cancelPassword':
+						p.onCancelPassword?.();
+						break;
+					case 'submitPassword':
+						p.onSubmitPassword?.(intent.password);
+				}
+			},
+		},
 	);
+	return <pptx-ui-read-only-banner ref={ref} />;
 }

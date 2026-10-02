@@ -16,13 +16,15 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import type { AutosaveRecoveryPrompt } from '../internal/shared';
+import { DialogFooterComponent } from './dialog-footer.component';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 
 @Component({
 	selector: 'pptx-autosave-recovery-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		@if (prompt(); as offer) {
 			<pptx-modal-dialog
@@ -44,22 +46,10 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				</div>
 
 				<div footer>
-					<button
-						type="button"
-						class="pptx-ng-recovery-btn"
-						[disabled]="discarding()"
-						(click)="discard.emit()"
-					>
-						{{ offer.discardKey | translate }}
-					</button>
-					<button
-						type="button"
-						class="pptx-ng-recovery-btn pptx-ng-recovery-btn-primary"
-						[disabled]="discarding()"
-						(click)="restore.emit()"
-					>
-						{{ offer.restoreKey | translate }}
-					</button>
+					<pptx-dialog-footer
+						[actions]="footerActions(offer)"
+						(action)="$event === 'restore' ? restore.emit() : discard.emit()"
+					/>
 				</div>
 			</pptx-modal-dialog>
 		}
@@ -101,40 +91,6 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				font-size: 0.6875rem;
 				color: var(--pptx-muted-foreground, #9ca3af);
 			}
-
-			.pptx-ng-recovery-btn {
-				display: inline-flex;
-				align-items: center;
-				gap: 0.375rem;
-				padding: 0.375rem 0.875rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				font-weight: 500;
-				cursor: pointer;
-				white-space: nowrap;
-			}
-
-			.pptx-ng-recovery-btn:hover {
-				background: var(--pptx-border, #374151);
-			}
-
-			.pptx-ng-recovery-btn:disabled {
-				cursor: not-allowed;
-				opacity: 0.55;
-			}
-
-			.pptx-ng-recovery-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-recovery-btn-primary:hover {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
@@ -151,6 +107,15 @@ export class AutosaveRecoveryDialogComponent {
 
 	/** The user declined (also on dismiss): drop the snapshot. */
 	readonly discard = output<void>();
+
+	/** Discard and Restore, both frozen while the snapshot delete is in flight. */
+	protected footerActions(offer: AutosaveRecoveryPrompt): readonly DialogFooterActionSpec[] {
+		const disabled = this.discarding();
+		return [
+			{ id: 'discard', labelKey: offer.discardKey, icon: 'trash', disabled },
+			{ id: 'restore', labelKey: offer.restoreKey, variant: 'primary', icon: 'restore', disabled },
+		];
+	}
 
 	/** "Autosaved 5 min ago", built from the two keys the descriptor names. */
 	protected readonly savedLabel = computed(() => {

@@ -21,6 +21,14 @@ afterEach(() => {
 	container.remove();
 });
 
+/** The banner renders inside the shared element's open shadow root. */
+const inner = (selector: string) =>
+	container.querySelector('pptx-ui-read-only-banner')?.shadowRoot?.querySelector(selector) ?? null;
+const visible = (selector: string) => {
+	const node = inner(selector) as HTMLElement | null;
+	return node !== null && !node.hidden;
+};
+
 const modifyVerifierRecommendation: ReadOnlyRecommendation = {
 	kind: 'modifyVerifier',
 	messageKey: 'pptx.readOnly.modifyVerifierRecommended',
@@ -55,9 +63,7 @@ describe('readOnlyBanner', () => {
 				/>,
 			),
 		);
-		const button = container.querySelector(
-			'[data-testid="pptx-readonly-edit-anyway"]',
-		) as HTMLButtonElement;
+		const button = inner('[data-testid="pptx-readonly-edit-anyway"]') as HTMLButtonElement;
 		act(() => button.click());
 		expect(onEditAnyway).toHaveBeenCalledOnce();
 	});
@@ -73,9 +79,7 @@ describe('readOnlyBanner', () => {
 				/>,
 			),
 		);
-		const button = container.querySelector(
-			'[data-testid="pptx-readonly-dismiss"]',
-		) as HTMLButtonElement;
+		const button = inner('[data-testid="pptx-readonly-dismiss"]') as HTMLButtonElement;
 		act(() => button.click());
 		expect(onDismiss).toHaveBeenCalledOnce();
 	});
@@ -94,12 +98,10 @@ describe('readOnlyBanner', () => {
 					/>,
 				),
 			);
-			expect(container.querySelector('[data-testid="pptx-readonly-password-form"]')).not.toBeNull();
-			expect(container.querySelector('[data-testid="pptx-readonly-edit-anyway"]')).toBeNull();
-			expect(container.querySelector('[data-testid="pptx-readonly-dismiss"]')).toBeNull();
-			const input = container.querySelector(
-				'[data-testid="pptx-readonly-password-input"]',
-			) as HTMLInputElement;
+			expect(visible('[data-testid="pptx-readonly-password-form"]')).toBeTruthy();
+			expect(visible('[data-testid="pptx-readonly-edit-anyway"]')).toBeFalsy();
+			expect(visible('[data-testid="pptx-readonly-dismiss"]')).toBeFalsy();
+			const input = inner('[data-testid="pptx-readonly-password-input"]') as HTMLInputElement;
 			expect(input.type).toBe('password');
 			expect(input.getAttribute('aria-invalid')).toBe('false');
 		});
@@ -118,21 +120,12 @@ describe('readOnlyBanner', () => {
 					/>,
 				),
 			);
-			const input = container.querySelector(
-				'[data-testid="pptx-readonly-password-input"]',
-			) as HTMLInputElement;
-			const nativeSetter = Object.getOwnPropertyDescriptor(
-				window.HTMLInputElement.prototype,
-				'value',
-			)?.set;
+			const input = inner('[data-testid="pptx-readonly-password-input"]') as HTMLInputElement;
+			input.value = 'secret';
+			const form = inner('[data-testid="pptx-readonly-password-form"]') as HTMLFormElement;
 			act(() => {
-				nativeSetter?.call(input, 'secret');
-				input.dispatchEvent(new Event('input', { bubbles: true }));
+				form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 			});
-			const unlockButton = container.querySelector(
-				'[data-testid="pptx-readonly-unlock"]',
-			) as HTMLButtonElement;
-			act(() => unlockButton.click());
 			expect(onSubmitPassword).toHaveBeenCalledWith('secret');
 		});
 
@@ -150,7 +143,7 @@ describe('readOnlyBanner', () => {
 					/>,
 				),
 			);
-			const cancelButton = container.querySelector(
+			const cancelButton = inner(
 				'[data-testid="pptx-readonly-password-cancel"]',
 			) as HTMLButtonElement;
 			act(() => cancelButton.click());
@@ -171,12 +164,10 @@ describe('readOnlyBanner', () => {
 					/>,
 				),
 			);
-			const input = container.querySelector(
-				'[data-testid="pptx-readonly-password-input"]',
-			) as HTMLInputElement;
+			const input = inner('[data-testid="pptx-readonly-password-input"]') as HTMLInputElement;
 			expect(input.getAttribute('aria-invalid')).toBe('true');
-			const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
-			expect(error).not.toBeNull();
+			const error = inner('[data-testid="pptx-readonly-password-error"]');
+			expect(visible('[data-testid="pptx-readonly-password-error"]')).toBeTruthy();
 			expect(error?.getAttribute('role')).toBe('alert');
 		});
 	});

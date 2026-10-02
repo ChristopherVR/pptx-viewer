@@ -1203,6 +1203,8 @@ export * from './presentation-context-menu';
 // The `present-chrome` counterpart for the console rather than the show bar.
 export * from './presenter-chrome';
 export * from './presenter-chrome-metrics';
+// The show toolbar / presenter console view states behind the shared elements.
+export * from './present-controls-state';
 // Presenter-view lifecycle: the one-shot latch that stops the audience popup's
 // fullscreen bounce being mistaken for the presenter ending the show.
 export * from './presenter-show-lifecycle';
@@ -1259,6 +1261,7 @@ export * from './context-menu-inspector-anchor';
 // Paste Special (Ctrl+Alt+V) and the post-paste Paste Options toolbar: the
 // four paste formats and the pure element transforms behind them.
 export * from './paste-special';
+export * from './chrome-controls-state';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';

@@ -26,6 +26,30 @@ function setup(): {
 }
 
 describe('activateModalFocus', () => {
+	it('includes buttons rendered inside open shadow roots in the Tab cycle', async () => {
+		const { panel, controls } = setup();
+		const host = document.createElement('div');
+		const inner = document.createElement('button');
+		host.attachShadow({ mode: 'open' }).append(inner);
+		panel.append(host);
+		const release = activateModalFocus(panel);
+		await Promise.resolve();
+		controls[1].focus();
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+		// The shadow button is the last stop, so Tab from it wraps; from the
+		// previous control the browser moves into it, so the trap must not wrap early.
+		expect(document.activeElement).toBe(controls[1]);
+		inner.focus();
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+		expect(document.activeElement).toBe(controls[0]);
+		controls[0].focus();
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }),
+		);
+		expect(host.shadowRoot!.activeElement).toBe(inner);
+		release();
+	});
+
 	it('restores an opener inside nested open shadow roots', async () => {
 		const { panel } = setup();
 		const host = document.createElement('div');

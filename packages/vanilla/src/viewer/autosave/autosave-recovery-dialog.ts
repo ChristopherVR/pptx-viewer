@@ -1,6 +1,7 @@
 import type { AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
+import { appendDialogFooter } from '../ui/dialog-footer';
 
 /**
  * The crash-recovery prompt.
@@ -65,16 +66,10 @@ export function openAutosaveRecoveryDialog(
 
 		const footer = doc.createElement('footer');
 		footer.className = 'pptxv-parity-footer';
-		const discard = doc.createElement('button');
-		discard.type = 'button';
-		discard.textContent = t(prompt.discardKey);
-		discard.setAttribute('aria-label', t(prompt.discardKey));
-		const restore = doc.createElement('button');
-		restore.type = 'button';
-		restore.className = 'is-primary';
-		restore.textContent = t(prompt.restoreKey);
-		restore.setAttribute('aria-label', t(prompt.restoreKey));
-		footer.append(discard, restore);
+		const footerActions = (disabled: boolean) => [
+			{ id: 'discard', label: t(prompt.discardKey), disabled },
+			{ id: 'restore', label: t(prompt.restoreKey), variant: 'primary' as const, disabled },
+		];
 
 		const finish = (choice: AutosaveRecoveryChoice): void => {
 			if (settled) {
@@ -90,14 +85,13 @@ export function openAutosaveRecoveryDialog(
 				finish('dismiss');
 			}
 		};
-		discard.addEventListener('click', () => {
+		const discardSnapshot = (): void => {
 			if (busy) {
 				return;
 			}
 			busy = true;
 			dialog.setAttribute('aria-busy', 'true');
-			discard.disabled = true;
-			restore.disabled = true;
+			actions.state = { actions: footerActions(true) };
 			void (async () => {
 				try {
 					await onDiscard?.();
@@ -105,14 +99,17 @@ export function openAutosaveRecoveryDialog(
 				} catch {
 					busy = false;
 					dialog.removeAttribute('aria-busy');
-					discard.disabled = false;
-					restore.disabled = false;
+					actions.state = { actions: footerActions(false) };
 				}
 			})();
-		});
-		restore.addEventListener('click', () => {
-			if (!busy) {
-				finish('restore');
+		};
+		const actions = appendDialogFooter(doc, footer, footerActions(false), (id) => {
+			if (id === 'restore') {
+				if (!busy) {
+					finish('restore');
+				}
+			} else {
+				discardSnapshot();
 			}
 		});
 		doc.addEventListener('keydown', onKeyDown);
@@ -120,6 +117,6 @@ export function openAutosaveRecoveryDialog(
 		dialog.append(header, body, footer);
 		backdrop.append(dialog);
 		doc.body.append(backdrop);
-		queueMicrotask(() => restore.focus());
+		queueMicrotask(() => actions.focusAction('restore'));
 	});
 }
