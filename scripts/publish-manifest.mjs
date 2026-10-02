@@ -112,7 +112,7 @@ export function assertNoWorkspaceRanges(manifest, label = manifest.name ?? 'mani
 
 /**
  * Throw if a runtime dependency is a development-only `file:` link, as `pptx-viewer-core` has to
- * the unpublished sibling `@christophervr/ooxml-core`. Publish that package and replace the
+ * the unpublished sibling `ooxml-core`. Publish that package and replace the
  * range with a registry range first. Applied when writing the manifest that actually ships.
  */
 export function assertNoFileRanges(manifest, label = manifest.name ?? 'manifest') {

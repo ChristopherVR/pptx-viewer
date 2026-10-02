@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import * as ooxmlCore from '@christophervr/ooxml-core/pptx';
-import * as ooxmlConverter from '@christophervr/ooxml-core/pptx/converter';
-import * as ooxmlSignatureNode from '@christophervr/ooxml-core/pptx/signature-node';
+import * as ooxmlCore from 'ooxml-core/pptx';
+import * as ooxmlConverter from 'ooxml-core/pptx/converter';
+import * as ooxmlSignatureNode from 'ooxml-core/pptx/signature-node';
 import { describe, expect, it } from 'vitest';
 
 import * as converter from './converter';
@@ -16,10 +16,7 @@ const manifest = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 
 	bin: Record<string, string>;
 };
 const ooxmlManifest = JSON.parse(
-	readFileSync(
-		resolve(__dirname, '../node_modules/@christophervr/ooxml-core/package.json'),
-		'utf8',
-	),
+	readFileSync(resolve(__dirname, '../node_modules/ooxml-core/package.json'), 'utf8'),
 ) as { exports: Record<string, unknown> };
 
 describe('pptx-viewer-core is a thin entry point over ooxml-core/pptx', () => {
@@ -53,6 +50,6 @@ describe('pptx-viewer-core is a thin entry point over ooxml-core/pptx', () => {
 	});
 
 	it('depends on nothing but ooxml-core', () => {
-		expect(Object.keys(manifest.dependencies)).toStrictEqual(['@christophervr/ooxml-core']);
+		expect(Object.keys(manifest.dependencies)).toStrictEqual(['ooxml-core']);
 	});
 });

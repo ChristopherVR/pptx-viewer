@@ -77,7 +77,7 @@ maintainer's machine, so `../<name>` from here):
 | Repository (sibling path) | npm package                         | Owns                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pptx-viewer` (this one)  | `pptx-*-viewer`, `pptx-viewer-core` | The five bindings, the internal `shared` view logic, locales, MCP tools, installer, demos, e2e, docs site. `packages/core` is only a thin public entry point.                                                                                                                                                                                                                                      |
-| `../ooxml-core`           | `@christophervr/ooxml-core`         | **All OOXML logic.** The PowerPoint engine (parse, edit, serialize, theme resolution, geometry, charts, SmartArt, animation model, converter, CLI, signatures) lives in its `src/pptx/` area. Shared areas: `units`, `color`, `geometry`, `xml`, `opc`, `diagram`, `docx`. Its own `AGENTS.md` has the rules (pptx area uses relaxed TS flags, provenance, release flow).                          |
+| `../ooxml-core`           | `ooxml-core`                        | **All OOXML logic.** The PowerPoint engine (parse, edit, serialize, theme resolution, geometry, charts, SmartArt, animation model, converter, CLI, signatures) lives in its `src/pptx/` area. Shared areas: `units`, `color`, `geometry`, `xml`, `opc`, `diagram`, `docx`. Its own `AGENTS.md` has the rules (pptx area uses relaxed TS flags, provenance, release flow).                          |
 | `../ole2`                 | `@christophervr/ole2`               | **Legacy binary formats.** MS-CFB / OLE2 compound files (`ole2-parser-*`, `ole2-stream-edit`), Word 97-2003 `.doc` (`ole-document-doc-*`), Excel BIFF8 (`legacy-excel-*`), legacy PowerPoint `.ppt` record stream, RC4 CryptoAPI and the `.ppt` writer (`src/ppt/`, `src/ppt/writer/`), Publisher/Visio inspection, summary properties, plus shared digests, RC4 and a PNG encoder (`src/utils/`). |
 | `../emf-converter`        | `emf-converter`                     | EMF/WMF metafile rendering to PNG/SVG.                                                                                                                                                                                                                                                                                                                                                             |
 | `../mtx-decompressor`     | `mtx-decompressor`                  | MicroType Express (embedded EOT font) decompression.                                                                                                                                                                                                                                                                                                                                               |
@@ -86,8 +86,8 @@ maintainer's machine, so `../<name>` from here):
 How they connect:
 
 - `packages/core` (`pptx-viewer-core`) depends on the **published**
-  `@christophervr/ooxml-core` (`^0.1.0`) and re-exports
-  `@christophervr/ooxml-core/pptx` (plus `/pptx/converter`, `/pptx/cli`,
+  `ooxml-core` (`^0.1.0`) and re-exports
+  `ooxml-core/pptx` (plus `/pptx/converter`, `/pptx/cli`,
   `/pptx/signature-node`). Its `src/` holds four entry files and an
   entry-point contract test, nothing else.
 - `ooxml-core` depends on `emf-converter`, `mtx-decompressor`, `jszip` and
@@ -127,7 +127,7 @@ the sibling repo, release it through its own pipeline, then bump the range in
 To try engine changes before they are published: build `../ooxml-core`
 (`bun install && bun run build`; it needs `../ole2` only through its pinned npm
 version), switch `packages/core/package.json` to
-`"@christophervr/ooxml-core": "file:../../../ooxml-core"`, and run
+`"ooxml-core": "file:../../../ooxml-core"`, and run
 `bun install --force` here (again after every ooxml-core rebuild). **Restore the
 `^x.y.z` range before committing**; `scripts/publish-manifest.mjs` refuses a
 `file:` runtime dependency. `packages/core` keeps `jszip`, `fast-xml-parser` and
@@ -138,7 +138,7 @@ from core's scope) and Vite's dev pre-bundle of the Angular demo still find them
 
 ```
 packages/
-  core/             pptx-viewer-core     - Thin entry point re-exporting @christophervr/ooxml-core/pptx
+  core/             pptx-viewer-core     - Thin entry point re-exporting ooxml-core/pptx
   shared/           pptx-viewer-shared   - Framework-agnostic viewer logic (INTERNAL, bundled into each binding, never published)
     src/render/       decision functions + descriptors every binding maps onto its view layer
     src/i18n/         canonical English dictionary (translations-en.ts)
@@ -226,7 +226,7 @@ difference decides whether your edit is live on reload or needs a build first.
 | `pptx-viewer-mcp`             | **`dist`** | **`dist`** | **`dist`**   | **`dist`** | **`dist`** |
 
 `pptx-viewer-core` "source" is only the thin entry file: the engine behind it
-always comes from the installed `@christophervr/ooxml-core` `dist` in
+always comes from the installed `ooxml-core` `dist` in
 `node_modules`, so an engine edit in `../ooxml-core` is invisible to every demo
 until you rebuild it and reinstall (see
 [Working against a local ooxml-core](#working-against-a-local-ooxml-core)).

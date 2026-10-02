@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const core = join(root, 'packages/core');
-// The engine is the published @christophervr/ooxml-core, installed from the registry; its own
+// The engine is the published ooxml-core, installed from the registry; its own
 // package smoke test covers the engine tarball.
 const consumer = await mkdtemp(join(tmpdir(), 'pptx-core-consumer-'));
 const npmCli =

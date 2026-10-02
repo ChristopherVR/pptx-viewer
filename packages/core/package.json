@@ -1,7 +1,7 @@
 {
 	"name": "pptx-viewer-core",
 	"version": "4.9.3",
-	"description": "pptx-viewer core engine: parse, edit, serialize, and convert PowerPoint .pptx files. Framework-agnostic TypeScript SDK (thin entry point over @christophervr/ooxml-core/pptx).",
+	"description": "pptx-viewer core engine: parse, edit, serialize, and convert PowerPoint .pptx files. Framework-agnostic TypeScript SDK (thin entry point over ooxml-core/pptx).",
 	"keywords": [
 		"angular",
 		"converter",
@@ -75,7 +75,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"@christophervr/ooxml-core": "^0.1.0"
+		"ooxml-core": "^0.2.0"
 	},
 	"devDependencies": {
 		"@napi-rs/canvas": "^1.0.9",
