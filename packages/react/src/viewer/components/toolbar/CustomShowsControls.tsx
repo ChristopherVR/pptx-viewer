@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebSelect } from '../WebControls';
 import { sep } from './toolbar-constants';
 import type { ToolbarProps } from './toolbar-types';
 
@@ -34,10 +35,10 @@ export function CustomShowsControls({
 		return (
 			<>
 				{sep}
-				<select
+				<WebSelect
 					value={activeCustomShowId ?? ''}
 					onChange={(e) => onSetActiveCustomShowId(e.target.value || null)}
-					className='h-6 px-1.5 text-[11px] rounded bg-muted text-foreground border border-border hover:bg-accent transition-colors cursor-pointer'
+					className='text-[11px]'
 					title={t('pptx.customShows.customShowTooltip')}
 					aria-label={t('pptx.customShows.selectCustomShow')}
 				>
@@ -47,7 +48,7 @@ export function CustomShowsControls({
 							{cs.name}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 				{canEdit && (
 					<>
 						<button

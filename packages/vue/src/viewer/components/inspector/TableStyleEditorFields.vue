@@ -68,7 +68,6 @@ function borderSide(descriptor: TableStyleEditorDescriptor, side: TableStyleBord
 				/>
 				<label class="flex items-center gap-1">
 					<pptx-ui-checkbox
-						type="checkbox"
 						:disabled="!canEdit"
 						:checked="descriptor.fill.noFill"
 						@change="
@@ -190,7 +189,6 @@ function borderSide(descriptor: TableStyleEditorDescriptor, side: TableStyleBord
 					</pptx-ui-select>
 					<label class="flex items-center gap-1 shrink-0">
 						<pptx-ui-checkbox
-							type="checkbox"
 							:disabled="!canEdit"
 							:checked="borderSide(descriptor, side).noFill"
 							@change="

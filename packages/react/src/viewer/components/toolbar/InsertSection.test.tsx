@@ -90,7 +90,7 @@ describe('insertSection', () => {
 	it('routes the shape and chart pickers, the Freeform tools and the Action menu', () => {
 		const props = baseProps({ activeFreeformTool: 'curve' });
 		act(() => root.render(React.createElement(InsertSection, props)));
-		const [shape, chart] = [...container.querySelectorAll('select')];
+		const [shape, chart] = [...container.querySelectorAll('pptx-ui-select')];
 		act(() => {
 			shape.value = 'star5';
 			shape.dispatchEvent(new Event('change'));

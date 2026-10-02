@@ -2,6 +2,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createInspectorSelect } from './inspector/controls-extra';
 import { appendCheckRow, appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
 
 /**
@@ -97,7 +98,7 @@ export function openSlideShowDialog(
 		showRadio.name = 'range';
 		showRadio.dataset.pptxShowSlidesCustom = 'true';
 		showRadio.checked = draft.showSlidesMode === 'customShow';
-		const picker = doc.createElement('select');
+		const picker = createInspectorSelect(doc);
 		picker.setAttribute('aria-label', t('pptx.slideShow.customShow'));
 		for (const show of customShows) {
 			const option = doc.createElement('option');

@@ -158,13 +158,11 @@
 					<h5>{t('pptx.chart.quickElements')}</h5>
 					{#each descriptor.elements as item (item.key)}
 						<label class="row">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								disabled={!canEdit}
 								checked={item.checked}
 								data-testid={`chart-quick-element-${item.key}`}
-								onchange={(event) => onElementToggle(item.key, event)}
-							/>
+								onchange={(event) => onElementToggle(item.key, event)}></pptx-ui-checkbox>
 							<span>{t(item.labelKey)}</span>
 						</label>
 					{/each}
@@ -208,13 +206,11 @@
 					<h5>{t('pptx.chart.quickFilters')}</h5>
 					{#each descriptor.filters.series as row (row.key)}
 						<label class="row">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								disabled={!canEdit}
 								checked={row.visible}
 								data-testid={`chart-quick-filter-${row.key}`}
-								onchange={() => onFilterToggle(row.seriesIndex, row.filteredIndex)}
-							/>
+								onchange={() => onFilterToggle(row.seriesIndex, row.filteredIndex)}></pptx-ui-checkbox>
 							<span class="name">{row.name}</span>
 						</label>
 					{/each}

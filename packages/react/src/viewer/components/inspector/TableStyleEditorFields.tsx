@@ -39,7 +39,6 @@ export function TableStyleEditorFields({
 					/>
 					<label className='flex items-center gap-1'>
 						<WebCheckbox
-							type='checkbox'
 							disabled={!canEdit}
 							checked={descriptor.fill.noFill}
 							onChange={(e) => onEdit({ kind: 'fillNone', noFill: e.target.checked })}
@@ -177,7 +176,6 @@ function BorderSideRow({
 			</WebSelect>
 			<label className='flex items-center gap-1 shrink-0'>
 				<WebCheckbox
-					type='checkbox'
 					disabled={!canEdit}
 					checked={state.noFill}
 					onChange={(e) => onEdit({ kind: 'borderNone', side, noFill: e.target.checked })}

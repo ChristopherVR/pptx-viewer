@@ -41,7 +41,7 @@ function formatDate(date: Date, kind: string): string {
 	}
 }
 
-/** Preview strings for the format `<select>` options. */
+/** Preview strings for the format `<pptx-ui-select>` options. */
 function preview(kind: string): string {
 	return formatDate(new Date(value.value || Date.now()), kind);
 }
@@ -77,7 +77,7 @@ function onBackdropMouseDown(event: MouseEvent): void {
 				<label class="block text-[11px] text-muted-foreground mb-1">{{
 					t('pptx.field.format', 'Format')
 				}}</label>
-				<select
+				<pptx-ui-select
 					class="w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
 					:value="format"
 					@change="format = ($event.target as HTMLSelectElement).value"
@@ -85,7 +85,7 @@ function onBackdropMouseDown(event: MouseEvent): void {
 					<option v-for="kind in KINDS" :key="kind" :value="kind">
 						{{ preview(kind) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</div>
 			<div class="flex justify-end gap-2 pt-1">
 				<button

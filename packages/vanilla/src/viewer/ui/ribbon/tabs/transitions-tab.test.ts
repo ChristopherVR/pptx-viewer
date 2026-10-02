@@ -67,7 +67,7 @@ function mount(handlers = makeHandlers(), onToggleInspector = vi.fn<() => void>(
 			(button) => button.textContent === t(`pptx.ribbon.transition.${type}`),
 		)!;
 	const checkbox = (id: string) =>
-		q<HTMLInputElement>(`[data-ribbon-control="transitions.timing.${id}"] input[type=checkbox]`);
+		q<HTMLInputElement>(`[data-ribbon-control="transitions.timing.${id}"] pptx-ui-checkbox`);
 	return { t, tab, handlers, q, command, preset, checkbox, onToggleInspector };
 }
 
@@ -84,7 +84,7 @@ describe('createTransitionsTab', () => {
 
 	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const { q } = mount();
-		const select = q<HTMLSelectElement>('select');
+		const select = q<HTMLSelectElement>('pptx-ui-select');
 		expect(select.disabled).toBeFalsy();
 		expect([...select.options].map((o) => o.value)).toStrictEqual(['none', ...STOCK_IDS, 'other']);
 	});
@@ -204,20 +204,20 @@ describe('createTransitionsTab', () => {
 		tab.setEditable(false);
 		expect(preset('fade').disabled).toBeTruthy();
 		expect(checkbox('advanceOnClick').disabled).toBeTruthy();
-		expect(q<HTMLSelectElement>('select').disabled).toBeTruthy();
+		expect(q<HTMLSelectElement>('pptx-ui-select').disabled).toBeTruthy();
 		preset('fade').click();
 		expect(handlers.applyDraft).not.toHaveBeenCalled();
 		tab.setEditable(true);
 		expect(preset('fade').disabled).toBeFalsy();
 		expect(checkbox('advanceOnClick').disabled).toBeFalsy();
-		expect(q<HTMLSelectElement>('select').disabled).toBeFalsy();
+		expect(q<HTMLSelectElement>('pptx-ui-select').disabled).toBeFalsy();
 	});
 });
 
 describe('createTransitionsTab > Sound picker', () => {
 	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const { q } = mount(makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav' }));
-		const select = q<HTMLSelectElement>('select');
+		const select = q<HTMLSelectElement>('pptx-ui-select');
 		expect([...select.options].map((o) => o.value)).toStrictEqual([
 			'current',
 			'none',
@@ -229,7 +229,7 @@ describe('createTransitionsTab > Sound picker', () => {
 
 	it('picks a stock sound directly, with no file dialog', async () => {
 		const { handlers, q } = mount();
-		const select = q<HTMLSelectElement>('select');
+		const select = q<HTMLSelectElement>('pptx-ui-select');
 		select.value = 'chime';
 		select.dispatchEvent(new Event('change'));
 		await waitFor(() => handlers.applyChange.mock.calls.length > 0);
@@ -245,7 +245,7 @@ describe('createTransitionsTab > Sound picker', () => {
 		const { handlers, q } = mount(
 			makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' }),
 		);
-		const select = q<HTMLSelectElement>('select');
+		const select = q<HTMLSelectElement>('pptx-ui-select');
 		select.value = 'none';
 		select.dispatchEvent(new Event('change'));
 		await waitFor(() => handlers.applyChange.mock.calls.length > 0);
@@ -257,7 +257,7 @@ describe('createTransitionsTab > Sound picker', () => {
 	it('opens the file picker instead of committing when "Other Sound..." is chosen', () => {
 		const { handlers, q } = mount();
 		const clickSpy = vi.spyOn(q<HTMLInputElement>('input[type=file]'), 'click');
-		const select = q<HTMLSelectElement>('select');
+		const select = q<HTMLSelectElement>('pptx-ui-select');
 		select.value = 'other';
 		select.dispatchEvent(new Event('change'));
 		expect(clickSpy).toHaveBeenCalledOnce();
@@ -292,6 +292,6 @@ describe('createTransitionsTab > Sound picker', () => {
 		const { handlers, tab, q } = mount();
 		handlers.setTransition({ type: 'none', soundFileName: 'chime.wav' });
 		tab.sync();
-		expect(q<HTMLSelectElement>('select').value).toBe('current');
+		expect(q<HTMLSelectElement>('pptx-ui-select').value).toBe('current');
 	});
 });

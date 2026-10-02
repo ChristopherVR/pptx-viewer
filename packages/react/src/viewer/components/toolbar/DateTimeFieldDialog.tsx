@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
+
 function nowLocalInputValue(): string {
 	const now = new Date();
 	const pad = (n: number) => String(n).padStart(2, '0');
@@ -70,7 +72,8 @@ export function DateTimeFieldDialog(p: DateTimeFieldDialogProps): React.ReactEle
 				<div className='text-sm font-medium text-foreground'>{t('pptx.field.dateTime')}</div>
 				<input
 					type='datetime-local'
-					className='w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none'
+					className='w-full text-xs'
+					aria-label={t('pptx.field.format', 'Format')}
 					value={datePickerValue}
 					onChange={(e) => setDatePickerValue(e.target.value)}
 				/>
@@ -78,7 +81,7 @@ export function DateTimeFieldDialog(p: DateTimeFieldDialogProps): React.ReactEle
 					<label className='block text-[11px] text-muted-foreground mb-1'>
 						{t('pptx.field.format', 'Format')}
 					</label>
-					<select
+					<WebSelect
 						className='w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none'
 						value={dateFormat}
 						onChange={(e) => setDateFormat(e.target.value)}
@@ -105,7 +108,7 @@ export function DateTimeFieldDialog(p: DateTimeFieldDialogProps): React.ReactEle
 							{new Date(datePickerValue || Date.now()).toISOString().slice(0, 10)}
 						</option>
 						<option value='time'>{new Date(datePickerValue || Date.now()).toLocaleString()}</option>
-					</select>
+					</WebSelect>
 				</div>
 				<div className='flex justify-end gap-2 pt-1'>
 					<button

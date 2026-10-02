@@ -15,6 +15,7 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
 	computed,
 	effect,
 	input,
@@ -32,6 +33,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [ModalDialogComponent, FontEmbeddingListComponent, TranslatePipe],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -44,16 +46,11 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				</p>
 
 				<label class="pptx-ng-fonts-toggle" [class.is-disabled]="!canEmbedFonts()">
-					<span class="pptx-ng-fonts-switch" [class.is-on]="embedFontsEnabled()">
-						<input
-							type="checkbox"
-							class="pptx-ng-fonts-switch-input"
-							[checked]="embedFontsEnabled()"
-							[disabled]="!canEmbedFonts()"
-							(change)="onToggle($event)"
-						/>
-						<span class="pptx-ng-fonts-switch-knob" [class.is-on]="embedFontsEnabled()"></span>
-					</span>
+					<pptx-ui-checkbox
+						[checked]="embedFontsEnabled()"
+						[disabled]="!canEmbedFonts()"
+						(change)="onToggle($event)"
+					></pptx-ui-checkbox>
 					<span class="pptx-ng-fonts-toggle-label">{{
 						'pptx.fontEmbedding.embedWhenSaving' | translate
 					}}</span>
@@ -100,42 +97,6 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				align-items: center;
 				gap: 0.75rem;
 				cursor: pointer;
-			}
-			.pptx-ng-fonts-switch {
-				position: relative;
-				display: inline-block;
-				width: 2.25rem;
-				height: 1.25rem;
-				border-radius: 9999px;
-				background: var(--pptx-muted-foreground, #6b7280);
-				transition: background 0.15s ease;
-			}
-			.pptx-ng-fonts-switch.is-on {
-				background: var(--pptx-primary, #6366f1);
-			}
-			.pptx-ng-fonts-switch-input {
-				position: absolute;
-				width: 1px;
-				height: 1px;
-				padding: 0;
-				margin: -1px;
-				overflow: hidden;
-				clip: rect(0, 0, 0, 0);
-				white-space: nowrap;
-				border: 0;
-			}
-			.pptx-ng-fonts-switch-knob {
-				position: absolute;
-				top: 0.125rem;
-				left: 0.125rem;
-				width: 1rem;
-				height: 1rem;
-				border-radius: 9999px;
-				background: #ffffff;
-				transition: transform 0.15s ease;
-			}
-			.pptx-ng-fonts-switch-knob.is-on {
-				transform: translateX(1rem);
 			}
 			.pptx-ng-fonts-toggle.is-disabled {
 				cursor: not-allowed;

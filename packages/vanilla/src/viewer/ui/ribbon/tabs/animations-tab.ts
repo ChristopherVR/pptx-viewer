@@ -21,6 +21,7 @@ import { playAnimationPreview } from '../../../animation';
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
+import { createInspectorSelect } from '../../inspector/controls-extra';
 import {
 	animationRow,
 	nativeAnimationRow,
@@ -111,7 +112,7 @@ export function createAnimationsTab(
 	const list = createEl(doc, 'div', 'pptxv-animation-timeline-list');
 	const timing = createEl(doc, 'div', 'pptxv-animation-timing-controls');
 
-	const trigger = doc.createElement('select');
+	const trigger = createInspectorSelect(doc);
 	trigger.setAttribute('aria-label', t('pptx.animation.trigger'));
 	const triggers: readonly PptxAnimationTrigger[] = [
 		'onClick',

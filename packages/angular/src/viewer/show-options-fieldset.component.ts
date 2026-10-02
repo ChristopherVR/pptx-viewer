@@ -9,7 +9,13 @@
  * partial `patch` for the host dialog to merge.
  */
 
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
 
@@ -17,48 +23,41 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 	selector: 'pptx-show-options-fieldset',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	template: `
 		<fieldset class="pptx-ng-sss-fieldset">
 			<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.showOptions' | translate }}</legend>
 
 			<label class="pptx-ng-sss-option">
-				<input
-					type="checkbox"
-					class="pptx-ng-sss-radio"
+				<pptx-ui-checkbox
 					[checked]="!!draft().loopContinuously"
 					(change)="patch.emit({ loopContinuously: isChecked($event) })"
-				/>
+				></pptx-ui-checkbox>
 				<span>{{ 'pptx.slideShow.loopContinuously' | translate }}</span>
 			</label>
 
 			<label class="pptx-ng-sss-option">
-				<input
-					type="checkbox"
-					class="pptx-ng-sss-radio"
+				<pptx-ui-checkbox
 					[checked]="draft().showWithNarration === false"
 					(change)="patch.emit({ showWithNarration: !isChecked($event) })"
-				/>
+				></pptx-ui-checkbox>
 				<span>{{ 'pptx.slideShow.showWithoutNarration' | translate }}</span>
 			</label>
 
 			<label class="pptx-ng-sss-option">
-				<input
-					type="checkbox"
-					class="pptx-ng-sss-radio"
+				<pptx-ui-checkbox
 					[checked]="draft().showWithAnimation === false"
 					(change)="patch.emit({ showWithAnimation: !isChecked($event) })"
-				/>
+				></pptx-ui-checkbox>
 				<span>{{ 'pptx.slideShow.showWithoutAnimation' | translate }}</span>
 			</label>
 
 			<label class="pptx-ng-sss-option">
-				<input
-					type="checkbox"
-					class="pptx-ng-sss-radio"
+				<pptx-ui-checkbox
 					[checked]="!!draft().showSubtitles"
 					(change)="patch.emit({ showSubtitles: isChecked($event) })"
-				/>
+				></pptx-ui-checkbox>
 				<span>{{ 'pptx.slideShow.showSubtitles' | translate }}</span>
 			</label>
 		</fieldset>
@@ -91,10 +90,6 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 				font-size: 0.75rem;
 				color: var(--pptx-foreground, #f3f4f6);
 				cursor: pointer;
-			}
-
-			.pptx-ng-sss-radio {
-				accent-color: var(--pptx-primary, #6366f1);
 			}
 		`,
 	],

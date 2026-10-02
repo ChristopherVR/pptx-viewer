@@ -133,7 +133,6 @@ export function AdvancedTextFormatting({
 				{BASELINE_TOGGLES.map(([label, baseline]) => (
 					<label key={label} className='inline-flex items-center gap-2 text-foreground'>
 						<WebCheckbox
-							type='checkbox'
 							checked={ts?.baseline === baseline}
 							onChange={() =>
 								onUpdateTextStyle({
@@ -284,7 +283,6 @@ export function AdvancedTextFormatting({
 			{/* Auto-fit */}
 			<label className='inline-flex items-center gap-2 text-foreground'>
 				<WebCheckbox
-					type='checkbox'
 					checked={Boolean(ts?.autoFit)}
 					disabled={!canEdit}
 					onChange={(e) => onUpdateTextStyle({ autoFit: e.target.checked })}

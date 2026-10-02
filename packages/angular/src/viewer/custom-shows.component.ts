@@ -19,6 +19,7 @@ import {
 	input,
 	output,
 	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { LucideX } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -30,6 +31,7 @@ import type { CustomShow } from './custom-shows-helpers';
 	selector: 'pptx-custom-shows',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe, LucideX],
 	templateUrl: './custom-shows.component.html',
 	styleUrl: './custom-shows.component.css',

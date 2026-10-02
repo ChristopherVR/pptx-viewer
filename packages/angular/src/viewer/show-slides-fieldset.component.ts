@@ -10,7 +10,13 @@
  * dialog to merge.
  */
 
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
@@ -18,6 +24,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 	selector: 'pptx-show-slides-fieldset',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	template: `
 		<fieldset class="pptx-ng-sss-fieldset">
@@ -90,7 +97,8 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 				</label>
 				@if (showSlidesMode() === 'customShow') {
 					<div class="pptx-ng-sss-custom">
-						<select
+						<pptx-ui-select
+							[attr.aria-label]="'pptx.slideShow.customShow' | translate"
 							class="pptx-ng-sss-select"
 							[value]="draft().showSlidesCustomShowId ?? customShows()[0]?.id ?? ''"
 							(change)="onSelectCustomShowId($event)"
@@ -105,7 +113,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 									{{ cs.name }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</div>
 				}
 			}
@@ -178,12 +186,6 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 
 			.pptx-ng-sss-select {
 				width: 100%;
-				padding: 0.25rem 0.5rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.25rem;
-				background: var(--pptx-background, #030712);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.6875rem;
 			}
 		`,
 	],

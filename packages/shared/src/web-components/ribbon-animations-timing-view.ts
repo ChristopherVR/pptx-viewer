@@ -19,7 +19,7 @@ export function createAnimationsTimingView(doc: Document) {
 	el.className = 'timing';
 	instance += 1;
 	const label = doc.createElement('label');
-	const start = doc.createElement('select');
+	const start = doc.createElement('pptx-ui-select') as unknown as HTMLSelectElement;
 	start.id = `pptx-animations-start-${instance}`;
 	start.dataset.ribbonControl = 'animations.timing.start';
 	start.disabled = true;

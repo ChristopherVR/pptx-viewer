@@ -47,7 +47,6 @@ export function ChartDataLabelOptions({
 				{DATA_LABEL_CONTENT_OPTIONS.map((opt) => (
 					<label key={opt.key} className='flex items-center gap-2 cursor-pointer'>
 						<WebCheckbox
-							type='checkbox'
 							disabled={!canEdit}
 							checked={labels[opt.key] ?? false}
 							onChange={(e) => patchLabels({ [opt.key]: e.target.checked })}

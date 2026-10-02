@@ -22,7 +22,6 @@ export function ColorChangeSection({
 			<label className='flex items-center justify-between gap-2'>
 				<span className='text-muted-foreground'>{t('pptx.image.colorChange')}</span>
 				<WebCheckbox
-					type='checkbox'
 					disabled={!canEdit}
 					checked={Boolean(cc)}
 					onChange={(e) =>
@@ -77,7 +76,6 @@ export function ColorChangeSection({
 					<label className='flex items-center justify-between gap-2 col-span-2'>
 						<span className='text-muted-foreground'>{t('pptx.image.colorChangeTransparent')}</span>
 						<WebCheckbox
-							type='checkbox'
 							disabled={!canEdit}
 							checked={Boolean(cc.clrToTransparent)}
 							onChange={(e) =>

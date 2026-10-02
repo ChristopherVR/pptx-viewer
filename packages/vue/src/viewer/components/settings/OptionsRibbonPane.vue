@@ -43,9 +43,7 @@ const hidden = computed(() => new Set(props.options.ribbon.hiddenTabIds));
 						tab.id === 'file' ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-accent'
 					"
 				>
-					<input
-						type="checkbox"
-						class="h-4 w-4 accent-[var(--pptx-primary,#6366f1)]"
+					<pptx-ui-checkbox
 						:checked="tab.id === 'file' || !hidden.has(tab.id)"
 						:disabled="tab.id === 'file'"
 						@change="onRibbonTabHiddenChange(tab.id, !($event.target as HTMLInputElement).checked)"

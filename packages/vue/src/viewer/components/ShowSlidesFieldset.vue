@@ -110,7 +110,7 @@ function setTo(value: string): void {
 				<span>{{ t('pptx.slideShow.customShow') }}</span>
 			</label>
 			<div v-if="showSlidesMode === 'customShow'" class="ml-6">
-				<select
+				<pptx-ui-select
 					class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] text-foreground"
 					:value="draft.showSlidesCustomShowId ?? customShows[0]?.id ?? ''"
 					@change="
@@ -120,7 +120,7 @@ function setTo(value: string): void {
 					"
 				>
 					<option v-for="cs in customShows" :key="cs.id" :value="cs.id">{{ cs.name }}</option>
-				</select>
+				</pptx-ui-select>
 			</div>
 		</template>
 	</fieldset>

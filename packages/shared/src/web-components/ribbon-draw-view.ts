@@ -77,7 +77,7 @@ export function createRibbonDrawView(doc: Document, request: (intent: RibbonDraw
 	range.max = '16';
 	range.step = '1';
 	range.addEventListener('input', () => request({ kind: 'width', value: Number(range.value) }));
-	const presets = doc.createElement('select');
+	const presets = doc.createElement('pptx-ui-select') as unknown as HTMLSelectElement;
 	const customWidth = doc.createElement('option');
 	for (const width of DRAW_WIDTH_PRESETS) {
 		const option = doc.createElement('option');

@@ -86,7 +86,6 @@ export function ChartDataPointMarkerOptions({
 								</span>
 								<label className='flex items-center gap-1 shrink-0'>
 									<WebCheckbox
-										type='checkbox'
 										disabled={!canEdit}
 										checked={hasOverride}
 										onChange={(e) => {

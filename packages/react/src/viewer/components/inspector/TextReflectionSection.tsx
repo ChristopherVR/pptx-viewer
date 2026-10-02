@@ -33,7 +33,6 @@ export function TextReflectionSection({
 		<div className='space-y-1.5'>
 			<label className='inline-flex items-center gap-2 text-foreground'>
 				<WebCheckbox
-					type='checkbox'
 					checked={hasReflection}
 					onChange={(e) => {
 						if (e.target.checked) {

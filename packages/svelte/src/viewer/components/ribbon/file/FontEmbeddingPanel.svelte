@@ -60,7 +60,7 @@
 		</header>
 		<div class="body">
 			<p>{t('pptx.fonts.embedDescription')}</p>
-			<label class="toggle" class:inert={!canEmbed}><input type="checkbox" checked={enabled} disabled={!canEmbed} onchange={(event) => ontoggle(event.currentTarget.checked)} /><span>{t('pptx.fonts.enableEmbedding')}</span></label>
+			<label class="toggle" class:inert={!canEmbed}><pptx-ui-checkbox checked={enabled} disabled={!canEmbed} onchange={(event) => ontoggle(event.currentTarget.checked)}></pptx-ui-checkbox><span>{t('pptx.fonts.enableEmbedding')}</span></label>
 			<!-- The switch used to move and change nothing at all. It now decides
 			     whether save keeps the deck's embedded font data, so it has to say
 			     which of the two it is doing, and admit when it can do neither. -->

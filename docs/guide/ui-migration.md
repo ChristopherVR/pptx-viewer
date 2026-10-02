@@ -399,15 +399,17 @@ can be overridden by the host or a theme.
 | Focus ring | `--pptx-focus-ring-color`, `-width` (2px), `-offset` (2px)                                                                           |
 | Density    | `--pptx-space-1..4` (4, 8, 12, 16px), `--pptx-row-height` (28px), `--pptx-row-height-nav` (40px), `--pptx-touch-target` (44px)       |
 | Checkbox   | `--pptx-checkbox-size` (16px), `-size-touch` (22px), `-radius`, `-border`, `-bg`, `-accent` (the theme primary), `-accent-fg`        |
+| Switch     | `--pptx-switch-width` (32px), `-height` (16px), `-track`, `-track-on` (the theme primary), `-thumb`                                  |
 
-| Kind     | Primitive          | Where native stays                                                                                                                                                                                                                                                                                      |
-| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Search   | `pptx-ui-search`   | None. Title bar (28px) and File recent files (40px) are the two variants of one field.                                                                                                                                                                                                                  |
-| Select   | `pptx-ui-select`   | Options, the Properties inspector and the ribbon use the app-owned listbox. Secondary dialogs (Print, Custom Shows, Hyperlink, Document Properties, Show Slides, Date/Time field, the animation timeline) keep a native `<select>` with the OS popup; only the closed control follows the field tokens. |
-| Checkbox | `pptx-ui-checkbox` | Native `input[type=checkbox]` and radios remain in dialogs and panels; they take the same accent, size and focus ring from the host stylesheet, scoped to viewer chrome and dialogs.                                                                                                                    |
+| Kind     | Primitive          | Where native stays                                                                                                                                                                                                                                                                                                                    |
+| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Search   | `pptx-ui-search`   | None. Title bar (28px) and File recent files (40px) are the two variants of one field.                                                                                                                                                                                                                                                |
+| Select   | `pptx-ui-select`   | None. Options, the Properties inspector, every dialog (Print, Custom Shows, Hyperlink, Document Properties, Set Up Show, Date/Time field, Header and Footer) and the ribbon (animation timeline, Insert pickers, Draw width, Transitions sound) use the app-owned listbox in all five bindings.                                       |
+| Checkbox | `pptx-ui-checkbox` | None. Every dialog and panel checkbox is the primitive. Radio buttons stay native: they are a separate control kind with no shared primitive yet.                                                                                                                                                                                     |
+| Switch   | none yet           | The title-bar AutoSave toggle is one shared `<button role="switch">` drawn by `pptx-ui-title-bar` (`title-bar-styles.ts`) with its own track metrics and the theme primary. The `--pptx-switch-*` tokens now exist for the title-bar owner to adopt; no switch primitive is added here, to avoid colliding with the title-bar rework. |
 
 `pptx-ui-select` is a combobox/listbox with a popup placed against the trigger,
-arrow, Home, End, typeahead, Enter, Space, Escape and Tab behaviour,
+arrow, Home, End, PageUp, PageDown (eight options a page), typeahead, Enter, Space, Escape and Tab behaviour,
 `aria-activedescendant`, 44px triggers on coarse pointers and forced-colors
 styles. Escape while its popup is open closes only the popup: modal dialogs
 (Svelte, Angular) used to close with it, which `activateModalFocus` now avoids.
@@ -426,10 +428,54 @@ states) and `modal-focus.test.ts`; the browser contract is
 `e2e/ui-primitives-consistency.spec.ts`, run in all five bindings alongside the
 existing `search-field-focus`, `backstage-nav-spacing` and `web-controls` specs.
 
-Still open: converting the secondary-dialog native selects to `pptx-ui-select`
-needs per-binding adapters (about 35 sites) and is tracked with the remaining
-dialog-body work; the dialog footers, menus, toasts, banners and toolbars belong
-to #386.
+### Dialog and panel controls
+
+Every native `<select>` and `<input type="checkbox">` in the five bindings now is
+`pptx-ui-select` or `pptx-ui-checkbox`, through the same thin adapters the
+inspector already used (React `WebSelect`/`WebCheckbox`, Vue/Angular/Svelte
+custom-element tags, Vanilla `createInspectorSelect`/`createInspectorCheckbox`).
+Values, `change` events, ids, labels, accessible names, `data-testid` hooks and
+keyboard behaviour are unchanged; selects that had no accessible name gained one.
+
+| Surface                                  | Converted                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Print (dialog and settings panel)        | Print what, Slides per page, Range, Orientation, Colour selects; frame-slides and header checkboxes        |
+| Custom Shows (dialog, ribbon picker)     | Active show select, per-slide checkboxes                                                                   |
+| Hyperlink                                | Action select                                                                                              |
+| Document Properties (custom tab)         | Property type and Yes/No value selects                                                                     |
+| Set Up Show / Show Slides / Show Options | Custom show select; loop, narration, animation and subtitle checkboxes                                     |
+| Date/Time field dialog                   | Format select                                                                                              |
+| Header and Footer, Font Embedding, Find  | All checkboxes                                                                                             |
+| Options ribbon pane, chart quick actions | All checkboxes                                                                                             |
+| Properties inspector panels              | Remaining chart, effects, media, table, text, transition, theme-override and background checkboxes         |
+| Animation timeline (Svelte, Vanilla)     | Trigger, shape, bookmark, direction, sequence, curve and repeat selects                                    |
+| Shared ribbon views                      | Insert Shape/Chart pickers, Draw width presets, Transitions Sound and advance checkboxes, Animations Start |
+
+Kept native: nothing. The font-name and size pickers already use the shared select
+with installed-font previews, and no file-type picker is a `<select>`. Radio
+buttons are not covered; they have no primitive yet.
+
+Select also gained PageUp and PageDown (eight options a page, clamped to the
+nearest enabled option), and no longer rebuilds an open popup when a host re-syncs
+the same value: React re-renders the Insert ribbon on every focus change, which
+replaced the option under the pointer and dropped the click.
+
+The guard is `packages/shared/src/web-components/native-controls.test.ts`, which
+scans every binding source (and the shared web components) for a native `<select>`
+or `<input type="checkbox">` and fails unless the file is listed with a technical
+reason (the list is empty). `e2e/dialog-controls.spec.ts` opens Print, Hyperlink,
+Set Up Show, Custom Shows and Document Properties in every binding and fails if
+the page shows either native control; `e2e/ui-primitives-consistency.spec.ts`
+covers the PageUp/PageDown behaviour.
+
+Before and after captures, per binding, are in
+`/assets/ui-migration/dialog-controls-before/` and
+`/assets/ui-migration/dialog-controls-after/`, named `<binding>-<dialog>`. The
+before set was taken on `bf656f3f2` and misses the dialogs a binding could not open
+from the same steps then.
+
+Still open under #386, not here: dialog footers, menus, toasts, banners and
+toolbars.
 
 ## Notes toolbar (#395)
 

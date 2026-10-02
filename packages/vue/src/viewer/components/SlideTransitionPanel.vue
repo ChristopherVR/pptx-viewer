@@ -105,7 +105,7 @@ function onSpeedChange(event: Event): void {
 				t('pptx.transition.label')
 			}}</span>
 			<!--
-			 The explicit `aria-label` is load-bearing, not decoration. A `<select>`
+			 The explicit `aria-label` is load-bearing, not decoration. A select
 			 nested inside its `<label>` takes the WHOLE label element's text as its
 			 accessible label, and that text includes every option: this control
 			 announced itself as "Transition None Cut Fade ... Rotate ..." and, since

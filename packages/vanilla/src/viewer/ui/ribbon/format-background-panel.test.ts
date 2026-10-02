@@ -46,7 +46,7 @@ describe('createFormatBackgroundPanel', () => {
 			clearSlideBackground: vi.fn(),
 			setHideBackgroundGraphics,
 		});
-		const checkbox = panel.el.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+		const checkbox = panel.el.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 
 		checkbox.checked = true;
 		checkbox.dispatchEvent(new Event('change', { bubbles: true }));

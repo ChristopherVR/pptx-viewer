@@ -8,6 +8,8 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebCheckbox } from './WebControls';
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -33,50 +35,42 @@ export function ShowOptionsFieldset({
 				{t('pptx.slideShow.showOptions')}
 			</legend>
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='checkbox'
+				<WebCheckbox
 					checked={Boolean(draft.loopContinuously)}
 					onChange={(e) =>
 						update({
 							loopContinuously: e.target.checked,
 						})
 					}
-					className='accent-primary'
 				/>
 				<span>{t('pptx.slideShow.loopContinuously')}</span>
 			</label>
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='checkbox'
+				<WebCheckbox
 					checked={draft.showWithNarration === false}
 					onChange={(e) =>
 						update({
 							showWithNarration: !e.target.checked,
 						})
 					}
-					className='accent-primary'
 				/>
 				<span>{t('pptx.slideShow.showWithoutNarration')}</span>
 			</label>
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='checkbox'
+				<WebCheckbox
 					checked={draft.showWithAnimation === false}
 					onChange={(e) =>
 						update({
 							showWithAnimation: !e.target.checked,
 						})
 					}
-					className='accent-primary'
 				/>
 				<span>{t('pptx.slideShow.showWithoutAnimation')}</span>
 			</label>
 			<label className='flex items-center gap-2 cursor-pointer'>
-				<input
-					type='checkbox'
+				<WebCheckbox
 					checked={Boolean(draft.showSubtitles)}
 					onChange={(e) => update({ showSubtitles: e.target.checked })}
-					className='accent-primary'
 				/>
 				<span>{t('pptx.slideShow.showSubtitles')}</span>
 			</label>

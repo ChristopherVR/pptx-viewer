@@ -60,7 +60,6 @@ export function ChartSeriesColorOptions({
 						</span>
 						<label className='flex items-center gap-1 text-muted-foreground shrink-0'>
 							<WebCheckbox
-								type='checkbox'
 								disabled={!canEdit}
 								checked={isSeriesUsingSecondaryAxis(chartData, i)}
 								onChange={(e) => onToggleSecondaryAxis(i, e.target.checked)}

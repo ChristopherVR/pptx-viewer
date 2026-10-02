@@ -153,7 +153,6 @@ function onAdvanceChange(e: Event): void {
 			class="mt-1 inline-flex items-center gap-2 px-2.5 text-xs text-foreground"
 		>
 			<pptx-ui-checkbox
-				type="checkbox"
 				data-testid="transition-thru-blk"
 				:checked="slide?.transition?.thruBlk === true"
 				@change="onThruBlkChange"
@@ -198,7 +197,6 @@ function onAdvanceChange(e: Event): void {
 			class="mt-1 inline-flex items-center gap-2 px-2.5 text-xs text-foreground"
 		>
 			<pptx-ui-checkbox
-				type="checkbox"
 				data-testid="transition-advance"
 				:checked="advanceOnClick"
 				@change="onAdvanceChange"

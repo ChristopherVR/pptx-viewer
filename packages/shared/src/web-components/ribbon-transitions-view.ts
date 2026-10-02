@@ -78,7 +78,7 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 	});
 	const soundField = field('transitions.timing.sound');
 	const soundText = make('span');
-	const sound = make('select');
+	const sound = make('pptx-ui-select') as unknown as HTMLSelectElement;
 	sound.addEventListener('change', () => {
 		if (sound.value === TRANSITION_SOUND_OTHER_VALUE) {
 			soundFile.click();
@@ -123,8 +123,7 @@ export function createRibbonTransitionsView(doc: Document, request: Request) {
 	const caption = make('span', 'caption');
 	const checkbox = (id: string, intent: (checked: boolean) => RibbonTransitionsIntent) => {
 		const row = field(id, 'field check');
-		const box = make('input');
-		box.type = 'checkbox';
+		const box = doc.createElement('pptx-ui-checkbox') as unknown as HTMLInputElement;
 		const text = make('span');
 		box.addEventListener('change', () => request(intent(box.checked)));
 		row.append(box, text);

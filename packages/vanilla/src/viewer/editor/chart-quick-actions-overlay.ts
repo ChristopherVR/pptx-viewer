@@ -12,6 +12,7 @@ import type { ChartQuickActionsDescriptor, ChartQuickElementKey } from 'pptx-vie
 import type { Translator } from '../i18n';
 import type { Store, ViewerState } from '../state';
 import { createIcon } from '../ui/icons';
+import { createInspectorCheckbox } from '../ui/inspector/controls-extra';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import type { EditorOps } from './editor-operations';
 
@@ -142,8 +143,7 @@ export function createChartQuickActionsOverlay(
 		for (const item of descriptor.elements) {
 			const label = doc.createElement('label');
 			label.className = 'row';
-			const checkbox = doc.createElement('input');
-			checkbox.type = 'checkbox';
+			const checkbox = createInspectorCheckbox(doc);
 			checkbox.disabled = !canEdit;
 			checkbox.checked = item.checked;
 			checkbox.dataset.testid = `chart-quick-element-${item.key}`;
@@ -232,8 +232,7 @@ export function createChartQuickActionsOverlay(
 		for (const row of descriptor.filters.series) {
 			const label = doc.createElement('label');
 			label.className = 'row';
-			const checkbox = doc.createElement('input');
-			checkbox.type = 'checkbox';
+			const checkbox = createInspectorCheckbox(doc);
 			checkbox.disabled = !canEdit;
 			checkbox.checked = row.visible;
 			checkbox.dataset.testid = `chart-quick-filter-${row.key}`;

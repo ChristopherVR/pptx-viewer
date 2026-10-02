@@ -96,20 +96,20 @@ describe('transitionsTab', () => {
 		const target = mountTab(makeEditor());
 
 		expect(label(target, 'Duration')?.querySelector('input')).toBeTruthy();
-		expect(label(target, 'Sound')?.querySelector('select')).toBeTruthy();
+		expect(label(target, 'Sound')?.querySelector('pptx-ui-select')).toBeTruthy();
 		// A BUTTON, like PowerPoint's and like the other four bindings': this used
 		// to be an arming checkbox with no counterpart in the product.
 		expect(button(target, 'Apply to All')).toBeTruthy();
 		expect(label(target, 'Apply to All')).toBeUndefined();
-		expect(label(target, 'On Mouse Click')?.querySelector('input')).toBeTruthy();
+		expect(label(target, 'On Mouse Click')?.querySelector('pptx-ui-checkbox')).toBeTruthy();
 		// "After" wraps both a checkbox and the seconds box, as React's does.
-		expect(label(target, 'After')?.querySelectorAll('input')).toHaveLength(2);
+		expect(label(target, 'After')?.querySelectorAll('input,pptx-ui-checkbox')).toHaveLength(2);
 	});
 
 	it('leaves the After seconds box inert until After is ticked', () => {
 		const target = mountTab(makeEditor());
 		const after = label(target, 'After');
-		const [checkbox, seconds] = [...(after?.querySelectorAll('input') ?? [])];
+		const [checkbox, seconds] = [...(after?.querySelectorAll('input,pptx-ui-checkbox') ?? [])];
 
 		expect((seconds as HTMLInputElement).disabled).toBeTruthy();
 		// Dispatched rather than `.click()`: jsdom's checkbox activation does not
@@ -163,13 +163,15 @@ describe('transitionsTab', () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
 
-		const onClick = label(target, 'On Mouse Click')?.querySelector('input');
+		const onClick = label(target, 'On Mouse Click')?.querySelector('pptx-ui-checkbox');
 		onClick!.checked = false;
 		fire(onClick!, 'change');
 		expect(editor.slides[0]?.transition).toMatchObject({ advanceOnClick: false });
 
 		const after = label(target, 'After');
-		const [checkbox, seconds] = [...after!.querySelectorAll<HTMLInputElement>('input')];
+		const [checkbox, seconds] = [
+			...after!.querySelectorAll<HTMLInputElement>('input,pptx-ui-checkbox'),
+		];
 		checkbox.checked = true;
 		fire(checkbox, 'change');
 		seconds.value = '00:03.00';
@@ -201,7 +203,7 @@ describe('transitionsTab', () => {
 
 	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const target = mountTab(makeEditor());
-		const select = label(target, 'Sound')?.querySelector('select');
+		const select = label(target, 'Sound')?.querySelector('pptx-ui-select');
 		expect(select?.disabled).toBeFalsy();
 		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual([
 			'none',
@@ -213,7 +215,7 @@ describe('transitionsTab', () => {
 	it('picks a stock sound directly, with no file dialog, and enables the preview button', async () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
-		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
+		const select = label(target, 'Sound')?.querySelector('pptx-ui-select') as HTMLSelectElement;
 
 		select.value = 'chime';
 		fire(select, 'change');
@@ -248,7 +250,8 @@ describe('transitionsTab', () => {
 
 		expect(label(target, 'Duration')?.querySelector('input')?.value).toBe('2');
 		const [checkbox, seconds] = [
-			...(label(target, 'After')?.querySelectorAll<HTMLInputElement>('input') ?? []),
+			...(label(target, 'After')?.querySelectorAll<HTMLInputElement>('input,pptx-ui-checkbox') ??
+				[]),
 		];
 		expect(checkbox.checked).toBeTruthy();
 		expect(seconds.value).toBe('00:05.00');
@@ -260,7 +263,7 @@ describe('transitionsTab', () => {
 			{ ...editor.slides[0], transition: { type: 'fade', soundFileName: 'chime.wav' } },
 		];
 		const target = mountTab(editor);
-		const select = label(target, 'Sound')?.querySelector('select');
+		const select = label(target, 'Sound')?.querySelector('pptx-ui-select');
 		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual([
 			'current',
 			'none',
@@ -279,7 +282,7 @@ describe('transitionsTab', () => {
 			},
 		];
 		const target = mountTab(editor);
-		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
+		const select = label(target, 'Sound')?.querySelector('pptx-ui-select') as HTMLSelectElement;
 
 		select.value = 'none';
 		fire(select, 'change');
@@ -295,7 +298,7 @@ describe('transitionsTab', () => {
 	it('opens the file picker instead of committing when "Other Sound..." is chosen', () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
-		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
+		const select = label(target, 'Sound')?.querySelector('pptx-ui-select') as HTMLSelectElement;
 		const input = target.querySelector('input[type="file"]') as HTMLInputElement;
 		const clickSpy = vi.spyOn(input, 'click');
 

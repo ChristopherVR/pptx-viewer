@@ -40,14 +40,12 @@
 			onkeydown={onKeydown}
 		/>
 		<label class="pptx-svelte-findreplace-case">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				checked={findReplace.matchCase}
 				onchange={(e) => {
 					findReplace.matchCase = e.currentTarget.checked;
 					findReplace.search();
-				}}
-			/>
+				}}></pptx-ui-checkbox>
 			{t('pptx.findReplace.matchCase')}
 		</label>
 		<span class="pptx-svelte-findreplace-count" aria-live="polite">

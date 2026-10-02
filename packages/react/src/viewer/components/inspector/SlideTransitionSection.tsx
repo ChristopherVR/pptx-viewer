@@ -173,7 +173,6 @@ export function SlideTransitionSection({
 			{hasThruBlk && (
 				<label className='inline-flex items-center gap-2 text-foreground text-xs'>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={activeSlide.transition?.thruBlk === true}
 						onChange={(e) => onTransitionChange({ thruBlk: e.target.checked })}
@@ -272,7 +271,6 @@ export function SlideTransitionSection({
 			{/* Advance on click */}
 			<label className='inline-flex items-center gap-2 text-foreground text-xs'>
 				<WebCheckbox
-					type='checkbox'
 					disabled={!canEdit}
 					checked={activeSlide.transition?.advanceOnClick !== false}
 					onChange={(e) => onTransitionChange({ advanceOnClick: e.target.checked })}

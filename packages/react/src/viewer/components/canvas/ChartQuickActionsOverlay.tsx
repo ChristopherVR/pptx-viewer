@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { LuFilter, LuPaintbrush, LuPlus } from 'react-icons/lu';
 
 import { CARD, HEADING } from '../inspector/chart-panel-constants';
+import { WebCheckbox } from '../WebControls';
 
 export interface ChartQuickActionsOverlayProps {
 	element: ChartPptxElement;
@@ -140,8 +141,7 @@ export function ChartQuickActionsOverlay({
 							<div className={HEADING}>{t('pptx.chart.quickElements')}</div>
 							{descriptor.elements.map((item) => (
 								<label key={item.key} className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='checkbox'
+									<WebCheckbox
 										disabled={!canEdit}
 										checked={item.checked}
 										data-testid={`chart-quick-element-${item.key}`}
@@ -150,7 +150,6 @@ export function ChartQuickActionsOverlay({
 												chartData: applyChartElementToggle(chartData, item.key, e.target.checked),
 											})
 										}
-										className='accent-primary'
 									/>
 									<span className='text-[11px]'>{t(item.labelKey)}</span>
 								</label>
@@ -214,8 +213,7 @@ export function ChartQuickActionsOverlay({
 							<div className={HEADING}>{t('pptx.chart.quickFilters')}</div>
 							{descriptor.filters.series.map((row) => (
 								<label key={row.key} className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='checkbox'
+									<WebCheckbox
 										disabled={!canEdit}
 										checked={row.visible}
 										data-testid={`chart-quick-filter-${row.key}`}
@@ -228,7 +226,6 @@ export function ChartQuickActionsOverlay({
 												commit({ chartData: next });
 											}
 										}}
-										className='accent-primary'
 									/>
 									<span className='text-[11px] truncate'>{row.name}</span>
 								</label>

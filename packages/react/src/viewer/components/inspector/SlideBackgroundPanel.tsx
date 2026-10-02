@@ -140,7 +140,6 @@ export function SlideBackgroundPanel({
 				{/* Hide Background Graphics (p:sld/@showMasterSp) */}
 				<label className='flex items-center gap-2 text-[11px]'>
 					<WebCheckbox
-						type='checkbox'
 						checked={activeSlide.showMasterShapes === false}
 						disabled={!canEdit}
 						onChange={(e) => onUpdateSlide({ showMasterShapes: !e.target.checked })}

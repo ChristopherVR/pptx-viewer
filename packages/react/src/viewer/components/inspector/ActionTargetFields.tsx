@@ -104,7 +104,6 @@ export function ActionTargetFields({
 				</WebSelect>
 				<label className='flex items-center gap-1.5 text-muted-foreground'>
 					<WebCheckbox
-						type='checkbox'
 						data-testid='pptx-action-custom-show-return'
 						disabled={!canEdit}
 						checked={returnAfter ?? false}

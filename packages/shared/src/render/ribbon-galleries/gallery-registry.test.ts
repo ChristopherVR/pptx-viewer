@@ -135,6 +135,27 @@ describe('contextual tabs', () => {
 		expect(contextualTabsForElement(null)).toStrictEqual([]);
 	});
 
+	it('brings up exactly one contextual tab per object type', () => {
+		const of = (type: string) =>
+			contextualTabsForElement({ ...shape(), type } as unknown as PptxElement);
+		expect(of('image')).toStrictEqual(['pictureFormat']);
+		expect(of('picture')).toStrictEqual(['pictureFormat']);
+		expect(of('table')).toStrictEqual(['tableDesign']);
+		expect(of('chart')).toStrictEqual(['chartDesign']);
+		expect(of('smartArt')).toStrictEqual(['smartArtDesign']);
+	});
+
+	it('keeps the SmartArt Design tab and its Change Colors and Styles galleries wired', () => {
+		const galleries = CONTEXTUAL_TAB_GROUPS.smartArtDesign.flatMap((g) =>
+			g.galleries.map((x) => x.gallery),
+		);
+		expect(galleries).toStrictEqual(['smartArtColors', 'smartArtStyles']);
+		const smartArt = { ...shape(), type: 'smartArt' } as unknown as PptxElement;
+		expect(visibleContextualTabs(smartArt)).toStrictEqual(['smartArtDesign']);
+		const hidden = resolveCustomization({ ribbon: { hiddenTabs: ['smartArtDesign'] } });
+		expect(visibleContextualTabs(smartArt, hidden)).toStrictEqual([]);
+	});
+
 	it('honours hidden contextual tabs and falls back to Home', () => {
 		const resolved = resolveCustomization({ ribbon: { hiddenTabs: ['shapeFormat'] } });
 		expect(visibleContextualTabs(shape(), resolved)).toStrictEqual([]);

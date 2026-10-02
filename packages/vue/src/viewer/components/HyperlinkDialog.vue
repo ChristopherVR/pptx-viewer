@@ -136,11 +136,16 @@ const inputCls =
 				<span class="text-xs font-medium text-muted-foreground">{{
 					t('pptx.hyperlink.linkTo')
 				}}</span>
-				<select :aria-label="t('pptx.hyperlink.linkTo')" v-model="actionType" :class="inputCls">
+				<pptx-ui-select
+					:aria-label="t('pptx.hyperlink.linkTo')"
+					:value="actionType"
+					:class="inputCls"
+					@change="actionType = ($event.target as HTMLSelectElement).value as typeof actionType"
+				>
 					<option v-for="opt in ACTION_TYPES" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<label v-if="actionType === 'url'" class="flex flex-col gap-1">

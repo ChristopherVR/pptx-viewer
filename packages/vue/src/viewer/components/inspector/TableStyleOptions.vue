@@ -77,8 +77,6 @@ function assignStyle(styleId: string): void {
 				class="flex cursor-pointer items-center gap-2 text-[11px]"
 			>
 				<pptx-ui-checkbox
-					type="checkbox"
-					class="accent-primary"
 					:disabled="!canEdit"
 					:checked="Boolean(tableData[key])"
 					@change="toggle(key, $event)"

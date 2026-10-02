@@ -6,7 +6,9 @@ import {
 } from 'pptx-viewer-shared';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuCalendarDays, LuCheck, LuClock, LuFileText, LuHash, LuText, LuX } from 'react-icons/lu';
+import { LuCalendarDays, LuClock, LuFileText, LuHash, LuText, LuX } from 'react-icons/lu';
+
+import { WebCheckbox } from './WebControls';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -35,17 +37,11 @@ interface ToggleRowProps {
 function ToggleRow({ checked, onChange, icon, label, testId }: ToggleRowProps): React.ReactElement {
 	return (
 		<label className='flex items-center gap-2.5 cursor-pointer group select-none'>
-			<span className='relative flex items-center justify-center w-4 h-4'>
-				<input
-					type='checkbox'
-					checked={checked}
-					onChange={(e) => onChange(e.target.checked)}
-					data-testid={testId}
-					className='peer sr-only'
-				/>
-				<span className='absolute inset-0 rounded border border-border bg-muted transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50' />
-				{checked && <LuCheck className='relative z-10 w-3 h-3 text-white' />}
-			</span>
+			<WebCheckbox
+				checked={checked}
+				onChange={(e) => onChange(e.target.checked)}
+				data-testid={testId}
+			/>
 			<span className='flex items-center gap-1.5 text-xs text-foreground group-hover:text-foreground transition-colors'>
 				{icon}
 				{label}

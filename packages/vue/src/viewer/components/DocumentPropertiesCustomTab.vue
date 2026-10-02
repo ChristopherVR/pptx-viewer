@@ -94,7 +94,7 @@ function valueInputType(type: string): string {
 					:value="prop.name"
 					@input="onNameInput(index, $event)"
 				/>
-				<select
+				<pptx-ui-select
 					v-if="prop.type === 'bool'"
 					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					:value="prop.value"
@@ -102,7 +102,7 @@ function valueInputType(type: string): string {
 				>
 					<option value="true">{{ t('pptx.documentProperties.custom.yes') }}</option>
 					<option value="false">{{ t('pptx.documentProperties.custom.no') }}</option>
-				</select>
+				</pptx-ui-select>
 				<input
 					v-else
 					:type="valueInputType(prop.type)"
@@ -111,7 +111,7 @@ function valueInputType(type: string): string {
 					:value="prop.value"
 					@input="onValueInput(index, $event)"
 				/>
-				<select
+				<pptx-ui-select
 					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					:value="prop.type"
 					@change="onTypeInput(index, $event)"
@@ -119,7 +119,7 @@ function valueInputType(type: string): string {
 					<option v-for="opt in CUSTOM_PROPERTY_TYPES" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 				<button
 					type="button"
 					class="pptx-vue-docprops-custom-delete inline-flex h-6 w-6 items-center justify-center rounded p-0 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"

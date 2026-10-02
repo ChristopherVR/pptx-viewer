@@ -30,12 +30,10 @@
 			{#each TOOLBAR_TABS as tab (tab.id)}
 				{@const isFile = tab.id === 'file'}
 				<label class:locked={isFile}>
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						checked={isFile || !hidden.has(tab.id)}
 						disabled={isFile}
-						onchange={(event) => ontabhiddenchange(tab.id, !event.currentTarget.checked)}
-					/>
+						onchange={(event) => ontabhiddenchange(tab.id, !event.currentTarget.checked)}></pptx-ui-checkbox>
 					<span>{t(tab.labelKey)}</span>
 				</label>
 			{/each}

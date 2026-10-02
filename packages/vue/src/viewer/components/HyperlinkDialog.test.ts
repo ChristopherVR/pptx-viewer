@@ -121,7 +121,7 @@ describe('hyperlinkDialog', () => {
 		});
 
 		// The action-type selector drives the emitted action: pick "Next Slide".
-		const select = document.body.querySelector<HTMLSelectElement>('select');
+		const select = document.body.querySelector<HTMLSelectElement>('pptx-ui-select');
 		if (!select) {
 			throw new Error('action-type select not found');
 		}
@@ -144,7 +144,7 @@ describe('hyperlinkDialog', () => {
 			},
 			attachTo: document.body,
 		});
-		const select = document.body.querySelector<HTMLSelectElement>('select');
+		const select = document.body.querySelector<HTMLSelectElement>('pptx-ui-select');
 		expect(select?.value).toBe('slide');
 	});
 });

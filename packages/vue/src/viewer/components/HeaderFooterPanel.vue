@@ -114,8 +114,7 @@ function onDateText(event: Event): void {
 
 		<div class="pptx-vue-header-footer-panel__body">
 			<label class="pptx-vue-header-footer-panel__row">
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
 					data-testid="hf-date-time"
 					:checked="showDateTime"
 					@change="onToggleDateTime"
@@ -125,8 +124,7 @@ function onDateText(event: Event): void {
 
 			<div v-if="showDateTime" class="pptx-vue-header-footer-panel__sub">
 				<label class="pptx-vue-header-footer-panel__row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						data-testid="hf-date-auto"
 						:checked="dateTimeAuto"
 						@change="onToggleDateAuto"
@@ -145,8 +143,7 @@ function onDateText(event: Event): void {
 			</div>
 
 			<label class="pptx-vue-header-footer-panel__row">
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
 					data-testid="hf-slide-number"
 					:checked="showSlideNumber"
 					@change="onToggleSlideNumber"
@@ -155,12 +152,7 @@ function onDateText(event: Event): void {
 			</label>
 
 			<label class="pptx-vue-header-footer-panel__row">
-				<input
-					type="checkbox"
-					data-testid="hf-header"
-					:checked="showHeader"
-					@change="onToggleHeader"
-				/>
+				<pptx-ui-checkbox data-testid="hf-header" :checked="showHeader" @change="onToggleHeader" />
 				<span>{{ t('pptx.field.header') }}</span>
 			</label>
 
@@ -176,12 +168,7 @@ function onDateText(event: Event): void {
 			</div>
 
 			<label class="pptx-vue-header-footer-panel__row">
-				<input
-					type="checkbox"
-					data-testid="hf-footer"
-					:checked="showFooter"
-					@change="onToggleFooter"
-				/>
+				<pptx-ui-checkbox data-testid="hf-footer" :checked="showFooter" @change="onToggleFooter" />
 				<span>{{ t('pptx.headerFooter.footer') }}</span>
 			</label>
 

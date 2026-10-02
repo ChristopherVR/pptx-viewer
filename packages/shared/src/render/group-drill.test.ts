@@ -170,3 +170,35 @@ describe('group drill-in', () => {
 		]);
 	});
 });
+
+describe('smartArt frames and the double-click drill-in', () => {
+	const frame = (id: string, extra: Record<string, unknown> = {}) =>
+		({
+			id,
+			type: 'smartArt',
+			x: 100,
+			y: 100,
+			width: 400,
+			height: 300,
+			...extra,
+		}) as unknown as PptxElement;
+
+	it('never resolves a top-level SmartArt frame to anything but itself', () => {
+		const slideWithFrame = [title, frame('sa')];
+		expect(memberChainAtPoint(slideWithFrame, 'sa', { x: 200, y: 200 })).toStrictEqual(['sa']);
+		expect(drillSelectionForDoubleClick(['sa'])).toBe('sa');
+	});
+
+	it('selects a SmartArt frame inside a group instead of dropping the double-click', () => {
+		const g = group('g', 0, 0, [frame('in-sa', { x: 0, y: 0 })]);
+		expect(memberChainAtPoint([g], 'g', { x: 50, y: 50 })).toStrictEqual(['in-sa', 'g']);
+		expect(drillSelectionForDoubleClick(['in-sa', 'g'])).toBe('in-sa');
+	});
+
+	it('keeps the group selected when the SmartArt member is locked with noSelect', () => {
+		const locked = frame('locked-sa', { x: 0, y: 0, locks: { noSelect: true } });
+		expect(memberChainAtPoint([group('g2', 0, 0, [locked])], 'g2', { x: 50, y: 50 })).toStrictEqual(
+			['g2'],
+		);
+	});
+});

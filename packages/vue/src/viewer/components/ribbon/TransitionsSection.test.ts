@@ -7,6 +7,7 @@ import {
 } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
+import { setControlValue } from '../inspector/test-control-value';
 import TransitionsSection from './TransitionsSection.vue';
 
 registerPptxWebControls();
@@ -84,8 +85,8 @@ describe('transitionsSection commits to the deck', () => {
 
 	it('writes the On Mouse Click gate', async () => {
 		const { wrapper, onTransitionChange } = mountTab(slideWith({ type: 'fade' }));
-		const [onClick] = wrapper.findAll('input[type="checkbox"]');
-		await onClick.setValue(false);
+		const [onClick] = wrapper.findAll('pptx-ui-checkbox');
+		await setControlValue(onClick, false);
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ advanceOnClick: false }),
 		);
@@ -137,7 +138,7 @@ describe('transitionsSection reads the deck', () => {
 
 	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const { wrapper } = mountTab(slideWith());
-		const select = wrapper.find('select');
+		const select = wrapper.find('pptx-ui-select');
 		expect(select.attributes('disabled')).toBeUndefined();
 		expect(select.findAll('option').map((o) => o.attributes('value'))).toStrictEqual([
 			'none',
@@ -148,7 +149,7 @@ describe('transitionsSection reads the deck', () => {
 
 	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const { wrapper } = mountTab(slideWith({ type: 'fade', soundFileName: 'chime.wav' }));
-		const select = wrapper.find('select');
+		const select = wrapper.find('pptx-ui-select');
 		expect(select.findAll('option').map((o) => o.attributes('value'))).toStrictEqual([
 			'current',
 			'none',
@@ -163,7 +164,7 @@ describe('transitionsSection > Sound picker', () => {
 		const { wrapper, onTransitionChange } = mountTab(
 			slideWith({ type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' }),
 		);
-		await wrapper.find('select').setValue('none');
+		await setControlValue(wrapper.find('pptx-ui-select'), 'none');
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundRId: undefined, soundFileName: undefined }),
 		);
@@ -171,7 +172,7 @@ describe('transitionsSection > Sound picker', () => {
 
 	it('picks a stock sound directly, with no file dialog', async () => {
 		const { wrapper, onTransitionChange } = mountTab(slideWith({ type: 'fade' }));
-		await wrapper.find('select').setValue('chime');
+		await setControlValue(wrapper.find('pptx-ui-select'), 'chime');
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundName: 'CHIMES.WAV', soundFileName: 'CHIMES.WAV' }),
 		);
@@ -184,7 +185,7 @@ describe('transitionsSection > Sound picker', () => {
 		const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
 		const clickSpy = vi.spyOn(input, 'click');
 
-		await wrapper.find('select').setValue('other');
+		await setControlValue(wrapper.find('pptx-ui-select'), 'other');
 
 		expect(clickSpy).toHaveBeenCalledOnce();
 		expect(onTransitionChange).not.toHaveBeenCalled();

@@ -152,7 +152,6 @@ export function StrokeEffectsSection({
 					<React.Fragment key={cfg.label}>
 						<label className={`inline-flex items-center gap-2 text-foreground ${COL2}`}>
 							<WebCheckbox
-								type='checkbox'
 								checked={on}
 								onChange={(e) => {
 									onUpdateShapeStyle(e.target.checked ? cfg.onEnable(style) : cfg.onDisable(style));

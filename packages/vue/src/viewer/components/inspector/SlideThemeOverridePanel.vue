@@ -113,12 +113,7 @@ function onAliasChange(alias: ColorMapAliasKey, event: Event): void {
 <template>
 	<div class="space-y-2">
 		<label class="inline-flex items-center gap-2 text-xs">
-			<pptx-ui-checkbox
-				type="checkbox"
-				:disabled="!canEdit"
-				:checked="isActive"
-				@change="onToggle"
-			/>
+			<pptx-ui-checkbox :disabled="!canEdit" :checked="isActive" @change="onToggle" />
 			{{ t('pptx.themeOverride.enableOverride') }}
 		</label>
 

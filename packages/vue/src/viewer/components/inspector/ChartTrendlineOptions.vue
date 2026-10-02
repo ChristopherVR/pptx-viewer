@@ -77,9 +77,7 @@ function onFlag(
 				<div v-if="firstTrendline(s)" class="flex items-center gap-3 ml-2">
 					<label class="flex items-center gap-1 text-[11px] cursor-pointer">
 						<pptx-ui-checkbox
-							type="checkbox"
 							data-testid="chart-trendline-eq"
-							class="accent-primary"
 							:checked="firstTrendline(s)?.displayEq ?? false"
 							@change="onFlag($event, i, firstTrendline(s)!, 'displayEq')"
 						/>
@@ -87,9 +85,7 @@ function onFlag(
 					</label>
 					<label class="flex items-center gap-1 text-[11px] cursor-pointer">
 						<pptx-ui-checkbox
-							type="checkbox"
 							data-testid="chart-trendline-rsq"
-							class="accent-primary"
 							:checked="firstTrendline(s)?.displayRSq ?? false"
 							@change="onFlag($event, i, firstTrendline(s)!, 'displayRSq')"
 						/>

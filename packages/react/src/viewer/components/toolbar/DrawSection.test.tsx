@@ -68,7 +68,7 @@ describe('drawSection pen colour (recent colours)', () => {
 		button.focus();
 		act(() => button.click());
 		expect(tool).toHaveBeenCalledExactlyOnceWith('pen');
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		act(() => {
 			select.value = '16';
 			select.dispatchEvent(new Event('change', { bubbles: true }));

@@ -6,7 +6,7 @@
  * config. Reads from the same {@link createChatHistoryStore} the panel persists
  * to (default namespace).
  */
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { LucideBug, LucideDownload } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -19,6 +19,7 @@ import type { AiLogFormat } from './ai-log-export';
 	selector: 'pptx-ai-settings-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe, LucideBug, LucideDownload],
 	template: `
 		<div class="space-y-4">
@@ -45,12 +46,11 @@ import type { AiLogFormat } from './ai-log-export';
 			</p>
 
 			<label class="flex items-center gap-2 text-xs text-foreground">
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
 					[checked]="detailed()"
 					(change)="detailed.set($any($event.target).checked)"
 					class="h-3.5 w-3.5 rounded border-border"
-				/>
+				></pptx-ui-checkbox>
 				{{ 'pptx.ai.exportLogsDetailed' | translate }}
 			</label>
 

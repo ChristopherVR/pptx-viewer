@@ -75,7 +75,6 @@ export function ChartTrendlineOptions({
 								<div className='flex items-center gap-3 ml-2'>
 									<label className='flex items-center gap-1 text-[11px] cursor-pointer'>
 										<WebCheckbox
-											type='checkbox'
 											disabled={!canEdit}
 											checked={trendline.displayEq ?? false}
 											onChange={(e) =>
@@ -87,7 +86,6 @@ export function ChartTrendlineOptions({
 									</label>
 									<label className='flex items-center gap-1 text-[11px] cursor-pointer'>
 										<WebCheckbox
-											type='checkbox'
 											disabled={!canEdit}
 											checked={trendline.displayRSq ?? false}
 											onChange={(e) =>

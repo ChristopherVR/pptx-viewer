@@ -55,12 +55,10 @@
 			{t('pptx.slideBackground.clearBackground')}
 		</button>
 		<label class="pptx-svelte-formatbg-hide">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				disabled={!editor.editable}
 				checked={hideBackgroundGraphics}
-				onchange={(e) => editor.backgroundOps.setHideBackgroundGraphics(e.currentTarget.checked)}
-			/>
+				onchange={(e) => editor.backgroundOps.setHideBackgroundGraphics(e.currentTarget.checked)}></pptx-ui-checkbox>
 			<span>{t('pptx.slideBackground.hideBackgroundGraphics')}</span>
 		</label>
 		<button type="button" class="pptx-svelte-formatbg-close" onclick={onclose}>

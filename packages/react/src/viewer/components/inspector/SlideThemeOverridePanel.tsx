@@ -136,7 +136,6 @@ export function SlideThemeOverridePanel({
 		<div className='space-y-2'>
 			<label className='inline-flex items-center gap-2 text-xs'>
 				<WebCheckbox
-					type='checkbox'
 					disabled={!canEdit}
 					checked={isOverrideActive}
 					onChange={(e) => handleToggle(e.target.checked)}

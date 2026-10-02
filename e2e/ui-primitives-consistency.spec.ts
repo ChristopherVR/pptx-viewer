@@ -143,6 +143,34 @@ test('select is a keyboard-operable listbox whose popup is owned by the app', as
 	await expect(trigger).toBeFocused();
 });
 
+test('select pages through long lists with PageDown and PageUp', async ({ page }) => {
+	await loadDeck(page);
+	await page.evaluate(() => {
+		const select = document.createElement('pptx-ui-select');
+		select.id = 'paged-select';
+		select.setAttribute('aria-label', 'Paged');
+		select.style.cssText = 'position:fixed;top:120px;left:40px;width:200px;z-index:99999';
+		select.innerHTML = Array.from(
+			{ length: 30 },
+			(_, index) => `<option value="${index}">Item ${index}</option>`,
+		).join('');
+		document.body.append(select);
+	});
+	const trigger = page.locator('#paged-select [role="combobox"]');
+	const active = page.locator('#paged-select [role="option"][data-active]');
+	await trigger.focus();
+	await page.keyboard.press('PageDown');
+	await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+	await expect(active).toHaveText('Item 8');
+	await page.keyboard.press('PageDown');
+	await expect(active).toHaveText('Item 16');
+	await page.keyboard.press('PageUp');
+	await expect(active).toHaveText('Item 8');
+	await page.keyboard.press('Enter');
+	await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+	await expect(page.locator('#paged-select')).toHaveJSProperty('value', '8');
+});
+
 test('checkbox keyboard focus uses the shared ring, including forced colors', async ({ page }) => {
 	await loadDeck(page);
 	const dialog = await openOptions(page);

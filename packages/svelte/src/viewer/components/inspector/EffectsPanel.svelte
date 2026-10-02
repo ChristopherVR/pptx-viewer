@@ -191,7 +191,7 @@
 		gap: 6px;
 	}
 
-	.pptx-svelte-effects-fields input:not([type='checkbox']) {
+	.pptx-svelte-effects-fields input {
 		height: 26px;
 		border: 1px solid var(--pptx-border, #33334d);
 		border-radius: 5px;

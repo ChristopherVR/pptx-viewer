@@ -164,9 +164,7 @@ function onFlipV(event: Event): void {
 		/>
 		<label class="flex items-center gap-1 cursor-pointer">
 			<pptx-ui-checkbox
-				type="checkbox"
 				:aria-label="t('pptx.arrange.flipHorizontally')"
-				class="accent-primary"
 				:checked="row.flipH ?? false"
 				@change="onFlipH"
 			/>
@@ -174,9 +172,7 @@ function onFlipV(event: Event): void {
 		</label>
 		<label class="flex items-center gap-1 cursor-pointer">
 			<pptx-ui-checkbox
-				type="checkbox"
 				:aria-label="t('pptx.arrange.flipVertically')"
-				class="accent-primary"
 				:checked="row.flipV ?? false"
 				@change="onFlipV"
 			/>
@@ -233,9 +229,7 @@ function onFlipV(event: Event): void {
 		/>
 		<label class="flex items-center gap-1 cursor-pointer">
 			<pptx-ui-checkbox
-				type="checkbox"
 				:aria-label="t('pptx.arrange.flipHorizontally')"
-				class="accent-primary"
 				:checked="row.flipH ?? false"
 				@change="onFlipH"
 			/>
@@ -243,9 +237,7 @@ function onFlipV(event: Event): void {
 		</label>
 		<label class="flex items-center gap-1 cursor-pointer">
 			<pptx-ui-checkbox
-				type="checkbox"
 				:aria-label="t('pptx.arrange.flipVertically')"
-				class="accent-primary"
 				:checked="row.flipV ?? false"
 				@change="onFlipV"
 			/>

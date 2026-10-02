@@ -81,8 +81,7 @@ const missingCount = computed(
 				:class="props.canEmbedFonts ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'"
 			>
 				<div class="relative">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						class="sr-only"
 						:checked="props.embedFontsEnabled"
 						:disabled="!props.canEmbedFonts"

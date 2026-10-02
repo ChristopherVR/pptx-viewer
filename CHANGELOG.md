@@ -10,6 +10,73 @@ dated sections beneath it are generated from
 
 ## 2026-10-02
 
+_Releases: pptx-react-viewer@4.18.0, pptx-vue-viewer@4.18.0, pptx-angular-viewer@4.18.0, pptx-vanilla-viewer@3.18.0, pptx-svelte-viewer@4.18.0, @christophervr/pptx-viewer@2.35.0_
+
+### Features
+
+- **shared:** Add pptx-ui-status-bar element for the bottom bar (by @ChristopherVR) ([71020c5](https://github.com/ChristopherVR/pptx-viewer/commit/71020c578554bfe19c6454b2d3780af8c356e6de))
+- **shared:** Add canonical control tokens for field, focus, checkbox (by @ChristopherVR) ([63be0fb](https://github.com/ChristopherVR/pptx-viewer/commit/63be0fb550e6a1a00d012624a4fc5a6fff737d4c))
+- **ui:** Add inspector reset and clear actions to every binding (by @ChristopherVR) ([6618e04](https://github.com/ChristopherVR/pptx-viewer/commit/6618e040017faa22daf2763896a7febaef01e7e2))
+- **ui:** Share the section, sorter and slide rail menus across bindings (by @ChristopherVR) ([e25816b](https://github.com/ChristopherVR/pptx-viewer/commit/e25816b24205d50a39f1179baa64ed11f14f079a))
+- **shared:** Add Home slides, drawing and arrange shared strips (by @ChristopherVR) ([2ba2053](https://github.com/ChristopherVR/pptx-viewer/commit/2ba2053d1ad6093c8b323255d12a66f6bed78df8))
+- **shared:** Add the pptx-ui-title-bar element (by @ChristopherVR) ([e8d07ad](https://github.com/ChristopherVR/pptx-viewer/commit/e8d07ad469b2da306642b1576ed80a3760d3d1fe))
+- **ui:** Align history labels, autosave reason and command search (by @ChristopherVR) ([5f7efa1](https://github.com/ChristopherVR/pptx-viewer/commit/5f7efa1575279a5ec4993f34e78a6aadb0b48464))
+- **shared:** Add read-only banner, paste options, toast, footer and mobile elements (by @ChristopherVR) ([1b59e08](https://github.com/ChristopherVR/pptx-viewer/commit/1b59e08dec576dd369950be8ef767b74317eb7b0))
+- **shared:** Page keys, switch tokens and primitive ribbon pickers (by @ChristopherVR) ([9cdbe51](https://github.com/ChristopherVR/pptx-viewer/commit/9cdbe51a103f2189ac7ce511e4c4e518dbc5e159))
+
+### Bug Fixes
+
+- **shared:** Keep modal open when Escape closes a select popup (by @ChristopherVR) ([c17d694](https://github.com/ChristopherVR/pptx-viewer/commit/c17d694815539df72df7c16aa9146c8e8d847c1a))
+- **bindings:** Drop local checkbox and search overrides of the primitives (by @ChristopherVR) ([2422862](https://github.com/ChristopherVR/pptx-viewer/commit/2422862ef3b84dabf7f29b3f3e523e12009614fe))
+- **svelte:** Keep the inline editor open across a late bootstrap load (by @ChristopherVR) ([f74bf6a](https://github.com/ChristopherVR/pptx-viewer/commit/f74bf6ae7c3105149c7b61e13c51be8c86f339d4))
+- **shared:** Scope Home strip button styles to shared buttons (by @ChristopherVR) ([0abb22c](https://github.com/ChristopherVR/pptx-viewer/commit/0abb22c36326981cadd27aa59e77c72a8888a095))
+- **svelte:** Re-translate shared Home strips on locale change (by @ChristopherVR) ([43ac2de](https://github.com/ChristopherVR/pptx-viewer/commit/43ac2de1ae0f44e4668b7aafca52baf0531f64e3))
+- **vue:** Re-translate shared Home strips on locale change (by @ChristopherVR) ([2586086](https://github.com/ChristopherVR/pptx-viewer/commit/258608660d5eda474e7c21d8e146baa05c79f639))
+
+### Refactor
+
+- **react:** Use the shared status bar element (by @ChristopherVR) ([910f4f7](https://github.com/ChristopherVR/pptx-viewer/commit/910f4f75d35ecd2711b389dfa275879e4eb8bc11))
+- **vue:** Use the shared status bar element (by @ChristopherVR) ([2e1c199](https://github.com/ChristopherVR/pptx-viewer/commit/2e1c1996ea4a262734ff7cf83db366ba98b40c04))
+- **angular:** Use the shared status bar element (by @ChristopherVR) ([bc64378](https://github.com/ChristopherVR/pptx-viewer/commit/bc64378a9fe97bc60701834ee60e5fcc2e9cff00))
+- **svelte:** Use the shared status bar element (by @ChristopherVR) ([2981a14](https://github.com/ChristopherVR/pptx-viewer/commit/2981a146cea684a3e4a92fd3a3af268ed1ee89ee))
+- **vanilla:** Use the shared status bar element (by @ChristopherVR) ([c6803ad](https://github.com/ChristopherVR/pptx-viewer/commit/c6803ad28f3906a1cf8b021445734feca09c47ab))
+- **ui:** Share the notes toolbar across the five bindings (by @ChristopherVR) ([ec28b7e](https://github.com/ChristopherVR/pptx-viewer/commit/ec28b7ee08f59c4a87abbdad7f2113870ba4489c))
+- **react:** Use shared Home slides, drawing and arrange strips (by @ChristopherVR) ([31dbe97](https://github.com/ChristopherVR/pptx-viewer/commit/31dbe976b62acf9ce6f31e8c46c62b7f84c28647))
+- **vue:** Use shared Home slides, drawing and arrange strips (by @ChristopherVR) ([43088f9](https://github.com/ChristopherVR/pptx-viewer/commit/43088f9571a4d1b221fa29c0ad61bdb0e82a633d))
+- **angular:** Use shared Home slides, drawing and arrange strips (by @ChristopherVR) ([fab9833](https://github.com/ChristopherVR/pptx-viewer/commit/fab9833f8a2431061d6ffce34315856222e22ed5))
+- **svelte:** Use shared Home slides, drawing and arrange strips (by @ChristopherVR) ([f54ed5a](https://github.com/ChristopherVR/pptx-viewer/commit/f54ed5a02548767a056082db3692f1ae06cf267d))
+- **vanilla:** Use shared Home slides, drawing and arrange strips (by @ChristopherVR) ([9037baf](https://github.com/ChristopherVR/pptx-viewer/commit/9037baf796e22cca73cc85f269bf3af5e72b79eb))
+- **ui:** Adopt the shared title bar in all five bindings (by @ChristopherVR) ([bb68dec](https://github.com/ChristopherVR/pptx-viewer/commit/bb68deca58d4198c2a8cd5d8e498f1014f385fcb))
+- **ui:** Share the context menu rendering layer (by @ChristopherVR) ([7b63502](https://github.com/ChristopherVR/pptx-viewer/commit/7b63502bb5c16e08238e488582fea85118571845))
+- **ui:** Share the mobile bottom bar and top toolbar (by @ChristopherVR) ([a84241b](https://github.com/ChristopherVR/pptx-viewer/commit/a84241b2849c49115f35f506cfabb1ab177efb5f))
+- **ui:** Share the read-only banner, paste options, toasts and dialog footer (by @ChristopherVR) ([8d2233b](https://github.com/ChristopherVR/pptx-viewer/commit/8d2233b7c8788e4848ae44294a6174744357ab33))
+- **ui:** Share the slide-show toolbar and presenter console strip (by @ChristopherVR) ([a937cf5](https://github.com/ChristopherVR/pptx-viewer/commit/a937cf58da8c8c6d80dd38bc36a0da64285f1431))
+- **react:** Use the shared select and checkbox in dialogs and panels (by @ChristopherVR) ([bf7caa6](https://github.com/ChristopherVR/pptx-viewer/commit/bf7caa64efab3f412e6edb31551993ed12e165c6))
+- **vue:** Use the shared select and checkbox in dialogs and panels (by @ChristopherVR) ([7fde73b](https://github.com/ChristopherVR/pptx-viewer/commit/7fde73b24f89c2c5a1e634dc7681064874282dd8))
+- **angular:** Use the shared select and checkbox in dialogs and panels (by @ChristopherVR) ([88dcd0f](https://github.com/ChristopherVR/pptx-viewer/commit/88dcd0f7d895c3daa15ce40d45496f10b4752c05))
+- **svelte:** Use the shared select and checkbox in dialogs and panels (by @ChristopherVR) ([7451bea](https://github.com/ChristopherVR/pptx-viewer/commit/7451bea4657946e4ded88f5f37f99d7cf2533abb))
+- **vanilla:** Use the shared select and checkbox in dialogs and panels (by @ChristopherVR) ([0bff3ae](https://github.com/ChristopherVR/pptx-viewer/commit/0bff3ae19724620c511c109c7c05757e5f3a2375))
+
+### Documentation
+
+- **ui:** Audit non-ribbon button families and record the status bar (by @ChristopherVR) ([865ada6](https://github.com/ChristopherVR/pptx-viewer/commit/865ada64cfef4fd63d6d72364c0d362ed5899336))
+- Document Home slides, drawing and arrange migration (by @ChristopherVR) ([e625d5e](https://github.com/ChristopherVR/pptx-viewer/commit/e625d5e70466d4952d345b83d31110db6f6c6716))
+- **ui:** Audit the non-ribbon families and add before/after captures (by @ChristopherVR) ([451b5e1](https://github.com/ChristopherVR/pptx-viewer/commit/451b5e1ed0b2cf9f893a8cedafe8441253d4bf90))
+- **ui:** Record dialog control conversion and before/after captures (by @ChristopherVR) ([0e4bacf](https://github.com/ChristopherVR/pptx-viewer/commit/0e4bacffddcd016d8661bd183fc1a1b31b8669e7))
+
+### Testing
+
+- **e2e:** Cover the shared status bar on all five bindings (by @ChristopherVR) ([e70bc73](https://github.com/ChristopherVR/pptx-viewer/commit/e70bc734d4ebc9a7fe0ec8230d5d83f6a8e87b29))
+- **e2e:** Add cross-binding primitive consistency check and evidence (by @ChristopherVR) ([470572c](https://github.com/ChristopherVR/pptx-viewer/commit/470572c9ac9b8ea47d1d86836f6a9b113f0b8f34))
+- **e2e:** Cover Home slides, drawing and arrange strips (by @ChristopherVR) ([553cf6e](https://github.com/ChristopherVR/pptx-viewer/commit/553cf6e3b345e0a5ac22ab0c177ff0d9bc306bdb))
+- **e2e:** Check shared Home strips follow the runtime locale (by @ChristopherVR) ([bf656f3](https://github.com/ChristopherVR/pptx-viewer/commit/bf656f3f2259577442372dda00fa4ae4c3f4b114))
+- **e2e:** Cover the shared title bar on all five bindings (by @ChristopherVR) ([a852a25](https://github.com/ChristopherVR/pptx-viewer/commit/a852a25d12b569691c0e3519401e9d970e1ed602))
+- **vanilla:** Look for the quick-access strip in the shared title bar (by @ChristopherVR) ([d6a7711](https://github.com/ChristopherVR/pptx-viewer/commit/d6a7711c531398016f16bdf6bb9a30c433cbf775))
+- Guard SmartArt inline edit and contextual tabs on all bindings (by @ChristopherVR) ([c467945](https://github.com/ChristopherVR/pptx-viewer/commit/c46794514859ae2dfa56578bf735fd2f9fc5db07))
+- **e2e:** Fail when a dialog shows a native select or checkbox (by @ChristopherVR) ([35bdb34](https://github.com/ChristopherVR/pptx-viewer/commit/35bdb346efb54ca5f7fb1a188ae22da3a555c431))
+
+## 2026-10-02
+
 _Releases: pptx-react-viewer@4.17.1, pptx-vue-viewer@4.17.1, pptx-angular-viewer@4.17.1, pptx-vanilla-viewer@3.17.1, pptx-svelte-viewer@4.17.1, @christophervr/pptx-viewer@2.34.1_
 
 ### Bug Fixes

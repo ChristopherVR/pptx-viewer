@@ -98,7 +98,6 @@ export function TablePropertiesPanel({
 					).map(([key, i18nKey]) => (
 						<label key={key} className='flex items-center gap-2 cursor-pointer'>
 							<WebCheckbox
-								type='checkbox'
 								disabled={!canEdit}
 								checked={Boolean(td[key as keyof typeof td])}
 								onChange={(e) => updateTableData({ [key]: e.target.checked })}

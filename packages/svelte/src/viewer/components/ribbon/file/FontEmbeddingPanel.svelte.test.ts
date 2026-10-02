@@ -29,7 +29,7 @@ describe('font embedding panel', () => {
 
 		expect(target.textContent).toContain('Aptos');
 		expect(target.textContent).toContain('Brand Font');
-		const toggle = target.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+		const toggle = target.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 		toggle.checked = true;
 		toggle.dispatchEvent(new Event('change', { bubbles: true }));
 		expect(ontoggle).toHaveBeenCalledWith(true);
@@ -53,7 +53,7 @@ describe('font embedding panel', () => {
 		await Promise.resolve();
 		flushSync();
 
-		expect(target.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBeTruthy();
+		expect(target.querySelector<HTMLInputElement>('pptx-ui-checkbox')!.disabled).toBeTruthy();
 		// The dictionary text, not the key: a missing entry would render the key.
 		expect(target.textContent).toContain('there is nothing to embed');
 	});

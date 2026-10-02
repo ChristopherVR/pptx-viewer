@@ -8,7 +8,14 @@
  * {@link RibbonInsertSectionComponent} calls `addActionButton`, `insertField` and
  * `openDatePicker` when the shared element emits the matching intent.
  */
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	inject,
+	input,
+	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
@@ -49,6 +56,7 @@ function newFieldGuid(): string {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	template: `
 		<!-- Date/Time picker modal -->
@@ -71,7 +79,8 @@ function newFieldGuid(): string {
 						<label class="mb-1 block text-[11px] text-muted-foreground">{{
 							'pptx.field.format' | translate
 						}}</label>
-						<select
+						<pptx-ui-select
+							[attr.aria-label]="'pptx.field.format' | translate"
 							class="w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 							[value]="dateFormat()"
 							(change)="dateFormat.set($any($event.target).value)"
@@ -81,7 +90,7 @@ function newFieldGuid(): string {
 							<option value="short">{{ previewShort() }}</option>
 							<option value="iso">{{ previewIso() }}</option>
 							<option value="time">{{ previewTime() }}</option>
-						</select>
+						</pptx-ui-select>
 					</div>
 					<div class="flex justify-end gap-2 pt-1">
 						<button

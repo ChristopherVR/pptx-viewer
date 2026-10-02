@@ -8,6 +8,7 @@ import JSZip from 'jszip';
 import { savePptxViaBackstage } from './save-pptx';
 import { loadDeck, ribbonTab, slideStage, thumbnail } from './support/deck';
 import { downloadBytes } from './support/exports';
+import { chooseSelectValue, expectSelectValue } from './support/select-control';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -78,7 +79,11 @@ test('presets, timing and sound edit the deck, undo and survive save and reload'
 	await seconds.fill('00:04.00');
 	await seconds.blur();
 	await expect(seconds).toHaveValue('00:04.00');
-	await host.getByRole('combobox', { name: 'Sound:', exact: true }).selectOption('chime');
+	await chooseSelectValue(
+		page,
+		host.getByRole('combobox', { name: 'Sound:', exact: true }),
+		'chime',
+	);
 	await page.screenshot({ path: info.outputPath('transitions-applied.png') });
 
 	// Undo reverts the most recent native commit; redo restores it.
@@ -87,12 +92,12 @@ test('presets, timing and sound edit the deck, undo and survive save and reload'
 	await undo.click();
 	await ribbonTab(page, 'Transitions').click();
 	await expect(preset(host, 'Push')).toHaveAttribute('aria-pressed', 'true');
-	await expect(host.getByRole('combobox', { name: 'Sound:', exact: true })).toHaveValue('none');
+	await expectSelectValue(host.getByRole('combobox', { name: 'Sound:', exact: true }), 'none');
 	await page
 		.getByRole('button', { name: /^Redo\b/u })
 		.first()
 		.click();
-	await expect(host.getByRole('combobox', { name: 'Sound:', exact: true })).toHaveValue('chime');
+	await expectSelectValue(host.getByRole('combobox', { name: 'Sound:', exact: true }), 'chime');
 
 	const { saved, xml } = await savedSlide(page, info, 'transitions-edit.pptx');
 	expect(xml).toMatch(/<p:push\b/u);

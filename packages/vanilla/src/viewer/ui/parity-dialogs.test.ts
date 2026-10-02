@@ -109,7 +109,7 @@ describe('remaining parity dialogs', () => {
 	it('collects print layout, range, orientation, and color settings', () => {
 		const onPrint = vi.fn();
 		openPrintSettingsDialog(document, createTranslator(), 5, onPrint);
-		const selects = document.querySelectorAll<HTMLSelectElement>('select');
+		const selects = document.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		selects[0].value = 'current';
 		selects[1].value = 'notes';
 		selects[2].value = 'portrait';
@@ -133,7 +133,7 @@ describe('remaining parity dialogs', () => {
 		openHeaderFooterDialog(document, createTranslator(), { value: {}, onApply });
 		const footer = Array.from(document.querySelectorAll('label'))
 			.find((label) => label.textContent === 'Footer')!
-			.querySelector<HTMLInputElement>('input')!;
+			.querySelector<HTMLElement>('pptx-ui-checkbox')!;
 		footer.click();
 		const text = document.querySelector<HTMLInputElement>('input[type="text"]')!;
 		text.value = 'Confidential';

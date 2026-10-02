@@ -44,7 +44,6 @@ export function ChartDisplayOptions({
 				{/* Show title */}
 				<label className='flex items-center gap-2 cursor-pointer'>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasTitle ?? false}
 						onChange={(e) => onUpdateStyle({ hasTitle: e.target.checked })}
@@ -56,7 +55,6 @@ export function ChartDisplayOptions({
 				{/* Show legend */}
 				<label className='flex items-center gap-2 cursor-pointer'>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasLegend ?? false}
 						onChange={(e) => onUpdateStyle({ hasLegend: e.target.checked })}
@@ -94,7 +92,6 @@ export function ChartDisplayOptions({
 				{/* Gridlines */}
 				<label className='flex items-center gap-2 cursor-pointer'>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={hasGridlines}
 						onChange={(e) => onToggleGridlines(e.target.checked)}
@@ -106,7 +103,6 @@ export function ChartDisplayOptions({
 				{/* Data labels */}
 				<label className='flex items-center gap-2 cursor-pointer'>
 					<WebCheckbox
-						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasDataLabels ?? false}
 						onChange={(e) => onUpdateStyle(chartDataLabelsTogglePatch(style, e.target.checked))}

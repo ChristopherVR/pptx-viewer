@@ -38,6 +38,12 @@ export const CONTROL_TOKENS = {
 	'--pptx-checkbox-bg': 'var(--pptx-background, #030712)',
 	'--pptx-checkbox-accent': 'var(--pptx-primary, #6366f1)',
 	'--pptx-checkbox-accent-fg': 'var(--pptx-primary-foreground, #fff)',
+	// Switch (on/off toggles such as the title-bar AutoSave control)
+	'--pptx-switch-width': '32px',
+	'--pptx-switch-height': '16px',
+	'--pptx-switch-track': 'var(--pptx-border, #374151)',
+	'--pptx-switch-track-on': 'var(--pptx-primary, #6366f1)',
+	'--pptx-switch-thumb': 'var(--pptx-primary-foreground, #fff)',
 } as const;
 
 export type ControlToken = keyof typeof CONTROL_TOKENS;

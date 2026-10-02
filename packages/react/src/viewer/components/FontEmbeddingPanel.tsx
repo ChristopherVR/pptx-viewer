@@ -3,6 +3,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuType, LuX, LuCheck, LuLoader } from 'react-icons/lu';
 
+import { WebCheckbox } from './WebControls';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -113,25 +115,11 @@ export function FontEmbeddingPanel({
 								canEmbedFonts ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
 							}`}
 						>
-							<div className='relative'>
-								<input
-									type='checkbox'
-									className='sr-only'
-									checked={embedFontsEnabled}
-									disabled={!canEmbedFonts}
-									onChange={(e) => onToggleEmbedFonts(e.target.checked)}
-								/>
-								<div
-									className={`w-9 h-5 rounded-full transition-colors ${
-										embedFontsEnabled ? 'bg-primary' : 'bg-muted-foreground'
-									}`}
-								/>
-								<div
-									className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-										embedFontsEnabled ? 'translate-x-4' : ''
-									}`}
-								/>
-							</div>
+							<WebCheckbox
+								checked={embedFontsEnabled}
+								disabled={!canEmbedFonts}
+								onChange={(e) => onToggleEmbedFonts(e.target.checked)}
+							/>
 							<span className='text-xs text-foreground'>{t('pptx.fonts.enableEmbedding')}</span>
 						</label>
 						{/*

@@ -7,7 +7,13 @@
  * button that restores the ribbon group, and the keyboard-shortcut reference
  * list that backs the tab's `shortcutReference` special section.
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { SHORTCUT_REFERENCE_ITEMS, TOOLBAR_TABS } from '../internal/shared';
@@ -28,6 +34,7 @@ export function isRibbonTabTicked(options: ViewerOptions, tabId: ToolbarTabId): 
 	selector: 'pptx-options-ribbon-pane',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-ng-options-ribbon">
@@ -37,12 +44,11 @@ export function isRibbonTabTicked(options: ViewerOptions, tabId: ToolbarTabId): 
 				<div class="pptx-ng-options-ribbon-tabs">
 					@for (tab of tabs; track tab.id) {
 						<label class="pptx-ng-options-ribbon-tab" [class.is-locked]="tab.id === 'file'">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								[checked]="ticked(tab.id)"
 								[disabled]="tab.id === 'file'"
 								(change)="onTicked(tab.id, $event)"
-							/>
+							></pptx-ui-checkbox>
 							<span>{{ tab.labelKey | translate }}</span>
 						</label>
 					}

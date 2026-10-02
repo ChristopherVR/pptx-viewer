@@ -80,14 +80,14 @@ describe('shared Insert view', () => {
 		expect(button(host, 'insert.tables.table').disabled).toBeTruthy();
 		button(host, 'insert.tables.table').click();
 		host.querySelector<HTMLElement>('[data-pptx-drawing-tool="curve"]')!.click();
-		expect(host.querySelector('select')!.disabled).toBeTruthy();
+		expect(host.querySelector('pptx-ui-select')!.disabled).toBeTruthy();
 		expect(host.querySelector<HTMLButtonElement>('.trigger')!.disabled).toBeTruthy();
 		expect(requests).not.toHaveBeenCalled();
 	});
 
 	it('routes shape and chart pickers through controlled selects', () => {
 		const { host, requests } = mount();
-		const [shape, chart] = [...host.querySelectorAll('select')];
+		const [shape, chart] = [...host.querySelectorAll('pptx-ui-select')];
 		expect(shape.value).toBe('ellipse');
 		expect(chart.value).toBe('pie');
 		shape.value = 'star5';

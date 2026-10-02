@@ -55,11 +55,7 @@ export function Text3DProperties({
 			{/* ── Extrusion toggle ── */}
 			<div className='space-y-1.5'>
 				<label className='inline-flex items-center gap-2 text-foreground'>
-					<WebCheckbox
-						type='checkbox'
-						checked={hasExtrusion}
-						onChange={(e) => toggleExtrusion(e.target.checked)}
-					/>
+					<WebCheckbox checked={hasExtrusion} onChange={(e) => toggleExtrusion(e.target.checked)} />
 					{t('pptx.text3d.extrusion')}
 				</label>
 				{hasExtrusion && (

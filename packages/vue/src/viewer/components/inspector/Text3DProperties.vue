@@ -75,7 +75,6 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 		<div class="space-y-1.5">
 			<label class="inline-flex items-center gap-2 text-foreground">
 				<pptx-ui-checkbox
-					type="checkbox"
 					:checked="hasExtrusion"
 					@change="toggleExtrusion(($event.target as HTMLInputElement).checked)"
 				/>

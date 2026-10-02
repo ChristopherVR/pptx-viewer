@@ -159,12 +159,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.loop') }}</span>
-			<pptx-ui-checkbox
-				type="checkbox"
-				:disabled="!canEdit"
-				:checked="Boolean(element.loop)"
-				@change="onLoop"
-			/>
+			<pptx-ui-checkbox :disabled="!canEdit" :checked="Boolean(element.loop)" @change="onLoop" />
 		</label>
 
 		<label :class="ROW">
@@ -184,7 +179,6 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		<label v-if="isAudio" :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.playAcrossSlides') }}</span>
 			<pptx-ui-checkbox
-				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.playAcrossSlides)"
 				@change="onPlayAcross"
@@ -194,7 +188,6 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.fullScreen') }}</span>
 			<pptx-ui-checkbox
-				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.fullScreen)"
 				@change="onFullScreen"
@@ -204,7 +197,6 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.hideWhenNotPlaying') }}</span>
 			<pptx-ui-checkbox
-				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.hideWhenNotPlaying)"
 				@change="onHideWhenNotPlaying"

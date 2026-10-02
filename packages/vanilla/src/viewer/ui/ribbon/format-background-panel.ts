@@ -3,6 +3,7 @@ import type { EditActions } from '../../editor/editor-edit-ops';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { makeButton, makeColorControl } from '../controls';
+import { createInspectorCheckbox } from '../inspector/controls-extra';
 
 export interface FormatBackgroundPanel {
 	el: HTMLElement;
@@ -64,8 +65,7 @@ export function createFormatBackgroundPanel(
 	el.appendChild(row);
 
 	const hideRow = createEl(doc, 'label', 'pptxv-format-background-hide-row');
-	const hideCheckbox = doc.createElement('input');
-	hideCheckbox.type = 'checkbox';
+	const hideCheckbox = createInspectorCheckbox(doc);
 	hideCheckbox.addEventListener('change', () => {
 		actions.setHideBackgroundGraphics(hideCheckbox.checked);
 	});
