@@ -12,10 +12,20 @@
  * in `./properties-dialog-helpers`.
  */
 
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	effect,
+	input,
+	output,
+	signal,
+	computed,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCoreProperties } from 'pptx-viewer-core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import {
 	buildPropertiesPatch,
@@ -28,7 +38,7 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 	selector: 'pptx-properties-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -105,16 +115,7 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-props-btn" (click)="close.emit()">
-					{{ 'pptx.common.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ng-props-btn pptx-ng-props-btn-primary"
-					(click)="handleSave()"
-				>
-					{{ 'pptx.common.save' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -175,25 +176,24 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 			.pptx-ng-props-meta-value {
 				color: var(--pptx-foreground, #e5e5e5);
 			}
-
-			.pptx-ng-props-btn {
-				padding: 0.375rem 0.75rem;
-				border: none;
-				border-radius: 0.375rem;
-				background: var(--pptx-muted, #2a2a2a);
-				color: var(--pptx-foreground, #e5e5e5);
-				font-size: 0.75rem;
-				cursor: pointer;
-			}
-
-			.pptx-ng-props-btn-primary {
-				background: var(--pptx-primary, #6366f1);
-				color: var(--pptx-primary-foreground, #fff);
-			}
 		`,
 	],
 })
 export class PropertiesDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{ id: 'save', labelKey: 'pptx.common.save', variant: 'primary' as const },
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'save') {
+			this.handleSave();
+		} else {
+			this.close.emit();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

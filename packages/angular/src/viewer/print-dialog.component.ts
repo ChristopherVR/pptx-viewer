@@ -37,6 +37,8 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { IsMobileService } from './is-mobile';
 import {
 	DEFAULT_PRINT_SETTINGS,
@@ -61,7 +63,7 @@ export function printDialogClass(isMobile: boolean): string {
 	selector: 'pptx-print-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [PrintSettingsPanelComponent, TranslatePipe],
+	imports: [DialogFooterComponent, PrintSettingsPanelComponent, TranslatePipe],
 	providers: [IsMobileService],
 	template: `
 		<div
@@ -104,16 +106,7 @@ export function printDialogClass(isMobile: boolean): string {
 						}}
 					</span>
 					<div class="pptx-ng-print-dialog__actions">
-						<button type="button" class="pptx-ng-print-dialog__btn" (click)="onCancel()">
-							{{ 'pptx.common.cancel' | translate }}
-						</button>
-						<button
-							type="button"
-							class="pptx-ng-print-dialog__btn pptx-ng-print-dialog__btn--primary"
-							(click)="onConfirm()"
-						>
-							{{ 'pptx.print.printButton' | translate }}
-						</button>
+						<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 					</div>
 				</div>
 			</div>
@@ -206,36 +199,6 @@ export function printDialogClass(isMobile: boolean): string {
 				display: flex;
 				gap: 0.5rem;
 			}
-
-			.pptx-ng-print-dialog__btn {
-				padding: 0.5rem 1rem;
-				border: 1px solid rgba(255, 255, 255, 0.15);
-				border-radius: 0.5rem;
-				background: rgba(255, 255, 255, 0.04);
-				color: rgba(255, 255, 255, 0.7);
-				font-size: 0.8125rem;
-				cursor: pointer;
-				transition:
-					background 0.12s,
-					color 0.12s,
-					border-color 0.12s;
-			}
-
-			.pptx-ng-print-dialog__btn:hover {
-				background: rgba(255, 255, 255, 0.1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-print-dialog__btn--primary {
-				border-color: #3b82f6;
-				background: #3b82f6;
-				color: #ffffff;
-			}
-
-			.pptx-ng-print-dialog__btn--primary:hover {
-				background: #2f6fd6;
-			}
-
 			/*
 			 * Mobile: dock the dialog full-width at the bottom as a sheet (rounded
 			 * top, dvh-capped height with internal scroll, safe-area padding) so
@@ -280,17 +243,7 @@ export function printDialogClass(isMobile: boolean): string {
 					padding-bottom: max(env(safe-area-inset-bottom), 0px);
 				}
 
-				/*
-				 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
-				 * pptx-viewer-shared's render/responsive module. The Print What /
-				 * Slide Range / Orientation / Color Mode groups are native radios
-				 * (not matched by the discrete-control WCAG check), so only the
-				 * footer's own Cancel/Print buttons need sizing here.
-				 */
-				.pptx-ng-print-dialog__btn {
-					min-height: 44px;
-				}
-
+				/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared. */
 				.pptx-ng-print-dialog__icon-btn {
 					min-width: 44px;
 					min-height: 44px;
@@ -300,6 +253,25 @@ export function printDialogClass(isMobile: boolean): string {
 	],
 })
 export class PrintDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{
+			id: 'print',
+			labelKey: 'pptx.print.printButton',
+			variant: 'primary' as const,
+			icon: 'print' as const,
+		},
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'print') {
+			this.onConfirm();
+		} else {
+			this.onCancel();
+		}
+	}
+
 	// -------------------------------------------------------------------------
 	// Inputs / outputs
 	// -------------------------------------------------------------------------

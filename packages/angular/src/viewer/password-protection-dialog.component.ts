@@ -13,9 +13,19 @@
  * Drops react-i18next in favour of the English fallback copy.
  */
 
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	effect,
+	input,
+	output,
+	signal,
+	computed,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { validatePassword } from './password-protection-helpers';
 import { PasswordStrengthMeterComponent } from './password-strength-meter.component';
@@ -24,7 +34,12 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 	selector: 'pptx-password-protection-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, PasswordStrengthMeterComponent, TranslatePipe],
+	imports: [
+		DialogFooterComponent,
+		ModalDialogComponent,
+		PasswordStrengthMeterComponent,
+		TranslatePipe,
+	],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -100,26 +115,7 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 			</div>
 
 			<div footer class="pptx-ng-pw-footer">
-				<div class="pptx-ng-pw-footer-left">
-					@if (isCurrentlyProtected()) {
-						<button type="button" class="pptx-ng-pw-remove" (click)="onRemove()">
-							{{ 'pptx.security.removePassword' | translate }}
-						</button>
-					}
-				</div>
-				<div class="pptx-ng-pw-footer-right">
-					<button type="button" class="pptx-ng-pw-btn" (click)="onClose()">
-						{{ 'pptx.common.cancel' | translate }}
-					</button>
-					<button type="button" class="pptx-ng-pw-btn pptx-ng-pw-btn-primary" (click)="onSubmit()">
-						{{
-							(isCurrentlyProtected()
-								? 'pptx.security.updatePassword'
-								: 'pptx.security.setPassword'
-							) | translate
-						}}
-					</button>
-				</div>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -210,52 +206,42 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 				align-items: center;
 				justify-content: space-between;
 			}
-
-			.pptx-ng-pw-footer-right {
-				display: flex;
-				gap: 0.5rem;
-			}
-
-			.pptx-ng-pw-remove {
-				border: none;
-				background: transparent;
-				color: #f87171;
-				font-size: 0.75rem;
-				cursor: pointer;
-			}
-
-			.pptx-ng-pw-remove:hover {
-				filter: brightness(1.15);
-			}
-
-			.pptx-ng-pw-btn {
-				padding: 0.375rem 0.75rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				cursor: pointer;
-				white-space: nowrap;
-			}
-
-			.pptx-ng-pw-btn:hover {
-				background: var(--pptx-border, #374151);
-			}
-
-			.pptx-ng-pw-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-pw-btn-primary:hover {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class PasswordProtectionDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		...(this.isCurrentlyProtected()
+			? [
+					{
+						id: 'remove',
+						labelKey: 'pptx.security.removePassword',
+						variant: 'danger' as const,
+						align: 'start' as const,
+					},
+				]
+			: []),
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{
+			id: 'submit',
+			labelKey: this.isCurrentlyProtected()
+				? 'pptx.security.updatePassword'
+				: 'pptx.security.setPassword',
+			variant: 'primary' as const,
+		},
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'remove') {
+			this.onRemove();
+		} else if (id === 'submit') {
+			this.onSubmit();
+		} else {
+			this.onClose();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

@@ -24,6 +24,8 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { scanAvailableFonts } from './font-embedding-helpers';
 import { FontEmbeddingListComponent } from './font-embedding-list.component';
 import { ModalDialogComponent } from './modal-dialog.component';
@@ -32,7 +34,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-font-embedding-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, FontEmbeddingListComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, FontEmbeddingListComponent, TranslatePipe],
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
 		<pptx-modal-dialog
@@ -73,9 +75,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-fonts-done" (click)="close.emit()">
-					{{ 'pptx.fontEmbedding.done' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -112,23 +112,19 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				line-height: 1.5;
 				color: var(--pptx-muted-foreground, #9ca3af);
 			}
-			.pptx-ng-fonts-done {
-				padding: 0.375rem 0.75rem;
-				font-size: 0.75rem;
-				color: #ffffff;
-				background: var(--pptx-primary, #6366f1);
-				border: 1px solid var(--pptx-primary, #6366f1);
-				border-radius: 0.5rem;
-				cursor: pointer;
-				transition: filter 0.15s ease;
-			}
-			.pptx-ng-fonts-done:hover {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class FontEmbeddingPanelComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'done', labelKey: 'pptx.fontEmbedding.done', variant: 'primary' as const },
+	]);
+
+	protected onFooterAction(): void {
+		this.close.emit();
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

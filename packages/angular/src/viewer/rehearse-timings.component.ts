@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
+
 function formatMs(ms: number): string {
 	const seconds = Math.max(0, Math.floor(ms / 1000));
 	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -10,7 +13,7 @@ function formatMs(ms: number): string {
 	selector: 'pptx-rehearse-timings',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [DialogFooterComponent, TranslatePipe],
 	template: `
 		@if (summary()) {
 			<div
@@ -52,20 +55,7 @@ function formatMs(ms: number): string {
 						</table>
 					</div>
 					<footer class="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">
-						<button
-							type="button"
-							class="rounded px-4 py-2 hover:bg-slate-100"
-							(click)="discard.emit()"
-						>
-							{{ 'pptx.rehearse.discard' | translate }}
-						</button>
-						<button
-							type="button"
-							class="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
-							(click)="save.emit()"
-						>
-							{{ 'pptx.rehearse.saveTimings' | translate }}
-						</button>
+						<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 					</footer>
 				</div>
 			</div>
@@ -99,6 +89,20 @@ function formatMs(ms: number): string {
 	`,
 })
 export class RehearseTimingsComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'discard', labelKey: 'pptx.rehearse.discard' },
+		{ id: 'save', labelKey: 'pptx.rehearse.saveTimings', variant: 'primary' as const },
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'save') {
+			this.save.emit();
+		} else {
+			this.discard.emit();
+		}
+	}
+
 	readonly summary = input(false);
 	readonly paused = input(false);
 	readonly slideStartedAt = input<number | null>(null);

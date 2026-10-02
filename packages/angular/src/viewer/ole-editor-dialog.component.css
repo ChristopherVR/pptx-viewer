@@ -25,25 +25,3 @@
 .pptx-ole-edit-file-input {
 	display: none;
 }
-.pptx-ole-edit-btn {
-	padding: 0.375rem 0.75rem;
-	border: 1px solid var(--pptx-border, #374151);
-	border-radius: 0.375rem;
-	background: var(--pptx-card, #111827);
-	color: var(--pptx-foreground, #f3f4f6);
-	font-size: 0.75rem;
-	cursor: pointer;
-	transition: background 0.15s ease;
-}
-.pptx-ole-edit-btn:hover {
-	background: var(--pptx-border, #374151);
-}
-.pptx-ole-edit-btn-primary {
-	border-color: var(--pptx-primary, #6366f1);
-	background: var(--pptx-primary, #6366f1);
-	color: #ffffff;
-	font-weight: 500;
-}
-.pptx-ole-edit-btn-primary:hover {
-	filter: brightness(1.1);
-}

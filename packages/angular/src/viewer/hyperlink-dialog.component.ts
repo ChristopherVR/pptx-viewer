@@ -25,6 +25,8 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import {
 	buildClearHyperlinkPatch,
 	buildHyperlinkPatch,
@@ -37,7 +39,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-hyperlink-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -75,29 +77,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				@if (hasLink()) {
-					<button
-						type="button"
-						class="pptx-ng-hyperlink-btn pptx-ng-hyperlink-btn--ghost"
-						(click)="clear()"
-					>
-						{{ 'pptx.hyperlinkDialog.removeLink' | translate }}
-					</button>
-				}
-				<button
-					type="button"
-					class="pptx-ng-hyperlink-btn pptx-ng-hyperlink-btn--secondary"
-					(click)="onClose()"
-				>
-					{{ 'pptx.hyperlinkDialog.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ng-hyperlink-btn pptx-ng-hyperlink-btn--primary"
-					(click)="apply()"
-				>
-					{{ 'pptx.hyperlinkDialog.apply' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -137,40 +117,36 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				border-color: var(--pptx-primary, #2563eb);
 				box-shadow: 0 0 0 1px var(--pptx-primary, #2563eb);
 			}
-
-			.pptx-ng-hyperlink-btn {
-				padding: 6px 12px;
-				font-size: 12px;
-				border-radius: 4px;
-				border: 1px solid transparent;
-				cursor: pointer;
-			}
-
-			.pptx-ng-hyperlink-btn--primary {
-				color: var(--pptx-primary-foreground, #ffffff);
-				background: var(--pptx-primary, #2563eb);
-			}
-
-			.pptx-ng-hyperlink-btn--secondary {
-				color: var(--pptx-foreground, #111827);
-				background: transparent;
-				border-color: var(--pptx-border, #e5e7eb);
-			}
-
-			.pptx-ng-hyperlink-btn--ghost {
-				margin-right: auto;
-				color: var(--pptx-destructive, #dc2626);
-				background: transparent;
-			}
-
-			.pptx-ng-hyperlink-btn--secondary:hover,
-			.pptx-ng-hyperlink-btn--ghost:hover {
-				background: var(--pptx-muted, #f3f4f6);
-			}
 		`,
 	],
 })
 export class HyperlinkDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		...(this.hasLink()
+			? [
+					{
+						id: 'remove',
+						labelKey: 'pptx.hyperlinkDialog.removeLink',
+						variant: 'danger' as const,
+						align: 'start' as const,
+					},
+				]
+			: []),
+		{ id: 'cancel', labelKey: 'pptx.hyperlinkDialog.cancel' },
+		{ id: 'apply', labelKey: 'pptx.hyperlinkDialog.apply', variant: 'primary' as const },
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'remove') {
+			this.clear();
+		} else if (id === 'apply') {
+			this.apply();
+		} else {
+			this.onClose();
+		}
+	}
+
 	/** Whether the dialog is open. */
 	readonly open = input<boolean>(false);
 

@@ -27,11 +27,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { clampPercent } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 
 @Component({
 	selector: 'pptx-export-progress-modal',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [DialogFooterComponent, TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		@if (open()) {
@@ -54,9 +56,7 @@ import { clampPercent } from '../internal/shared';
 					</div>
 
 					<div class="pptx-ng-export-progress__actions">
-						<button type="button" class="pptx-ng-export-progress__btn" (click)="cancel.emit()">
-							{{ 'pptx.export.cancel' | translate }}
-						</button>
+						<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 					</div>
 				</div>
 			</div>
@@ -127,25 +127,19 @@ import { clampPercent } from '../internal/shared';
 				display: flex;
 				justify-content: flex-end;
 			}
-
-			.pptx-ng-export-progress__btn {
-				padding: 0.375rem 1rem;
-				font-size: 0.75rem;
-				color: #e5e5e5;
-				border: 1px solid rgba(255, 255, 255, 0.16);
-				border-radius: 0.375rem;
-				background: rgba(255, 255, 255, 0.06);
-				cursor: pointer;
-				transition: background 150ms ease;
-			}
-
-			.pptx-ng-export-progress__btn:hover {
-				background: rgba(255, 255, 255, 0.12);
-			}
 		`,
 	],
 })
 export class ExportProgressModalComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.export.cancel' },
+	]);
+
+	protected onFooterAction(): void {
+		this.cancel.emit();
+	}
+
 	/** Whether the overlay is visible. */
 	readonly open = input<boolean>(false);
 	/** Heading shown at the top (e.g. "Export as PDF"). */

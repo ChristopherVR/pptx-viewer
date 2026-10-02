@@ -5,18 +5,21 @@ import {
 	input,
 	output,
 	signal,
+	computed,
 	CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
 
 import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 
 @Component({
 	selector: 'pptx-header-footer-dialog',
 	standalone: true,
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
-	imports: [TranslatePipe],
+	imports: [DialogFooterComponent, TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		@if (open()) {
@@ -104,12 +107,7 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 						}
 					</div>
 					<footer>
-						<button type="button" (click)="apply()">
-							{{ 'pptx.headerFooter.applyToAll' | translate }}
-						</button>
-						<button type="button" class="primary" (click)="apply()">
-							{{ 'pptx.headerFooter.applyToCurrent' | translate }}
-						</button>
+						<pptx-dialog-footer [actions]="footerActions()" (action)="apply()" />
 					</footer>
 				</section>
 			</div>
@@ -203,6 +201,16 @@ import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shar
 	`,
 })
 export class HeaderFooterDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'applyAll', labelKey: 'pptx.headerFooter.applyToAll' },
+		{
+			id: 'applyCurrent',
+			labelKey: 'pptx.headerFooter.applyToCurrent',
+			variant: 'primary' as const,
+		},
+	]);
+
 	readonly open = input<boolean>(false);
 	readonly value = input<PptxHeaderFooter>({});
 	readonly save = output<PptxHeaderFooter>();

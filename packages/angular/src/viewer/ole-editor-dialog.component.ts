@@ -59,6 +59,8 @@ import {
 } from 'pptx-viewer-core';
 
 import { buildOleContentUpdatePatch, buildOleEditDialogDescriptor } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { OleDeckEditorComponent } from './ole-deck-editor.component';
 import type { OleDeckElementEdit } from './ole-deck-editor.component';
@@ -72,6 +74,7 @@ import { OleSheetGridEditorComponent } from './ole-sheet-grid-editor.component';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
+		DialogFooterComponent,
 		ModalDialogComponent,
 		OleSheetGridEditorComponent,
 		OleDocumentEditorComponent,
@@ -124,22 +127,27 @@ import { OleSheetGridEditorComponent } from './ole-sheet-grid-editor.component';
 					class="pptx-ole-edit-file-input"
 					(change)="onFileChosen($event)"
 				/>
-				<button type="button" class="pptx-ole-edit-btn" (click)="triggerFileInput()">
-					{{ 'pptx.ole.editDialog.replaceFile' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ole-edit-btn pptx-ole-edit-btn-primary"
-					(click)="requestClose()"
-				>
-					{{ 'pptx.ole.editDialog.save' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
 	styleUrl: './ole-editor-dialog.component.css',
 })
 export class OleEditorDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'replace', labelKey: 'pptx.ole.editDialog.replaceFile', align: 'start' as const },
+		{ id: 'save', labelKey: 'pptx.ole.editDialog.save', variant: 'primary' as const },
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'replace') {
+			this.triggerFileInput();
+		} else {
+			this.requestClose();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

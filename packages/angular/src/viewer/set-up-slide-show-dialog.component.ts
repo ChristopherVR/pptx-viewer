@@ -27,6 +27,8 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { ShowOptionsFieldsetComponent } from './show-options-fieldset.component';
 import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
@@ -37,6 +39,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
+		DialogFooterComponent,
 		ModalDialogComponent,
 		ShowSlidesFieldsetComponent,
 		ShowOptionsFieldsetComponent,
@@ -123,12 +126,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-sss-btn" (click)="onClose()">
-					{{ 'pptx.common.cancel' | translate }}
-				</button>
-				<button type="button" class="pptx-ng-sss-btn pptx-ng-sss-btn-primary" (click)="onOk()">
-					{{ 'pptx.common.ok' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -174,37 +172,24 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 				flex: none;
 				accent-color: var(--pptx-primary, #6366f1);
 			}
-
-			.pptx-ng-sss-btn {
-				padding: 0.375rem 0.75rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				cursor: pointer;
-				white-space: nowrap;
-				transition: background 0.15s ease;
-			}
-
-			.pptx-ng-sss-btn:hover {
-				background: var(--pptx-border, #374151);
-			}
-
-			.pptx-ng-sss-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-sss-btn-primary:hover {
-				background: var(--pptx-primary, #6366f1);
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class SetUpSlideShowDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.common.cancel' },
+		{ id: 'ok', labelKey: 'pptx.common.ok', variant: 'primary' as const },
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'ok') {
+			this.onOk();
+		} else {
+			this.onClose();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

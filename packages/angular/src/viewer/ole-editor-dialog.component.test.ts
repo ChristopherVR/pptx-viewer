@@ -302,7 +302,7 @@ describe('oleEditorDialogComponent replace file', () => {
 		// `@switch` on `descriptor().contentTab?.kind`, so it renders regardless
 		// of payload kind (mirrors React's OleEditorDialog: "always offers the
 		// Replace File action, even for an unsupported kind").
-		expect(COMPONENT_SOURCE).toContain("'pptx.ole.editDialog.replaceFile' | translate");
+		expect(COMPONENT_SOURCE).toContain("labelKey: 'pptx.ole.editDialog.replaceFile'");
 		expect(COMPONENT_SOURCE).toContain('<div footer');
 		expect(COMPONENT_SOURCE).toContain('triggerFileInput()');
 	});

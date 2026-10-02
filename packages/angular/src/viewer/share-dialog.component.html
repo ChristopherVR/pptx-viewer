@@ -188,18 +188,6 @@
 	}
 
 	<div footer>
-		<button type="button" class="pptx-ng-share-btn" (click)="close.emit()">
-			{{ (active() ? 'pptx.common.close' : 'pptx.common.cancel') | translate }}
-		</button>
-		@if (!active()) {
-			<button
-				type="button"
-				class="pptx-ng-share-btn pptx-ng-share-btn-primary"
-				[disabled]="!canStart()"
-				(click)="handleStart()"
-			>
-				{{ (mode() === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing') | translate }}
-			</button>
-		}
+		<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 	</div>
 </pptx-modal-dialog>

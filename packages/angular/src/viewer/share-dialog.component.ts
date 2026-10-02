@@ -26,6 +26,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { ActiveSessionUserDescriptor, CollaborationConfig } from '../internal/shared';
 import { buildCreateCollaborationConfig, buildJoinCollaborationConfig } from '../internal/shared';
 import { canUseClipboard } from './broadcast-helpers';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { seedShareFields } from './share-helpers';
 import type { ShareDefaults } from './share-helpers';
@@ -34,11 +36,34 @@ import type { ShareDefaults } from './share-helpers';
 	selector: 'pptx-share-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	templateUrl: './share-dialog.component.html',
 	styleUrl: './share-dialog.component.css',
 })
 export class ShareDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: this.active() ? 'pptx.common.close' : 'pptx.common.cancel' },
+		...(this.active()
+			? []
+			: [
+					{
+						id: 'start',
+						labelKey: this.mode() === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing',
+						variant: 'primary' as const,
+						disabled: !this.canStart(),
+					},
+				]),
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'start') {
+			this.handleStart();
+		} else {
+			this.close.emit();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

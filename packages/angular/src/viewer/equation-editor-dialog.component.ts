@@ -37,6 +37,8 @@ import type { SafeHtml } from '@angular/platform-browser';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { convertLatexToOmml, convertOmmlToLatex } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { latexToMathml } from './equation-editor-helpers';
 import { EquationTemplateGalleryComponent } from './equation-template-gallery.component';
 import { ModalDialogComponent } from './modal-dialog.component';
@@ -45,7 +47,12 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-equation-editor-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, EquationTemplateGalleryComponent, TranslatePipe],
+	imports: [
+		DialogFooterComponent,
+		ModalDialogComponent,
+		EquationTemplateGalleryComponent,
+		TranslatePipe,
+	],
 	template: `
 		<pptx-modal-dialog [open]="open()" [title]="dialogTitle() | translate" (close)="close.emit()">
 			<div class="pptx-ng-eq">
@@ -81,17 +88,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-eq-btn" (click)="close.emit()">
-					{{ 'pptx.equation.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-ng-eq-btn pptx-ng-eq-btn-primary"
-					[disabled]="!hasContent()"
-					(click)="onInsert()"
-				>
-					{{ (isEditing() ? 'pptx.equation.update' : 'pptx.equation.insert') | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -154,36 +151,29 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				font-size: 0.6875rem;
 				color: var(--pptx-muted-foreground, #9ca3af);
 			}
-			.pptx-ng-eq-btn {
-				padding: 0.375rem 0.75rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				cursor: pointer;
-				transition: background 0.15s ease;
-			}
-			.pptx-ng-eq-btn:hover:not(:disabled) {
-				background: var(--pptx-border, #374151);
-			}
-			.pptx-ng-eq-btn:disabled {
-				opacity: 0.4;
-				cursor: not-allowed;
-			}
-			.pptx-ng-eq-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-				font-weight: 500;
-			}
-			.pptx-ng-eq-btn-primary:hover:not(:disabled) {
-				filter: brightness(1.1);
-			}
 		`,
 	],
 })
 export class EquationEditorDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.equation.cancel' },
+		{
+			id: 'insert',
+			labelKey: this.isEditing() ? 'pptx.equation.update' : 'pptx.equation.insert',
+			variant: 'primary' as const,
+			disabled: !this.hasContent(),
+		},
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'insert') {
+			this.onInsert();
+		} else {
+			this.close.emit();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

@@ -31,13 +31,15 @@ import {
 	seedBroadcastFields,
 } from './broadcast-helpers';
 import type { BroadcastConfig, BroadcastDefaults } from './broadcast-helpers';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 
 @Component({
 	selector: 'pptx-broadcast-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog [open]="open()" [title]="dialogTitle()" (close)="onClose()">
 			@if (active()) {
@@ -136,19 +138,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			}
 
 			<div footer>
-				<button type="button" class="pptx-ng-broadcast-btn" (click)="onClose()">
-					{{ 'pptx.share.close' | translate }}
-				</button>
-				@if (!active()) {
-					<button
-						type="button"
-						class="pptx-ng-broadcast-btn pptx-ng-broadcast-btn-primary"
-						[disabled]="!canStart()"
-						(click)="onStart()"
-					>
-						{{ 'pptx.broadcast.startBroadcast' | translate }}
-					</button>
-				}
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -205,39 +195,6 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				font-size: 0.6875rem;
 				color: var(--pptx-muted-foreground, #9ca3af);
 			}
-
-			.pptx-ng-broadcast-btn {
-				padding: 0.375rem 0.75rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				cursor: pointer;
-				white-space: nowrap;
-				transition: background 0.15s ease;
-			}
-
-			.pptx-ng-broadcast-btn:hover:not(:disabled) {
-				background: var(--pptx-border, #374151);
-			}
-
-			.pptx-ng-broadcast-btn:disabled {
-				opacity: 0.4;
-				cursor: not-allowed;
-			}
-
-			.pptx-ng-broadcast-btn-primary {
-				border-color: var(--pptx-primary, #6366f1);
-				background: var(--pptx-primary, #6366f1);
-				color: #ffffff;
-			}
-
-			.pptx-ng-broadcast-btn-primary:hover:not(:disabled) {
-				background: var(--pptx-primary, #6366f1);
-				filter: brightness(1.1);
-			}
-
 			.pptx-ng-broadcast-stop {
 				width: 100%;
 				padding: 0.5rem 0.75rem;
@@ -286,6 +243,29 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	],
 })
 export class BroadcastDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'close', labelKey: 'pptx.share.close' },
+		...(this.active()
+			? []
+			: [
+					{
+						id: 'start',
+						labelKey: 'pptx.broadcast.startBroadcast',
+						variant: 'primary' as const,
+						disabled: !this.canStart(),
+					},
+				]),
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'start') {
+			this.onStart();
+		} else {
+			this.onClose();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

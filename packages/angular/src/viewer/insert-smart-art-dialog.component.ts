@@ -32,6 +32,8 @@ import type { SmartArtLayout } from 'pptx-viewer-core';
 
 import { CATEGORIES } from '../internal/shared';
 import type { SmartArtCategory } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { parseNodeTextarea, presetByLayout, presetsForCategory } from './smart-art-insert-helpers';
 import { SmartArtPreviewComponent } from './smart-art-preview.component';
@@ -46,7 +48,7 @@ export interface SmartArtInsertEvent {
 	selector: 'pptx-insert-smart-art-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, SmartArtPreviewComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, SmartArtPreviewComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -114,17 +116,7 @@ export interface SmartArtInsertEvent {
 			</div>
 
 			<div footer class="pptx-sa-insert__footer">
-				<button type="button" class="pptx-sa-insert__btn" (click)="close.emit()">
-					{{ 'pptx.insertSmartArt.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-sa-insert__btn pptx-sa-insert__btn--primary"
-					[disabled]="selectedLayout() === null"
-					(click)="confirm()"
-				>
-					{{ 'pptx.insertSmartArt.insert' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -246,30 +238,28 @@ export interface SmartArtInsertEvent {
 			gap: 0.5rem;
 			justify-content: flex-end;
 		}
-
-		.pptx-sa-insert__btn {
-			padding: 0.35rem 0.85rem;
-			font-size: 12px;
-			border: 1px solid var(--pptx-border, #e5e7eb);
-			border-radius: 4px;
-			background: var(--pptx-muted, #f1f5f9);
-			color: inherit;
-			cursor: pointer;
-		}
-
-		.pptx-sa-insert__btn--primary {
-			background: var(--pptx-primary, #2563eb);
-			border-color: var(--pptx-primary, #2563eb);
-			color: #fff;
-		}
-
-		.pptx-sa-insert__btn:disabled {
-			opacity: 0.45;
-			cursor: not-allowed;
-		}
 	`,
 })
 export class InsertSmartArtDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.insertSmartArt.cancel' },
+		{
+			id: 'insert',
+			labelKey: 'pptx.insertSmartArt.insert',
+			variant: 'primary' as const,
+			disabled: this.selectedLayout() === null,
+		},
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'insert') {
+			this.confirm();
+		} else {
+			this.close.emit();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

@@ -11,16 +11,18 @@
  * fallback copy.
  */
 
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, computed } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 
 @Component({
 	selector: 'pptx-encrypted-file-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [DialogFooterComponent, ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -40,9 +42,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-enc-btn" (click)="close.emit()">
-					{{ 'pptx.encryptedFile.close' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -89,24 +89,19 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				line-height: 1.5;
 				color: rgba(252, 165, 165, 0.7);
 			}
-
-			.pptx-ng-enc-btn {
-				padding: 0.375rem 0.75rem;
-				border: 1px solid var(--pptx-border, #374151);
-				border-radius: 0.375rem;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				font-size: 0.75rem;
-				cursor: pointer;
-			}
-
-			.pptx-ng-enc-btn:hover {
-				background: var(--pptx-border, #374151);
-			}
 		`,
 	],
 })
 export class EncryptedFileDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'close', labelKey: 'pptx.encryptedFile.close' },
+	]);
+
+	protected onFooterAction(): void {
+		this.close.emit();
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 

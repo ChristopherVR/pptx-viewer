@@ -13,11 +13,21 @@
  * @module angular-viewer/slide-template-gallery-dialog
  */
 
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	effect,
+	input,
+	output,
+	signal,
+	computed,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { SLIDE_TEMPLATES } from '../internal/shared';
 import type { SlideTemplateId } from '../internal/shared';
+import type { DialogFooterActionSpec } from './dialog-footer.component';
+import { DialogFooterComponent } from './dialog-footer.component';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { SlideTemplatePreviewComponent } from './slide-template-preview.component';
 
@@ -25,7 +35,12 @@ import { SlideTemplatePreviewComponent } from './slide-template-preview.componen
 	selector: 'pptx-slide-template-gallery-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, SlideTemplatePreviewComponent, TranslatePipe],
+	imports: [
+		DialogFooterComponent,
+		ModalDialogComponent,
+		SlideTemplatePreviewComponent,
+		TranslatePipe,
+	],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -63,17 +78,7 @@ import { SlideTemplatePreviewComponent } from './slide-template-preview.componen
 			</div>
 
 			<div footer class="pptx-tpl-gallery__footer">
-				<button type="button" class="pptx-tpl-gallery__btn" (click)="close.emit()">
-					{{ 'pptx.slideTemplates.cancel' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-tpl-gallery__btn pptx-tpl-gallery__btn--primary"
-					[disabled]="selected() === null"
-					(click)="confirm()"
-				>
-					{{ 'pptx.slideTemplates.insert' | translate }}
-				</button>
+				<pptx-dialog-footer [actions]="footerActions()" (action)="onFooterAction($event)" />
 			</div>
 		</pptx-modal-dialog>
 	`,
@@ -140,30 +145,28 @@ import { SlideTemplatePreviewComponent } from './slide-template-preview.componen
 			gap: 0.5rem;
 			justify-content: flex-end;
 		}
-
-		.pptx-tpl-gallery__btn {
-			padding: 0.35rem 0.85rem;
-			font-size: 12px;
-			border: 1px solid var(--pptx-border, #e5e7eb);
-			border-radius: 4px;
-			background: var(--pptx-muted, #f1f5f9);
-			color: inherit;
-			cursor: pointer;
-		}
-
-		.pptx-tpl-gallery__btn--primary {
-			background: var(--pptx-primary, #2563eb);
-			border-color: var(--pptx-primary, #2563eb);
-			color: #fff;
-		}
-
-		.pptx-tpl-gallery__btn:disabled {
-			opacity: 0.45;
-			cursor: not-allowed;
-		}
 	`,
 })
 export class SlideTemplateGalleryDialogComponent {
+	/** Footer actions for the shared `pptx-ui-dialog-footer`. */
+	protected readonly footerActions = computed<DialogFooterActionSpec[]>(() => [
+		{ id: 'cancel', labelKey: 'pptx.slideTemplates.cancel' },
+		{
+			id: 'insert',
+			labelKey: 'pptx.slideTemplates.insert',
+			variant: 'primary' as const,
+			disabled: this.selected() === null,
+		},
+	]);
+
+	protected onFooterAction(id: string): void {
+		if (id === 'insert') {
+			this.confirm();
+		} else {
+			this.close.emit();
+		}
+	}
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 
