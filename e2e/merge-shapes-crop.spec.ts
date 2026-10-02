@@ -201,6 +201,8 @@ test.describe('Picture crop', () => {
 test('a host can hide both controls through the customisation model', async ({ page }) => {
 	const customization = { ribbon: { hiddenButtons: ['mergeShapes', 'crop'] } };
 	await openDeck(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
-	await expect(page.locator('[data-pptx-ribbon-control="merge-shapes"]')).toHaveCount(0);
-	await expect(page.locator('[data-pptx-ribbon-control="crop"]')).toHaveCount(0);
+	// The shared Home strip keeps a hidden control in the DOM (as the other hidden Home
+	// controls are), so assert it is not shown rather than that it is absent.
+	await expect(page.locator('[data-pptx-ribbon-control="merge-shapes"]')).toBeHidden();
+	await expect(page.locator('[data-pptx-ribbon-control="crop"]')).toBeHidden();
 });

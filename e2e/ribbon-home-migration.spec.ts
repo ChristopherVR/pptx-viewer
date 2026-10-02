@@ -505,6 +505,7 @@ test.describe('Home font extras and paragraph menus', () => {
 		await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 		const swatch = control(page, 'home.font.fontColor').locator('.std-grid button').nth(3);
 		const colour = await swatchColour(swatch);
+		await page.screenshot({ path: info.outputPath('home-colour-popover.png') });
 		await swatch.click();
 		await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 		await trigger.click();
@@ -604,12 +605,14 @@ test.describe('Home drawing popovers and arrange extras', () => {
 
 	test('the Layout gallery lists tiles with the current one marked and applies a layout', async ({
 		page,
-	}) => {
+	}, info) => {
 		await openHome(page);
 		await inner(page, 'home.slides.layout').click();
 		const menu = page.getByTestId('layout-gallery-menu');
 		await expect(menu).toBeVisible();
 		await expect(menu.locator('[aria-current="true"]')).toHaveCount(1);
+		await page.waitForTimeout(400);
+		await page.screenshot({ path: info.outputPath('home-layout-gallery.png') });
 		const tiles = menu.locator('[data-layout-path]');
 		expect(await tiles.count()).toBeGreaterThan(1);
 		await tiles.nth(1).click();

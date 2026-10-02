@@ -294,7 +294,11 @@ test.describe('home tab commands act on the deck', () => {
 		// "Select All" command behind it, and Vanilla's menu entry was a listbox
 		// `role="option"`, so neither could be reached by the name every other
 		// binding uses. Both are trigger + menu now, like React, Vue and Angular.
-		await page.getByRole('button', { name: 'Select All', exact: true }).first().click();
+		await page
+			.getByRole('menuitem', { name: 'Select All', exact: true })
+			.or(page.getByRole('button', { name: 'Select All', exact: true }))
+			.first()
+			.click();
 
 		// Delete is the second, independent signal: a command that only LOOKS
 		// like it selected everything leaves survivors behind.

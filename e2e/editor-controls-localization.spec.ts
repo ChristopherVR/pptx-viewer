@@ -61,7 +61,6 @@ for (const { dictionary, nativeLabel } of [
 			'pptx.arrange.duplicate',
 			'pptx.text.changeCase',
 			'pptx.text.fontColor',
-			'pptx.paragraph.lineSpacing',
 			'pptx.editing.find',
 			'pptx.shape.mergeShapes',
 			'pptx.contextMenu.group',
