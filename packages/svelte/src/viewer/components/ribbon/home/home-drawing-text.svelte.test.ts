@@ -105,7 +105,7 @@ describe('home drawing group', () => {
 		flushSync();
 
 		expect(editor.slides[0]?.elements[0]?.type).toBe('shape');
-		expect(target.querySelector<HTMLElement>('[role="menu"].popup')?.hidden).toBeTruthy();
+		expect(target.querySelector<HTMLElement>('.popup')?.hidden).toBeTruthy();
 	});
 
 	it('needs a selection before Arrange opens', () => {

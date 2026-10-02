@@ -88,7 +88,7 @@ describe('editingGroup', () => {
 
 		expect([...editor.selection.ids]).toStrictEqual(['a', 'b']);
 		// The menu closes behind the command, like every other ribbon menu.
-		expect(target.querySelector('[role="menu"]')?.hasAttribute('hidden')).toBeTruthy();
+		expect(target.querySelector('.popup')?.hasAttribute('hidden')).toBeTruthy();
 	});
 
 	it('toggles the docked find panel from Find and Replace and reflects it as pressed', () => {
