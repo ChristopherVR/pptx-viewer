@@ -149,7 +149,8 @@ describe('contextual tabs', () => {
 		const galleries = CONTEXTUAL_TAB_GROUPS.smartArtDesign.flatMap((g) =>
 			g.galleries.map((x) => x.gallery),
 		);
-		expect(galleries).toStrictEqual(['smartArtColors', 'smartArtStyles']);
+		// Change Colors and SmartArt Styles stay wired; the tab also carries Layouts (and command groups).
+		expect(galleries).toStrictEqual(expect.arrayContaining(['smartArtColors', 'smartArtStyles']));
 		const smartArt = { ...shape(), type: 'smartArt' } as unknown as PptxElement;
 		expect(visibleContextualTabs(smartArt)).toStrictEqual(['smartArtDesign']);
 		const hidden = resolveCustomization({ ribbon: { hiddenTabs: ['smartArtDesign'] } });
