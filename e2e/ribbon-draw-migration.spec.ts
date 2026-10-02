@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { savePptxViaBackstage } from './save-pptx';
 import { elementsOfType, loadDeck, ribbonTab, viewport } from './support/deck';
 import { downloadBytes } from './support/exports';
+import { chooseSelectValue } from './support/select-control';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 test('shared Draw choices retain native ink, undo and saved strokes', async ({ page }, info) => {
@@ -22,7 +23,7 @@ test('shared Draw choices retain native ink, undo and saved strokes', async ({ p
 	await draw.locator('summary').click();
 	await draw.getByRole('button', { name: 'Red', exact: true }).click();
 	await expect(draw.locator('details')).not.toHaveAttribute('open');
-	await draw.locator('select').selectOption('16');
+	await chooseSelectValue(page, draw.getByRole('combobox', { name: 'Width', exact: true }), '16');
 	await expect(draw.locator('input[type=range]')).toHaveValue('16');
 	await page.screenshot({ path: info.outputPath('draw.png') });
 	const canvas = await viewport(page).boundingBox();

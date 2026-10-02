@@ -7,6 +7,7 @@ import type { Page } from '@playwright/test';
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture, loadDeck, ribbonTab, selectElement, slideElements } from './support/deck';
 import { downloadBytes } from './support/exports';
+import { chooseSelectValue, expectSelectValue } from './support/select-control';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -67,8 +68,13 @@ test('Text Box, Shape and Table insert into the deck, undo and survive save and 
 	await insert.getByRole('button', { name: 'Text Box', exact: true }).focus();
 	await page.keyboard.press('Enter');
 	await expect(slideElements(page)).toHaveCount(before + 1);
-	await insert.getByRole('combobox', { name: 'Shape type', exact: true }).selectOption('star5');
-	await expect(insert.getByRole('combobox', { name: 'Shape type', exact: true })).toHaveValue(
+	await chooseSelectValue(
+		page,
+		insert.getByRole('combobox', { name: 'Shape type', exact: true }),
+		'star5',
+	);
+	await expectSelectValue(
+		insert.getByRole('combobox', { name: 'Shape type', exact: true }),
 		'star5',
 	);
 	await insert.getByRole('button', { name: 'Shape', exact: true }).click();
@@ -90,7 +96,11 @@ test('Chart, Action and Field menus insert native elements and dismiss from the 
 }) => {
 	const insert = await openInsert(page);
 	const before = await slideElements(page).count();
-	await insert.getByRole('combobox', { name: 'Chart type', exact: true }).selectOption('pie');
+	await chooseSelectValue(
+		page,
+		insert.getByRole('combobox', { name: 'Chart type', exact: true }),
+		'pie',
+	);
 	await insert.getByRole('button', { name: 'Chart', exact: true }).click();
 	await expect(slideElements(page)).toHaveCount(before + 1);
 
