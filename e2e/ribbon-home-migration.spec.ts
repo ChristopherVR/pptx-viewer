@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright API */
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
@@ -426,6 +426,210 @@ test.describe('Home drawing and arrange', () => {
 		await expect(control(page, 'home.arrange.delete')).toBeHidden();
 		await expect(control(page, 'home.drawing.shapeFill')).toBeHidden();
 		await expect(control(page, 'home.arrange.duplicate')).toBeVisible();
+	});
+});
+
+const hex = (css: string) =>
+	`#${(css.match(/\d+/gu) ?? [])
+		.slice(0, 3)
+		.map((part) => Number(part).toString(16).padStart(2, '0'))
+		.join('')}`;
+const swatchColour = (locator: Locator) =>
+	locator.evaluate((node) => getComputedStyle(node).backgroundColor).then(hex);
+
+test.describe('Home font extras and paragraph menus', () => {
+	test('expose every id once, as selects and menus, and gate them on a text selection', async ({
+		page,
+	}) => {
+		await openHome(page);
+		for (const id of [
+			'fontFamily',
+			'fontSize',
+			'characterSpacing',
+			'changeCase',
+			'fontColor',
+			'highlightColor',
+		]) {
+			await expect(page.locator(`[data-ribbon-control="home.font.${id}"]`)).toHaveCount(1);
+		}
+		for (const id of ['bullets', 'numbering', 'lineSpacing', 'textDirection', 'columns']) {
+			await expect(page.locator(`[data-ribbon-control="home.paragraph.${id}"]`)).toHaveCount(1);
+		}
+		await expect(control(page, 'home.font.fontFamily')).toHaveAttribute(
+			'data-font-picker',
+			'family',
+		);
+		await expect(control(page, 'home.font.fontSize')).toHaveAttribute('data-font-picker', 'size');
+		await expect(control(page, 'home.font.fontSize')).toHaveAttribute('disabled', '');
+		await expect(inner(page, 'home.font.changeCase')).toBeDisabled();
+		await expect(inner(page, 'home.font.fontColor')).toBeDisabled();
+		await expect(inner(page, 'home.paragraph.bullets')).toBeDisabled();
+		await selectSubtitle(page);
+		await expect(control(page, 'home.font.fontSize')).not.toHaveAttribute('disabled', '');
+		await expect(inner(page, 'home.font.changeCase')).toBeEnabled();
+		await expect(inner(page, 'home.font.fontColor')).toBeEnabled();
+		await expect(inner(page, 'home.paragraph.bullets')).toBeEnabled();
+	});
+
+	test('Change Case, font size and line spacing edit the deck, undo and save', async ({
+		page,
+	}, info) => {
+		await openHome(page);
+		await selectSubtitle(page);
+		const change = inner(page, 'home.font.changeCase');
+		await change.click();
+		await expect(change).toHaveAttribute('aria-expanded', 'true');
+		await page.getByRole('menuitem', { name: 'UPPERCASE', exact: true }).click();
+		await expect(change).toHaveAttribute('aria-expanded', 'false');
+		await expect(page.getByText('PRODUCT OVERVIEW').first()).toBeVisible();
+		await page.keyboard.press('Control+z');
+		await expect(elementWithText(page, 'Product Overview')).toBeVisible();
+		await selectSubtitle(page);
+		await control(page, 'home.font.fontSize').getByRole('combobox').click();
+		await page.getByRole('option', { name: '36', exact: true }).click();
+		await control(page, 'home.paragraph.lineSpacing').getByRole('combobox').click();
+		await page.getByRole('option', { name: '1.5', exact: true }).click();
+		const saved = await savedSubtitleRun(page, info, 'home-font-extras.pptx');
+		expect(saved.run).toMatch(/\ssz="3600"/u);
+		const paragraph = await savedSubtitleParagraph(page, info, 'home-line-spacing.pptx');
+		expect(paragraph.paragraph).toMatch(/<a:lnSpc>/u);
+	});
+
+	test('the font colour popover applies a swatch, lists it as recent and closes on Escape', async ({
+		page,
+	}, info) => {
+		await openHome(page);
+		await selectSubtitle(page);
+		const trigger = inner(page, 'home.font.fontColor');
+		await trigger.click();
+		await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+		const swatch = control(page, 'home.font.fontColor').locator('.std-grid button').nth(3);
+		const colour = await swatchColour(swatch);
+		await swatch.click();
+		await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+		await trigger.click();
+		await expect(
+			control(page, 'home.font.fontColor').getByTestId('pptx-color-recent'),
+		).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+		const saved = await savedSubtitleRun(page, info, 'home-font-colour.pptx');
+		expect(saved.run.toLowerCase()).toContain(colour.slice(1));
+	});
+
+	test('Bullets toggles the list and keeps its ids; the gallery chevron opens the library', async ({
+		page,
+	}) => {
+		await openHome(page);
+		await selectSubtitle(page);
+		const bullets = inner(page, 'home.paragraph.bullets');
+		await bullets.click();
+		await expect(bullets).toHaveAttribute('aria-pressed', 'true');
+		await bullets.click();
+		await expect(bullets).toHaveAttribute('aria-pressed', 'false');
+		await control(page, 'home.paragraph.bullets').locator('[data-ribbon-gallery]').click();
+		await expect(page.locator('[data-ribbon-gallery-popup="bullets"]')).toBeVisible();
+	});
+
+	test('the Select menu offers Select All and Escape closes it', async ({ page }) => {
+		await openHome(page);
+		const select = inner(page, 'home.editing.select');
+		await select.click();
+		await expect(select).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.getByRole('menuitem', { name: 'Select All', exact: true })).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(select).toHaveAttribute('aria-expanded', 'false');
+	});
+});
+
+test.describe('Home drawing popovers and arrange extras', () => {
+	async function insertRectangle(page: Page) {
+		await inner(page, 'home.drawing.shapes').click();
+		await page
+			.getByRole('menuitem', { name: 'Rectangle', exact: true })
+			.or(page.getByText('Rectangle', { exact: true }))
+			.first()
+			.click();
+	}
+
+	test('expose Group, Ungroup, Merge, Crop, width and the second Format Painter once', async ({
+		page,
+	}) => {
+		await openHome(page);
+		for (const id of ['group', 'ungroup', 'mergeShapes', 'crop', 'outlineWidth']) {
+			await expect(page.locator(`[data-ribbon-control="home.arrange.${id}"]`)).toHaveCount(1);
+		}
+		await expect(page.locator('[data-ribbon-control="home.clipboard.formatPainter"]')).toHaveCount(
+			2,
+		);
+		await expect(control(page, 'home.arrange.group')).toBeDisabled();
+		await expect(inner(page, 'home.arrange.mergeShapes')).toBeDisabled();
+		await expect(control(page, 'home.arrange.outlineWidth')).toBeDisabled();
+		await selectSubtitle(page);
+		await expect(control(page, 'home.arrange.outlineWidth')).toBeEnabled();
+	});
+
+	test('Shape Fill and Outline popovers, outline width and the Arrange menu edit a shape and save', async ({
+		page,
+	}, info) => {
+		await openHome(page);
+		await insertRectangle(page);
+		const fill = inner(page, 'home.drawing.shapeFill');
+		await fill.click();
+		await expect(fill).toHaveAttribute('aria-expanded', 'true');
+		const swatch = control(page, 'home.drawing.shapeFill').locator('.std-grid button').nth(3);
+		const colour = await swatchColour(swatch);
+		await swatch.click();
+		await expect(fill).toHaveAttribute('aria-expanded', 'false');
+		await inner(page, 'home.drawing.shapeOutline').click();
+		await control(page, 'home.drawing.shapeOutline').locator('.std-grid button').nth(5).click();
+		const width = control(page, 'home.arrange.outlineWidth');
+		await width.fill('6');
+		await width.press('Tab');
+		await inner(page, 'home.drawing.arrange').click();
+		await page.getByRole('menuitem', { name: 'Send to Back', exact: true }).click();
+		const bytes = await downloadBytes(await savePptxViaBackstage(page));
+		const xml = await (await JSZip.loadAsync(bytes)).file('ppt/slides/slide1.xml')!.async('string');
+		await writeFile(info.outputPath('home-shape.pptx'), bytes);
+		expect(xml.toLowerCase()).toContain(`val="${colour.slice(1)}"`);
+		expect(xml).toContain('w="57150"');
+	});
+
+	test('Merge Shapes and Crop stay gated without two shapes or a picture', async ({ page }) => {
+		await openHome(page);
+		await insertRectangle(page);
+		await expect(inner(page, 'home.arrange.crop')).toBeDisabled();
+		await expect(inner(page, 'home.arrange.mergeShapes')).toBeDisabled();
+	});
+
+	test('the Layout gallery lists tiles with the current one marked and applies a layout', async ({
+		page,
+	}) => {
+		await openHome(page);
+		await inner(page, 'home.slides.layout').click();
+		const menu = page.getByTestId('layout-gallery-menu');
+		await expect(menu).toBeVisible();
+		await expect(menu.locator('[aria-current="true"]')).toHaveCount(1);
+		const tiles = menu.locator('[data-layout-path]');
+		expect(await tiles.count()).toBeGreaterThan(1);
+		await tiles.nth(1).click();
+		await expect(menu).toBeHidden();
+		await expect(inner(page, 'home.slides.layout')).toHaveAttribute('aria-expanded', 'false');
+	});
+
+	test('retain public customization ids for the new controls', async ({ page }) => {
+		const ids = [
+			'home.font.characterSpacing',
+			'home.paragraph.columns',
+			'home.arrange.outlineWidth',
+			'home.editing.select',
+		];
+		const customization = { ribbon: { hiddenButtons: ids } };
+		await openHome(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
+		for (const id of ids) {
+			await expect(control(page, id)).toBeHidden();
+		}
+		await expect(control(page, 'home.font.changeCase')).toBeVisible();
 	});
 });
 

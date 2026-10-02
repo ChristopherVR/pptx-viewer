@@ -11,6 +11,7 @@ import { paintHomeLayouts } from './ribbon-home-layout';
 import type { HomeLayoutArtwork } from './ribbon-home-layout';
 import { paintHomeMenu } from './ribbon-home-menu';
 import { createHomePopup } from './ribbon-home-popup';
+import { popupSignature } from './ribbon-home-signature';
 
 /** What a control builder needs from the element that hosts it. */
 export interface HomeControlContext {
@@ -60,6 +61,7 @@ export function buildPopupControl(
 	trigger.setAttribute('aria-expanded', 'false');
 	let latest: RibbonHomeViewState = { controls: {} };
 	let disposeArtwork: (() => void) | undefined;
+	let painted = '';
 	const key = homeControlKey(control);
 	const popup = createHomePopup(
 		doc,
@@ -83,6 +85,7 @@ export function buildPopupControl(
 	};
 	function paint(): void {
 		const current = latest.controls[key];
+		painted = popupSignature(control, current, latest);
 		disposeArtwork?.();
 		disposeArtwork = undefined;
 		if (control.kind === 'colour' && control.colour) {
@@ -138,7 +141,7 @@ export function buildPopupControl(
 			const triggerState = caret ? state.controls[`${control.id}#caret`] : current;
 			if (triggerState?.disabled || triggerState?.hidden || current?.hidden) {
 				popup.close();
-			} else if (popup.isOpen) {
+			} else if (popup.isOpen && popupSignature(control, current, state) !== painted) {
 				paint();
 			}
 		},
@@ -212,7 +215,11 @@ export function buildSelectControl(
 		sync(state) {
 			const current = state.controls[key];
 			const label = homeLabel(state, control.labelKey, control.fallback);
-			select.setAttribute('aria-label', label);
+			// Re-writing an observed attribute makes the select repaint, which would swallow a click
+			// on an open option, so only write what changed.
+			if (select.getAttribute('aria-label') !== label) {
+				select.setAttribute('aria-label', label);
+			}
 			select.title = label;
 			select.hidden = Boolean(current?.hidden);
 			const { nodes, signature: next } = selectOptions(
@@ -229,7 +236,7 @@ export function buildSelectControl(
 				}
 				select.append(...nodes);
 			}
-			if (current?.value !== undefined) {
+			if (current?.value !== undefined && select.getAttribute('value') !== String(current.value)) {
 				select.value = String(current.value);
 			}
 			select.disabled = Boolean(current?.disabled);

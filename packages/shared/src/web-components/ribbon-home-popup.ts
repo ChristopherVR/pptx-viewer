@@ -26,7 +26,8 @@ export function createHomePopup(
 	label: () => string,
 	onChange: (open: boolean) => void,
 ): HomePopup {
-	const el = doc.createElement('div');
+	// Not a div: the editor-chrome layout CSS styles the buttons of a control's child divs.
+	const el = doc.createElement('section');
 	el.className = 'popup';
 	el.hidden = true;
 	let opened = false;

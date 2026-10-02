@@ -59,9 +59,24 @@ for (const { dictionary, nativeLabel } of [
 			'pptx.drawing.shapes',
 			'pptx.arrange.flipH',
 			'pptx.arrange.duplicate',
+			'pptx.text.changeCase',
+			'pptx.text.fontColor',
+			'pptx.paragraph.lineSpacing',
+			'pptx.editing.find',
+			'pptx.shape.mergeShapes',
+			'pptx.contextMenu.group',
 		]) {
 			const name = dictionary[key] ?? translationsEn[key];
 			await expect(page.getByRole('button', { name, exact: true }).first()).toBeVisible();
+		}
+		// The selects and menus rendered by the shared Home strips follow too.
+		for (const key of [
+			'pptx.ribbon.fontFamily',
+			'pptx.ribbon.fontSize',
+			'pptx.paragraph.columns',
+		]) {
+			const name = dictionary[key] ?? translationsEn[key];
+			await expect(page.getByRole('combobox', { name, exact: true }).first()).toBeVisible();
 		}
 		await page
 			.getByRole('tab', { name: dictionary['pptx.ribbon.tab.record'], exact: true })

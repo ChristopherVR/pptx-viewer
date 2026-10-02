@@ -58,6 +58,7 @@ export function addButtonContent(
 	if (control.colour?.bar) {
 		const bar = doc.createElement('span');
 		bar.className = 'bar';
+		bar.dataset.pptxChrome = 'color-swatch';
 		button.append(bar);
 	}
 	if (control.chevron) {

@@ -32,14 +32,10 @@ const RIBBON_HOME_STYLES = `
 .slot > button.b[data-pptx-chrome=split-caret] { min-width:20px; padding:0 4px; border-radius:0 4px 4px 0; border-left:1px solid color-mix(in srgb,var(--pptx-border,#475569) 40%,transparent); background:var(--pptx-muted,#2a2a3d); align-self:stretch; height:auto; }
 .slot > button.b[data-pptx-chrome=split-caret] svg { width:12px; height:12px; }
 .text { white-space:nowrap; }
-.bar { display:block; width:16px; height:3px; border-radius:2px; background:transparent; }
-button.b:has(.bar) { flex-direction:column; gap:2px; padding:3px 10px; }
 button.b .chev { width:12px; height:12px; }
 .free button.b[aria-pressed=true] { background:var(--pptx-accent,#33334d); }
 .free button.b[data-testid=format-painter-toggle][aria-pressed=true] { background:#d97706; color:#fffbeb; box-shadow:none; }
 .free pptx-ui-select, .wrap pptx-ui-select { flex:none; }
-.free pptx-ui-select[data-font-picker=family] { width:150px; }
-.free pptx-ui-select[data-font-picker=size] { width:64px; }
 input.num { box-sizing:border-box; width:52px; height:26px; padding:0 4px; border:1px solid var(--pptx-border,#475569); border-radius:4px; background:var(--pptx-muted,#2a2a3d); color:var(--pptx-foreground,#f8fafc); font:inherit; font-size:11px; text-align:center; }
 input.num:disabled { opacity:.4; }
 input.num:focus-visible { outline:2px solid var(--pptx-ring,#818cf8); outline-offset:-2px; }

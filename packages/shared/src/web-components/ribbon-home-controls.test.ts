@@ -78,6 +78,17 @@ describe('home select controls', () => {
 		expect(read()).toStrictEqual([{ id: 'home.paragraph.lineSpacing', value: '2' }]);
 	});
 
+	it('does not rewrite the observed attributes of an open select on identical state', () => {
+		const controls = paragraphHomeControls({ enabled: true, lineSpacing: 1.5 });
+		const host = mount('paragraph', controls);
+		const select = control(host, 'home.paragraph.lineSpacing');
+		const write = vi.spyOn(select, 'setAttribute');
+		host.state = { controls: paragraphHomeControls({ enabled: true, lineSpacing: 1.5 }) };
+		expect(write).not.toHaveBeenCalled();
+		host.state = { controls: paragraphHomeControls({ enabled: true, lineSpacing: 2 }) };
+		expect(write).toHaveBeenCalledWith('value', '2');
+	});
+
 	it('rejects values outside the options and disabled selects', () => {
 		const state = { controls: paragraphHomeControls({ enabled: true }) };
 		const pick = (value: string) =>
@@ -265,6 +276,22 @@ describe('home layout gallery', () => {
 		const read = intents(host);
 		tiles[0].click();
 		expect(read()).toStrictEqual([{ id: 'home.slides.layout', value: 'a.xml' }]);
+	});
+
+	it('keeps the tiles under the pointer when a host re-assigns identical state', () => {
+		const host = mount('slides', slidesHomeControls(slides));
+		const slot = control(host, 'home.slides.layout');
+		slot.querySelector('button')!.click();
+		const tile = slot.querySelector('[data-layout-path]');
+		host.state = { controls: slidesHomeControls(slides) };
+		expect(slot.querySelector('[data-layout-path]')).toBe(tile);
+		host.state = {
+			controls: slidesHomeControls({
+				...slides,
+				layouts: { ...layouts, layouts: [{ path: 'c.xml', name: 'Other' }] } as never,
+			}),
+		};
+		expect(slot.querySelector('[data-layout-path]')).not.toBe(tile);
 	});
 
 	it('disposes artwork when the gallery closes and lets New Slide choose without a current tile', () => {
