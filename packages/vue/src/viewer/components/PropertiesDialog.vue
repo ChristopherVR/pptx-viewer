@@ -4,6 +4,7 @@ import { formatIsoDate as formatDate } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -154,20 +155,13 @@ function handleSave(): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-props-btn rounded-lg border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-				@click="emit('close')"
-			>
-				{{ t('pptx.share.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-props-btn pptx-vue-props-btn-primary rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
-				@click="handleSave"
-			>
-				{{ t('pptx.comments.save') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.share.cancel') },
+					{ id: 'save', label: t('pptx.comments.save'), variant: 'primary' },
+				]"
+				@action="(id) => (id === 'save' ? handleSave() : emit('close'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

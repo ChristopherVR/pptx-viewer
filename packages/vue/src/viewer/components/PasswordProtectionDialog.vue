@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -190,36 +191,31 @@ function onRemove(): void {
 		</div>
 
 		<template #footer>
-			<button
-				v-if="props.isCurrentlyProtected"
-				type="button"
-				class="mr-auto text-xs text-red-400 transition-colors hover:text-red-300"
-				@click="onRemove"
-			>
-				{{ t('pptx.password.removePassword') }}
-			</button>
-			<button
-				type="button"
-				class="rounded-lg border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-				@click="emit('close')"
-			>
-				{{ t('pptx.share.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
-				@click="onSubmit"
-			>
-				<!-- `pptx.security.*`, not `pptx.password.*`: the same keys React,
-				     Angular, Svelte and Vanilla use, so the button reads identically
-				     in all five (it used to be "Set password" here and "Save" in two
-				     bindings). -->
-				{{
-					props.isCurrentlyProtected
-						? t('pptx.security.updatePassword')
-						: t('pptx.security.setPassword')
-				}}
-			</button>
+			<DialogFooter
+				:actions="[
+					...(props.isCurrentlyProtected
+						? [
+								{
+									id: 'remove',
+									label: t('pptx.password.removePassword'),
+									variant: 'danger' as const,
+									align: 'start' as const,
+								},
+							]
+						: []),
+					{ id: 'cancel', label: t('pptx.share.cancel') },
+					{
+						id: 'submit',
+						label: props.isCurrentlyProtected
+							? t('pptx.security.updatePassword')
+							: t('pptx.security.setPassword'),
+						variant: 'primary',
+					},
+				]"
+				@action="
+					(id) => (id === 'remove' ? onRemove() : id === 'submit' ? onSubmit() : emit('close'))
+				"
+			/>
 		</template>
 	</ModalDialog>
 </template>

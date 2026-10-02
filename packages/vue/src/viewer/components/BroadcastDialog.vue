@@ -31,6 +31,7 @@ import type { CollaborationTransport } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 interface BroadcastDefaults {
@@ -226,22 +227,22 @@ function onCopyLink(): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-broadcast-btn rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
-				@click="onClose"
-			>
-				{{ t('pptx.common.close') }}
-			</button>
-			<button
-				v-if="!props.active"
-				type="button"
-				class="pptx-vue-broadcast-btn pptx-vue-broadcast-btn-primary rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-				:disabled="!canStart"
-				@click="onStart"
-			>
-				{{ t('pptx.broadcast.startBroadcast') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'close', label: t('pptx.common.close') },
+					...(props.active
+						? []
+						: [
+								{
+									id: 'start',
+									label: t('pptx.broadcast.startBroadcast'),
+									variant: 'primary' as const,
+									disabled: !canStart,
+								},
+							]),
+				]"
+				@action="(id) => (id === 'start' ? onStart() : onClose())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

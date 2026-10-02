@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import BroadcastDialog from './BroadcastDialog.vue';
+import { footerAction } from './dialog-footer.test-support';
 
 /** ModalDialog teleports to `body`; stub teleport so content renders inline. */
 const mountOptions = { global: { stubs: { teleport: true } } } as const;
@@ -20,7 +21,7 @@ describe('broadcastDialog', () => {
 			},
 		});
 
-		await wrapper.get('.pptx-vue-broadcast-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 
 		const startEvents = wrapper.emitted('start');
 		expect(startEvents).toHaveLength(1);
@@ -38,7 +39,7 @@ describe('broadcastDialog', () => {
 		const roomInput = wrapper.get('#pptx-vue-broadcast-room-id').element as HTMLInputElement;
 		expect(roomInput.value).toMatch(/^broadcast-[a-z0-9]+$/u);
 
-		await wrapper.get('.pptx-vue-broadcast-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 
 		const payload = wrapper.emitted('start')?.[0][0] as {
 			roomId: string;
@@ -61,7 +62,7 @@ describe('broadcastDialog', () => {
 		// The P2P hint appears when the server is blank.
 		expect(wrapper.find('.pptx-vue-broadcast-p2p-hint').exists()).toBeTruthy();
 
-		await wrapper.get('.pptx-vue-broadcast-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 
 		expect(wrapper.emitted('start')?.[0][0]).toStrictEqual({
 			roomId: 'broadcast-p2p',
@@ -116,10 +117,7 @@ describe('broadcastDialog', () => {
 	it('emits close from the footer close button', async () => {
 		const wrapper = mount(BroadcastDialog, { ...mountOptions, props: { open: true } });
 
-		const closeButton = wrapper
-			.findAll('.pptx-vue-broadcast-btn')
-			.find((b) => !b.classes().includes('pptx-vue-broadcast-btn-primary'));
-		await closeButton?.trigger('click');
+		footerAction(wrapper.element, 'close')!.click();
 
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});

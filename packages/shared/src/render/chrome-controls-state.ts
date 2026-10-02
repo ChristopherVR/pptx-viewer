@@ -94,6 +94,8 @@ export interface DialogFooterAction {
 	disabled?: boolean;
 	/** Work in flight: the button is disabled, `aria-busy` and shows a spinner. */
 	busy?: boolean;
+	/** Tooltip (`title`) for an action whose label needs a longer hint. */
+	title?: string;
 	/** `start` pins a tertiary action (Remove link, Reset all) to the left edge. */
 	align?: 'start' | 'end';
 	/** Optional `data-testid` stamped on the button. */

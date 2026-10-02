@@ -14,6 +14,7 @@ import { useI18n } from 'vue-i18n';
 import type { UseCollaborationResult } from '../composables/useCollaboration';
 import { useIsMobile } from '../composables/useIsMobile';
 import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -377,24 +378,22 @@ const minHeightStyle = computed(() => ({ minHeight: `${touchTargetPx.value}px` }
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-share-btn inline-flex items-center justify-center rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
-				:style="touchBtnStyle"
-				@click="emit('close')"
-			>
-				{{ active ? t('pptx.share.close') : t('pptx.share.cancel') }}
-			</button>
-			<button
-				v-if="!active"
-				type="button"
-				class="pptx-vue-share-btn pptx-vue-share-btn-primary inline-flex items-center justify-center rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-				:style="touchBtnStyle"
-				:disabled="!canStart"
-				@click="handleStart"
-			>
-				{{ t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: active ? t('pptx.share.close') : t('pptx.share.cancel') },
+					...(active
+						? []
+						: [
+								{
+									id: 'start',
+									label: t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing'),
+									variant: 'primary' as const,
+									disabled: !canStart,
+								},
+							]),
+				]"
+				@action="(id) => (id === 'start' ? handleStart() : emit('close'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

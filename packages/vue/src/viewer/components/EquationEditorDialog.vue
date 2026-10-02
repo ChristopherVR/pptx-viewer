@@ -9,6 +9,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -235,21 +236,18 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-equation-btn pptx-vue-equation-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-				@click="close"
-			>
-				{{ t('pptx.equation.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-equation-btn pptx-vue-equation-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-45"
-				:disabled="!hasContent"
-				@click="confirm"
-			>
-				{{ isEditing ? t('pptx.equation.update') : t('pptx.equation.insert') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.equation.cancel') },
+					{
+						id: 'insert',
+						label: isEditing ? t('pptx.equation.update') : t('pptx.equation.insert'),
+						variant: 'primary',
+						disabled: !hasContent,
+					},
+				]"
+				@action="(id) => (id === 'insert' ? confirm() : close())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

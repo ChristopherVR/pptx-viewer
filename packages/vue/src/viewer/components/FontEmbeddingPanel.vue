@@ -3,6 +3,7 @@ import { scanAvailableFontFamilies } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -156,13 +157,10 @@ const missingCount = computed(
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
-				@click="emit('close')"
-			>
-				{{ t('pptx.fontEmbedding.done') }}
-			</button>
+			<DialogFooter
+				:actions="[{ id: 'done', label: t('pptx.fontEmbedding.done'), variant: 'primary' }]"
+				@action="emit('close')"
+			/>
 		</template>
 	</ModalDialog>
 </template>

@@ -4,6 +4,7 @@ import type { ElementActionType, PptxAction, PptxElement } from 'pptx-viewer-cor
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -191,28 +192,23 @@ const inputCls =
 		</div>
 
 		<template #footer>
-			<button
-				v-if="hasExistingLink"
-				type="button"
-				class="mr-auto rounded border border-transparent px-3 py-1.5 text-xs text-destructive hover:bg-muted"
-				@click="clear"
-			>
-				{{ t('pptx.hyperlinkDialog.removeLink') }}
-			</button>
-			<button
-				type="button"
-				class="rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
-				@click="close"
-			>
-				{{ t('pptx.comments.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
-				@click="save"
-			>
-				{{ t('pptx.hyperlinkDialog.apply') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					...(hasExistingLink
+						? [
+								{
+									id: 'remove',
+									label: t('pptx.hyperlinkDialog.removeLink'),
+									variant: 'danger' as const,
+									align: 'start' as const,
+								},
+							]
+						: []),
+					{ id: 'cancel', label: t('pptx.comments.cancel') },
+					{ id: 'apply', label: t('pptx.hyperlinkDialog.apply'), variant: 'primary' },
+				]"
+				@action="(id) => (id === 'remove' ? clear() : id === 'apply' ? save() : close())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

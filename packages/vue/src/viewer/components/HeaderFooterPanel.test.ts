@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { footerAction } from './dialog-footer.test-support';
 import HeaderFooterPanel from './HeaderFooterPanel.vue';
 import { setControlValue } from './inspector/test-control-value';
 
@@ -45,7 +46,7 @@ describe('headerFooterPanel', () => {
 		});
 		await setControlValue(wrapper.get('[data-testid="hf-footer"]'), true);
 		await wrapper.get('[data-testid="hf-footer-text"]').setValue('Draft');
-		await wrapper.get('[data-testid="hf-apply-all"]').trigger('click');
+		footerAction(wrapper.element, 'applyAll')!.click();
 
 		const events = wrapper.emitted('update');
 		expect(events).toHaveLength(1);
@@ -61,7 +62,7 @@ describe('headerFooterPanel', () => {
 			props: { headerFooter: { hasDateTime: true, dateTimeAuto: false } },
 		});
 		await setControlValue(wrapper.get('[data-testid="hf-date-auto"]'), true);
-		await wrapper.get('[data-testid="hf-apply-current"]').trigger('click');
+		footerAction(wrapper.element, 'applyCurrent')!.click();
 
 		const events = wrapper.emitted('update');
 		expect(events).toHaveLength(1);

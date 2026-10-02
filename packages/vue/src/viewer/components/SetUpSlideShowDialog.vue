@@ -3,6 +3,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 import ShowOptionsFieldset from './ShowOptionsFieldset.vue';
 import ShowSlidesFieldset from './ShowSlidesFieldset.vue';
@@ -128,20 +129,13 @@ const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>((
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
-				@click="emit('close')"
-			>
-				{{ t('pptx.share.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/80"
-				@click="onSave"
-			>
-				{{ t('pptx.slideShow.ok') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.share.cancel') },
+					{ id: 'ok', label: t('pptx.slideShow.ok'), variant: 'primary' },
+				]"
+				@action="(id) => (id === 'ok' ? onSave() : emit('close'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

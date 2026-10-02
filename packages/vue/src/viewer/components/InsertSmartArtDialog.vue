@@ -4,6 +4,7 @@ import { buildSmartArtPresetData } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 import type { SmartArtCategory } from './smart-art-presets';
 import { CATEGORIES, PRESETS } from './smart-art-presets';
@@ -201,21 +202,18 @@ function close(): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-				@click="close"
-			>
-				{{ t('pptx.share.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-45"
-				:disabled="!canInsert"
-				@click="insert"
-			>
-				{{ t('pptx.smartArt.insert') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.share.cancel') },
+					{
+						id: 'insert',
+						label: t('pptx.smartArt.insert'),
+						variant: 'primary',
+						disabled: !canInsert,
+					},
+				]"
+				@action="(id) => (id === 'insert' ? insert() : close())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

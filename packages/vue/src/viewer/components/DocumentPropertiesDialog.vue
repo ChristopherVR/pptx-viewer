@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 
 import { computeDocumentStatistics } from '../composables/useDocumentStatistics';
 import type { DocumentStatistics } from '../composables/useDocumentStatistics';
+import DialogFooter from './DialogFooter.vue';
 import DocumentPropertiesCustomTab from './DocumentPropertiesCustomTab.vue';
 import DocumentPropertiesGeneralTab from './DocumentPropertiesGeneralTab.vue';
 import type { GeneralCoreKey } from './DocumentPropertiesGeneralTab.vue';
@@ -211,21 +212,13 @@ function handleSave(): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-docprops-btn rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-				@click="emit('close')"
-			>
-				{{ t('pptx.comments.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-docprops-btn pptx-vue-docprops-btn-primary rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
-				:disabled="!isDirty"
-				@click="handleSave"
-			>
-				{{ t('pptx.comments.save') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.comments.cancel') },
+					{ id: 'save', label: t('pptx.comments.save'), variant: 'primary', disabled: !isDirty },
+				]"
+				@action="(id) => (id === 'save' ? handleSave() : emit('close'))"
+			/>
 		</template>
 	</ModalDialog>
 </template>

@@ -10,6 +10,7 @@
 import type { SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 
 const props = defineProps<{
@@ -34,24 +35,24 @@ const { t } = useI18n();
 		<p class="text-sm text-muted-foreground">{{ t('pptx.slideSize.rescaleDescription') }}</p>
 
 		<template #footer>
-			<button
-				type="button"
-				data-testid="pptx-slide-size-rescale-maximize"
-				:title="t('pptx.slideSize.rescaleMaximizeHint')"
-				class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-				@click="emit('choose', 'maximize')"
-			>
-				{{ t('pptx.slideSize.rescaleMaximize') }}
-			</button>
-			<button
-				type="button"
-				data-testid="pptx-slide-size-rescale-ensure-fit"
-				:title="t('pptx.slideSize.rescaleEnsureFitHint')"
-				class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-				@click="emit('choose', 'ensureFit')"
-			>
-				{{ t('pptx.slideSize.rescaleEnsureFit') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{
+						id: 'maximize',
+						label: t('pptx.slideSize.rescaleMaximize'),
+						title: t('pptx.slideSize.rescaleMaximizeHint'),
+						testId: 'pptx-slide-size-rescale-maximize',
+					},
+					{
+						id: 'ensureFit',
+						label: t('pptx.slideSize.rescaleEnsureFit'),
+						title: t('pptx.slideSize.rescaleEnsureFitHint'),
+						variant: 'primary',
+						testId: 'pptx-slide-size-rescale-ensure-fit',
+					},
+				]"
+				@action="(id) => emit('choose', id === 'maximize' ? 'maximize' : 'ensureFit')"
+			/>
 		</template>
 	</ModalDialog>
 </template>

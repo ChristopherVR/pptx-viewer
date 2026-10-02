@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { allButtons } from './dialog-footer.test-support';
 import type { PrintSettings } from './print-dialog-types';
 import PrintDialog from './PrintDialog.vue';
 
@@ -17,9 +18,7 @@ function makeSlides(n: number): PptxSlide[] {
 }
 
 function clickButton(label: string): void {
-	const btn = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(
-		(b) => b.textContent?.trim() === label,
-	);
+	const btn = allButtons(document.body).find((b) => b.textContent?.trim() === label);
 	if (!btn) {
 		throw new Error(`button "${label}" not found`);
 	}

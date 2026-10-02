@@ -76,6 +76,11 @@ export function definePptxDialogFooter(registry: CustomElementRegistry): void {
 		private patch(button: HTMLButtonElement, action: DialogFooterAction): void {
 			button.className = action.variant === 'secondary' ? '' : (action.variant ?? '');
 			button.disabled = action.disabled === true || action.busy === true;
+			if (action.title) {
+				button.title = action.title;
+			} else {
+				button.removeAttribute('title');
+			}
 			button.classList.toggle('start', action.align === 'start');
 			button.classList.toggle('busy', action.busy === true);
 			if (action.busy) {

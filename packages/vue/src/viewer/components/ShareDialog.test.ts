@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
 
 import type { UseCollaborationResult } from '../composables/useCollaboration';
+import { footerAction } from './dialog-footer.test-support';
 import ShareDialog from './ShareDialog.vue';
 
 const mountOptions = { global: { stubs: { teleport: true } } } as const;
@@ -66,7 +67,7 @@ describe('shareDialog', () => {
 
 		await wrapper.get('#pptx-vue-share-room').setValue('  edited-room  ');
 		await wrapper.get('#pptx-vue-share-name').setValue('Grace');
-		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 
 		const events = wrapper.emitted('start');
 		expect(events).toHaveLength(1);
@@ -89,7 +90,7 @@ describe('shareDialog', () => {
 		await wrapper.get('#pptx-vue-share-name').setValue('Grace');
 		// The server field is left blank, which selects serverless peer-to-peer.
 		expect(wrapper.find('.pptx-vue-share-p2p-hint').exists()).toBeTruthy();
-		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 
 		expect(wrapper.emitted('start')?.[0][0]).toStrictEqual({
 			roomId: 'p2p-room',
@@ -108,7 +109,7 @@ describe('shareDialog', () => {
 			props: { open: true, defaults: { roomId: 'room' } },
 		});
 
-		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 		expect(wrapper.emitted('start')).toBeUndefined();
 	});
 
@@ -122,7 +123,7 @@ describe('shareDialog', () => {
 		await wrapper
 			.get('#pptx-vue-share-invitation')
 			.setValue('https://react.example/viewer?room=cross-ui&server=wss%3A%2F%2Frelay.example');
-		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
+		footerAction(wrapper.element, 'start')!.click();
 
 		expect(wrapper.emitted('start')?.[0][0]).toMatchObject({
 			roomId: 'cross-ui',
@@ -138,7 +139,7 @@ describe('shareDialog', () => {
 		// No server configured -> the active view labels the session as P2P.
 		expect(wrapper.find('.pptx-vue-share-server-value').exists()).toBeTruthy();
 		const stopButton = wrapper.get('.pptx-vue-share-stop');
-		expect(wrapper.find('.pptx-vue-share-btn-primary').exists()).toBeFalsy();
+		expect(footerAction(wrapper.element, 'start')).toBeUndefined();
 
 		await stopButton.trigger('click');
 		expect(wrapper.emitted('stop')).toHaveLength(1);
@@ -147,10 +148,7 @@ describe('shareDialog', () => {
 	it('emits close from the cancel button', async () => {
 		const wrapper = mount(ShareDialog, { ...mountOptions, props: { open: true } });
 
-		const cancel = wrapper
-			.findAll('.pptx-vue-share-btn')
-			.find((b) => !b.classes().includes('pptx-vue-share-btn-primary'));
-		await cancel?.trigger('click');
+		footerAction(wrapper.element, 'cancel')!.click();
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 

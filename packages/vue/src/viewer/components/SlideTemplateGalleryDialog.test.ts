@@ -3,6 +3,7 @@ import { SLIDE_TEMPLATES } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { allButtons } from './dialog-footer.test-support';
 import SlidesGroup from './ribbon/SlidesGroup.vue';
 import SlideTemplateGalleryDialog from './SlideTemplateGalleryDialog.vue';
 
@@ -31,9 +32,7 @@ function tileByLabel(label: string): HTMLButtonElement {
 }
 
 function footerButton(label: string): HTMLButtonElement {
-	const btn = Array.from(
-		document.body.querySelectorAll<HTMLButtonElement>('.pptx-vue-template-btn'),
-	).find((b) => b.textContent?.trim() === label);
+	const btn = allButtons(document.body).find((b) => b.textContent?.trim() === label);
 	if (!btn) {
 		throw new Error(`button "${label}" not found`);
 	}

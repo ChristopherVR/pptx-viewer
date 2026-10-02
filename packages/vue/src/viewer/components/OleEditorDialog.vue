@@ -29,6 +29,7 @@ import { buildOleContentUpdatePatch, buildOleEditDialogDescriptor } from 'pptx-v
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 import OleDeckEditor from './OleDeckEditor.vue';
 import OleDocumentEditor from './OleDocumentEditor.vue';
@@ -210,20 +211,13 @@ function onFileChange(event: Event): void {
 
 		<template #footer>
 			<input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
-			<button
-				type="button"
-				class="rounded-lg border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent"
-				@click="fileInput?.click()"
-			>
-				{{ t('pptx.ole.editDialog.replaceFile') }}
-			</button>
-			<button
-				type="button"
-				class="rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/80"
-				@click="close"
-			>
-				{{ t('pptx.ole.editDialog.save') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'replace', label: t('pptx.ole.editDialog.replaceFile'), align: 'start' },
+					{ id: 'save', label: t('pptx.ole.editDialog.save'), variant: 'primary' },
+				]"
+				@action="(id) => (id === 'replace' ? fileInput?.click() : close())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

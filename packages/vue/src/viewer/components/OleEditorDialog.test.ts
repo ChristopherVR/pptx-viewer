@@ -12,6 +12,7 @@ import type { OlePptxElement } from 'pptx-viewer-core';
 import { oleBytesToDataUrl, PptxHandler } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { allButtons } from './dialog-footer.test-support';
 import OleEditorDialog from './OleEditorDialog.vue';
 
 afterEach(() => {
@@ -228,7 +229,7 @@ describe('oleEditorDialog', () => {
 			attachTo: document.body,
 		});
 		await flush();
-		const button = Array.from(document.body.querySelectorAll('button')).find(
+		const button = allButtons(document.body).find(
 			(b) => b.textContent?.trim() === 'Replace File...',
 		);
 		expect(button).toBeDefined();

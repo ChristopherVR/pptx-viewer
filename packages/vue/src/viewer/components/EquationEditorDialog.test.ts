@@ -3,6 +3,7 @@ import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { convertLatexToOmml } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { allButtons } from './dialog-footer.test-support';
 import EquationEditorDialog from './EquationEditorDialog.vue';
 
 afterEach(() => {
@@ -18,9 +19,7 @@ function textarea(): HTMLTextAreaElement {
 }
 
 function footerButton(label: string): HTMLButtonElement {
-	const btn = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(
-		(b) => b.textContent?.trim() === label,
-	);
+	const btn = allButtons(document.body).find((b) => b.textContent?.trim() === label);
 	if (!btn) {
 		throw new Error(`button "${label}" not found`);
 	}

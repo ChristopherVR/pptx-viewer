@@ -1,7 +1,9 @@
 import { mount } from '@vue/test-utils';
 import type { PptxCoreProperties, PptxCustomProperty, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 
+import { footerAction } from './dialog-footer.test-support';
 import DocumentPropertiesDialog from './DocumentPropertiesDialog.vue';
 import type { DocumentPropertiesSavePatch } from './DocumentPropertiesDialog.vue';
 
@@ -66,13 +68,14 @@ describe('documentPropertiesDialog', () => {
 
 	it('save is disabled until a field changes, then emits the edited patch', async () => {
 		const wrapper = mountDialog();
-		const saveButton = () => wrapper.findAll('button').find((b) => b.text() === 'Save')!;
-		expect((saveButton().element as HTMLButtonElement).disabled).toBeTruthy();
+		const saveButton = () => footerAction(wrapper.element, 'save')!;
+		expect(saveButton().disabled).toBeTruthy();
 
 		await wrapper.get('#pptx-vue-docprops-title').setValue('Updated Title');
-		expect((saveButton().element as HTMLButtonElement).disabled).toBeFalsy();
+		await nextTick();
+		expect(saveButton().disabled).toBeFalsy();
 
-		await saveButton().trigger('click');
+		saveButton().click();
 		const events = wrapper.emitted('save');
 		expect(events).toHaveLength(1);
 		const patch = events![0][0] as DocumentPropertiesSavePatch;
@@ -85,8 +88,7 @@ describe('documentPropertiesDialog', () => {
 	it('includes an app patch when manager/company change', async () => {
 		const wrapper = mountDialog();
 		await wrapper.get('#pptx-vue-docprops-company').setValue('Acme Corp');
-		const saveButton = wrapper.findAll('button').find((b) => b.text() === 'Save')!;
-		await saveButton.trigger('click');
+		footerAction(wrapper.element, 'save')!.click();
 		const patch = wrapper.emitted('save')![0][0] as DocumentPropertiesSavePatch;
 		expect(patch.app).toStrictEqual({ manager: '', company: 'Acme Corp' });
 	});
@@ -102,8 +104,7 @@ describe('documentPropertiesDialog', () => {
 		const nameInput = wrapper.findAll('input[type="text"]')[0];
 		await nameInput.setValue('Project');
 
-		const saveButton = wrapper.findAll('button').find((b) => b.text() === 'Save')!;
-		await saveButton.trigger('click');
+		footerAction(wrapper.element, 'save')!.click();
 		const patch = wrapper.emitted('save')![0][0] as DocumentPropertiesSavePatch;
 		expect(patch.custom).toHaveLength(1);
 		expect(patch.custom[0]).toStrictEqual({ name: 'Project', value: '', type: 'lpwstr' });
@@ -111,8 +112,7 @@ describe('documentPropertiesDialog', () => {
 
 	it('emits close from Cancel', async () => {
 		const wrapper = mountDialog();
-		const cancel = wrapper.findAll('button').find((b) => b.text() === 'Cancel');
-		await cancel!.trigger('click');
+		footerAction(wrapper.element, 'cancel')!.click();
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 });

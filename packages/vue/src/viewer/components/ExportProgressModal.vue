@@ -3,6 +3,8 @@ import { clampPercent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
+
 /**
  * ExportProgressModal - a centered, non-dismissable overlay shown while a
  * multi-slide export (PDF / GIF / WebM) runs. Vue counterpart of the React
@@ -67,13 +69,10 @@ function onCancel(): void {
 				</div>
 
 				<div class="flex justify-end">
-					<button
-						type="button"
-						class="rounded-md border border-border bg-muted px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent"
-						@click="onCancel"
-					>
-						{{ t('pptx.export.cancel') }}
-					</button>
+					<DialogFooter
+						:actions="[{ id: 'cancel', label: t('pptx.export.cancel') }]"
+						@action="onCancel"
+					/>
 				</div>
 			</div>
 		</div>

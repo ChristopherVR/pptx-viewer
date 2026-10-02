@@ -4,6 +4,7 @@ import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
 import ModalDialog from './ModalDialog.vue';
 import SlideTemplatePreview from './SlideTemplatePreview.vue';
 
@@ -107,21 +108,18 @@ function close(): void {
 		</div>
 
 		<template #footer>
-			<button
-				type="button"
-				class="pptx-vue-template-btn pptx-vue-template-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-				@click="close"
-			>
-				{{ t('pptx.slideTemplates.cancel') }}
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-template-btn pptx-vue-template-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-45"
-				:disabled="!selected"
-				@click="handleInsert"
-			>
-				{{ t('pptx.slideTemplates.insert') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'cancel', label: t('pptx.slideTemplates.cancel') },
+					{
+						id: 'insert',
+						label: t('pptx.slideTemplates.insert'),
+						variant: 'primary',
+						disabled: !selected,
+					},
+				]"
+				@action="(id) => (id === 'insert' ? handleInsert() : close())"
+			/>
 		</template>
 	</ModalDialog>
 </template>

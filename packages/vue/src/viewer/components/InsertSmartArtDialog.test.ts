@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxElement, SmartArtPptxElement } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { allButtons } from './dialog-footer.test-support';
 import InsertSmartArtDialog from './InsertSmartArtDialog.vue';
 
 afterEach(() => {
@@ -29,9 +30,7 @@ function categoryTab(label: string): HTMLButtonElement {
 }
 
 function footerButton(label: string): HTMLButtonElement {
-	const btn = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(
-		(b) => b.textContent?.trim() === label,
-	);
+	const btn = allButtons(document.body).find((b) => b.textContent?.trim() === label);
 	if (!btn) {
 		throw new Error(`button "${label}" not found`);
 	}

@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatRehearseMs } from '../composables/useRehearseTimings';
+import DialogFooter from './DialogFooter.vue';
 
 const props = defineProps<{ timings: Record<number, number> }>();
 const emit = defineEmits<{ (event: 'save' | 'discard'): void }>();
@@ -43,20 +44,13 @@ const total = computed(() => entries.value.reduce((sum, entry) => sum + entry.ms
 				</div>
 			</div>
 			<footer class="flex justify-end gap-2 border-t border-border px-5 py-3">
-				<button
-					type="button"
-					class="rounded px-4 py-2 text-sm hover:bg-muted"
-					@click="emit('discard')"
-				>
-					{{ t('pptx.rehearse.discard') }}
-				</button>
-				<button
-					type="button"
-					class="rounded bg-primary px-4 py-2 text-sm text-primary-foreground hover:opacity-90"
-					@click="emit('save')"
-				>
-					{{ t('pptx.rehearse.saveTimings') }}
-				</button>
+				<DialogFooter
+					:actions="[
+						{ id: 'discard', label: t('pptx.rehearse.discard') },
+						{ id: 'save', label: t('pptx.rehearse.saveTimings'), variant: 'primary' },
+					]"
+					@action="(id) => (id === 'save' ? emit('save') : emit('discard'))"
+				/>
 			</footer>
 		</section>
 	</div>

@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxCoreProperties } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { footerAction } from './dialog-footer.test-support';
 import PropertiesDialog from './PropertiesDialog.vue';
 import type { DocumentProperties } from './PropertiesDialog.vue';
 
@@ -57,8 +58,7 @@ describe('propertiesDialog', () => {
 		await wrapper.get('#pptx-vue-props-title').setValue('Updated Title');
 		await wrapper.get('#pptx-vue-props-keywords').setValue('q4, budget, final');
 
-		const saveButton = wrapper.findAll('button').find((b) => b.text() === 'Save');
-		await saveButton!.trigger('click');
+		footerAction(wrapper.element, 'save')!.click();
 
 		const events = wrapper.emitted('save');
 		expect(events).toHaveLength(1);
@@ -74,8 +74,7 @@ describe('propertiesDialog', () => {
 			global: { stubs: { teleport: true } },
 			props: { open: true, properties: baseProperties() },
 		});
-		const cancel = wrapper.findAll('button').find((b) => b.text() === 'Cancel');
-		await cancel!.trigger('click');
+		footerAction(wrapper.element, 'cancel')!.click();
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 });

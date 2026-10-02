@@ -29,6 +29,8 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import DialogFooter from './DialogFooter.vue';
+
 const props = defineProps<{
 	headerFooter: PptxHeaderFooter | undefined;
 }>();
@@ -185,22 +187,18 @@ function onDateText(event: Event): void {
 		</div>
 
 		<footer class="pptx-vue-header-footer-panel__footer">
-			<button
-				type="button"
-				class="pptx-vue-header-footer-panel__apply"
-				data-testid="hf-apply-all"
-				@click="apply"
-			>
-				{{ t('pptx.headerFooter.applyToAll') }}
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-header-footer-panel__apply pptx-vue-header-footer-panel__apply--primary"
-				data-testid="hf-apply-current"
-				@click="apply"
-			>
-				{{ t('pptx.headerFooter.applyToCurrent') }}
-			</button>
+			<DialogFooter
+				:actions="[
+					{ id: 'applyAll', label: t('pptx.headerFooter.applyToAll'), testId: 'hf-apply-all' },
+					{
+						id: 'applyCurrent',
+						label: t('pptx.headerFooter.applyToCurrent'),
+						variant: 'primary',
+						testId: 'hf-apply-current',
+					},
+				]"
+				@action="apply"
+			/>
 		</footer>
 	</div>
 </template>
@@ -295,22 +293,5 @@ function onDateText(event: Event): void {
 	gap: 8px;
 	padding: 12px 16px;
 	border-top: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-header-footer-panel__apply {
-	padding: 6px 12px;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 4px;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	color: var(--pptx-vue-foreground, #111827);
-	font-size: 12px;
-	font-weight: 500;
-	cursor: pointer;
-}
-
-.pptx-vue-header-footer-panel__apply--primary {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	background: var(--pptx-vue-primary, #2563eb);
-	color: #fff;
 }
 </style>
