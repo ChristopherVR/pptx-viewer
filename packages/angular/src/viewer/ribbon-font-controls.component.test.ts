@@ -16,12 +16,11 @@ const ribbonSource = componentSource(import.meta.dirname, 'ribbon-font-controls.
 const inspectorSource = componentSource(import.meta.dirname, 'inspector-panel.component.ts');
 
 describe('ribbonFontControlsComponent FONT_SIZES', () => {
-	it.each(['fontFamily', 'fontSize'])('requires an editable text selection for %s', (label) => {
-		const select = ribbonSource.match(
-			new RegExp(`<pptx-ui-select[^>]*pptx.ribbon.${label}[^>]*>`),
-		)?.[0];
-		expect(select).toBeDefined();
-		expect(select).toContain('[attr.disabled]="!canEdit() || !isText() ? \'\' : null"');
+	it('gates the picker and the strip on an editable text selection', () => {
+		expect(ribbonSource).toContain('<pptx-ui-ribbon-home-font-picker');
+		expect(ribbonSource).toContain('<pptx-ui-ribbon-home-font ');
+		expect(ribbonSource).toContain('return this.canEdit() && this.isText();');
+		expect(ribbonSource).toContain('enabled: this.enabled()');
 	});
 
 	it.each(['ribbon-home-section.component.ts', 'ribbon-content.component.ts'])(
@@ -49,9 +48,7 @@ describe('ribbonFontControlsComponent FONT_SIZES', () => {
 describe('ordinary text font size units', () => {
 	it('converts model pixels to points and point edits back to pixels in both controls', () => {
 		expect(ribbonSource).toContain('textFontSizePxToPt(fontSize)');
-		expect(ribbonSource).toContain(
-			'this.patchFontSize(textFontSizePtToPx(Number((event.target as HTMLSelectElement).value)))',
-		);
+		expect(ribbonSource).toContain('this.patchFontSize(textFontSizePtToPx(Number(value)))');
 		expect(ribbonSource).toContain('this.patchFontSize(textFontSizePtToPx(steppedFontSizePt(');
 		expect(ribbonSource).toContain('textFontSizePatch(element, fontSize)');
 		expect(inspectorSource).toContain('fontSize: fontSizeOf(cur)');
@@ -59,7 +56,8 @@ describe('ordinary text font size units', () => {
 	});
 
 	it('keeps authored fractional point sizes visible and editable', () => {
-		expect(ribbonSource).toContain('!fontSizes.includes(curFontSize())');
+		// The shared select retains an authored value that is not one of the presets.
+		expect(ribbonSource).toContain('fontSize: this.curFontSize()');
 		expect(inspectorSource).toContain('inputmode="decimal"');
 		expect(inspectorSource).toContain('step="any"');
 		expect(steppedFontSizePt(48.1, 1)).toBe(54);
@@ -67,19 +65,26 @@ describe('ordinary text font size units', () => {
 	});
 });
 
-describe('ribbonFontControlsComponent theme font colour (W3-G2)', () => {
-	it('shows the theme-colours grid on the font-colour popover only, not highlight', () => {
-		expect(ribbonSource).toContain('[showThemeColors]="true"');
-		expect(ribbonSource).toContain('[currentRef]="curColorRef()"');
-		expect(ribbonSource).toContain('(pickThemeColor)="setColorRef($event)"');
+describe('ribbonFontControlsComponent shared colour, spacing and case intents', () => {
+	it('feeds the theme grid and recents, and shows no theme grid for highlight', () => {
+		expect(ribbonSource).toContain('themeColors: this.loader?.themeColorMap()');
+		expect(ribbonSource).toContain('ref: this.curColorRef()');
+		expect(ribbonSource).toContain('recent: this.recentColors?.recent()');
+		expect(ribbonSource).toContain('highlight: { value: this.curHighlight()');
 	});
 
-	it('a preset/recent/custom pick clears any stored ref; a theme pick commits both', () => {
-		expect(ribbonSource).toContain('this.patch({ color, colorRef: undefined });');
-		expect(ribbonSource).toContain('this.patch({ color: commit.hex, colorRef: commit.ref });');
+	it('a colour intent commits both the hex and the ref and records the colour as recent', () => {
+		expect(ribbonSource).toContain('this.patch({ color: String(value), colorRef: ref });');
+		expect(ribbonSource).toContain('this.patch({ highlightColor: String(value) });');
+		expect(ribbonSource).toContain('this.recentColors?.push(String(value));');
 	});
 
-	it('the standard-colour presets now come from the shared Office catalogue', () => {
-		expect(ribbonSource).toContain('OFFICE_COLOR_SWATCH_HEXES');
+	it('routes character spacing and change case intents', () => {
+		expect(ribbonSource).toContain('this.patch({ characterSpacing: Number(value) });');
+		expect(ribbonSource).toContain('this.changeCase(value as ChangeCaseMode);');
+	});
+
+	it('re-derives its state when the language changes', () => {
+		expect(ribbonSource).toContain('homeTranslator(this.translation, this.language');
 	});
 });

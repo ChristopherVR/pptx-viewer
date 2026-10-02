@@ -13,6 +13,7 @@ import type { PptxElement, PptxSlide, ShapePptxElement } from 'pptx-viewer-core'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { translationsEn } from '../../../shared/src/i18n/translations-en';
+import { registerPptxWebControls } from '../internal/shared';
 import {
 	readViewerTestResource,
 	resolveViewerComponentResources,
@@ -21,12 +22,11 @@ import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { EditorStateService } from './editor-state.service';
 import { IsMobileService } from './is-mobile';
 import { PictureCropService } from './picture-crop.service';
-import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
-import { RibbonCropComponent } from './ribbon-crop.component';
-import { RibbonMergeShapesComponent } from './ribbon-merge-shapes.component';
+import { RibbonShapeExtrasComponent } from './ribbon-shape-extras.component';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 beforeAll(async () => {
+	registerPptxWebControls();
 	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
 	await resolveViewerComponentResources();
 });
@@ -108,12 +108,12 @@ function q(root: HTMLElement, selector: string): HTMLButtonElement | null {
 	return root.querySelector<HTMLButtonElement>(selector);
 }
 
+const mountExtras = (extra: Record<string, unknown> = {}) =>
+	mount(RibbonShapeExtrasComponent, { slideIndex: 0, canEdit: true, hiddenActions: [], ...extra });
+
 describe('ribbon Merge Shapes', () => {
 	it('is disabled (with the hint) until two mergeable shapes are selected', () => {
-		const { root, editor, detect } = mount(RibbonMergeShapesComponent, {
-			slideIndex: 0,
-			canEdit: true,
-		});
+		const { root, editor, detect } = mountExtras();
 		const button = q(root, '[data-pptx-ribbon-control="merge-shapes"]');
 		expect(button?.disabled).toBeTruthy();
 		expect(button?.title).toBe(translationsEn['pptx.shape.mergeShapesHint']);
@@ -124,15 +124,13 @@ describe('ribbon Merge Shapes', () => {
 	});
 
 	it('union replaces the two shapes with one custom shape in one undo step', () => {
-		const { root, editor, detect } = mount(RibbonMergeShapesComponent, {
-			slideIndex: 0,
-			canEdit: true,
-		});
+		const { root, editor, detect } = mountExtras();
 		editor.select(['a', 'b']);
 		detect();
 		q(root, '[data-pptx-ribbon-control="merge-shapes"]')?.click();
-		detect();
-		const items = [...root.querySelectorAll('[role="menu"] [role="menuitem"]')];
+		const items = [...root.querySelectorAll('[role="menu"] [role="menuitem"]')].filter((el) =>
+			el.hasAttribute('data-pptx-merge-op'),
+		);
 		expect(items.map((el) => el.getAttribute('data-pptx-merge-op'))).toStrictEqual([
 			'union',
 			'combine',
@@ -154,11 +152,7 @@ describe('ribbon Merge Shapes', () => {
 
 describe('ribbon Crop', () => {
 	it('enables for a single picture and toggles crop mode', () => {
-		const { root, editor, crop, detect } = mount(RibbonCropComponent, {
-			slideIndex: 0,
-			canEdit: true,
-			selectedElement: picture(),
-		});
+		const { root, editor, crop, detect } = mountExtras({ selectedElement: picture() });
 		const toggle = q(root, '[data-pptx-ribbon-control="crop"]');
 		expect(toggle?.disabled).toBeTruthy();
 		editor.select(['pic']);
@@ -173,15 +167,10 @@ describe('ribbon Crop', () => {
 	});
 
 	it('crops to a 1:1 aspect ratio as one undo step', () => {
-		const { root, editor, detect } = mount(RibbonCropComponent, {
-			slideIndex: 0,
-			canEdit: true,
-			selectedElement: picture(),
-		});
+		const { root, editor, detect } = mountExtras({ selectedElement: picture() });
 		editor.select(['pic']);
 		detect();
 		q(root, '[data-pptx-ribbon-control="crop-menu"]')?.click();
-		detect();
 		expect(root.querySelectorAll('[data-pptx-crop-aspect]').length).toBeGreaterThan(5);
 		expect(q(root, '[data-pptx-crop-action="fill"]')).not.toBeNull();
 		q(root, '[data-pptx-crop-aspect="1:1"]')?.click();
@@ -194,24 +183,23 @@ describe('ribbon Crop', () => {
 
 describe('ribbon Arrange customisation', () => {
 	it('hides Merge Shapes and Crop when the host hides them', () => {
-		const shown = mount(
-			RibbonArrangeSectionComponent,
-			{ hiddenActions: [], canEdit: true },
-			'ribbon-arrange-section.component.html',
-		);
-		expect(q(shown.root, '[data-pptx-ribbon-control="merge-shapes"]')).not.toBeNull();
-		expect(q(shown.root, '[data-pptx-ribbon-control="crop"]')).not.toBeNull();
+		const shown = mountExtras();
+		expect(q(shown.root, '[data-pptx-ribbon-control="merge-shapes"]')?.hidden).toBeFalsy();
+		expect(q(shown.root, '[data-pptx-ribbon-control="crop"]')?.hidden).toBeFalsy();
 		TestBed.resetTestingModule();
-		const hidden = mount(
-			RibbonArrangeSectionComponent,
-			{
-				hiddenActions: ['mergeShapes', 'crop'],
-				canEdit: true,
-			},
-			'ribbon-arrange-section.component.html',
-		);
-		expect(q(hidden.root, '[data-pptx-ribbon-control="merge-shapes"]')).toBeNull();
-		expect(q(hidden.root, '[data-pptx-ribbon-control="crop"]')).toBeNull();
+		const hidden = mountExtras({ hiddenActions: ['mergeShapes', 'crop'] });
+		expect(
+			hidden.root.querySelector<HTMLElement>('[data-ribbon-control="home.arrange.mergeShapes"]')
+				?.hidden,
+		).toBeTruthy();
+		expect(q(hidden.root, '[data-pptx-ribbon-control="crop"]')?.hidden).toBeTruthy();
+		expect(q(hidden.root, '[data-pptx-ribbon-control="crop-menu"]')?.hidden).toBeTruthy();
+	});
+
+	it('threads the host-hidden actions from the Arrange section into the extras', () => {
+		const template = readViewerTestResource('ribbon-arrange-section.component.html');
+		expect(template).toContain('[hiddenActions]="hiddenActions()"');
+		expect(template).toContain('<pptx-ui-ribbon-home-arrange-painter');
 	});
 });
 

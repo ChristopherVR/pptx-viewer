@@ -63,12 +63,18 @@ describe('performResetSlide', () => {
 describe('shared Slides group wiring', () => {
 	const source = componentSource(import.meta.dirname, 'ribbon-home-section.component.ts');
 
-	it('renders the group through the shared element and keeps the galleries native', () => {
+	it('renders the group and the layout galleries through the shared element', () => {
 		expect(source).toContain('<pptx-ui-ribbon-home-slides');
 		expect(source).toContain('(home-request)="onSlidesRequest($event)"');
-		expect(source).toContain('pptxAnchoredPopup]="anchorOf(\'home.slides.layout\')"');
-		expect(source).toContain('pptxAnchoredPopup]="anchorOf(\'home.slides.newSlide\')"');
+		expect(source).toContain('(home-popup)="onSlidesPopup($event)"');
+		expect(source).toContain('[layoutArtwork]="artwork"');
+		expect(source).not.toContain('pptxAnchoredPopup');
 		expect(source).not.toContain('data-ribbon-control="home.slides');
+	});
+
+	it('re-translates on a language change and loads artwork when a gallery opens', () => {
+		expect(source).toContain("homeTranslator(this.translation, this.language, ['slides'])");
+		expect(source).toContain('if (!open || !handler || this.layoutPreviews().size > 0)');
 	});
 
 	it('keeps New Slide, Reset and Section available on an empty deck as before', () => {

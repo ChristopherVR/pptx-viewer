@@ -1,4 +1,3 @@
-import { NgClass } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -7,44 +6,36 @@ import {
 	inject,
 	input,
 } from '@angular/core';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
 	elementBulletKind,
 	getInlineEditorSelectionResult,
+	homeGalleryApply,
+	homeGalleryControls,
 	paragraphHomeAction,
 	paragraphHomeAlign,
 	paragraphHomeControls,
 	selectionBulletKind,
+	withHomeGalleries,
 } from '../internal/shared';
 import type { RibbonHomeRequestEvent } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
-import { RibbonGalleryComponent } from './ribbon-gallery.component';
+import { LoadContentService } from './load-content.service';
 /**
- * ribbon-paragraph-controls.component.ts: the ribbon's reusable Paragraph control
- * group (bullet/numbered lists, indent/outdent, and alignment). Split out of
- * {@link RibbonComponent}'s `paragraphControls` ng-template so the Home and Text
- * tabs share one implementation. Behaviour and markup are unchanged.
+ * ribbon-paragraph-controls.component.ts: the ribbon's reusable Paragraph
+ * control group (bullets and numbering with their libraries, indent, alignment,
+ * line spacing, text direction and columns), shared by the Home and Text tabs.
+ * A thin adapter around `pptx-ui-ribbon-home-paragraph`: it reflects the
+ * selection into the element and runs each typed intent through the editor.
  */
-import { RibbonIconDirective } from './ribbon-icon.directive';
+import { dispatchGalleryResult, galleryContextFor } from './ribbon-gallery-helpers';
+import { homeLanguage, homeTranslator } from './ribbon-home-lang';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
-
-/** Line spacing multiplier presets. */
-const LINE_SPACING_OPTIONS = [1.0, 1.15, 1.5, 2.0, 2.5, 3.0];
-
-/** Text direction presets (mirrors React/Vue). */
-const TEXT_DIRECTION_OPTIONS = [
-	{ labelKey: 'pptx.slideInspector.horizontal', value: 'horizontal' },
-	{ labelKey: 'pptx.ribbon.textDirectionRotate90', value: 'vertical' },
-	{ labelKey: 'pptx.ribbon.textDirectionRotate270', value: 'vertical270' },
-	{ labelKey: 'pptx.ribbon.textDirectionStacked', value: 'wordArtVert' },
-] as const;
-
-/** Column count presets. */
-const COLUMN_OPTIONS = [1, 2, 3];
+import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 
 @Component({
 	selector: 'pptx-ribbon-paragraph-controls',
@@ -52,21 +43,22 @@ const COLUMN_OPTIONS = [1, 2, 3];
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
-	imports: [RibbonIconDirective, NgClass, TranslatePipe, RibbonGalleryComponent],
-	templateUrl: './ribbon-paragraph-controls.component.html',
+	template: `<pptx-ui-ribbon-home-paragraph
+		[state]="paragraphView()"
+		(home-request)="paragraphRequest($event)"
+	/>`,
 })
 export class RibbonParagraphControlsComponent {
 	private readonly editor = inject(EditorStateService);
 	private readonly inlineEditing = inject(ViewerCanvasEditingService, { optional: true });
 	private readonly translation = inject(TranslateService, { optional: true });
+	private readonly loader = inject(LoadContentService, { optional: true });
+	private readonly themes = inject(ViewerThemeGalleryService, { optional: true });
+	private readonly language = homeLanguage(this.translation);
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
 	readonly canEdit = input<boolean>(false);
-
-	protected readonly lineSpacingOptions = LINE_SPACING_OPTIONS;
-	protected readonly textDirectionOptions = TEXT_DIRECTION_OPTIONS;
-	protected readonly columnOptions = COLUMN_OPTIONS;
 
 	protected isText(): boolean {
 		return isTextElement(this.selectedElement());
@@ -78,19 +70,6 @@ export class RibbonParagraphControlsComponent {
 		const element = this.selectedElement();
 		return element ? elementBulletKind(element) : 'none';
 	});
-
-	/** Current line spacing multiplier. */
-	protected curLineSpacing(): number {
-		return this.curStyle()?.lineSpacing ?? 1.0;
-	}
-	/** Current text direction. */
-	protected curTextDirection(): string {
-		return this.curStyle()?.textDirection ?? 'horizontal';
-	}
-	/** Current column count. */
-	protected curColumns(): number {
-		return this.curStyle()?.columnCount ?? 1;
-	}
 
 	/** Toggle the paragraph list style (bullet / numbered) off when already set. */
 	protected toggleList(kind: 'bullet' | 'numbered'): void {
@@ -111,18 +90,56 @@ export class RibbonParagraphControlsComponent {
 		const current = selectionBulletKind(element, result.selection, result.snapshot?.textSegments);
 		this.patch({ listType: current === kind ? 'none' : kind });
 	}
-	/** State for the shared indent and alignment strip. */
+	/** State for the shared Paragraph strip: lists, indent, alignment, spacing, direction, columns. */
 	protected paragraphView() {
+		const style = this.curStyle();
+		const enabled = this.canEdit() && this.isText();
+		const controls = paragraphHomeControls({
+			enabled,
+			align: paragraphHomeAlign(style?.align),
+			list: this.listKind() as 'bullet' | 'numbered' | 'none',
+			lineSpacing: style?.lineSpacing,
+			columns: style?.columnCount,
+			textDirection: style?.textDirection,
+		});
 		return {
-			controls: paragraphHomeControls({
-				enabled: this.canEdit() && this.isText(),
-				align: paragraphHomeAlign(this.curStyle()?.align),
-			}),
-			translate: (key: string) => this.translation?.instant(key) ?? key,
+			controls: withHomeGalleries(
+				controls,
+				homeGalleryControls('paragraph', this.galleryContext(), enabled),
+				enabled,
+			),
+			translate: homeTranslator(this.translation, this.language, ['paragraph']),
 		};
 	}
+	private galleryContext() {
+		return galleryContextFor(this.selectedElement(), this.loader);
+	}
 	protected paragraphRequest(event: Event): void {
-		const action = paragraphHomeAction((event as RibbonHomeRequestEvent).detail.id);
+		const { id, value } = (event as RibbonHomeRequestEvent).detail;
+		if (id === 'home.paragraph.bullets' || id === 'home.paragraph.numbering') {
+			if (value === undefined) {
+				this.toggleList(id === 'home.paragraph.bullets' ? 'bullet' : 'numbered');
+			} else {
+				dispatchGalleryResult(
+					homeGalleryApply('paragraph', id, String(value), this.galleryContext()) ?? null,
+					{ editor: this.editor, slideIndex: this.slideIndex(), themes: this.themes },
+				);
+			}
+			return;
+		}
+		if (id === 'home.paragraph.lineSpacing') {
+			this.patch({ lineSpacing: Number(value) });
+			return;
+		}
+		if (id === 'home.paragraph.textDirection') {
+			this.patch({ textDirection: String(value) as 'horizontal' });
+			return;
+		}
+		if (id === 'home.paragraph.columns') {
+			this.patch({ columnCount: Number(value) });
+			return;
+		}
+		const action = paragraphHomeAction(id);
 		if (action?.kind === 'indent') {
 			this.changeIndent(action.delta);
 		} else if (action?.kind === 'align') {
@@ -137,16 +154,6 @@ export class RibbonParagraphControlsComponent {
 	protected setAlign(align: 'left' | 'center' | 'right' | 'justify'): void {
 		this.patch({ align });
 	}
-	protected setLineSpacing(event: Event): void {
-		this.patch({ lineSpacing: Number((event.target as HTMLSelectElement).value) });
-	}
-	protected setTextDirection(event: Event): void {
-		this.patch({ textDirection: (event.target as HTMLSelectElement).value as 'horizontal' });
-	}
-	protected setColumns(event: Event): void {
-		this.patch({ columnCount: Number((event.target as HTMLSelectElement).value) });
-	}
-
 	private patch(patch: Parameters<typeof patchTextStyle>[3]): void {
 		patchTextStyle(
 			this.editor,

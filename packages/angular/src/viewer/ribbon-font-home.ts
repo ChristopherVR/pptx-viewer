@@ -1,42 +1,15 @@
 /**
  * ribbon-font-home.ts: the Font group's shared character-format strip
- * (`pptx-ui-ribbon-home-font`). Pure helpers: the state reflected into the
- * element and the decoding of its one intent into the edit this binding runs.
+ * (`pptx-ui-ribbon-home-font`). Pure helper: decodes the strip's toggle, shadow,
+ * size-step and clear intents into the edit this binding runs.
  */
 import type { RibbonControlId } from '../internal/shared';
-import { fontHomeControls } from '../internal/shared';
-
-type FontStyleFlags = {
-	bold?: boolean;
-	italic?: boolean;
-	underline?: boolean;
-	strikethrough?: boolean;
-	textShadowColor?: string;
-} | null;
 
 export type FontHomeAction =
 	| { kind: 'toggle'; flag: 'bold' | 'italic' | 'underline' | 'strikethrough' }
 	| { kind: 'shadow' }
 	| { kind: 'step'; direction: 1 | -1 }
 	| { kind: 'clear' };
-
-export function fontHomeState(
-	style: FontStyleFlags,
-	enabled: boolean,
-	translate: (key: string) => string,
-) {
-	return {
-		controls: fontHomeControls({
-			enabled,
-			bold: Boolean(style?.bold),
-			italic: Boolean(style?.italic),
-			underline: Boolean(style?.underline),
-			strikethrough: Boolean(style?.strikethrough),
-			shadow: Boolean(style?.textShadowColor),
-		}),
-		translate,
-	};
-}
 
 export function fontHomeAction(id: RibbonControlId): FontHomeAction | undefined {
 	switch (id) {

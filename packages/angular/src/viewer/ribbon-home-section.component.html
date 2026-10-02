@@ -8,37 +8,13 @@
 	(toggleFormatPainter)="toggleFormatPainter.emit()"
 />
 <span class="pptx-rb-sep"></span>
-<!-- Slides: the shared group owns the buttons; the layout galleries stay native popovers -->
+<!-- Slides: the shared group owns the buttons and the layout galleries -->
 <pptx-ui-ribbon-home-slides
-	#slidesStrip
 	[state]="slidesView()"
+	[layoutArtwork]="artwork"
 	(home-request)="onSlidesRequest($event)"
+	(home-popup)="onSlidesPopup($event)"
 />
-@if (newSlideMenuOpen()) {
-	<div
-		class="z-50 pt-1"
-		data-pptx-home-popup
-		[pptxAnchoredPopup]="anchorOf('home.slides.newSlide')"
-	>
-		<pptx-ribbon-layout-gallery
-			[layoutOptions]="layoutOptions()"
-			[previews]="layoutPreviews()"
-			[disabled]="!canEdit()"
-			(select)="onNewSlideLayout($event.path)"
-		></pptx-ribbon-layout-gallery>
-	</div>
-}
-@if (layoutMenuOpen()) {
-	<div class="z-50 pt-1" data-pptx-home-popup [pptxAnchoredPopup]="anchorOf('home.slides.layout')">
-		<pptx-ribbon-layout-gallery
-			[layoutOptions]="layoutOptions()"
-			[previews]="layoutPreviews()"
-			[currentLayoutPath]="currentLayoutPath()"
-			[disabled]="!canEdit()"
-			(select)="onApplyLayout($event.path)"
-		></pptx-ribbon-layout-gallery>
-	</div>
-}
 <span class="pptx-rb-sep"></span>
 <!-- Font -->
 <pptx-ribbon-font-controls

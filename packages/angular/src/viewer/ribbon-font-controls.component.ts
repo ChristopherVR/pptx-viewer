@@ -6,37 +6,35 @@ import {
 	inject,
 	input,
 } from '@angular/core';
-import { LucideHighlighter } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
 
-import type { RibbonHomeRequestEvent, ThemeColorPickerCommit } from '../internal/shared';
+import type { RibbonHomeRequestEvent } from '../internal/shared';
 import {
 	COMMON_FONT_SIZES,
-	OFFICE_COLOR_SWATCH_HEXES,
+	fontHomeControls,
+	fontPickerHomeControls,
 	stepFontSizePt,
 	textFontSizePatch,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
 } from '../internal/shared';
-import {
-	buildFontCatalog,
-	resolveDefaultFontFamily,
-} from '../internal/shared-src/render/font-catalog';
+import { resolveDefaultFontFamily } from '../internal/shared-src/render/font-catalog';
 import type { ChangeCaseMode } from '../internal/shared-src/render/text-case-transform';
 import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
-import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
-import { fontHomeAction, fontHomeState } from './ribbon-font-home';
+import { RecentColorsService } from './recent-colors.service';
+import { fontHomeAction } from './ribbon-font-home';
+import { homeLanguage, homeTranslator } from './ribbon-home-lang';
 /**
- * ribbon-font-controls.component.ts: the ribbon's reusable Font control group
- * (family/size dropdowns, grow/shrink, clear-formatting, bold/italic/underline/
- * strikethrough and the font-colour + highlight popovers). Split out of
- * {@link RibbonComponent}'s `fontControls` ng-template so the Home and Text tabs
- * share one implementation. Behaviour and markup are unchanged.
+ * ribbon-font-controls.component.ts: the ribbon's reusable Font control group,
+ * shared by the Home and Text tabs. A thin adapter: the family/size fields are
+ * `pptx-ui-ribbon-home-font-picker`, and the character strip, spacing, case,
+ * font colour and highlight are `pptx-ui-ribbon-home-font`. This component
+ * reflects the selection into them and runs each typed intent through the
+ * editor's undoable patch path.
  */
-import { RibbonIconDirective } from './ribbon-icon.directive';
 import {
 	isTextElement,
 	patchTextStyle,
@@ -62,48 +60,13 @@ export const FONT_SIZES = COMMON_FONT_SIZES;
 export function steppedFontSizePt(current: number, direction: 1 | -1): number {
 	return stepFontSizePt(current, direction === 1 ? 'increase' : 'decrease');
 }
-/** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
-const FONT_COLOR_PRESETS = OFFICE_COLOR_SWATCH_HEXES;
-
-/** Text-highlight swatches in the Home/Text highlight popover (mirrors React/Vue). */
-const HIGHLIGHT_COLOR_PRESETS = [
-	'#ffff00',
-	'#00ff00',
-	'#00ffff',
-	'#ff00ff',
-	'#0000ff',
-	'#ff0000',
-	'#000080',
-	'#008080',
-	'#008000',
-	'#800080',
-];
-
-/** Character spacing presets (hundredths of a point, per OOXML `a:rPr/@spc`). */
-const CHAR_SPACING_OPTIONS = [
-	{ labelKey: 'pptx.text.characterSpacingVeryTight', value: -300 },
-	{ labelKey: 'pptx.text.characterSpacingTight', value: -150 },
-	{ labelKey: 'pptx.text.characterSpacingNormal', value: 0 },
-	{ labelKey: 'pptx.text.characterSpacingLoose', value: 300 },
-	{ labelKey: 'pptx.text.characterSpacingVeryLoose', value: 600 },
-];
-
-/** Change Case options matching PowerPoint's Aa dropdown. */
-const CHANGE_CASE_OPTIONS = [
-	{ labelKey: 'pptx.text.changeCaseSentence', value: 'sentence' },
-	{ labelKey: 'pptx.text.changeCaseLower', value: 'lower' },
-	{ labelKey: 'pptx.text.changeCaseUpper', value: 'upper' },
-	{ labelKey: 'pptx.text.changeCaseCapitalize', value: 'capitalize' },
-	{ labelKey: 'pptx.text.changeCaseToggle', value: 'toggle' },
-];
-
 @Component({
 	selector: 'pptx-ribbon-font-controls',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
-	imports: [RibbonIconDirective, TranslatePipe, RibbonColorPopoverComponent, LucideHighlighter],
+	imports: [TranslatePipe],
 	templateUrl: './ribbon-font-controls.component.html',
 })
 export class RibbonFontControlsComponent {
@@ -117,6 +80,8 @@ export class RibbonFontControlsComponent {
 
 	private readonly loader = inject(LoadContentService, { optional: true });
 	private readonly customFonts = inject(CustomFontsService, { optional: true });
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+	private readonly language = homeLanguage(this.translation);
 
 	/**
 	 * Theme major/minor latin faces. Read from DI rather than taken as inputs
@@ -127,26 +92,6 @@ export class RibbonFontControlsComponent {
 		heading: this.loader?.theme()?.fontScheme?.majorFont?.latin,
 		body: this.loader?.theme()?.fontScheme?.minorFont?.latin,
 	}));
-
-	/**
-	 * The dropdown's contents, grouped the way PowerPoint groups them.
-	 *
-	 * This component used to carry its own eight-entry family list, so Angular
-	 * offered a different set of fonts from the other four bindings. The
-	 * grouping and de-duplication now come from `pptx-viewer-shared`.
-	 */
-	protected readonly fontGroups = computed(() =>
-		buildFontCatalog({
-			themeFonts: this.themeFonts(),
-			embeddedFonts: (this.loader?.embeddedFonts() ?? []).map((font) => font.name),
-			customFonts: this.customFonts?.registeredFamilies() ?? [],
-		}),
-	);
-	protected readonly fontSizes = FONT_SIZES;
-	protected readonly fontColorPresets = FONT_COLOR_PRESETS;
-	protected readonly highlightColorPresets = HIGHLIGHT_COLOR_PRESETS;
-	protected readonly charSpacingOptions = CHAR_SPACING_OPTIONS;
-	protected readonly changeCaseOptions = CHANGE_CASE_OPTIONS;
 
 	protected isText(): boolean {
 		return isTextElement(this.selectedElement());
@@ -186,16 +131,66 @@ export class RibbonFontControlsComponent {
 		return this.curStyle()?.characterSpacing ?? 0;
 	}
 
-	/** State for the shared character-format strip (toggles, shadow, size steps, clear). */
+	/** State for the shared character strip, spacing, case and colour controls. */
 	protected fontView() {
-		return fontHomeState(
-			this.curStyle(),
-			this.canEdit() && this.isText(),
-			(key) => this.translation?.instant(key) ?? key,
-		);
+		const style = this.curStyle();
+		const translate = homeTranslator(this.translation, this.language, ['font']);
+		return {
+			controls: fontHomeControls({
+				enabled: this.enabled(),
+				bold: Boolean(style?.bold),
+				italic: Boolean(style?.italic),
+				underline: Boolean(style?.underline),
+				strikethrough: Boolean(style?.strikethrough),
+				shadow: Boolean(style?.textShadowColor),
+				characterSpacing: this.curCharSpacing(),
+				fontColor: {
+					value: this.curColor(),
+					ref: this.curColorRef(),
+					themeColors: this.loader?.themeColorMap(),
+					recent: this.recentColors?.recent(),
+				},
+				highlight: { value: this.curHighlight(), recent: this.recentColors?.recent() },
+			}),
+			translate,
+		};
 	}
+
+	/** Font family and size fields. */
+	protected pickerView() {
+		const translate = homeTranslator(this.translation, this.language, ['font-picker']);
+		return {
+			controls: fontPickerHomeControls(
+				{
+					enabled: this.enabled(),
+					fontFamily: this.curFontFamily(),
+					fontSize: this.curFontSize(),
+					themeFonts: this.themeFonts(),
+					embeddedFonts: (this.loader?.embeddedFonts() ?? []).map((font) => font.name),
+					customFonts: this.customFonts?.registeredFamilies() ?? [],
+				},
+				translate,
+			),
+			translate,
+		};
+	}
+
+	private enabled(): boolean {
+		return this.canEdit() && this.isText();
+	}
+
+	protected pickerRequest(event: Event): void {
+		const { id, value } = (event as RibbonHomeRequestEvent).detail;
+		if (id === 'home.font.fontFamily') {
+			this.patch({ fontFamily: String(value) });
+		} else if (id === 'home.font.fontSize') {
+			this.patchFontSize(textFontSizePtToPx(Number(value)));
+		}
+	}
+
 	protected fontRequest(event: Event): void {
-		const action = fontHomeAction((event as RibbonHomeRequestEvent).detail.id);
+		const { id, value, ref } = (event as RibbonHomeRequestEvent).detail;
+		const action = fontHomeAction(id);
 		if (action?.kind === 'toggle') {
 			this.toggleStyle(action.flag);
 		} else if (action?.kind === 'shadow') {
@@ -204,6 +199,16 @@ export class RibbonFontControlsComponent {
 			this.stepFontSize(action.direction);
 		} else if (action?.kind === 'clear') {
 			this.clearFormatting();
+		} else if (id === 'home.font.characterSpacing') {
+			this.patch({ characterSpacing: Number(value) });
+		} else if (id === 'home.font.changeCase') {
+			this.changeCase(value as ChangeCaseMode);
+		} else if (id === 'home.font.fontColor') {
+			this.patch({ color: String(value), colorRef: ref });
+			this.recentColors?.push(String(value));
+		} else if (id === 'home.font.highlightColor') {
+			this.patch({ highlightColor: String(value) });
+			this.recentColors?.push(String(value));
 		}
 	}
 
@@ -226,42 +231,19 @@ export class RibbonFontControlsComponent {
 					},
 		);
 	}
-	protected setCharSpacing(event: Event): void {
-		this.patch({ characterSpacing: Number((event.target as HTMLSelectElement).value) });
-	}
-
-	protected setChangeCase(event: Event): void {
-		const value = (event.target as HTMLSelectElement).value as ChangeCaseMode;
+	private changeCase(mode: ChangeCaseMode): void {
 		transformSelectedTextCase(
 			this.editor,
 			this.slideIndex(),
 			this.selectedElement(),
-			value,
+			mode,
 			this.inlineEditing?.readInlineSnapshot(),
 			() => this.inlineEditing?.endInlineListSession(),
 		);
-		(event.target as HTMLSelectElement).selectedIndex = 0;
 	}
 
 	protected toggleStyle(key: 'bold' | 'italic' | 'underline' | 'strikethrough'): void {
 		this.patch({ [key]: !this.curStyle()?.[key] });
-	}
-	/** Preset/recent/custom pick: always clears any previously-stored theme ref. */
-	protected setColor(color: string): void {
-		this.patch({ color, colorRef: undefined });
-	}
-	/** Theme-swatch pick: commits BOTH the resolved hex and the ref. */
-	protected setColorRef(commit: ThemeColorPickerCommit): void {
-		this.patch({ color: commit.hex, colorRef: commit.ref });
-	}
-	protected setHighlight(highlightColor: string): void {
-		this.patch({ highlightColor });
-	}
-	protected setFontFamily(event: Event): void {
-		this.patch({ fontFamily: (event.target as HTMLSelectElement).value });
-	}
-	protected setFontSize(event: Event): void {
-		this.patchFontSize(textFontSizePtToPx(Number((event.target as HTMLSelectElement).value)));
 	}
 	/** Step the selection's font size up or down through the FONT_SIZES ladder. */
 	protected stepFontSize(direction: 1 | -1): void {

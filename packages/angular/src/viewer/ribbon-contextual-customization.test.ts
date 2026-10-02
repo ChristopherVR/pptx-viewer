@@ -225,12 +225,13 @@ describe('ribbon group/control customisation', () => {
 		for (const group of ['font', 'paragraph', 'drawing', 'arrange', 'editing']) {
 			expect(home).toContain(`data-ribbon-group="home.${group}"`);
 		}
-		const paragraph = componentSource(
-			import.meta.dirname,
-			'ribbon-paragraph-controls.component.ts',
+		// Bullets and Numbering (toggle plus library gallery) now come from the shared strip.
+		const lists = RIBBON_HOME_FAMILIES.paragraph.clusters.flatMap((cluster) => cluster.controls);
+		expect(lists.find((entry) => entry.id === 'home.paragraph.bullets')?.gallery?.id).toBe(
+			'bullets',
 		);
-		expect(paragraph).toContain('data-ribbon-control="home.paragraph.bullets"');
-		expect(paragraph).toContain('gallery="bullets"');
-		expect(paragraph).toContain('gallery="numbering"');
+		expect(lists.find((entry) => entry.id === 'home.paragraph.numbering')?.gallery?.id).toBe(
+			'numbering',
+		);
 	});
 });

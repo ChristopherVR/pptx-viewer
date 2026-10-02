@@ -24,11 +24,11 @@ import {
 	inject,
 	output,
 } from '@angular/core';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import { editingHomeControls } from '../internal/shared';
-import { AnchoredPopupDirective } from './anchored-popup.directive';
-import { RibbonIconDirective } from './ribbon-icon.directive';
+import type { RibbonHomeRequestEvent } from '../internal/shared';
+import { homeLanguage, homeTranslator } from './ribbon-home-lang';
 
 @Component({
 	selector: 'pptx-ribbon-editing-section',
@@ -36,20 +36,31 @@ import { RibbonIconDirective } from './ribbon-icon.directive';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
-	imports: [RibbonIconDirective, TranslatePipe, AnchoredPopupDirective],
-	templateUrl: './ribbon-editing-section.component.html',
+	template: `<div class="flex items-center gap-1" data-pptx-chrome="editing-controls">
+		<pptx-ui-ribbon-home-editing [state]="view()" (home-request)="request($event)" />
+	</div>`,
 })
 export class RibbonEditingSectionComponent {
 	private readonly translation = inject(TranslateService, { optional: true });
+	private readonly language = homeLanguage(this.translation);
 
 	readonly toggleFindReplace = output<void>();
 	readonly selectAll = output<void>();
 
-	/** State for the shared Find/Replace strip; both buttons open the find panel. */
+	/** State for the shared Editing strip: Find, Replace and the Select menu. */
 	protected view() {
 		return {
 			controls: editingHomeControls(),
-			translate: (key: string) => this.translation?.instant(key) ?? key,
+			translate: homeTranslator(this.translation, this.language, ['editing']),
 		};
+	}
+
+	/** Select > Select All; Find and Replace both open the find panel. */
+	protected request(event: Event): void {
+		if ((event as RibbonHomeRequestEvent).detail.id === 'home.editing.select') {
+			this.selectAll.emit();
+		} else {
+			this.toggleFindReplace.emit();
+		}
 	}
 }

@@ -79,14 +79,15 @@ describe('patchTextStyle list commands', () => {
 		root.remove();
 	});
 
-	it.each(['bullet', 'numbered'])('retains native editor focus before the %s command', (kind) => {
+	it.each(['bullets', 'numbering'])('routes the plain %s intent to the list toggle', (name) => {
 		const source = componentSource(import.meta.dirname, 'ribbon-paragraph-controls.component.ts');
-		const button = [...source.matchAll(/<button\b[^>]*>/gu)].find(([markup]) =>
-			markup.includes(`(click)="toggleList('${kind}')"`),
-		)?.[0];
-		expect(button).toBeDefined();
-		expect(button).toContain('(mousedown)="$event.preventDefault()"');
-		expect(button).toContain('[disabled]="!canEdit() || !isText()"');
+		expect(source).toContain('<pptx-ui-ribbon-home-paragraph');
+		expect(source).toContain(`id === 'home.paragraph.${name}'`);
+		expect(source).toContain(
+			"this.toggleList(id === 'home.paragraph.bullets' ? 'bullet' : 'numbered')",
+		);
+		// The shared button keeps the editor focus and is gated on an editable text selection.
+		expect(source).toContain('enabled = this.canEdit() && this.isText()');
 	});
 
 	it('does not commit a rich format when the current surface rejects it', () => {

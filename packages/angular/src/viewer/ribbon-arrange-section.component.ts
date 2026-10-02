@@ -1,6 +1,6 @@
 /**
  * ribbon-arrange-section.component.ts: the Arrange ribbon group (Order, Align,
- * Distribute, Format painter + flip, Group / ungroup / outline width, Duplicate
+ * Distribute, Format painter + flip, Group / ungroup / merge / crop / outline width, Duplicate
  * / Delete). Rendered both by the dedicated Arrange tab and at the end of the
  * Home tab. Actions bind straight to the shared {@link EditorStateService}.
  *
@@ -9,11 +9,9 @@
  * that {@link RibbonHomeSectionComponent} renders a few centimetres to the
  * left. One command, one place per tab.
  */
-import { NgClass } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
-	computed,
 	CUSTOM_ELEMENTS_SCHEMA,
 	inject,
 	input,
@@ -23,27 +21,21 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import type { RibbonHomeRequestEvent, ToolbarActionId } from '../internal/shared';
-import { arrangeAlignAction, arrangeHomeControls } from '../internal/shared';
+import {
+	arrangeAlignAction,
+	arrangeHomeControls,
+	arrangePainterHomeControls,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
-import { RibbonCropComponent } from './ribbon-crop.component';
-import { RibbonIconDirective } from './ribbon-icon.directive';
-import { RibbonMergeShapesComponent } from './ribbon-merge-shapes.component';
+import { homeLanguage, homeTranslator } from './ribbon-home-lang';
 import { RibbonShapeExtrasComponent } from './ribbon-shape-extras.component';
-import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
 	selector: 'pptx-ribbon-arrange-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [
-		RibbonIconDirective,
-		NgClass,
-		TranslatePipe,
-		RibbonShapeExtrasComponent,
-		RibbonMergeShapesComponent,
-		RibbonCropComponent,
-	],
+	imports: [TranslatePipe, RibbonShapeExtrasComponent],
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	templateUrl: './ribbon-arrange-section.component.html',
 })
@@ -59,11 +51,11 @@ export class RibbonArrangeSectionComponent {
 	readonly canActivateFormatPainter = input<boolean>(false);
 	/** Toolbar buttons the host hides (gates Merge Shapes and Crop). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
-	protected readonly toolbar = toolbarVisibility(computed(() => this.hiddenActions()));
 
 	readonly toggleFormatPainter = output<void>();
 
 	private readonly translation = inject(TranslateService, { optional: true });
+	private readonly language = homeLanguage(this.translation);
 
 	/** Shared strip state: one selection and edit-rights gate for align, flip, order and edit. */
 	protected arrangeView() {
@@ -73,7 +65,25 @@ export class RibbonArrangeSectionComponent {
 				hasSelection: this.hasSel(),
 				canDistribute: this.canDistribute(),
 			}),
-			translate: (key: string) => this.translation?.instant(key) ?? key,
+			translate: homeTranslator(this.translation, this.language, [
+				'arrange-align',
+				'arrange-flip',
+				'arrange-order',
+				'arrange-edit',
+			]),
+		};
+	}
+
+	/** The second Format Painter pill mirrors the Clipboard one. */
+	protected painterView() {
+		return {
+			controls: arrangePainterHomeControls({
+				editable: this.canEdit(),
+				active: this.formatPainterActive(),
+				canFormatPaint: this.canActivateFormatPainter(),
+				show: true,
+			}),
+			translate: homeTranslator(this.translation, this.language, ['arrange-painter']),
 		};
 	}
 

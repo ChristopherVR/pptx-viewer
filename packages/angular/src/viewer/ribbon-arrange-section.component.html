@@ -3,45 +3,20 @@
 		<pptx-ui-ribbon-home-arrange-align [state]="arrangeView()" (home-request)="onAlign($event)" />
 		<span class="pptx-rb-sep"></span>
 		<!-- Format painter + flip -->
-		<button
-			type="button"
-			class="pptx-rb-gb"
-			data-testid="format-painter-toggle"
-			data-ribbon-control="home.clipboard.formatPainter"
-			[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
-			[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
-			[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-			[title]="'pptx.arrange.formatPainter' | translate"
-			(click)="toggleFormatPainter.emit()"
-		>
-			<svg pptxRibbonIcon="home.clipboard.formatPainter"></svg>
-			{{ 'pptx.arrange.format' | translate }}
-		</button>
+		<pptx-ui-ribbon-home-arrange-painter
+			[state]="painterView()"
+			(home-request)="toggleFormatPainter.emit()"
+		/>
 		<pptx-ui-ribbon-home-arrange-flip [state]="arrangeView()" (home-request)="onFlip($event)" />
 		<span class="pptx-rb-sep"></span>
-		<!-- Group / ungroup / outline width -->
+		<!-- Group / ungroup, Merge Shapes, Crop (each of the last two hideable by the host) and outline width -->
 		<pptx-ribbon-shape-extras
 			data-pptx-chrome="arrange-extras"
 			[slideIndex]="slideIndex()"
 			[selectedElement]="selectedElement()"
 			[canEdit]="canEdit()"
+			[hiddenActions]="hiddenActions()"
 		/>
-		<!-- Merge Shapes + Crop (each hideable through the host's customisation) -->
-		@if (!toolbar.isHidden('mergeShapes')) {
-			<pptx-ribbon-merge-shapes
-				data-ribbon-control="home.arrange.mergeShapes"
-				[slideIndex]="slideIndex()"
-				[canEdit]="canEdit()"
-			/>
-		}
-		@if (!toolbar.isHidden('crop')) {
-			<pptx-ribbon-crop
-				data-ribbon-control="home.arrange.crop"
-				[slideIndex]="slideIndex()"
-				[selectedElement]="selectedElement()"
-				[canEdit]="canEdit()"
-			/>
-		}
 		<span class="pptx-rb-sep"></span>
 		<pptx-ui-ribbon-home-arrange-order [state]="arrangeView()" (home-request)="onOrder($event)" />
 		<pptx-ui-ribbon-home-arrange-edit [state]="arrangeView()" (home-request)="onEdit($event)" />

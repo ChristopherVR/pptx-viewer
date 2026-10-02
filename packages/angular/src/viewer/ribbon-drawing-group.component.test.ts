@@ -23,7 +23,6 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { SHAPE_PRESET_DEFS, shapeFillChange, shapeOutlineChange } from '../internal/shared';
-import type { ShapePresetDef } from '../internal/shared';
 import { componentSource } from './component-source.test-support';
 import { newPresetShapeElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
@@ -50,11 +49,15 @@ function createGroup(editor: EditorStateService): RibbonDrawingGroupComponent {
 
 /** Access the protected handlers the template binds to. */
 interface DrawingGroupHandlers {
-	onShapeSelect: (shape: ShapePresetDef) => void;
-	onArrange: (direction: 'up' | 'down') => void;
-	onArrangeEdge: (edge: 'front' | 'back') => void;
-	shapesOpen: { set: (open: boolean) => void; (): boolean };
+	onShapeSelect: (type: string) => void;
+	onArrangeCommand: (command: string) => void;
+	onRequest: (event: Event) => void;
+	drawingView: () => {
+		controls: Record<string, { disabled?: boolean; value?: unknown } | undefined>;
+	};
 }
+
+const intent = (detail: Record<string, unknown>) => new CustomEvent('home-request', { detail });
 
 function handlers(group: RibbonDrawingGroupComponent): DrawingGroupHandlers {
 	return group as unknown as DrawingGroupHandlers;
@@ -67,15 +70,13 @@ describe('ribbonDrawingGroupComponent shape insertion', () => {
 		const editor = new EditorStateService();
 		editor.setSlides([slide('s1')]);
 		const group = createGroup(editor);
-		handlers(group).shapesOpen.set(true);
 
-		handlers(group).onShapeSelect(RECT_PRESET);
+		handlers(group).onShapeSelect(RECT_PRESET.type);
 
 		const elements = editor.slides()[0].elements;
 		expect(elements).toHaveLength(1);
 		expect(elements[0]).toMatchObject({ type: 'shape', shapeType: 'rect' });
 		expect(elements[0].id).toBeTruthy();
-		expect(handlers(group).shapesOpen()).toBeFalsy();
 	});
 
 	it('selects the new shape, marks the deck dirty, and supports undo', () => {
@@ -84,7 +85,7 @@ describe('ribbonDrawingGroupComponent shape insertion', () => {
 		const group = createGroup(editor);
 		expect(editor.dirty()).toBeFalsy();
 
-		handlers(group).onShapeSelect(RECT_PRESET);
+		handlers(group).onShapeSelect(RECT_PRESET.type);
 
 		const inserted = editor.slides()[0].elements[0];
 		expect(editor.selectedIds()).toStrictEqual([inserted.id]);
@@ -100,7 +101,7 @@ describe('ribbonDrawingGroupComponent shape insertion', () => {
 		const group = createGroup(editor);
 
 		for (const preset of SHAPE_PRESET_DEFS.slice(0, 12)) {
-			handlers(group).onShapeSelect(preset);
+			handlers(group).onShapeSelect(preset.type);
 		}
 
 		const kinds = editor.slides()[0].elements.map((el) => (el as { shapeType?: string }).shapeType);
@@ -135,16 +136,16 @@ describe('ribbonDrawingGroupComponent arrange wiring', () => {
 		const group = createGroup(editor);
 		editor.select(['a']);
 
-		handlers(group).onArrange('up');
+		handlers(group).onArrangeCommand('forward');
 		expect(editor.slides()[0].elements.map((el) => el.id)).toStrictEqual(['b', 'a', 'c']);
 
-		handlers(group).onArrangeEdge('front');
+		handlers(group).onArrangeCommand('front');
 		expect(editor.slides()[0].elements.map((el) => el.id)).toStrictEqual(['b', 'c', 'a']);
 
-		handlers(group).onArrangeEdge('back');
+		handlers(group).onArrangeCommand('back');
 		expect(editor.slides()[0].elements.map((el) => el.id)).toStrictEqual(['a', 'b', 'c']);
 
-		handlers(group).onArrange('down');
+		handlers(group).onArrangeCommand('backward');
 		expect(editor.slides()[0].elements.map((el) => el.id)).toStrictEqual(['a', 'b', 'c']);
 	});
 });
@@ -258,14 +259,36 @@ describe('ribbonDrawingGroupComponent Fill/Outline wiring', () => {
 		});
 	});
 
-	it('wires the theme-swatch grid above the standard-colour presets for both popovers', () => {
+	it('routes shared Fill and Outline intents, theme reference included, through the editor', () => {
+		const editor = new EditorStateService();
+		editor.setSlides([slide('s1', [shapeEl()])]);
+		editor.select(['shape-1']);
+		const group = createGroup(editor);
+		Object.assign(group, {
+			canEdit: () => true,
+			selectedElement: () => editor.slides()[0].elements[0],
+		});
+		handlers(group).onRequest(
+			intent({ id: 'home.drawing.shapeFill', value: '#4472c4', ref: { scheme: 'accent1' } }),
+		);
+		handlers(group).onRequest(intent({ id: 'home.drawing.shapeOutline', value: '#ff0000' }));
+		expect(
+			(editor.slides()[0].elements[0] as unknown as { shapeStyle: Record<string, unknown> })
+				.shapeStyle,
+		).toMatchObject({
+			fillColor: '#4472c4',
+			fillColorRef: { scheme: 'accent1' },
+			strokeColor: '#ff0000',
+		});
+	});
+
+	it('feeds the shared element with theme colours, recents and gated colour triggers', () => {
 		const source = componentSource(import.meta.dirname, 'ribbon-drawing-group.component.ts');
-		expect(source).toContain('[showThemeColors]="true"');
-		expect(source).toContain('[currentRef]="fillColorRef()"');
-		expect(source).toContain('[currentRef]="outlineColorRef()"');
-		expect(source).toContain('(pickThemeColor)="onFillThemePick($event)"');
-		expect(source).toContain('(pickThemeColor)="onOutlineThemePick($event)"');
-		expect(source).toContain('shapeFillChange(commit.hex, commit.ref)');
-		expect(source).toContain('shapeOutlineChange(commit.hex, commit.ref)');
+		expect(source).toContain('<pptx-ui-ribbon-home-drawing');
+		expect(source).toContain('themeColors');
+		expect(source).toContain('shapeFillChange(String(value), ref)');
+		expect(source).toContain('shapeOutlineChange(String(value), ref)');
+		expect(source).toContain("homeGalleryControls('drawing'");
+		expect(source).not.toContain('pptx-ribbon-color-popover');
 	});
 });
