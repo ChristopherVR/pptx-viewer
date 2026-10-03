@@ -42,6 +42,7 @@ export default defineConfig({
 				find: 'pptx-viewer-core/converter',
 				replacement: pkg('core', 'src', 'converter', 'index.ts'),
 			},
+			{ find: 'pptx-viewer-core/math', replacement: pkg('core', 'src', 'math', 'index.ts') },
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
 			{ find: 'pptx-viewer-locales', replacement: pkg('locales', 'src', 'index.ts') },
 			{ find: 'pptx-viewer-shared/i18n', replacement: pkg('shared', 'src', 'i18n', 'index.ts') },

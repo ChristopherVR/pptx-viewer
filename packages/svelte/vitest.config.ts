@@ -19,6 +19,10 @@ export default defineConfig({
 				replacement: resolve(__dirname, '../shared/src/ai/index.ts'),
 			},
 			{ find: 'pptx-viewer-shared', replacement: resolve(__dirname, '../shared/src/index.ts') },
+			{
+				find: 'pptx-viewer-core/math',
+				replacement: resolve(__dirname, '../core/src/math/index.ts'),
+			},
 			{ find: 'pptx-viewer-core', replacement: resolve(__dirname, '../core/src/index.ts') },
 		],
 		// Svelte 5 ships separate client/server runtimes; without the browser

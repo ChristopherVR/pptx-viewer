@@ -36,7 +36,13 @@ function npm(args, cwd, capture = false) {
 const packed = JSON.parse(
 	npm(['pack', '--ignore-scripts', '--json', '--pack-destination', consumer], core, true),
 )[0];
-for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/index']) {
+for (const entry of [
+	'index',
+	'converter/index',
+	'cli/index',
+	'signature-node/index',
+	'math/index',
+]) {
 	assert(
 		packed.files.some((file) => file.path === `dist/${entry}.mjs`),
 		`missing dist/${entry}.mjs`,
@@ -87,6 +93,10 @@ await writeFile(
 import type { PptxData, PptxSlide, PptxSaveFormat } from 'pptx-viewer-core';
 import { PptxMarkdownConverter } from 'pptx-viewer-core/converter';
 import type { PptxConverterOptions } from 'pptx-viewer-core/converter';
+import { convertLatexToOmml } from 'pptx-viewer-core/math';
+import type { OmmlNode } from 'pptx-viewer-core/math';
+const equation: OmmlNode = convertLatexToOmml('x');
+void equation;
 type Handler = InstanceType<typeof PptxHandler>;
 type Converter = InstanceType<typeof PptxMarkdownConverter>;
 type PublicTypes = [Handler, Converter, PptxData, PptxSlide, PptxSaveFormat, PptxConverterOptions];
@@ -98,6 +108,9 @@ await writeFile(
 	join(consumer, 'consumer.cts'),
 	`import core = require('pptx-viewer-core');
 import converter = require('pptx-viewer-core/converter');
+import math = require('pptx-viewer-core/math');
+const equation = math.convertLatexToOmml('x');
+void equation;
 type Data = import('pptx-viewer-core').PptxData;
 type Slide = import('pptx-viewer-core').PptxSlide;
 type Handler = InstanceType<typeof core.PptxHandler>;
@@ -147,6 +160,8 @@ const resolver = createRequire(process.cwd() + '/consumer.cjs');
 assert.throws(() => resolver.resolve('@christophervr/ole2'), { code: 'MODULE_NOT_FOUND' });
 const core = LOAD('pptx-viewer-core');
 const converter = LOAD('pptx-viewer-core/converter');
+const math = LOAD('pptx-viewer-core/math');
+assert.equal(math.convertOmmlToLatex(math.convertLatexToOmml('x')), 'x');
 assert.equal(typeof converter.PptxMarkdownConverter, 'function');
 const { handler, createSlide } = await core.PptxHandler.createBlank({ title: 'Packaged legacy regression' });
 const slide = createSlide('Blank').addText('Packed PPT roundtrip', { x: 20, y: 20, width: 400, height: 80, bold: true }).build();

@@ -55,6 +55,7 @@ export default defineConfig({
 				find: 'pptx-viewer-core/converter',
 				replacement: pkg('core', 'src', 'converter', 'index.ts'),
 			},
+			{ find: 'pptx-viewer-core/math', replacement: pkg('core', 'src', 'math', 'index.ts') },
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
 			// Subpath aliases must come BEFORE the bare alias; otherwise the bare
 			// alias matches first and a subpath import becomes "…/index.ts/i18n"

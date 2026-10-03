@@ -16,6 +16,7 @@ const entries = [
 	// The CLI entry runs the command line on import (as the previous bundle did); keep the shebang.
 	{ dir: 'cli', target: 'ooxml-core/pptx/cli', shebang: true },
 	{ dir: 'signature-node', target: 'ooxml-core/pptx/signature-node' },
+	{ dir: 'math', target: 'ooxml-core/math' },
 ];
 
 await rm(dist, { recursive: true, force: true });

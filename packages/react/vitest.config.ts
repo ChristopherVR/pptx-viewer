@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
 	resolve: {
 		alias: {
+			'pptx-viewer-core/math': path.resolve(__dirname, '../core/src/math/index.ts'),
 			'pptx-viewer-core': path.resolve(__dirname, '../core/src/index.ts'),
 			'pptx-viewer-shared/i18n': path.resolve(__dirname, '../shared/src/i18n/index.ts'),
 			'pptx-viewer-shared/ai': path.resolve(__dirname, '../shared/src/ai/index.ts'),

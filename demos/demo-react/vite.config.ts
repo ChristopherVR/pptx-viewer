@@ -47,6 +47,7 @@ export default defineConfig({
 				__dirname,
 				'../../packages/core/src/converter/index.ts',
 			),
+			'pptx-viewer-core/math': path.resolve(__dirname, '../../packages/core/src/math/index.ts'),
 			'pptx-viewer-core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
 			'pptx-viewer-locales': path.resolve(__dirname, '../../packages/locales/src/index.ts'),
 			'pptx-react-viewer/i18n': path.resolve(__dirname, '../../packages/react/src/i18n.ts'),

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import * as ooxmlMath from 'ooxml-core/math';
 import * as ooxmlCore from 'ooxml-core/pptx';
 import * as ooxmlConverter from 'ooxml-core/pptx/converter';
 import * as ooxmlSignatureNode from 'ooxml-core/pptx/signature-node';
@@ -8,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import * as converter from './converter';
 import * as core from './index';
+import * as math from './math';
 import * as signatureNode from './signature-node';
 
 const manifest = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf8')) as {
@@ -19,11 +21,12 @@ const ooxmlManifest = JSON.parse(
 	readFileSync(resolve(__dirname, '../node_modules/ooxml-core/package.json'), 'utf8'),
 ) as { exports: Record<string, unknown> };
 
-describe('pptx-viewer-core is a thin entry point over ooxml-core/pptx', () => {
+describe('pptx-viewer-core is a thin entry point over ooxml-core', () => {
 	it.each([
 		['.', core, ooxmlCore],
 		['./converter', converter, ooxmlConverter],
 		['./signature-node', signatureNode, ooxmlSignatureNode],
+		['./math', math, ooxmlMath],
 	])('%s re-exports exactly the ooxml-core area', (_entry, local, area) => {
 		const names = Object.keys(area).sort();
 		expect(names.length).toBeGreaterThan(0);
@@ -33,16 +36,17 @@ describe('pptx-viewer-core is a thin entry point over ooxml-core/pptx', () => {
 		}
 	});
 
-	it('keeps the published subpaths, each backed by an ooxml-core pptx subpath', () => {
+	it('keeps the published subpaths backed by their canonical ooxml-core area', () => {
 		expect(Object.keys(manifest.exports)).toStrictEqual([
 			'.',
 			'./converter',
 			'./cli',
 			'./signature-node',
+			'./math',
 		]);
 		for (const entry of Object.keys(manifest.exports)) {
 			expect(ooxmlManifest.exports).toHaveProperty([
-				`./pptx${entry === '.' ? '' : entry.slice(1)}`,
+				entry === './math' ? './math' : `./pptx${entry === '.' ? '' : entry.slice(1)}`,
 			]);
 			expect(Object.keys(manifest.exports[entry]!)).toStrictEqual(['types', 'import', 'require']);
 		}

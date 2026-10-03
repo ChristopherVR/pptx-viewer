@@ -17,6 +17,7 @@ export default defineConfig({
 	server: { port: 4178, strictPort: true },
 	resolve: {
 		alias: [
+			{ find: 'pptx-viewer-core/math', replacement: pkg('core', 'src', 'math', 'index.ts') },
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
 			{ find: 'pptx-viewer-shared/i18n', replacement: pkg('shared', 'src', 'i18n', 'index.ts') },
 			{ find: 'pptx-viewer-shared', replacement: pkg('shared', 'src', 'index.ts') },
