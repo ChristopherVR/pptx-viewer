@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.22.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.22.1) - 2026-10-03
+
+### Bug Fixes
+
+- **viewer:** Align sorter bindings and resolve CI failures (by @ChristopherVR) ([fe7b4ad](https://github.com/ChristopherVR/pptx-viewer/commit/fe7b4ad40f6f7c975a59e007e393d48b92ddc739))
+
 ## [4.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.22.0) - 2026-10-03
 
 ### Features

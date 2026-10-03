@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-10-03
 
+_Releases: pptx-react-viewer@4.22.1, pptx-vue-viewer@4.22.1, pptx-angular-viewer@4.22.1, pptx-vanilla-viewer@3.22.1, pptx-svelte-viewer@4.22.1, @christophervr/pptx-viewer@2.39.1_
+
+### Bug Fixes
+
+- **viewer:** Align sorter bindings and resolve CI failures (by @ChristopherVR) ([fe7b4ad](https://github.com/ChristopherVR/pptx-viewer/commit/fe7b4ad40f6f7c975a59e007e393d48b92ddc739))
+
+### Chores
+
+- **repo:** Remove Codex co-author trailers (by @ChristopherVR) ([c8fc06e](https://github.com/ChristopherVR/pptx-viewer/commit/c8fc06e0cd96de92bead51c10140bcbda032ff78))
+
+## 2026-10-03
+
 _Releases: pptx-viewer-core@4.11.0, pptx-react-viewer@4.22.0, pptx-vue-viewer@4.22.0, pptx-angular-viewer@4.22.0, pptx-vanilla-viewer@3.22.0, pptx-svelte-viewer@4.22.0, pptx-viewer-mcp@2.7.0, @christophervr/pptx-viewer@2.39.0_
 
 ### Features
