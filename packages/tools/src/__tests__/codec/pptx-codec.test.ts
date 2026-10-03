@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
-import { ELEMENT_FIELD_KIND, PptxHandler, SLIDE_FIELD_KIND } from 'pptx-viewer-core';
-import type { TextSegment, TextStyle } from 'pptx-viewer-core';
+import { ELEMENT_FIELD_KIND, PptxHandler, SLIDE_FIELD_KIND } from 'ooxml-core/pptx';
+import type { TextSegment, TextStyle } from 'ooxml-core/pptx';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { Doc as YDoc, Array as YArray, Map as YMap, Text as YText } from 'yjs';
 

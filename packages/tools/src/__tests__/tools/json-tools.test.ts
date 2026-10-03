@@ -1,4 +1,4 @@
-import type { PptxData } from 'pptx-viewer-core';
+import type { PptxData } from 'ooxml-core/pptx';
 import { describe, expect, it } from 'vitest';
 
 import { exportToJson, importFromJson } from '../../tools/json-tools.js';

@@ -1,4 +1,4 @@
-import type { PptxData, PptxElement } from 'pptx-viewer-core';
+import type { PptxData, PptxElement } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import {

@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
-import type { ChartPptxElement, PptxData } from 'pptx-viewer-core';
-import { PptxHandler } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxData } from 'ooxml-core/pptx';
+import { PptxHandler } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import { createChart, updateChart } from '../../tools/chart-tools.js';

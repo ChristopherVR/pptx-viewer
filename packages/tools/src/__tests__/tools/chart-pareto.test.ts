@@ -1,4 +1,4 @@
-import type { ChartPptxElement } from 'pptx-viewer-core';
+import type { ChartPptxElement } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import { applyParetoChartTypeAlias } from '../../tools/chart-pareto.js';

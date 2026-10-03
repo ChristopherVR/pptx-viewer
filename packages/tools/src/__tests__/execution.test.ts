@@ -1,4 +1,4 @@
-import { PptxHandler } from 'pptx-viewer-core';
+import { PptxHandler } from 'ooxml-core/pptx';
 import { describe, it, expect, vi } from 'vitest';
 
 import { loadPresentation, savePresentation, executeToolWithContext } from '../execution.js';

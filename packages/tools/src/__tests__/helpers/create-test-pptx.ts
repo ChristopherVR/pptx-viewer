@@ -1,5 +1,5 @@
-import { PptxHandler } from 'pptx-viewer-core';
-import type { PptxData } from 'pptx-viewer-core';
+import { PptxHandler } from 'ooxml-core/pptx';
+import type { PptxData } from 'ooxml-core/pptx';
 
 import type { ToolContext } from '../../types.js';
 

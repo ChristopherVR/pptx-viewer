@@ -1,5 +1,5 @@
-import { PptxHandler, PresentationBuilder } from 'pptx-viewer-core';
-import type { PptxData, TablePptxElement, XmlObject } from 'pptx-viewer-core';
+import { PptxHandler, PresentationBuilder } from 'ooxml-core/pptx';
+import type { PptxData, TablePptxElement, XmlObject } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import { updateTableCells, manageTableStructure } from '../../tools/table-tools.js';

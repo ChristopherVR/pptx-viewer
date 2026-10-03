@@ -1,4 +1,4 @@
-import type { PptxData, ImagePptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxData, ImagePptxElement, ShapeStyle } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import { updateElementStyle, runAccessibilityCheck } from '../../tools/style-tools.js';

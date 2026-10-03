@@ -1,6 +1,6 @@
 {
 	"name": "pptx-viewer-mcp",
-	"version": "2.5.9",
+	"version": "2.6.0",
 	"description": "pptx-viewer MCP server and tools: manipulate, convert, and collaborate on PowerPoint .pptx files from AI agents.",
 	"keywords": [
 		"ai",
@@ -24,11 +24,11 @@
 	"author": "ChristopherVR",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"url": "git+https://github.com/ChristopherVR/pptx-viewer.git",
 		"directory": "packages/tools"
 	},
 	"bin": {
-		"pptx-tools": "./dist/mcp/index.mjs"
+		"pptx-tools": "dist/mcp/cli.mjs"
 	},
 	"files": [
 		"dist/",
@@ -73,7 +73,7 @@
 		"@modelcontextprotocol/sdk": "^1.30.0",
 		"fast-xml-parser": "^5.11.1",
 		"jszip": "^3.10.2",
-		"pptx-viewer-core": "^4.0.0",
+		"ooxml-core": ">=0.11.0 <1",
 		"zod": ">=4.4.3 <4.5.3"
 	},
 	"devDependencies": {

@@ -1,4 +1,4 @@
-import type { PptxElementWithText } from 'pptx-viewer-core';
+import type { PptxElementWithText } from 'ooxml-core/pptx';
 import { describe, expect, it } from 'vitest';
 
 import { replaceElementText, setElementText } from './text-editing.js';

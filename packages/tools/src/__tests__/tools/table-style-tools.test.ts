@@ -1,4 +1,4 @@
-import type { ParsedTableStyleMap, PptxData } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxData } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import {

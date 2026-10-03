@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import { createLayout, hasTextProperties, PptxHandler } from 'pptx-viewer-core';
+import { createLayout, hasTextProperties, PptxHandler } from 'ooxml-core/pptx';
 import { describe, expect, it } from 'vitest';
 
 import { replaceText } from '../../tools/content-tools.js';

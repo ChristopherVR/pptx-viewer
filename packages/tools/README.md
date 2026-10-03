@@ -1,5 +1,12 @@
 # pptx-viewer-mcp
 
+Document operations, load/save execution and the Y.Doc codec are owned by
+`ooxml-core/pptx/automation`. This repository owns MCP schemas, registration and
+the stdio CLI. Compatibility exports retain the existing library API.
+The `/mcp` import exports `createServer({ rootDir })` and `registerTools(server,
+{ rootDir })` without starting a transport; the CLI starts stdio separately.
+Release the core automation entry (0.11.0+) before publishing this change.
+
 [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../../LICENSE)
 

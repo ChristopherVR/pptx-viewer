@@ -1,4 +1,4 @@
-import type { PptxData } from 'pptx-viewer-core';
+import type { PptxData } from 'ooxml-core/pptx';
 import { describe, it, expect } from 'vitest';
 
 import { findText, replaceText, manageComments } from '../../tools/content-tools.js';

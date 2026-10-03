@@ -25,14 +25,27 @@ import * as tableTools from '../tools/table-tools.js';
 import * as templateTools from '../tools/template-tools.js';
 import * as themeTools from '../tools/theme-tools.js';
 import * as validationTools from '../tools/validation-tools.js';
-import { runMcpTool, resolveScopedDir, resolveScopedFilePath } from './handlers.js';
+import {
+	runMcpTool as runTool,
+	resolveScopedDir as scopedDir,
+	resolveScopedFilePath as scopedFile,
+	type McpContextOptions,
+} from './handlers.js';
 
-export function createServer(): McpServer {
+export function createServer(options?: McpContextOptions): McpServer {
 	const server = new McpServer({
 		name: 'pptx-viewer-tools',
 		version: '1.0.0',
 	});
+	registerTools(server, options);
+	return server;
+}
 
+/** Register the repository-owned tools on a shared OOXML MCP server. */
+export function registerTools(server: McpServer, options?: McpContextOptions): void {
+	const runMcpTool: typeof runTool = (filePath, fn) => runTool(filePath, fn, options);
+	const resolveScopedDir = (dir: string) => scopedDir(dir, options?.rootDir);
+	const resolveScopedFilePath = (filePath: string) => scopedFile(filePath, options?.rootDir);
 	// ── Slide tools ─────────────────────────────────────────────────────────
 
 	server.registerTool(
@@ -1312,6 +1325,4 @@ export function createServer(): McpServer {
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},
 	);
-
-	return server;
 }

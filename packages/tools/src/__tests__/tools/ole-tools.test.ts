@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import JSZip from 'jszip';
-import { oleBytesToDataUrl, PptxHandler } from 'pptx-viewer-core';
-import type { OlePptxElement, PptxData } from 'pptx-viewer-core';
+import { oleBytesToDataUrl, PptxHandler } from 'ooxml-core/pptx';
+import type { OlePptxElement, PptxData } from 'ooxml-core/pptx';
 import { describe, expect, it } from 'vitest';
 
 import {
