@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.10.0) - 2026-10-03
+
+### Features
+
+- **core:** Reuse shared office equation converters (by @ChristopherVR) ([303312a](https://github.com/ChristopherVR/pptx-viewer/commit/303312a3b960b077da9a37c65625ae62bcb8d60f))
+
 ## [4.9.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.9.4) - 2026-10-02
 
 ### Build & CI

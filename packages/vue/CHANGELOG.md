@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.21.0) - 2026-10-03
+
+### Features
+
+- **core:** Reuse shared office equation converters (by @ChristopherVR) ([303312a](https://github.com/ChristopherVR/pptx-viewer/commit/303312a3b960b077da9a37c65625ae62bcb8d60f))
+
+### Bug Fixes
+
+- **vanilla:** Recover named smartart presentations after reload (by @ChristopherVR) ([3504e2f](https://github.com/ChristopherVR/pptx-viewer/commit/3504e2f1efd1d104175d486e126bef00a9b6449e))
+- **shared:** Only collapse ribbon groups inside the viewer's editor chrome (by @ChristopherVR) ([d4d8f9d](https://github.com/ChristopherVR/pptx-viewer/commit/d4d8f9dfcea9f0e6d86a31bbea9f059e3deab5f3))
+
+### Styling
+
+- **ui:** Format the Home ribbon templates (by @ChristopherVR) ([0cd48fe](https://github.com/ChristopherVR/pptx-viewer/commit/0cd48fe6cb886b0db7344057d76f27ec856c09b7))
+
 ## [4.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.20.0) - 2026-10-02
 
 ### Features

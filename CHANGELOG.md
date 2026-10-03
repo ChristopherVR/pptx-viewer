@@ -8,6 +8,27 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-10-03
+
+_Releases: pptx-viewer-core@4.10.0, pptx-react-viewer@4.21.0, pptx-vue-viewer@4.21.0, pptx-angular-viewer@4.21.0, pptx-vanilla-viewer@3.21.0, pptx-svelte-viewer@4.21.0, @christophervr/pptx-viewer@2.38.0_
+
+### Features
+
+- **core:** Reuse shared office equation converters (by @ChristopherVR) ([303312a](https://github.com/ChristopherVR/pptx-viewer/commit/303312a3b960b077da9a37c65625ae62bcb8d60f))
+
+### Bug Fixes
+
+- **vanilla:** Recover named smartart presentations after reload (by @ChristopherVR) ([3504e2f](https://github.com/ChristopherVR/pptx-viewer/commit/3504e2f1efd1d104175d486e126bef00a9b6449e))
+- **shared:** Only collapse ribbon groups inside the viewer's editor chrome (by @ChristopherVR) ([d4d8f9d](https://github.com/ChristopherVR/pptx-viewer/commit/d4d8f9dfcea9f0e6d86a31bbea9f059e3deab5f3))
+
+### Testing
+
+- **e2e:** Reach Home and Insert controls that now collapse on narrow windows (by @ChristopherVR) ([0d555ab](https://github.com/ChristopherVR/pptx-viewer/commit/0d555ab9fa3d2bf164da780e580663477bebdf3d))
+
+### Styling
+
+- **ui:** Format the Home ribbon templates (by @ChristopherVR) ([0cd48fe](https://github.com/ChristopherVR/pptx-viewer/commit/0cd48fe6cb886b0db7344057d76f27ec856c09b7))
+
 ## 2026-10-02
 
 _Releases: pptx-react-viewer@4.20.0, pptx-vue-viewer@4.20.0, pptx-angular-viewer@4.20.0, pptx-vanilla-viewer@3.20.0, pptx-svelte-viewer@4.20.0, @christophervr/pptx-viewer@2.37.0_
