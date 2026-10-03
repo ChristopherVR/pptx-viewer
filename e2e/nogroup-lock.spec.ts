@@ -23,7 +23,10 @@ import { commandNamed, GROUP_COMMAND, marqueeAcross, openMenuOn } from './suppor
 import { fixture, loadDeckAt, ribbon, ribbonTab, slideElements, slideStage } from './support/deck';
 import { acrossFrameworks } from './support/parity';
 
-test.use({ viewport: { width: 1440, height: 900 } });
+// Group lives in Home's Arrange extras, the first group to collapse into a popup on a narrower
+// window, where its button is hidden. The parity harness opens its own pages, so pass it too.
+const WIDE = { width: 2600, height: 900 };
+test.use({ viewport: WIDE });
 
 const FIXTURE = fixture('nogroup-lock.pptx');
 
@@ -88,8 +91,11 @@ test.describe('noGrp lock disables Group', () => {
 		browser,
 	}, testInfo) => {
 		test.slow();
-		const results = await acrossFrameworks(browser, testInfo, (page, origin) =>
-			readGroupState(page, origin, ['Locked A', 'Free B']),
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			(page, origin) => readGroupState(page, origin, ['Locked A', 'Free B']),
+			{ viewport: WIDE },
 		);
 
 		const failures = results.flatMap(({ framework, value }) => {
@@ -110,8 +116,11 @@ test.describe('noGrp lock disables Group', () => {
 		browser,
 	}, testInfo) => {
 		test.slow();
-		const results = await acrossFrameworks(browser, testInfo, (page, origin) =>
-			readGroupState(page, origin, ['Free B', 'Free C']),
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			(page, origin) => readGroupState(page, origin, ['Free B', 'Free C']),
+			{ viewport: WIDE },
 		);
 
 		const failures = results.flatMap(({ framework, value }) => {

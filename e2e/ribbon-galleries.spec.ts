@@ -93,6 +93,8 @@ test.describe('ribbon galleries', () => {
 	test('Home > Drawing offers Quick Styles and a working Shape Effects gallery', async ({
 		page,
 	}) => {
+		// Drawing collapses into a popup at 1440px; 1920px fits every Home group but Arrange.
+		await page.setViewportSize({ width: 1920, height: 1000 });
 		await loadDeck(page, DECK);
 		await selectElement(page, elementWithText(page, 'GALLERY SHAPE'));
 		await openRibbonTab(page, 'Home');

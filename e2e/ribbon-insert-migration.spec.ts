@@ -176,6 +176,11 @@ test.describe('touch Insert controls', () => {
 		expect((await shape.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 		await table.focus();
 		await expect(table).toBeFocused();
+		// At 900px the Text group is collapsed into a popup: open it before reaching Field.
+		const text = insert.locator('[data-ribbon-group="insert.text"][data-collapsed]');
+		if ((await text.count()) > 0) {
+			await text.locator('.face').tap();
+		}
 		await insert.getByRole('button', { name: 'Field', exact: true }).tap();
 		const item = insert.getByRole('menuitem', { name: 'Slide Number', exact: true });
 		expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44);
