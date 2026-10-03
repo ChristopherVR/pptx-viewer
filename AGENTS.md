@@ -519,14 +519,13 @@ dependencies to latest`.
 **Authoring tip (tooling):** when committing via a multi-line message, use a
 real heredoc or `git commit -F <file>`; do **not** wrap the message in
 `@'...'@` (PowerShell here-string syntax); under `bash`/`sh` the stray `@`
-characters leak into the subject and break Conventional Commit parsing. End
-commit messages with the required `Co-Authored-By:` trailer.
+characters leak into the subject and break Conventional Commit parsing. Never
+add a Codex co-author trailer.
 
 **Never include an AI chat share link.** Do not add a `claude.ai/chat/...` (or
 any other assistant conversation) URL to a commit message, PR body, issue
 comment, changelog entry, code comment or doc. Those links are session-scoped
-and mean nothing to a reader of this repository. The `Co-Authored-By:` trailer
-is the only attribution that belongs in a commit.
+and mean nothing to a reader of this repository.
 
 ## Tech Stack
 
