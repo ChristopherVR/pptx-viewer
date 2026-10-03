@@ -55,6 +55,13 @@ export default defineConfig({
 				find: 'pptx-viewer-core/converter',
 				replacement: pkg('core', 'src', 'converter', 'index.ts'),
 			},
+			{ find: 'pptx-viewer-core/chart', replacement: pkg('core', 'src', 'chart', 'index.ts') },
+			{ find: 'pptx-viewer-core/text', replacement: pkg('core', 'src', 'text', 'index.ts') },
+			{
+				find: 'pptx-viewer-core/geometry',
+				replacement: pkg('core', 'src', 'geometry', 'index.ts'),
+			},
+			{ find: 'pptx-viewer-core/color', replacement: pkg('core', 'src', 'color', 'index.ts') },
 			{ find: 'pptx-viewer-core/math', replacement: pkg('core', 'src', 'math', 'index.ts') },
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
 			// Subpath aliases must come BEFORE the bare alias; otherwise the bare

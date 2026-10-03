@@ -44,10 +44,13 @@ framework-specific" means Angular change detection, Svelte 5 runes, React effect
 ordering, and the like. A wrong colour, a mis-clipped shape, an off-by-one drag
 handle, or a dialog that will not open is almost never framework-specific.
 
-### Rule 2: take every opportunity to extract logic into `pptx-viewer-shared`
+### Rule 2: share Office logic in OOXML and view behavior in `pptx-viewer-shared`
 
-When you touch logic in a binding, **ask whether it belongs in
-`packages/shared/src/render/` instead**, and move it there if it does. This is
+When you touch logic in a binding, **first decide whether it is Office logic or
+view behavior**. Pure document, chart-data, color, geometry and text algorithms
+belong in `ChristopherVR/ooxml`, under a neutral area when other formats can use
+them. Framework-independent view descriptors and editor interaction belong in
+`packages/shared/src/render/`. Move the implementation to its owner. This is
 not a cleanup task to schedule later; it is how the parity rule above is made
 cheap. Logic that lives in shared is fixed once for all five bindings, and never
 drifts.
@@ -60,7 +63,7 @@ Extraction triggers, any one of which means stop and extract:
   `packages/{react,vue,angular,svelte,vanilla}`.
 - You are writing new logic for a feature that all five bindings will need.
 
-The target shape is a **pure decision function**: shared exports a function that
+For view behavior, the target shape is a **pure decision function**: shared exports a function that
 returns a framework-neutral descriptor, and the binding does nothing but map that
 descriptor onto its own style object or template. Following that shape, a new
 branch reaches all five bindings at once.
@@ -86,9 +89,10 @@ maintainer's machine, so `../<name>` from here):
 How they connect:
 
 - `packages/core` (`pptx-viewer-core`) depends on the **published**
-  `ooxml-core` (`^0.1.0`) and re-exports
+  `ooxml-core` and re-exports
   `ooxml-core/pptx` (plus `/pptx/converter`, `/pptx/cli`,
-  `/pptx/signature-node`). Its `src/` holds four entry files and an
+  `/pptx/signature-node`) and the shared `/math`, `/chart`, `/text`,
+  `/geometry` and `/color` APIs. Its `src/` holds thin entry files and an
   entry-point contract test, nothing else.
 - `ooxml-core` depends on `emf-converter`, `mtx-decompressor`, `jszip` and
   `fast-xml-parser`, and takes `@christophervr/ole2` as a **pinned development

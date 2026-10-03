@@ -47,6 +47,13 @@ export default defineConfig({
 				__dirname,
 				'../../packages/core/src/converter/index.ts',
 			),
+			'pptx-viewer-core/chart': path.resolve(__dirname, '../../packages/core/src/chart/index.ts'),
+			'pptx-viewer-core/text': path.resolve(__dirname, '../../packages/core/src/text/index.ts'),
+			'pptx-viewer-core/geometry': path.resolve(
+				__dirname,
+				'../../packages/core/src/geometry/index.ts',
+			),
+			'pptx-viewer-core/color': path.resolve(__dirname, '../../packages/core/src/color/index.ts'),
 			'pptx-viewer-core/math': path.resolve(__dirname, '../../packages/core/src/math/index.ts'),
 			'pptx-viewer-core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
 			'pptx-viewer-locales': path.resolve(__dirname, '../../packages/locales/src/index.ts'),

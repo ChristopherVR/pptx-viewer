@@ -20,67 +20,18 @@
  */
 import type { PptxElement, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
+import { clampUnitInterval, colorWithOpacity, normalizeHexColor } from 'pptx-viewer-core/color';
 
-import { DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
+import { DEFAULT_FILL_COLOR } from '../constants';
 import { buildRectPathGradientImage } from './path-gradient-rect';
 import { suppressesCssFill } from './subpath-fill-overlay';
 
-// ---------------------------------------------------------------------------
-// Color primitives (inlined from React `color-core.ts`)
-// ---------------------------------------------------------------------------
-
-/**
- * Normalizes an arbitrary colour string to a 6-digit hex value (`#RRGGBB`).
- * Returns the fallback when the input is missing, "transparent", or invalid.
- *
- * `fallback` is optional and defaults to {@link DEFAULT_TEXT_COLOR}; this is the
- * single canonical normaliser consumed by every binding. React's `color-core`
- * re-exports this so its historical single-arg call sites (which relied on a
- * `DEFAULT_TEXT_COLOR` default) keep working without a duplicate definition.
- */
-export function normalizeHexColor(
-	value: string | undefined,
-	fallback: string = DEFAULT_TEXT_COLOR,
-): string {
-	if (!value || value === 'transparent') {
-		return fallback;
-	}
-	const candidate = value.startsWith('#') ? value : `#${value}`;
-	return /^#[0-9A-Fa-f]{6}$/u.test(candidate) ? candidate : fallback;
-}
-
-/** Clamps a numeric value to the [0, 1] range. */
-export function clampUnitInterval(value: number): number {
-	return Math.min(1, Math.max(0, value));
-}
-
-/** Parses a 6-digit hex colour into R/G/B channels (0-255), or `null`. */
-export function hexToRgbChannels(color: string): { r: number; g: number; b: number } | null {
-	const normalized = color.replace('#', '');
-	if (!/^[0-9a-fA-F]{6}$/u.test(normalized)) {
-		return null;
-	}
-	return {
-		r: Number.parseInt(normalized.slice(0, 2), 16),
-		g: Number.parseInt(normalized.slice(2, 4), 16),
-		b: Number.parseInt(normalized.slice(4, 6), 16),
-	};
-}
-
-/**
- * Converts a hex colour to an `rgba()` CSS string with the given opacity.
- * If `opacity` is `undefined`, the original hex colour is returned unchanged.
- */
-export function colorWithOpacity(color: string, opacity: number | undefined): string {
-	if (opacity === undefined) {
-		return color;
-	}
-	const rgb = hexToRgbChannels(color);
-	if (!rgb) {
-		return color;
-	}
-	return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clampUnitInterval(opacity)})`;
-}
+export {
+	clampUnitInterval,
+	colorWithOpacity,
+	hexToRgbChannels,
+	normalizeHexColor,
+} from 'pptx-viewer-core/color';
 
 /**
  * Clamps an image crop value (fractional, roughly -1..1) to a safe magnitude

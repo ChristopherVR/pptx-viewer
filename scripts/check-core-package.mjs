@@ -42,6 +42,10 @@ for (const entry of [
 	'cli/index',
 	'signature-node/index',
 	'math/index',
+	'chart/index',
+	'text/index',
+	'geometry/index',
+	'color/index',
 ]) {
 	assert(
 		packed.files.some((file) => file.path === `dist/${entry}.mjs`),
@@ -95,6 +99,11 @@ import { PptxMarkdownConverter } from 'pptx-viewer-core/converter';
 import type { PptxConverterOptions } from 'pptx-viewer-core/converter';
 import { convertLatexToOmml } from 'pptx-viewer-core/math';
 import type { OmmlNode } from 'pptx-viewer-core/math';
+import { computeBoxStats } from 'pptx-viewer-core/chart';
+import { segmentByScript } from 'pptx-viewer-core/text';
+import { flattenSvgPath } from 'pptx-viewer-core/geometry';
+import { colorWithOpacity } from 'pptx-viewer-core/color';
+void [computeBoxStats, segmentByScript, flattenSvgPath, colorWithOpacity];
 const equation: OmmlNode = convertLatexToOmml('x');
 void equation;
 type Handler = InstanceType<typeof PptxHandler>;
@@ -109,6 +118,11 @@ await writeFile(
 	`import core = require('pptx-viewer-core');
 import converter = require('pptx-viewer-core/converter');
 import math = require('pptx-viewer-core/math');
+import chart = require('pptx-viewer-core/chart');
+import text = require('pptx-viewer-core/text');
+import geometry = require('pptx-viewer-core/geometry');
+import color = require('pptx-viewer-core/color');
+void [chart.computeBoxStats, text.segmentByScript, geometry.flattenSvgPath, color.colorWithOpacity];
 const equation = math.convertLatexToOmml('x');
 void equation;
 type Data = import('pptx-viewer-core').PptxData;
@@ -161,6 +175,14 @@ assert.throws(() => resolver.resolve('@christophervr/ole2'), { code: 'MODULE_NOT
 const core = LOAD('pptx-viewer-core');
 const converter = LOAD('pptx-viewer-core/converter');
 const math = LOAD('pptx-viewer-core/math');
+const chart = LOAD('pptx-viewer-core/chart');
+const text = LOAD('pptx-viewer-core/text');
+const geometry = LOAD('pptx-viewer-core/geometry');
+const color = LOAD('pptx-viewer-core/color');
+assert.equal(chart.computeBoxStats([1, 2, 3, 4], 'inclusive').median, 2.5);
+assert.ok(text.segmentByScript('Latin漢字').length > 0);
+assert.ok(geometry.flattenSvgPath('M0 0 L10 0 L10 10 Z').length > 0);
+assert.equal(color.colorWithOpacity('#ff0000', 0.5), 'rgba(255, 0, 0, 0.5)');
 assert.equal(math.convertOmmlToLatex(math.convertLatexToOmml('x')), 'x');
 assert.equal(typeof converter.PptxMarkdownConverter, 'function');
 const { handler, createSlide } = await core.PptxHandler.createBlank({ title: 'Packaged legacy regression' });

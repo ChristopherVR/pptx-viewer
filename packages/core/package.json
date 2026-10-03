@@ -71,6 +71,26 @@
 			"types": "./dist/math/index.d.ts",
 			"import": "./dist/math/index.mjs",
 			"require": "./dist/math/index.js"
+		},
+		"./chart": {
+			"types": "./dist/chart/index.d.ts",
+			"import": "./dist/chart/index.mjs",
+			"require": "./dist/chart/index.js"
+		},
+		"./text": {
+			"types": "./dist/text/index.d.ts",
+			"import": "./dist/text/index.mjs",
+			"require": "./dist/text/index.js"
+		},
+		"./geometry": {
+			"types": "./dist/geometry/index.d.ts",
+			"import": "./dist/geometry/index.mjs",
+			"require": "./dist/geometry/index.js"
+		},
+		"./color": {
+			"types": "./dist/color/index.d.ts",
+			"import": "./dist/color/index.mjs",
+			"require": "./dist/color/index.js"
 		}
 	},
 	"scripts": {
@@ -80,7 +100,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"ooxml-core": "^0.5.0"
+		"ooxml-core": "^0.9.0"
 	},
 	"devDependencies": {
 		"@napi-rs/canvas": "^1.0.9",

@@ -20,6 +20,22 @@ export default defineConfig({
 			},
 			{ find: 'pptx-viewer-shared', replacement: resolve(__dirname, '../shared/src/index.ts') },
 			{
+				find: 'pptx-viewer-core/chart',
+				replacement: resolve(__dirname, '../core/src/chart/index.ts'),
+			},
+			{
+				find: 'pptx-viewer-core/text',
+				replacement: resolve(__dirname, '../core/src/text/index.ts'),
+			},
+			{
+				find: 'pptx-viewer-core/geometry',
+				replacement: resolve(__dirname, '../core/src/geometry/index.ts'),
+			},
+			{
+				find: 'pptx-viewer-core/color',
+				replacement: resolve(__dirname, '../core/src/color/index.ts'),
+			},
+			{
 				find: 'pptx-viewer-core/math',
 				replacement: resolve(__dirname, '../core/src/math/index.ts'),
 			},

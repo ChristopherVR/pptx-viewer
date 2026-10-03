@@ -17,6 +17,10 @@ const entries = [
 	{ dir: 'cli', target: 'ooxml-core/pptx/cli', shebang: true },
 	{ dir: 'signature-node', target: 'ooxml-core/pptx/signature-node' },
 	{ dir: 'math', target: 'ooxml-core/math' },
+	{ dir: 'chart', target: 'ooxml-core/chart' },
+	{ dir: 'text', target: 'ooxml-core/text' },
+	{ dir: 'geometry', target: 'ooxml-core/geometry' },
+	{ dir: 'color', target: 'ooxml-core/color' },
 ];
 
 await rm(dist, { recursive: true, force: true });
