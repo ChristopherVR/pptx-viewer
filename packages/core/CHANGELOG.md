@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.11.0) - 2026-10-03
+
+### Features
+
+- **core:** Reuse shared ooxml chart text and geometry APIs (by @ChristopherVR) ([7a27232](https://github.com/ChristopherVR/pptx-viewer/commit/7a27232ea0461c78df8c1ed9dd11636044d7c818))
+
 ## [4.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.10.0) - 2026-10-03
 
 ### Features

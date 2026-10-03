@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.7.0) - 2026-10-03
+
+### Features
+
+- **tools:** Compose MCP servers over canonical core automation (by @ChristopherVR) ([0605f73](https://github.com/ChristopherVR/pptx-viewer/commit/0605f73db5973c2f9f38cd35ddc8afb0ca319a64))
+
 ## [2.5.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.5.9) - 2026-10-02
 
 ### Build & CI

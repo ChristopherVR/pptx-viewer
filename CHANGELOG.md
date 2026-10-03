@@ -10,6 +10,15 @@ dated sections beneath it are generated from
 
 ## 2026-10-03
 
+_Releases: pptx-viewer-core@4.11.0, pptx-react-viewer@4.22.0, pptx-vue-viewer@4.22.0, pptx-angular-viewer@4.22.0, pptx-vanilla-viewer@3.22.0, pptx-svelte-viewer@4.22.0, pptx-viewer-mcp@2.7.0, @christophervr/pptx-viewer@2.39.0_
+
+### Features
+
+- **core:** Reuse shared ooxml chart text and geometry APIs (by @ChristopherVR) ([7a27232](https://github.com/ChristopherVR/pptx-viewer/commit/7a27232ea0461c78df8c1ed9dd11636044d7c818))
+- **tools:** Compose MCP servers over canonical core automation (by @ChristopherVR) ([0605f73](https://github.com/ChristopherVR/pptx-viewer/commit/0605f73db5973c2f9f38cd35ddc8afb0ca319a64))
+
+## 2026-10-03
+
 _Releases: pptx-viewer-core@4.10.0, pptx-react-viewer@4.21.0, pptx-vue-viewer@4.21.0, pptx-angular-viewer@4.21.0, pptx-vanilla-viewer@3.21.0, pptx-svelte-viewer@4.21.0, @christophervr/pptx-viewer@2.38.0_
 
 ### Features
