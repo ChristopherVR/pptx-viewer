@@ -55,6 +55,8 @@ const collapsedIds = (row: HTMLElement) =>
 describe('ribbon overflow', () => {
 	beforeEach(() => {
 		Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
+		// Every viewer marks its root; the collapsed look is scoped to it.
+		document.body.setAttribute('data-pptx-editor-chrome', '');
 	});
 
 	it('collapses nothing while every group fits', () => {
@@ -90,6 +92,14 @@ describe('ribbon overflow', () => {
 		Object.defineProperty(window, 'innerWidth', { configurable: true, value: 600 });
 		const row = content(300, ['home.clipboard', 'home.slides']);
 		expect(reflowRibbon(row)).toStrictEqual([]);
+	});
+
+	it('leaves a toolbar composed outside the editor chrome scrolling, with no faces', () => {
+		document.body.removeAttribute('data-pptx-editor-chrome');
+		const row = content(300, ['home.clipboard', 'home.slides', 'home.font']);
+		expect(reflowRibbon(row)).toStrictEqual([]);
+		expect(collapsedIds(row)).toStrictEqual([]);
+		expect(row.querySelector('[data-pptx-chrome="ribbon-collapse"]')).toBeNull();
 	});
 
 	it('opens a collapsed group from its face, closes on Escape and on an outside press', async () => {

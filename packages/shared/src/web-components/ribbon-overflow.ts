@@ -14,6 +14,7 @@ import type { RibbonLaunchers } from './ribbon-launchers';
 export const COLLAPSE_FACE = 'ribbon-collapse';
 const FACE_SELECTOR = `[data-pptx-chrome="${COLLAPSE_FACE}"]`;
 const DESKTOP_MIN_WIDTH = 768;
+const EDITOR_CHROME_ROOT = '[data-pptx-editor-chrome]';
 
 /** Control artwork (24px grid) that stands for each Home group when it is collapsed. */
 const CONTROL_FACE: Readonly<Record<string, string>> = {
@@ -139,7 +140,13 @@ export function reflowRibbon(content: HTMLElement): string[] {
 	for (const collapsed of content.querySelectorAll('[data-ribbon-group][data-collapsed]')) {
 		collapsed.removeAttribute('data-collapsed');
 	}
-	if ((doc.defaultView?.innerWidth ?? DESKTOP_MIN_WIDTH) < DESKTOP_MIN_WIDTH) {
+	// The collapsed look (`ribbon-collapse-css`) is scoped to the viewer's editor chrome. A toolbar
+	// a host composes on its own has no such root, so it keeps scrolling instead of growing
+	// unstyled faces.
+	if (
+		(doc.defaultView?.innerWidth ?? DESKTOP_MIN_WIDTH) < DESKTOP_MIN_WIDTH ||
+		!content.closest(EDITOR_CHROME_ROOT)
+	) {
 		return [];
 	}
 	const overflows = () => content.scrollWidth - content.clientWidth > 1;
