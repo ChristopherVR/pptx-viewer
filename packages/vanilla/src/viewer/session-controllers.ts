@@ -6,7 +6,7 @@ import type {
 	ConnectionStatus,
 	ToolbarActionId,
 } from 'pptx-viewer-shared';
-import { publishLiveInlineText } from 'pptx-viewer-shared';
+import { publishLiveInlineText, resolveAutosaveFileKey } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from './autosave';
 import { createAutosaveSession } from './autosave';
@@ -18,9 +18,6 @@ import type { Translator } from './i18n';
 import type { Store, ViewerState } from './state';
 import type { PptxViewerOptions } from './types';
 import type { ViewerChrome } from './ui';
-
-/** Default IndexedDB recovery key when the host does not supply one. */
-const DEFAULT_AUTOSAVE_FILE_PATH = 'presentation.pptx';
 
 export interface SessionControllersDeps {
 	doc: Document;
@@ -138,7 +135,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		getTranslator: deps.getTranslator,
 		hostAutosave: options.autosave,
 		hostIntervalMs: options.autosaveIntervalMs,
-		filePath: options.autosaveFilePath ?? DEFAULT_AUTOSAVE_FILE_PATH,
+		filePath: resolveAutosaveFileKey(options.autosaveFilePath, options.fileName),
 		fileName: options.fileName,
 		// Threaded through only so the snapshot uses the shared save decision;
 		// a recovery snapshot stays plaintext whatever the protection state is.

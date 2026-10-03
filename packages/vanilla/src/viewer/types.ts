@@ -297,7 +297,7 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	 * snapshot once per interval instead of deferring one forever.
 	 */
 	autosaveIntervalMs?: number;
-	/** IndexedDB recovery key for autosave (default `'presentation.pptx'`). */
+	/** IndexedDB recovery key (defaults to fileName, or 'presentation.pptx' for an unnamed deck). */
 	autosaveFilePath?: string;
 	/**
 	 * Start a real-time collaboration session immediately (Yjs over y-websocket

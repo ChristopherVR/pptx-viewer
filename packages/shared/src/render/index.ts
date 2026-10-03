@@ -1512,6 +1512,7 @@ export * from './autosave-tick';
 // one cadence rule and the debounce cap that makes both engine shapes promise
 // the same thing.
 export * from './autosave-policy';
+export * from './autosave-file-key';
 // "Is there a recoverable snapshot for this deck, and what should the prompt
 // say?" One decision, five dialogs.
 export * from './autosave-recovery';

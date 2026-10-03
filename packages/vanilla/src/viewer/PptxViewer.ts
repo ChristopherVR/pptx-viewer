@@ -59,6 +59,7 @@ import {
 	mergePresentationSnapshot,
 	openPptxFile,
 	resolveAuthoredSlideRange,
+	resolveAutosaveFileKey,
 	resolveExpiredAutosaveSnapshots,
 	resolveImageResolutionScale,
 	resolveSlideSizeSelection,
@@ -1243,7 +1244,7 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 
 	openVersionHistory(): void {
 		openVersionHistoryPanel(this.doc, this.lifecycle.chrome.root, this.t, {
-			filePath: this.options.autosaveFilePath ?? 'presentation.pptx',
+			filePath: this.autosaveFilePath(),
 			// A prior local AutoRecover snapshot of the SAME document, not a new
 			// file being opened, so Protected View does not apply.
 			onRestore: (bytes) => this.loadFile(bytes, { skipProtectedView: true }),
@@ -1925,7 +1926,7 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 
 	/** IndexedDB key for this deck's AutoRecover snapshot. */
 	private autosaveFilePath(): string {
-		return this.options.autosaveFilePath ?? 'presentation.pptx';
+		return resolveAutosaveFileKey(this.options.autosaveFilePath, this.options.fileName);
 	}
 
 	/** File > Options > Save > "cache retention": a one-time sweep on mount. */
