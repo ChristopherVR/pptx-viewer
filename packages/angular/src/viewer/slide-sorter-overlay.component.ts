@@ -19,11 +19,18 @@ import {
 	isEditorTextInputTarget,
 	mapSlideSorterKey,
 	slideSorterContextMenuLabel,
-	slideSorterPasteIndexes,
+	applySorterAction,
+	createSlideSorterState,
+	selectSorterSlide,
+	sorterSelectionIndexes,
+	sorterMenuContext,
+	sorterGridColumns,
 } from '../internal/shared';
 import type {
 	CanvasSize,
 	HiddenSlideCue,
+	SlideSorterKeyActionName,
+	SlideSorterState,
 	SlideSorterContextMenuCommandId,
 	SlideSorterContextMenuEntry,
 } from '../internal/shared';
@@ -33,14 +40,11 @@ import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 /** Pixel width of each thumbnail cell (the clipping box, not the canvas). */
 const THUMB_W = 200;
 
-/** Gap between grid cells in pixels. */
-const GRID_GAP = 16;
-
 /**
  * SlideSorterOverlayComponent: Angular port of the React `SlideSorterOverlay`.
  *
  * Renders a fixed full-screen modal overlay containing a responsive grid of
- * scaled slide previews. Clicking a thumbnail emits `select(index)`; pressing
+ * scaled slide previews. Double-clicking a thumbnail emits `select(index)`; pressing
  * Escape or clicking the ✕ button emits `closed`. Right-clicking a thumbnail
  * (when `canEdit`) opens a small context menu (Copy / Paste / Duplicate /
  * Hide-Show / Delete) whose command list comes from the shared
@@ -105,69 +109,72 @@ export class SlideSorterOverlayComponent {
 	// -------------------------------------------------------------------------
 
 	/** Zoom level that fits the full canvas width into THUMB_W pixels. */
-	readonly thumbZoom = computed(() => thumbnailZoom(this.canvasSize().width, THUMB_W));
+	readonly sorter = signal<SlideSorterState | null>(null);
+	readonly state = computed(
+		() => this.sorter() ?? createSlideSorterState(this.slides(), this.activeIndex()),
+	);
+	readonly thumbZoom = computed(() =>
+		thumbnailZoom(this.canvasSize().width, (THUMB_W * this.state().zoom) / 100),
+	);
 
 	/** Pixel height of the clipping box (aspect-correct). */
 	readonly thumbH = computed(() =>
-		thumbnailHeight(this.canvasSize().width, this.canvasSize().height, THUMB_W),
+		thumbnailHeight(
+			this.canvasSize().width,
+			this.canvasSize().height,
+			(THUMB_W * this.state().zoom) / 100,
+		),
 	);
 
 	/** ngStyle object for the thumbnail clipping box. */
 	readonly clipStyle = computed<Record<string, string>>(() => ({
-		width: `${THUMB_W}px`,
+		width: `${(THUMB_W * this.state().zoom) / 100}px`,
 		height: `${this.thumbH()}px`,
 	}));
 
 	/** ngStyle object for the grid: responsive auto-fill columns. */
 	readonly gridStyle = computed<Record<string, string>>(() => ({
-		'grid-template-columns': `repeat(auto-fill, minmax(${THUMB_W + GRID_GAP * 2 + 4}px, 1fr))`,
+		'grid-template-columns': `repeat(${sorterGridColumns(this.state().zoom)}, minmax(0, 1fr))`,
 	}));
 
 	// -------------------------------------------------------------------------
 	// Event handlers
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Keyboard handler, resolved by the shared sorter keymap.
-	 *
-	 * This used to test for `Escape` and nothing else, so the sorter's Delete and
-	 * Ctrl+D were dead in Angular alone. Only the commands this overlay can
-	 * perform are dispatched: there is no slide clipboard, no multi-selection and
-	 * no thumbnail zoom here, so those chords are left to the host instead of
-	 * being swallowed by a branch that would do nothing.
-	 */
 	@HostListener('document:keydown', ['$event'])
 	onKeydown(event: KeyboardEvent): void {
-		if (this.contextMenu()) {
-			this.closeContextMenu();
-		}
+		this.closeContextMenu();
 		const { action } = mapSlideSorterKey(event, {
 			canEdit: this.canEdit(),
+			hasMultiSelection: sorterSelectionIndexes(this.state(), this.slides()).length > 1,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
 		});
-		if (action === 'close') {
-			event.preventDefault();
+		if (!action) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		this.runAction(action);
+	}
+	setZoom(event: Event): void {
+		this.sorter.set({ ...this.state(), zoom: Number((event.target as HTMLInputElement).value) });
+	}
+	private runAction(action: SlideSorterKeyActionName | 'toggle-hidden'): void {
+		const result = applySorterAction(this.state(), this.slides(), action, this.activeIndex());
+		this.sorter.set(result.state);
+		if (result.close) {
 			this.closed.emit();
-			return;
 		}
-		if (action === 'delete') {
-			event.preventDefault();
-			this.deleteSlide.emit(this.activeIndex());
-			return;
-		}
-		if (action === 'duplicate') {
-			event.preventDefault();
-			this.duplicateSlide.emit(this.activeIndex());
-			return;
-		}
-		if (action === 'copy') {
-			event.preventDefault();
-			this.copySlide(this.activeIndex());
-			return;
-		}
-		if (action === 'paste') {
-			event.preventDefault();
-			this.pasteSlides();
+		for (const index of result.indexes) {
+			if (result.operation === 'duplicate') {
+				this.duplicateSlide.emit(index);
+			}
+			if (result.operation === 'delete') {
+				this.deleteSlide.emit(index);
+			}
+			if (result.operation === 'toggle-hidden') {
+				this.toggleHiddenSlide.emit(index);
+			}
 		}
 	}
 
@@ -179,9 +186,9 @@ export class SlideSorterOverlayComponent {
 		}
 	}
 
-	/** Clicking a thumbnail selects the slide. */
-	onThumbClick(index: number): void {
-		this.select.emit(index);
+	/** Clicking selects within the sorter; double-clicking opens the canvas. */
+	onThumbClick(index: number, event: MouseEvent): void {
+		this.sorter.set(selectSorterSlide(this.state(), this.slides(), index, event));
 	}
 
 	// -------------------------------------------------------------------------
@@ -204,6 +211,7 @@ export class SlideSorterOverlayComponent {
 			return;
 		}
 		event.preventDefault();
+		this.sorter.set(selectSorterSlide(this.state(), this.slides(), index, {}, true));
 		this.contextMenu.set({ x: event.clientX, y: event.clientY, index });
 	}
 
@@ -211,67 +219,19 @@ export class SlideSorterOverlayComponent {
 		this.contextMenu.set(null);
 	}
 
-	/** Slide ids copied in this sorter session (the shared Copy / Paste pair). */
-	private readonly clipboardSlideIds = signal<string[]>([]);
-
-	/** The shared sorter command list for the slide the menu was opened on. */
-	readonly menuEntries = computed<SlideSorterContextMenuEntry[]>(() => {
-		const menu = this.contextMenu();
-		const hidden = menu ? (this.slides()[menu.index]?.hidden ?? false) : false;
-		return buildSlideSorterContextMenuEntries({
-			selectedCount: 1,
-			hasClipboard: this.clipboardSlideIds().length > 0,
-			hasHiddenInSelection: hidden,
-			hasVisibleInSelection: !hidden,
-			wouldDeleteAllSlides: this.slides().length <= 1,
-		});
-	});
-
-	/** The count suffix only applies to a multi-selection; the sorter is single-select. */
+	readonly menuEntries = computed<SlideSorterContextMenuEntry[]>(() =>
+		buildSlideSorterContextMenuEntries(sorterMenuContext(this.state(), this.slides())),
+	);
 	menuLabelSuffix(translated: string, entry: SlideSorterContextMenuEntry): string {
-		return slideSorterContextMenuLabel(translated, entry, 1);
+		return slideSorterContextMenuLabel(
+			translated,
+			entry,
+			sorterSelectionIndexes(this.state(), this.slides()).length,
+		);
 	}
-
-	private copySlide(index: number): void {
-		const slide = this.slides()[index];
-		if (slide) {
-			this.clipboardSlideIds.set([slide.id]);
-		}
-	}
-
-	/** Paste inserts a copy after each copied slide; highest index first so earlier ones stay valid. */
-	private pasteSlides(): void {
-		const indexes = slideSorterPasteIndexes(this.clipboardSlideIds(), this.slides());
-		for (const index of [...indexes].sort((a, b) => b - a)) {
-			this.duplicateSlide.emit(index);
-		}
-	}
-
 	runMenuCommand(id: SlideSorterContextMenuCommandId): void {
-		const menu = this.contextMenu();
 		this.closeContextMenu();
-		if (!menu) {
-			return;
-		}
-		switch (id) {
-			case 'copy':
-				this.copySlide(menu.index);
-				break;
-			case 'paste':
-				this.pasteSlides();
-				break;
-			case 'duplicate':
-				this.duplicateSlide.emit(menu.index);
-				break;
-			case 'toggle-hidden':
-				this.toggleHiddenSlide.emit(menu.index);
-				break;
-			case 'delete':
-				this.deleteSlide.emit(menu.index);
-				break;
-			default:
-				break;
-		}
+		this.runAction(id);
 	}
 
 	// -------------------------------------------------------------------------

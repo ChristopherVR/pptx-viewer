@@ -11,39 +11,26 @@
 		clampFlyoutPosition,
 		slideSorterContextMenuLabel,
 	} from 'pptx-viewer-shared';
-	import type { SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
+	import type { SlideSorterContextMenuContext, SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 
 	const {
 		x,
 		y,
-		hidden,
-		hasClipboard,
-		totalSlides,
+		context,
 		onrun,
 		onclose,
 	}: {
 		x: number;
 		y: number;
-		/** The right-clicked slide is hidden. */
-		hidden: boolean;
-		hasClipboard: boolean;
-		totalSlides: number;
+		context: SlideSorterContextMenuContext;
 		onrun: (id: SlideSorterContextMenuCommandId) => void;
 		onclose: () => void;
 	} = $props();
 	const t = useTranslator();
 
-	const entries = $derived(
-		buildSlideSorterContextMenuEntries({
-			selectedCount: 1,
-			hasClipboard,
-			hasHiddenInSelection: hidden,
-			hasVisibleInSelection: !hidden,
-			wouldDeleteAllSlides: totalSlides <= 1,
-		}),
-	);
+	const entries = $derived(buildSlideSorterContextMenuEntries(context));
 
 	let menuWidth = $state(0);
 	let menuHeight = $state(0);
@@ -89,7 +76,7 @@
 			disabled={entry.disabled}
 			onclick={() => onrun(entry.id)}
 		>
-			{slideSorterContextMenuLabel(t(entry.labelKey), entry, 1)}
+			{slideSorterContextMenuLabel(t(entry.labelKey), entry, context.selectedCount)}
 		</button>
 	{/each}
 </div>

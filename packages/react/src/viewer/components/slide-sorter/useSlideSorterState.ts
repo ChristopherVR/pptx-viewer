@@ -1,9 +1,17 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import {
+	applySorterAction,
+	sorterMenuContext,
+	createSlideSorterState,
+	sorterSelectionIndexes,
+	selectSorterSlide,
+	sorterGridColumns,
+	slideSorterPasteIndexes,
+} from 'pptx-viewer-shared';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 
 import type { SlideSectionGroup } from '../../types';
-import { DEFAULT_ZOOM } from './types';
 import type { SorterContextMenuState } from './types';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
@@ -38,32 +46,29 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 	// -- State --------------------------------------------------------------
 
 	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-	const [selectedSlideIds, setSelectedSlideIds] = useState<string[]>(() => {
-		const activeSlide = slides[activeSlideIndex];
-		return activeSlide?.id ? [activeSlide.id] : [];
-	});
-	const [lastClickedIndex, setLastClickedIndex] = useState<number>(activeSlideIndex);
+	const [sorter, setSorter] = useState(() => createSlideSorterState(slides, activeSlideIndex));
+	const { selectedIds: selectedSlideIds, zoom, clipboardIds: clipboardSlideIds } = sorter;
+	const setSelectedSlideIds = useCallback<React.Dispatch<React.SetStateAction<string[]>>>(
+		(value) => {
+			setSorter((previous) => ({
+				...previous,
+				selectedIds: typeof value === 'function' ? value(previous.selectedIds) : value,
+			}));
+		},
+		[],
+	);
+	const setZoom = useCallback<React.Dispatch<React.SetStateAction<number>>>((value) => {
+		setSorter((previous) => ({
+			...previous,
+			zoom: typeof value === 'function' ? value(previous.zoom) : value,
+		}));
+	}, []);
 	const [contextMenu, setContextMenu] = useState<SorterContextMenuState | null>(null);
-	const [zoom, setZoom] = useState(DEFAULT_ZOOM);
-	const [clipboardSlideIds, setClipboardSlideIds] = useState<string[]>([]);
 	const backdropRef = useRef<HTMLDivElement>(null);
 
 	// -- Helpers -------------------------------------------------------------
 
-	const slideIdToIndex = useMemo(() => {
-		const map = new Map<string, number>();
-		slides.forEach((s, i) => map.set(s.id, i));
-		return map;
-	}, [slides]);
-
-	const selectedIndexes = useMemo(
-		() =>
-			selectedSlideIds
-				.map((id) => slideIdToIndex.get(id))
-				.filter((i): i is number => i !== undefined)
-				.sort((a, b) => a - b),
-		[selectedSlideIds, slideIdToIndex],
-	);
+	const selectedIndexes = useMemo(() => sorterSelectionIndexes(sorter, slides), [sorter, slides]);
 
 	const isSelected = useCallback(
 		(slideId: string) => selectedSlideIds.includes(slideId),
@@ -74,32 +79,9 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 
 	const handleSlideClick = useCallback(
 		(e: React.MouseEvent, index: number) => {
-			const slide = slides[index];
-			if (!slide) {
-				return;
-			}
-
-			if (e.ctrlKey || e.metaKey) {
-				setSelectedSlideIds((prev) =>
-					prev.includes(slide.id) ? prev.filter((id) => id !== slide.id) : [...prev, slide.id],
-				);
-				setLastClickedIndex(index);
-			} else if (e.shiftKey) {
-				const start = Math.min(lastClickedIndex, index);
-				const end = Math.max(lastClickedIndex, index);
-				const rangeIds: string[] = [];
-				for (let i = start; i <= end; i++) {
-					if (slides[i]?.id) {
-						rangeIds.push(slides[i].id);
-					}
-				}
-				setSelectedSlideIds(rangeIds);
-			} else {
-				setSelectedSlideIds([slide.id]);
-				setLastClickedIndex(index);
-			}
+			setSorter((previous) => selectSorterSlide(previous, slides, index, e));
 		},
-		[slides, lastClickedIndex],
+		[slides],
 	);
 
 	// -- Context menu --------------------------------------------------------
@@ -113,13 +95,10 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 				return;
 			}
 
-			if (!selectedSlideIds.includes(slide.id)) {
-				setSelectedSlideIds([slide.id]);
-				setLastClickedIndex(index);
-			}
+			setSorter((previous) => selectSorterSlide(previous, slides, index, {}, true));
 			setContextMenu({ x: e.clientX, y: e.clientY, slideIndex: index });
 		},
-		[slides, selectedSlideIds],
+		[slides],
 	);
 
 	const closeContextMenu = useCallback(() => {
@@ -129,13 +108,14 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 	// -- Slide operations ----------------------------------------------------
 
 	const handleDeleteSelected = useCallback(() => {
-		if (selectedIndexes.length === 0) {
+		const result = applySorterAction(sorter, slides, 'delete', activeSlideIndex);
+		if (result.indexes.length === 0) {
 			return;
 		}
-		onDeleteSlides(selectedIndexes);
-		setSelectedSlideIds([]);
+		onDeleteSlides(result.indexes.reverse());
+		setSorter(result.state);
 		closeContextMenu();
-	}, [selectedIndexes, onDeleteSlides, closeContextMenu]);
+	}, [sorter, slides, activeSlideIndex, onDeleteSlides, closeContextMenu]);
 
 	const handleDuplicateSelected = useCallback(() => {
 		if (selectedIndexes.length === 0) {
@@ -146,23 +126,23 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 	}, [selectedIndexes, onDuplicateSlides, closeContextMenu]);
 
 	const handleCopySelected = useCallback(() => {
-		setClipboardSlideIds([...selectedSlideIds]);
+		setSorter((previous) => ({
+			...previous,
+			clipboardIds: sorterSelectionIndexes(previous, slides).map((i) => slides[i].id),
+		}));
 		closeContextMenu();
-	}, [selectedSlideIds, closeContextMenu]);
+	}, [slides, closeContextMenu]);
 
 	const handlePaste = useCallback(() => {
 		if (clipboardSlideIds.length === 0) {
 			return;
 		}
-		const indexes = clipboardSlideIds
-			.map((id) => slideIdToIndex.get(id))
-			.filter((i): i is number => i !== undefined)
-			.sort((a, b) => a - b);
+		const indexes = slideSorterPasteIndexes(clipboardSlideIds, slides);
 		if (indexes.length > 0) {
 			onDuplicateSlides(indexes);
 		}
 		closeContextMenu();
-	}, [clipboardSlideIds, slideIdToIndex, onDuplicateSlides, closeContextMenu]);
+	}, [clipboardSlideIds, slides, onDuplicateSlides, closeContextMenu]);
 
 	const handleToggleHideSelected = useCallback(() => {
 		if (selectedIndexes.length === 0) {
@@ -174,7 +154,14 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 
 	const handleSelectAll = useCallback(() => {
 		setSelectedSlideIds(slides.map((s) => s.id));
-	}, [slides]);
+	}, [slides, setSelectedSlideIds]);
+
+	const handleCollapseSelection = useCallback(() => {
+		setSorter(
+			(previous) =>
+				applySorterAction(previous, slides, 'collapseSelection', activeSlideIndex).state,
+		);
+	}, [slides, activeSlideIndex]);
 
 	// -- Keyboard shortcuts --------------------------------------------------
 
@@ -194,6 +181,7 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 		handlePaste,
 		handleDuplicateSelected,
 		handleSelectAll,
+		handleCollapseSelection,
 	});
 
 	// -- Backdrop click ------------------------------------------------------
@@ -242,33 +230,15 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 
 	const zoomScale = zoom / 100;
 
-	const gridCols = useMemo(() => {
-		if (zoomScale >= 1.8) {
-			return 2;
-		}
-		if (zoomScale >= 1.4) {
-			return 3;
-		}
-		if (zoomScale >= 1.0) {
-			return 4;
-		}
-		if (zoomScale >= 0.7) {
-			return 5;
-		}
-		return 6;
-	}, [zoomScale]);
+	const gridCols = sorterGridColumns(zoom);
 
 	// -- Derived state -------------------------------------------------------
 
 	const showSectionHeaders = sectionGroups.length > 1;
 
-	const hasHiddenInSelection = useMemo(
-		() => selectedIndexes.some((i) => slides[i]?.hidden),
-		[selectedIndexes, slides],
-	);
-	const hasVisibleInSelection = useMemo(
-		() => selectedIndexes.some((i) => !slides[i]?.hidden),
-		[selectedIndexes, slides],
+	const { hasHiddenInSelection, hasVisibleInSelection, hasClipboard } = sorterMenuContext(
+		sorter,
+		slides,
 	);
 
 	return {
@@ -278,6 +248,7 @@ export function useSlideSorterState(params: UseSlideSorterStateParams) {
 		zoom,
 		setZoom,
 		clipboardSlideIds,
+		hasClipboard,
 		backdropRef,
 		selectedIndexes,
 		isSelected,

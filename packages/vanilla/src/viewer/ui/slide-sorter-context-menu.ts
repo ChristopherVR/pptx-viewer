@@ -10,7 +10,10 @@ import {
 	clampFlyoutPosition,
 	slideSorterContextMenuLabel,
 } from 'pptx-viewer-shared';
-import type { SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
+import type {
+	SlideSorterContextMenuContext,
+	SlideSorterContextMenuCommandId,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -22,10 +25,7 @@ export interface SlideSorterContextMenuOptions {
 	host: HTMLElement;
 	x: number;
 	y: number;
-	/** The right-clicked slide is hidden. */
-	hidden: boolean;
-	hasClipboard: boolean;
-	totalSlides: number;
+	context: SlideSorterContextMenuContext;
 	onCommand(id: SlideSorterContextMenuCommandId): void;
 }
 
@@ -51,13 +51,7 @@ export function openSlideSorterContextMenu(options: SlideSorterContextMenuOption
 		}
 	};
 
-	for (const entry of buildSlideSorterContextMenuEntries({
-		selectedCount: 1,
-		hasClipboard: options.hasClipboard,
-		hasHiddenInSelection: options.hidden,
-		hasVisibleInSelection: !options.hidden,
-		wouldDeleteAllSlides: options.totalSlides <= 1,
-	})) {
+	for (const entry of buildSlideSorterContextMenuEntries(options.context)) {
 		if (entry.separatorBefore) {
 			const separator = createEl(doc, 'div', 'pptxv-context-menu-separator');
 			separator.setAttribute('role', 'separator');
@@ -66,7 +60,11 @@ export function openSlideSorterContextMenu(options: SlideSorterContextMenuOption
 		const button = createEl(doc, 'button', 'pptxv-context-menu-item');
 		button.type = 'button';
 		button.setAttribute('role', 'menuitem');
-		button.textContent = slideSorterContextMenuLabel(t(entry.labelKey), entry, 1);
+		button.textContent = slideSorterContextMenuLabel(
+			t(entry.labelKey),
+			entry,
+			options.context.selectedCount,
+		);
 		button.disabled = entry.disabled === true;
 		button.addEventListener('click', () => {
 			close();

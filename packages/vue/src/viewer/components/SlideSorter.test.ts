@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, test } from 'vitest';
 
 import type { CanvasSize } from '../types';
 import SlideSorter from './SlideSorter.vue';
@@ -51,9 +51,9 @@ describe('slideSorter', () => {
 		expect(tiles[0]!.classes()).not.toContain('is-active');
 	});
 
-	it('emits select with the clicked tile index', async () => {
+	it('emits select with the double-clicked tile index', async () => {
 		const wrapper = mountSorter(makeSlides(3));
-		await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('click');
+		await wrapper.findAll('.pptx-vue-sorter-tile')[1]!.trigger('dblclick');
 		expect(wrapper.emitted('select')).toStrictEqual([[1]]);
 	});
 
@@ -187,4 +187,35 @@ describe('slideSorter', () => {
 			expect(document.querySelector('pptx-ui-context-menu')).toBeNull();
 		});
 	});
+});
+
+test('copies a range and changes thumbnail zoom', async () => {
+	const wrapper = mount(SlideSorter, {
+		props: {
+			slides: makeSlides(4),
+			canvasSize,
+			mediaDataUrls: new Map(),
+			activeIndex: 0,
+			canEdit: true,
+		},
+	});
+	try {
+		await wrapper
+			.findAll('[data-pptx-chrome="sorter-tile"]')[2]!
+			.trigger('click', { shiftKey: true });
+		expect(wrapper.findAll('[data-pptx-selected="true"]')).toHaveLength(3);
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+		expect(wrapper.emitted('duplicate')).toStrictEqual([[2], [1], [0]]);
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: '+', ctrlKey: true }));
+		await wrapper.vm.$nextTick();
+		expect((wrapper.find('input[type=range]').element as HTMLInputElement).value).toBe('110');
+		const escape = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+		escape.preventDefault();
+		window.dispatchEvent(escape);
+		await wrapper.vm.$nextTick();
+		expect(wrapper.findAll('[data-pptx-selected="true"]')).toHaveLength(1);
+	} finally {
+		wrapper.unmount();
+	}
 });

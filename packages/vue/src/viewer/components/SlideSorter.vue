@@ -1,19 +1,5 @@
 <script setup lang="ts">
-/**
- * SlideSorter - a full-overlay grid overview of every slide with
- * drag-to-reorder support.
- *
- * Each tile renders the real slide via {@link SlideStage} scaled down to a
- * small fixed width, so the overview stays visually faithful to the canvas
- * and thumbnail rail. Tiles are reordered with native HTML5 drag-and-drop
- * (`draggable` + `dragstart`/`dragover`/`drop`); the component itself never
- * mutates the slide list; it emits `reorder(from, to)` and lets the host
- * apply the move (e.g. via `slideOps.moveSlide`).
- *
- * Conventions:
- *  - Callbacks → emits: `select`, `reorder`, `close`.
- *  - Presentational only; all slide state is owned by the host.
- */
+/** Slide previews and reactive adapters over the shared sorter decisions. */
 import { X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
@@ -23,9 +9,14 @@ import {
 	isEditorTextInputTarget,
 	mapSlideSorterKey,
 	slideSorterContextMenuLabel,
-	slideSorterPasteIndexes,
+	applySorterAction,
+	createSlideSorterState,
+	selectSorterSlide,
+	sorterSelectionIndexes,
+	sorterMenuContext,
+	sorterGridColumns,
 } from 'pptx-viewer-shared';
-import type { SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
+import type { SlideSorterKeyActionName, SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -55,13 +46,14 @@ const emit = defineEmits<{
 }>();
 
 /** Fixed thumbnail width (px); height derives from the canvas aspect ratio. */
-const TILE_WIDTH = 192;
+const sorter = ref(createSlideSorterState(props.slides, props.activeIndex));
+const TILE_WIDTH = computed(() => (192 * sorter.value.zoom) / 100);
 
-const tileScale = computed(() => TILE_WIDTH / Math.max(1, props.canvasSize.width));
+const tileScale = computed(() => TILE_WIDTH.value / Math.max(1, props.canvasSize.width));
 const tileHeight = computed(() => Math.round(props.canvasSize.height * tileScale.value));
 
 const stageWrapStyle = computed<CSSProperties>(() => ({
-	width: `${TILE_WIDTH}px`,
+	width: `${TILE_WIDTH.value}px`,
 	height: `${tileHeight.value}px`,
 }));
 
@@ -78,8 +70,8 @@ const dragIndex = ref<number | null>(null);
 /** Index the dragged tile is currently hovering over (drop target preview). */
 const dragOverIndex = ref<number | null>(null);
 
-function onSelect(index: number): void {
-	emit('select', index);
+function onSelect(index: number, event: MouseEvent): void {
+	sorter.value = selectSorterSlide(sorter.value, props.slides, index, event);
 }
 
 function onDragStart(index: number, event: DragEvent): void {
@@ -136,109 +128,65 @@ function openContextMenu(index: number, event: MouseEvent): void {
 		return;
 	}
 	event.preventDefault();
+	sorter.value = selectSorterSlide(sorter.value, props.slides, index, {}, true);
 	contextMenu.value = { open: true, x: event.clientX, y: event.clientY, index };
 }
 
-/** Slide ids copied in this sorter session (the shared Copy / Paste pair). */
-const clipboardSlideIds = ref<string[]>([]);
-
-function copySlide(index: number): void {
-	const slide = props.slides[index];
-	if (slide) {
-		clipboardSlideIds.value = [slide.id];
+function runAction(action: SlideSorterKeyActionName | 'toggle-hidden'): void {
+	const result = applySorterAction(sorter.value, props.slides, action, props.activeIndex);
+	sorter.value = result.state;
+	if (result.close) {
+		emit('close');
 	}
-}
-
-/** Paste inserts a copy after each copied slide; highest index first so earlier ones stay valid. */
-function pasteSlides(): void {
-	const indexes = slideSorterPasteIndexes(clipboardSlideIds.value, props.slides);
-	for (const index of [...indexes].sort((a, b) => b - a)) {
-		emit('duplicate', index);
+	for (const index of result.indexes) {
+		if (result.operation === 'duplicate') {
+			emit('duplicate', index);
+		}
+		if (result.operation === 'delete') {
+			emit('delete', index);
+		}
+		if (result.operation === 'toggle-hidden') {
+			emit('toggle-hidden', index);
+		}
 	}
 }
 
 const contextItems = computed<ContextMenuItem[]>(() => {
-	const hidden = props.slides[contextMenu.value.index]?.hidden ?? false;
-	return buildSlideSorterContextMenuEntries({
-		selectedCount: 1,
-		hasClipboard: clipboardSlideIds.value.length > 0,
-		hasHiddenInSelection: hidden,
-		hasVisibleInSelection: !hidden,
-		wouldDeleteAllSlides: props.slides.length <= 1,
-	}).flatMap((entry, position) => {
-		const item: ContextMenuItem = {
-			id: entry.id,
-			label: slideSorterContextMenuLabel(t(entry.labelKey), entry, 1),
-			disabled: entry.disabled,
-		};
-		return entry.separatorBefore
-			? [{ id: `sep-${position}`, label: '', separator: true }, item]
-			: [item];
-	});
+	return buildSlideSorterContextMenuEntries(sorterMenuContext(sorter.value, props.slides)).flatMap(
+		(entry, position) => {
+			const item: ContextMenuItem = {
+				id: entry.id,
+				label: slideSorterContextMenuLabel(
+					t(entry.labelKey),
+					entry,
+					sorterSelectionIndexes(sorter.value, props.slides).length,
+				),
+				disabled: entry.disabled,
+			};
+			return entry.separatorBefore
+				? [{ id: `sep-${position}`, label: '', separator: true }, item]
+				: [item];
+		},
+	);
 });
 
 function onContextSelect(id: string): void {
-	const index = contextMenu.value.index;
 	contextMenu.value.open = false;
-	switch (id as SlideSorterContextMenuCommandId) {
-		case 'copy':
-			copySlide(index);
-			break;
-		case 'paste':
-			pasteSlides();
-			break;
-		case 'duplicate':
-			emit('duplicate', index);
-			break;
-		case 'toggle-hidden':
-			emit('toggle-hidden', index);
-			break;
-		case 'delete':
-			emit('delete', index);
-			break;
-		default:
-			break;
-	}
+	runAction(id as SlideSorterContextMenuCommandId);
 }
-
-// ── Keyboard shortcuts ────────────────────────────────────────────────
-// Resolution is the shared `mapSlideSorterKey`, the one sorter keymap every
-// binding answers to. Only the commands this overlay can actually perform are
-// dispatched: it has no multi-selection and no thumbnail zoom, so select-all /
-// Ctrl+plus fall through to the host rather than being swallowed by a handler
-// that would do nothing with them.
 function onKeyDown(event: KeyboardEvent): void {
-	if (contextMenu.value.open) {
-		contextMenu.value.open = false;
-	}
+	contextMenu.value.open = false;
 	const { action } = mapSlideSorterKey(event, {
 		canEdit: Boolean(props.canEdit),
+		hasMultiSelection: sorterSelectionIndexes(sorter.value, props.slides).length > 1,
 		isTextInputTarget: isEditorTextInputTarget(event.target),
 	});
-	if (action === 'close') {
-		event.stopPropagation();
-		emit('close');
+	if (!action) {
 		return;
 	}
-	if (action === 'delete') {
-		event.preventDefault();
-		emit('delete', props.activeIndex);
-		return;
-	}
-	if (action === 'duplicate') {
-		event.preventDefault();
-		emit('duplicate', props.activeIndex);
-		return;
-	}
-	if (action === 'copy') {
-		event.preventDefault();
-		copySlide(props.activeIndex);
-		return;
-	}
-	if (action === 'paste') {
-		event.preventDefault();
-		pasteSlides();
-	}
+	event.preventDefault();
+	event.stopPropagation();
+	runAction(action);
 }
 
 onMounted(() => {
@@ -263,13 +211,16 @@ onBeforeUnmount(() => {
 			</button>
 		</header>
 
-		<div class="pptx-vue-sorter-grid">
+		<div
+			class="pptx-vue-sorter-grid"
+			:style="{ gridTemplateColumns: `repeat(${sorterGridColumns(sorter.zoom)}, minmax(0, 1fr))` }"
+		>
 			<div
 				v-for="(slide, index) in slides"
 				:key="slide.id ?? index"
 				class="pptx-vue-sorter-tile"
 				:class="{
-					'is-active': index === activeIndex,
+					'is-active': sorter.selectedIds.includes(slide.id),
 					'is-dragging': index === dragIndex,
 					'is-drop-target': index === dragOverIndex && index !== dragIndex,
 					'is-hidden': Boolean(slide.hidden),
@@ -277,11 +228,13 @@ onBeforeUnmount(() => {
 				draggable="true"
 				data-pptx-chrome="sorter-tile"
 				:data-index="index"
+				:data-pptx-selected="sorter.selectedIds.includes(slide.id)"
 				:data-pptx-slide-hidden="hiddenCue(slide.hidden, 'sorter', index).marker"
 				:aria-label="t('pptx.notes.slideN', { n: index + 1 })"
 				:aria-current="index === activeIndex ? 'true' : undefined"
 				:aria-describedby="hiddenCue(slide.hidden, 'sorter', index).labelId"
-				@click="onSelect(index)"
+				@click="onSelect(index, $event)"
+				@dblclick="emit('select', index)"
 				@contextmenu="openContextMenu(index, $event)"
 				@dragstart="onDragStart(index, $event)"
 				@dragover="onDragOver(index, $event)"
@@ -310,6 +263,17 @@ onBeforeUnmount(() => {
 			</div>
 		</div>
 
+		<label
+			>{{ t('pptx.slideSorter.zoom') }}
+			<input
+				type="range"
+				min="50"
+				max="200"
+				step="10"
+				v-model.number="sorter.zoom"
+				:aria-label="t('pptx.slideSorter.zoom')"
+			/>{{ sorter.zoom }}%</label
+		>
 		<ContextMenu
 			:open="contextMenu.open"
 			:x="contextMenu.x"
@@ -321,115 +285,4 @@ onBeforeUnmount(() => {
 	</div>
 </template>
 
-<style scoped>
-.pptx-vue-sorter {
-	position: absolute;
-	inset: 0;
-	z-index: 20;
-	display: flex;
-	flex-direction: column;
-	background: var(--pptx-bg, #1e1e1e);
-}
-
-.pptx-vue-sorter-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 0.75rem 1rem;
-	border-bottom: 1px solid var(--pptx-border, #333);
-	background: var(--pptx-card, #252525);
-}
-
-.pptx-vue-sorter-title {
-	margin: 0;
-	font-size: 0.95rem;
-	font-weight: 600;
-	color: var(--pptx-fg, #f3f4f6);
-}
-
-.pptx-vue-sorter-close {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.75rem;
-	height: 1.75rem;
-	padding: 0;
-	font-size: 1.25rem;
-	line-height: 1;
-	color: var(--pptx-fg, #f3f4f6);
-	background: transparent;
-	border: 1px solid var(--pptx-border, #333);
-	border-radius: 0.375rem;
-	cursor: pointer;
-}
-
-.pptx-vue-sorter-close:hover {
-	background: var(--pptx-border, #333);
-}
-
-.pptx-vue-sorter-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(192px, 1fr));
-	gap: 1rem;
-	padding: 1rem;
-	overflow-y: auto;
-}
-
-.pptx-vue-sorter-tile {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	padding: 0;
-	overflow: hidden;
-	border: 2px solid var(--pptx-border, #333);
-	border-radius: 0.5rem;
-	background: #ffffff;
-	cursor: grab;
-}
-
-.pptx-vue-sorter-tile.is-active {
-	border-color: var(--pptx-primary, #2563eb);
-}
-
-.pptx-vue-sorter-tile.is-dragging {
-	opacity: 0.45;
-}
-
-.pptx-vue-sorter-tile.is-drop-target {
-	outline: 2px dashed var(--pptx-primary, #2563eb);
-	outline-offset: -2px;
-}
-
-/* Mini slide preview; non-interactive so drag/click target the tile. */
-.pptx-vue-sorter-stage {
-	position: relative;
-	overflow: hidden;
-	pointer-events: none;
-}
-
-.pptx-vue-sorter-index {
-	position: absolute;
-	bottom: 0.25rem;
-	right: 0.35rem;
-	padding: 0 0.3rem;
-	font-size: 0.7rem;
-	color: #f3f4f6;
-	background: rgba(0, 0, 0, 0.55);
-	border-radius: 0.2rem;
-}
-
-.pptx-vue-sorter-hidden {
-	position: absolute;
-	top: 0.25rem;
-	left: 0.35rem;
-	padding: 0 0.3rem;
-	font-size: 0.65rem;
-	color: #f3f4f6;
-	background: rgba(0, 0, 0, 0.65);
-	border-radius: 0.2rem;
-}
-
-.pptx-vue-sorter-tile.is-hidden .pptx-vue-sorter-stage {
-	opacity: 0.5;
-}
-</style>
+<style scoped src="./slide-sorter.css"></style>

@@ -981,3 +981,9 @@ pptx-slide-canvas {
 		min-height: 50vh;
 	}
 }
+
+/* Expanded ribbon groups remain reachable above the mobile inspector sheet. */
+pptx-ribbon {
+	position: relative;
+	z-index: 31;
+}

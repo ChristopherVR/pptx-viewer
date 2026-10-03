@@ -1,5 +1,5 @@
 import type { PptxComment, PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
 import { openCommentsPanel } from './comments-panel';
@@ -376,4 +376,28 @@ describe('workspace parity panels', () => {
 			}),
 		);
 	});
+});
+
+test('copies a sorter range and keeps its zoom control synchronized', () => {
+	const onDuplicate = vi.fn();
+	openSlideSorterOverlay(document, document.body, createTranslator(), {
+		slides: ['a', 'b', 'c'].map((id, i) => ({ id, rId: id, slideNumber: i + 1, elements: [] })),
+		current: 0,
+		onSelect: vi.fn(),
+		onReorder: vi.fn(),
+		onDelete: vi.fn(),
+		onDuplicate,
+		onToggleHidden: vi.fn(),
+	});
+	document
+		.querySelectorAll('[data-pptx-chrome="sorter-tile"] button')[1]!
+		.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+	expect(document.querySelectorAll('[data-pptx-selected="true"]')).toHaveLength(2);
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+	expect(onDuplicate.mock.calls).toStrictEqual([[1], [0]]);
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: '+', ctrlKey: true }));
+	expect(document.querySelector<HTMLInputElement>('input[type=range]')!.value).toBe('110');
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 });

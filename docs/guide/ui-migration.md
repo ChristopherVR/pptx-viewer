@@ -728,11 +728,13 @@ Shared logic lives in `pptx-viewer-shared`: `buildSectionContextMenuEntries` and
 `slide-sorter-context-menu.ts`); the menus join the shared context-menu element
 when that lands.
 
-Known limits, deliberately not changed here: only React's sorter has
-multi-selection, zoom and a slide clipboard of more than one slide, so in the
-other four bindings the sorter menu acts on one slide, and Paste (React's
-long-standing behaviour, ported) inserts a copy after each copied slide rather
-than at the pointer. Section colours, collapse and drag state stay native.
+Sorter selection and clipboard state now live in `slide-sorter-state.ts` (#402).
+All five adapters support Ctrl/Cmd toggles, Shift ranges, select-all, selection
+counts in the menu, multi-slide copy/paste, and thumbnail zoom. Click selects;
+double-click opens a slide. Escape collapses a multi-selection before closing.
+Paste duplicates the copied source slides in deck order, matching the existing
+React behavior. `e2e/slide-sorter-selection.spec.ts` runs this contract against
+each binding. Section colours, collapse and drag state stay native.
 
 `e2e/slide-rail-menus-parity.spec.ts` drives all five bindings through the Add
 Slide footer (flat and sectioned), the section menu (commands, role, no inline

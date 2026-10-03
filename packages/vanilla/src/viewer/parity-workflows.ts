@@ -320,7 +320,10 @@ async function comparePresentation(host: ParityWorkflowHost): Promise<void> {
  * Paste, Hide then Show) overwrite the first and left the grid showing stale
  * slides. The Copy clipboard outlives the re-open.
  */
-function openSorter(host: ParityWorkflowHost, clipboard: { ids: string[] } = { ids: [] }): void {
+function openSorter(
+	host: ParityWorkflowHost,
+	clipboard: { ids: string[]; state?: import('pptx-viewer-shared').SlideSorterState } = { ids: [] },
+): void {
 	const current = host.store.get();
 	const refresh = (): void => openSorter(host, clipboard);
 	openSlideSorterOverlay(host.doc, host.root(), host.t, {

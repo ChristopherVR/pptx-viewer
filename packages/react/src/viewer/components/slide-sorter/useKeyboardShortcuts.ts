@@ -58,6 +58,7 @@ interface UseKeyboardShortcutsParams {
 	handlePaste: () => void;
 	handleDuplicateSelected: () => void;
 	handleSelectAll: () => void;
+	handleCollapseSelection: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,8 +91,7 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): void {
 					// Escape unwinds one layer: shrink the multi-selection back to the
 					// active slide, and only a second Escape leaves the sorter.
 					e.stopPropagation();
-					const activeSlide = current.slides[current.activeSlideIndex];
-					current.setSelectedSlideIds(activeSlide?.id ? [activeSlide.id] : []);
+					current.handleCollapseSelection();
 					return;
 				}
 				case 'close':

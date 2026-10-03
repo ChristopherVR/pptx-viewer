@@ -8,7 +8,9 @@
 			"Bash(gh pr *)",
 			"Bash(bun run *)",
 			"Bash(bun outdated *)",
-			"Bash(bun update *)"
+			"Bash(bun update *)",
+			"Bash(git push origin HEAD:main)",
+			"Bash(git push origin *:main)"
 		]
 	}
 }

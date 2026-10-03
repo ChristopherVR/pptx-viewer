@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 
 import SlideSorterOverlay from './SlideSorterOverlay.svelte';
 
@@ -141,4 +141,21 @@ describe('slideSorterOverlay context menu', () => {
 		flushSync();
 		expect(target.querySelector('[data-pptx-sorter-context-menu]')).toBeNull();
 	});
+});
+
+test('copies a range and changes zoom through the keyboard adapter', () => {
+	const { target, onduplicate } = render();
+	target
+		.querySelectorAll('button.preview')[1]!
+		.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+	flushSync();
+	expect(target.querySelectorAll('[data-pptx-selected="true"]')).toHaveLength(2);
+	window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+	flushSync();
+	window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true }));
+	flushSync();
+	expect(onduplicate.mock.calls).toStrictEqual([[1], [0]]);
+	window.dispatchEvent(new KeyboardEvent('keydown', { key: '+', ctrlKey: true }));
+	flushSync();
+	expect(target.querySelector<HTMLInputElement>('input[type=range]')!.value).toBe('110');
 });

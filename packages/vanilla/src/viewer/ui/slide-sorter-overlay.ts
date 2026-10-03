@@ -5,9 +5,14 @@ import {
 	hiddenSlideCue,
 	isEditorTextInputTarget,
 	mapSlideSorterKey,
-	slideSorterPasteIndexes,
+	applySorterAction,
+	createSlideSorterState,
+	selectSorterSlide,
+	sorterSelectionIndexes,
+	sorterMenuContext,
+	sorterGridColumns,
 } from 'pptx-viewer-shared';
-import type { SlideSorterContextMenuCommandId } from 'pptx-viewer-shared';
+import type { SlideSorterState, SlideSorterKeyActionName } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -28,7 +33,7 @@ export interface SlideSorterOptions {
 	 * re-opens the overlay after an edit, so Copy then Paste survives the
 	 * re-render.
 	 */
-	clipboard?: { ids: string[] };
+	clipboard?: { ids: string[]; state?: SlideSorterState };
 }
 
 export function openSlideSorterOverlay(
@@ -57,40 +62,45 @@ export function openSlideSorterOverlay(
 	// Slide ids copied in this sorter session (the shared Copy / Paste pair).
 	const clipboard = options.clipboard ?? { ids: [] };
 	let closeMenu: (() => void) | null = null;
-	const copySlide = (index: number): void => {
-		const slide = options.slides[index];
-		if (slide) {
-			clipboard.ids = [slide.id];
+	let sorter = clipboard.state ?? createSlideSorterState(options.slides, options.current);
+	const refreshSelection = (): void => {
+		clipboard.state = sorter;
+		overlay
+			.querySelectorAll<HTMLElement>('[data-pptx-chrome="sorter-tile"]')
+			.forEach((card, index) => {
+				const selected = sorter.selectedIds.includes(options.slides[index].id);
+				card.dataset.pptxSelected = String(selected);
+				card.classList.toggle('is-current', selected);
+			});
+		const slider = overlay.querySelector<HTMLInputElement>('input[type=range]');
+		if (slider) {
+			slider.value = String(sorter.zoom);
 		}
+		grid.style.gridTemplateColumns = `repeat(${sorterGridColumns(sorter.zoom)}, minmax(0, 1fr))`;
+		grid.querySelectorAll<HTMLElement>('article > button').forEach((button) => {
+			button.style.height = `${(100 * sorter.zoom) / 100}px`;
+		});
 	};
-	// Paste inserts a copy after each copied slide; highest index first so the
-	// earlier indexes stay valid while the deck grows.
-	const pasteSlides = (): void => {
-		const indexes = slideSorterPasteIndexes(clipboard.ids, options.slides);
-		for (const index of [...indexes].sort((a, b) => b - a)) {
-			options.onDuplicate(index);
+	const runAction = (action: SlideSorterKeyActionName | 'toggle-hidden'): void => {
+		const result = applySorterAction(sorter, options.slides, action, options.current);
+		sorter = result.state;
+		clipboard.ids = sorter.clipboardIds;
+		clipboard.state = sorter;
+		if (result.close) {
+			dismiss();
 		}
-	};
-	const runCommand = (id: SlideSorterContextMenuCommandId, index: number): void => {
-		switch (id) {
-			case 'copy':
-				copySlide(index);
-				break;
-			case 'paste':
-				pasteSlides();
-				break;
-			case 'duplicate':
+		for (const index of result.indexes) {
+			if (result.operation === 'duplicate') {
 				options.onDuplicate(index);
-				break;
-			case 'toggle-hidden':
-				options.onToggleHidden(index);
-				break;
-			case 'delete':
+			}
+			if (result.operation === 'delete') {
 				options.onDelete(index);
-				break;
-			default:
-				break;
+			}
+			if (result.operation === 'toggle-hidden') {
+				options.onToggleHidden(index);
+			}
 		}
+		refreshSelection();
 	};
 	options.slides.forEach((slide, index) => {
 		const card = createEl(doc, 'article', 'pptxv-sorter-card');
@@ -101,16 +111,16 @@ export function openSlideSorterOverlay(
 			}
 			event.preventDefault();
 			closeMenu?.();
+			sorter = selectSorterSlide(sorter, options.slides, index, {}, true);
+			refreshSelection();
 			closeMenu = openSlideSorterContextMenu({
 				doc,
 				t,
 				host: overlay,
 				x: event.clientX,
 				y: event.clientY,
-				hidden: Boolean(slide.hidden),
-				hasClipboard: clipboard.ids.length > 0,
-				totalSlides: options.slides.length,
-				onCommand: (id) => runCommand(id, index),
+				context: sorterMenuContext(sorter, options.slides),
+				onCommand: runAction,
 			});
 		});
 		card.draggable = true;
@@ -133,7 +143,11 @@ export function openSlideSorterOverlay(
 			badge.textContent = t(HIDDEN_SLIDE_LABEL_KEY);
 			preview.appendChild(badge);
 		}
-		preview.addEventListener('click', () => {
+		preview.addEventListener('click', (event) => {
+			sorter = selectSorterSlide(sorter, options.slides, index, event);
+			refreshSelection();
+		});
+		preview.addEventListener('dblclick', () => {
 			options.onSelect(index);
 			overlay.remove();
 		});
@@ -153,54 +167,44 @@ export function openSlideSorterOverlay(
 	});
 	overlay.appendChild(grid);
 
-	// The sorter keymap is shared (`mapSlideSorterKey`), so this overlay answers
-	// the same keys as the other four bindings' sorters. Vanilla had no sorter
-	// keyboard at all before: Escape did not even close it, which left the
-	// overlay dismissable only by finding its ✕. Only the commands this overlay
-	// can perform are dispatched; it has no multi-selection and no thumbnail
-	// zoom, so those chords are left to the host.
 	const dismiss = (): void => {
+		closeMenu?.();
 		doc.removeEventListener('keydown', onKeyDown);
 		overlay.remove();
 	};
 	const onKeyDown = (event: KeyboardEvent): void => {
-		// The overlay can be torn down by a re-render rather than by its own ✕, so
-		// the listener detaches itself once its overlay has left the document.
 		if (!overlay.isConnected) {
 			doc.removeEventListener('keydown', onKeyDown);
 			return;
 		}
 		const { action } = mapSlideSorterKey(event, {
 			canEdit: options.canEdit !== false,
+			hasMultiSelection: sorterSelectionIndexes(sorter, options.slides).length > 1,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
 		});
-		if (action === 'close') {
-			event.stopPropagation();
-			dismiss();
+		if (!action) {
 			return;
 		}
-		if (action === 'delete') {
-			event.preventDefault();
-			options.onDelete(options.current);
-			return;
-		}
-		if (action === 'duplicate') {
-			event.preventDefault();
-			options.onDuplicate(options.current);
-			return;
-		}
-		if (action === 'copy') {
-			event.preventDefault();
-			copySlide(options.current);
-			return;
-		}
-		if (action === 'paste') {
-			event.preventDefault();
-			pasteSlides();
-		}
+		closeMenu?.();
+		event.preventDefault();
+		event.stopPropagation();
+		runAction(action);
 	};
 	doc.addEventListener('keydown', onKeyDown);
 
+	const zoom = createEl(doc, 'input');
+	zoom.type = 'range';
+	zoom.min = '50';
+	zoom.max = '200';
+	zoom.step = '10';
+	zoom.value = String(sorter.zoom);
+	zoom.setAttribute('aria-label', t('pptx.slideSorter.zoom'));
+	zoom.addEventListener('input', () => {
+		sorter = { ...sorter, zoom: Number(zoom.value) };
+		refreshSelection();
+	});
+	overlay.appendChild(zoom);
+	refreshSelection();
 	close.addEventListener('click', dismiss);
 	host.appendChild(overlay);
 }

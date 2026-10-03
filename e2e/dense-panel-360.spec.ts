@@ -77,7 +77,9 @@ async function load(page: Page, fixturePath: string = deck): Promise<void> {
 	// Forget any restored session first, or the deck reopens and the landing
 	// dropzone (the only place #file-input exists) never mounts.
 	await resetTabSession(page);
-	await page.goto('/');
+	// The app can mount while preview assets are still loading. Wait for its DOM
+	// and then the file-input contract, rather than the unrelated window load event.
+	await page.goto('/', { waitUntil: 'domcontentloaded' });
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
 	await page.waitForTimeout(500);

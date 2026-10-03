@@ -32,6 +32,18 @@
 			</button>
 		</header>
 
+		<label
+			>{{ 'pptx.slideSorter.zoom' | translate }}
+			<input
+				type="range"
+				min="50"
+				max="200"
+				step="10"
+				[value]="state().zoom"
+				(input)="setZoom($event)"
+				[attr.aria-label]="'pptx.slideSorter.zoom' | translate"
+			/>{{ state().zoom }}%</label
+		>
 		<!-- Scrollable grid -->
 		<div class="pptx-ng-sorter-grid-scroll">
 			<div class="pptx-ng-sorter-grid" [ngStyle]="gridStyle()">
@@ -41,13 +53,15 @@
 						type="button"
 						class="pptx-ng-sorter-cell"
 						data-pptx-chrome="sorter-tile"
-						[class.is-active]="i === activeIndex()"
+						[class.is-active]="state().selectedIds.includes(slide.id)"
+						[attr.data-pptx-selected]="state().selectedIds.includes(slide.id)"
 						[class.is-hidden]="hidden.hidden"
 						[attr.data-pptx-slide-hidden]="hidden.marker ?? null"
 						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
 						[attr.aria-describedby]="hidden.labelId ?? null"
 						[attr.aria-current]="i === activeIndex() ? 'true' : null"
-						(click)="onThumbClick(i)"
+						(click)="onThumbClick(i, $event)"
+						(dblclick)="select.emit(i)"
 						(contextmenu)="onThumbContextMenu($event, i)"
 					>
 						<!-- Thumbnail clipping wrapper -->
