@@ -4,7 +4,10 @@
 	data-ribbon-group="home.font"
 >
 	<div data-pptx-chrome="font-controls">
-		<pptx-ui-ribbon-home-font-picker [state]="pickerView()" (home-request)="pickerRequest($event)" />
+		<pptx-ui-ribbon-home-font-picker
+			[state]="pickerView()"
+			(home-request)="pickerRequest($event)"
+		/>
 		<pptx-ui-ribbon-home-font [state]="fontView()" (home-request)="fontRequest($event)" />
 	</div>
 	<span data-pptx-chrome="ribbon-group-label">{{ 'pptx.ribbon.font' | translate }}</span>

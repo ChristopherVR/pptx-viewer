@@ -77,5 +77,4 @@ const hasSelection = computed(() => Boolean(props.selectedElement));
 		:on-reset-slide="props.onResetSlide"
 		:on-add-section="props.onAddSection"
 	/>
-
 </template>
