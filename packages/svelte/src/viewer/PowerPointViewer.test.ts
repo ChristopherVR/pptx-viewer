@@ -311,15 +311,15 @@ describe('powerPointViewer', () => {
 		const { target } = await mountViewer({ editable: true });
 		const clicked: HTMLInputElement[] = [];
 		const realClick = HTMLInputElement.prototype.click;
-		vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(
-			function (this: HTMLInputElement) {
-				if (this.type === 'file') {
-					clicked.push(this);
-					return;
-				}
-				realClick.call(this);
-			},
-		);
+		vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function (
+			this: HTMLInputElement,
+		) {
+			if (this.type === 'file') {
+				clicked.push(this);
+				return;
+			}
+			realClick.call(this);
+		});
 
 		const byText = (text: string): HTMLButtonElement | undefined =>
 			[...target.querySelectorAll<HTMLButtonElement>('button')].find(

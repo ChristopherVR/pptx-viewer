@@ -115,40 +115,40 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
-		"dompurify": "^3.4.15",
-		"html2canvas-pro": "^2.4.2",
+		"dompurify": "^3.4.16",
+		"html2canvas-pro": "^2.5.1",
 		"jspdf": "^4.2.1",
 		"lucide-vue-next": "^1.0.0",
 		"ooxml-ui": "^0.20.0",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-mcp": "workspace:*",
-		"tailwind-merge": "^3.6.0"
+		"tailwind-merge": "^3.7.0"
 	},
 	"devDependencies": {
-		"@ai-sdk/vue": "^4.0.107",
+		"@ai-sdk/vue": "^4.0.127",
 		"@rollup/plugin-terser": "^1.0.0",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/dompurify": "^3.2.0",
 		"@types/opentype.js": "^1.3.10",
-		"@types/three": "^0.185.4",
-		"@vitejs/plugin-vue": "^6.0.8",
+		"@types/three": "^0.186.0",
+		"@vitejs/plugin-vue": "^6.0.9",
 		"@vue/compiler-sfc": "^3.5.43",
 		"@vue/test-utils": "^2.5.1",
-		"happy-dom": "^20.14.0",
-		"jsdom": "^30.0.1",
+		"happy-dom": "^20.14.5",
+		"jsdom": "^30.1.2",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.3",
 		"terser": "^5.51.2",
 		"three": "^0.186.0",
 		"typescript": "6.0.3",
-		"vite": "^8.3.0",
-		"vite-plugin-dts": "^5.1.0",
-		"vitest": "^5.0.0",
-		"vue-tsc": "^3.3.11",
+		"vite": "^8.3.2",
+		"vite-plugin-dts": "^5.1.2",
+		"vitest": "^5.0.3",
+		"vue-tsc": "^3.3.12",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
-		"yjs": "^13.6.32"
+		"yjs": "^13.6.33"
 	},
 	"peerDependencies": {
 		"@ai-sdk/vue": "^4.0.65",
@@ -175,7 +175,7 @@
 		}
 	},
 	"optionalDependencies": {
-		"three": "^0.186.0",
+		"three": "^0.186.1",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0"
 	}

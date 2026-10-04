@@ -117,15 +117,15 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
-		"dompurify": "^3.4.15",
-		"html2canvas-pro": "^2.4.2",
+		"dompurify": "^3.4.16",
+		"html2canvas-pro": "^2.5.1",
 		"ooxml-ui": "^0.20.0",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-mcp": "workspace:*",
-		"tailwind-merge": "^3.6.0"
+		"tailwind-merge": "^3.7.0"
 	},
 	"devDependencies": {
-		"@ai-sdk/react": "^4.0.110",
+		"@ai-sdk/react": "^4.0.130",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/dompurify": "^3.2.0",
 		"@types/opentype.js": "^1.3.10",
@@ -137,10 +137,10 @@
 		"tsdown": "^0.23.0",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
-		"vitest": "^5.0.0",
+		"vitest": "^5.0.3",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
-		"yjs": "^13.6.32"
+		"yjs": "^13.6.33"
 	},
 	"peerDependencies": {
 		"@ai-sdk/react": "^4.0.76",
@@ -169,7 +169,7 @@
 		}
 	},
 	"optionalDependencies": {
-		"three": "^0.186.0",
+		"three": "^0.186.1",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0"
 	}

@@ -79,11 +79,11 @@ function mount(input: UseExportSaveAsInput): void {
 /** Records the `download` name of every anchor click `downloadBlob` performs. */
 function recordDownloads(): string[] {
 	const names: string[] = [];
-	vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
-		function (this: HTMLAnchorElement) {
-			names.push(this.download);
-		},
-	);
+	vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+		this: HTMLAnchorElement,
+	) {
+		names.push(this.download);
+	});
 	return names;
 }
 

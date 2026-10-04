@@ -10,14 +10,14 @@
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	},
 	"dependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.53",
-		"@angular/common": "^22.1.6",
-		"@angular/core": "^22.1.6",
-		"@angular/platform-browser": "^22.1.6",
+		"@ai-sdk/openai-compatible": "^3.0.62",
+		"@angular/common": "^22.2.1",
+		"@angular/core": "^22.2.1",
+		"@angular/platform-browser": "^22.2.1",
 		"@ngx-translate/core": "^18.0.0",
-		"ai": "^7.0.107",
-		"fast-xml-parser": "^5.11.1",
-		"html2canvas-pro": "^2.4.2",
+		"ai": "^7.0.127",
+		"fast-xml-parser": "^5.11.2",
+		"html2canvas-pro": "^2.5.1",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.2",
 		"pptx-angular-viewer": "workspace:*",
@@ -27,11 +27,11 @@
 		"zone.js": "^0.16.3"
 	},
 	"devDependencies": {
-		"@analogjs/vite-plugin-angular": "^2.7.2",
-		"@angular/build": "^22.1.8",
-		"@angular/compiler": "^22.1.6",
-		"@angular/compiler-cli": "^22.1.6",
+		"@analogjs/vite-plugin-angular": "^2.8.0",
+		"@angular/build": "^22.2.1",
+		"@angular/compiler": "^22.2.1",
+		"@angular/compiler-cli": "^22.2.1",
 		"typescript": "6.0.3",
-		"vite": "^8.3.0"
+		"vite": "^8.3.2"
 	}
 }

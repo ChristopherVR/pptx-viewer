@@ -22,11 +22,11 @@ let mediaEl: HTMLVideoElement | null = null;
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
-	vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(
-		function (this: HTMLMediaElement) {
-			Object.defineProperty(this, 'paused', { value: true, configurable: true });
-		},
-	);
+	vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(function (
+		this: HTMLMediaElement,
+	) {
+		Object.defineProperty(this, 'paused', { value: true, configurable: true });
+	});
 	container = document.createElement('div');
 	document.body.appendChild(container);
 	root = createRoot(container);

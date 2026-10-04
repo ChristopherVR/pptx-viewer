@@ -70,19 +70,19 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.30.0",
-		"fast-xml-parser": "^5.11.1",
+		"@modelcontextprotocol/sdk": "^1.32.0",
+		"fast-xml-parser": "^5.11.2",
 		"jszip": "^3.10.2",
 		"ooxml-core": ">=0.11.0 <1",
-		"zod": ">=4.4.3 <4.5.3"
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
-		"@types/node": "^26.5.1",
+		"@types/node": "^26.6.4",
 		"tsdown": "^0.23.0",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
-		"vitest": "^5.0.0",
-		"yjs": "^13.6.32"
+		"vitest": "^5.0.3",
+		"yjs": "^13.6.33"
 	},
 	"peerDependencies": {
 		"yjs": "^13.6.32"
