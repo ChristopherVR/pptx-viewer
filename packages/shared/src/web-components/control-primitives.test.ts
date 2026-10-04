@@ -137,7 +137,7 @@ describe('search field states', () => {
 		const css = shadowCss('pptx-ui-search');
 		expect(css).toMatch(/input \{[^}]*border: 0;[^}]*outline: 0;/);
 		expect(input.type).toBe('search');
-		expect(css).toContain(':host(:focus-within) { border-color:');
+		expect(css.replace(/\s+/g, ' ')).toContain(':host(:focus-within) { border-color:');
 	});
 
 	it('forwards one input event per keystroke and keeps value in sync', () => {
