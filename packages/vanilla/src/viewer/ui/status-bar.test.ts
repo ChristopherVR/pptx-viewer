@@ -57,10 +57,10 @@ describe('createStatusBar', () => {
 	it('reflects the slide counter and zoom percent', () => {
 		const { bar, root, button } = open();
 		bar.update({ current: 1, total: 9, zoomPercent: 150 });
-		expect(root.querySelector('.counter')!.textContent).toBe('Slide 2 of 9');
+		expect(root.querySelector('[data-item="counter"]')!.textContent).toBe('Slide 2 of 9');
 		expect(button('pptx.statusBar.zoomToFit').textContent).toBe('150%');
 		bar.update({ current: 0, total: 0, zoomPercent: 100 });
-		expect(root.querySelector('.counter')!.textContent).toBe('No slides');
+		expect(root.querySelector('[data-item="counter"]')!.textContent).toBe('No slides');
 	});
 
 	it('routes every control to its handler', () => {
@@ -94,7 +94,7 @@ describe('createStatusBar', () => {
 
 	it('shows pushed autosave labels, then falls back to the dirty/saved text', () => {
 		const { bar, root } = open();
-		const save = root.querySelector('.save')!;
+		const save = root.querySelector('[data-item="save"]')!;
 		expect(save.textContent).toBe(t('pptx.statusBar.allSaved'));
 		bar.setDirty(true);
 		expect(save.textContent).toBe(t('pptx.statusBar.unsavedChanges'));

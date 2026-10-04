@@ -220,7 +220,8 @@ describe('createPptxViewer', () => {
 		);
 		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('role')).toBe('navigation');
 		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('aria-label')).toBe('Slides');
-		expect(container.querySelector('.pptxv-statusbar')?.getAttribute('role')).toBeNull();
+		// The shared status bar is a named group, not a landmark.
+		expect(container.querySelector('.pptxv-statusbar')?.getAttribute('role')).toBe('group');
 		// The shared title bar renders its quick-access strip (empty until a deck is edited).
 		expect(
 			container
