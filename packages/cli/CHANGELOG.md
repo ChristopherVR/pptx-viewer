@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.41.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.41.0) - 2026-10-04
+
+### Features
+
+- **viewer:** Run ribbon galleries on the shared office-ui-gallery (by @ChristopherVR) ([ed6a611](https://github.com/ChristopherVR/pptx-viewer/commit/ed6a611e98ec15dbf2ba45aed17a885c26c9eab3))
+
+### Dependencies
+
+- **deps:** Update every dependency to its latest version (by @ChristopherVR) ([7212b14](https://github.com/ChristopherVR/pptx-viewer/commit/7212b1442ed9893fb68420b0f4c9f06d2b8a9157))
+
 ## [2.40.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.40.0) - 2026-10-04
 
 ### Features

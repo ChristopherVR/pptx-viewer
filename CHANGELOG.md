@@ -10,6 +10,22 @@ dated sections beneath it are generated from
 
 ## 2026-10-04
 
+_Releases: pptx-viewer-core@4.11.1, pptx-react-viewer@4.24.0, pptx-vue-viewer@4.24.0, pptx-angular-viewer@4.24.0, pptx-vanilla-viewer@3.24.0, pptx-svelte-viewer@4.24.0, pptx-viewer-mcp@2.7.1, @christophervr/pptx-viewer@2.41.0_
+
+### Features
+
+- **viewer:** Run ribbon galleries on the shared office-ui-gallery (by @ChristopherVR) ([ed6a611](https://github.com/ChristopherVR/pptx-viewer/commit/ed6a611e98ec15dbf2ba45aed17a885c26c9eab3))
+
+### Testing
+
+- **vanilla:** Read the shared status bar hooks (by @ChristopherVR) ([e123936](https://github.com/ChristopherVR/pptx-viewer/commit/e1239369be777a8b16cb5220afb35288df1cba66))
+
+### Dependencies
+
+- **deps:** Update every dependency to its latest version (by @ChristopherVR) ([7212b14](https://github.com/ChristopherVR/pptx-viewer/commit/7212b1442ed9893fb68420b0f4c9f06d2b8a9157))
+
+## 2026-10-04
+
 _Releases: pptx-react-viewer@4.23.0, pptx-vue-viewer@4.23.0, pptx-angular-viewer@4.23.0, pptx-vanilla-viewer@3.23.0, pptx-svelte-viewer@4.23.0, @christophervr/pptx-viewer@2.40.0_
 
 ### Features
