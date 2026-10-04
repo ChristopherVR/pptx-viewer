@@ -1,0 +1,27 @@
+name: Sync ooxml
+
+# Follows the ooxml-core and ooxml-ui releases. The logic lives in ChristopherVR/ooxml
+# (.github/workflows/sync-ooxml.yml); this file only says when to run and how to verify.
+
+on:
+  schedule:
+    - cron: '30 * * * *' # hourly, half an hour after ooxml's own release run
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: sync-ooxml
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    uses: ChristopherVR/ooxml/.github/workflows/sync-ooxml.yml@main
+    permissions:
+      contents: write
+      issues: write
+    with:
+      install-command: 'bun install'
+      verify-command: 'bun run typecheck && bun run test'
