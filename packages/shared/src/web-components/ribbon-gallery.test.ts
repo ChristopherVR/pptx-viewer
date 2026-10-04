@@ -34,6 +34,27 @@ describe('shared ribbon gallery', () => {
 		expect(document.activeElement).toBe(gallery.trigger);
 	});
 
+	it('renders its tiles before connection, for hosts that build the ribbon detached', () => {
+		const gallery = document.createElement('pptx-ui-ribbon-gallery');
+		gallery.setAttribute('mode', 'inline');
+		gallery.descriptor = buildRibbonGallery('shapeStyles', {
+			element: {
+				id: 'shape',
+				type: 'shape',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 60,
+				shapeType: 'rect',
+			},
+		});
+		expect(gallery.isConnected).toBeFalsy();
+		expect(gallery.querySelectorAll('.strip [data-gallery-item]')).toHaveLength(6);
+		expect(gallery.querySelector('[data-ribbon-gallery="shapeStyles"]')).toBe(gallery.trigger);
+		document.body.append(gallery);
+		expect(gallery.querySelectorAll('.strip [data-gallery-item]')).toHaveLength(6);
+	});
+
 	it('keeps a focused popup item through a controlled descriptor refresh', () => {
 		const gallery = mount();
 		gallery.trigger.dispatchEvent(

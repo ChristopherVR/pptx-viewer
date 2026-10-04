@@ -1,9 +1,23 @@
-import { galleryHasItems } from '../render';
-import type { RibbonGalleryDescriptor } from '../render';
-import { attachRibbonGalleryStyles } from './ribbon-gallery-styles';
-import { createRibbonGalleryView } from './ribbon-gallery-view';
-import type { GalleryTranslate } from './ribbon-gallery-view';
+import { defineGallery } from 'ooxml-ui/controls';
+import type { OfficeGalleryItem, OfficeGalleryState } from 'ooxml-ui/controls';
+import { getIcon, paintIcon, registerIcon } from 'ooxml-ui/icons';
 
+import {
+	createRibbonControlIcon,
+	galleryItemLabel,
+	inlineGalleryItems,
+	RIBBON_CONTROL_ICONS,
+} from '../render';
+import type { RibbonGalleryDescriptor, RibbonGalleryItem } from '../render';
+import { attachControlStyles } from './control-styles';
+import { bridgeCss } from './office-token-bridge';
+import { attachRibbonGalleryStyles } from './ribbon-gallery-styles';
+import { RIBBON_ICON_PATHS } from './ribbon-icons';
+
+export type GalleryTranslate = (
+	key: string,
+	params?: Readonly<Record<string, string | number>>,
+) => string;
 export type RibbonGalleryPickEvent = CustomEvent<{ gallery: string; itemId: string }>;
 export interface PptxUiRibbonGalleryElement extends HTMLElement {
 	readonly trigger: HTMLButtonElement;
@@ -20,203 +34,146 @@ declare global {
 	}
 }
 
-/** Shared light-DOM view preserves the established gallery selector/customization ABI. */
+/** A translated caption, or the English fallback when the dictionary misses the key. */
+function caption(t: GalleryTranslate, key: string, fallback: string): string {
+	const translated = t(key);
+	return translated && translated !== key ? translated : fallback;
+}
+
+/** A pptx descriptor (catalogue keys, raw command path) resolved into the shared gallery state. */
+export function officeGalleryState(
+	descriptor: RibbonGalleryDescriptor,
+	t: GalleryTranslate,
+): OfficeGalleryState {
+	const label = caption(t, descriptor.labelKey, descriptor.label);
+	const more = t('pptx.gallery.more', { name: label });
+	const item = (entry: RibbonGalleryItem): OfficeGalleryItem => ({
+		id: entry.id,
+		label: galleryItemLabel(entry, t),
+		applied: entry.applied,
+		preview: entry.previewSvg,
+	});
+	const command = descriptor.command;
+	if (command) {
+		registerIcon(`pptx:gallery-${descriptor.id}`, command.iconPath);
+	}
+	return {
+		id: descriptor.id,
+		label,
+		moreLabel: more === 'pptx.gallery.more' ? `More ${label}` : more,
+		disabled: descriptor.disabled,
+		command: command
+			? {
+					icon: `pptx:gallery-${descriptor.id}`,
+					large: command.large,
+					hint: command.hintKey ? caption(t, command.hintKey, command.hint ?? label) : label,
+				}
+			: undefined,
+		sections: descriptor.sections.map((section) => ({
+			title: section.titleKey ? caption(t, section.titleKey, section.title ?? '') : section.title,
+			columns: section.columns,
+			tileWidth: section.tileWidth,
+			tileHeight: section.tileHeight,
+			items: section.items.map(item),
+		})),
+		inline: inlineGalleryItems(descriptor).map(item),
+	};
+}
+
+interface SharedGallery extends HTMLElement {
+	readonly trigger: HTMLButtonElement;
+	triggerIcon(): Element | null;
+	attributeChangedCallback(): void;
+	connectedCallback(): void;
+}
+
+/**
+ * `pptx-ui-ribbon-gallery`: the shared `office-ui-gallery` under its published pptx contract.
+ * Hosts set `descriptor` (and `translateLabel`); `gallery-pick` `{ gallery, itemId }` and the
+ * `data-ribbon-gallery`, `data-ribbon-gallery-popup`, `data-gallery-item` and
+ * `data-pptx-compact` hooks stay. The trigger keeps the pptx ribbon artwork.
+ */
 export function definePptxRibbonGallery(registry: CustomElementRegistry): void {
 	if (registry.get('pptx-ui-ribbon-gallery')) {
 		return;
 	}
-	class RibbonGallery extends HTMLElement implements PptxUiRibbonGalleryElement {
-		static observedAttributes = ['mode', 'chevron-only', 'icon', 'data-ribbon-control'];
-		private value: RibbonGalleryDescriptor | undefined;
-		private t: GalleryTranslate = (key) => key;
-		private locked = false;
-		private opened = false;
-		private readonly view;
+	defineGallery(registry);
+	const Base = registry.get('office-ui-gallery') as unknown as (new () => SharedGallery) & {
+		observedAttributes: string[];
+	};
+	const setShared = Object.getOwnPropertyDescriptor(Base.prototype, 'state')!.set!;
+	class PptxRibbonGallery extends Base {
+		static pickEvent = 'gallery-pick';
+		static triggerAttribute = 'data-ribbon-gallery';
+		static popupAttribute = 'data-ribbon-gallery-popup';
+		static itemAttribute = 'data-gallery-item';
+		static compactAttribute = 'data-pptx-compact';
+		static override get observedAttributes(): string[] {
+			return [...Base.observedAttributes, 'data-ribbon-control'];
+		}
+		#descriptor: RibbonGalleryDescriptor | undefined;
+		#t: GalleryTranslate = (key) => key;
 		constructor() {
 			super();
-			this.view = createRibbonGalleryView(
-				this.ownerDocument,
-				(itemId) => this.pick(itemId),
-				() => {
-					if (this.value?.command) {
-						this.pick(this.value.sections[0]?.items[0]?.id ?? '');
-						return;
-					}
-					this.open = !this.open;
-				},
-			);
-			this.view.root.addEventListener('keydown', (event) => {
-				if (event.key === 'Escape' && this.open) {
-					event.stopPropagation();
-					event.preventDefault();
-					this.close();
-					this.view.trigger.focus();
-				}
-				if (event.key === 'ArrowDown' && event.target === this.view.trigger) {
-					event.stopPropagation();
-					event.preventDefault();
-					this.open = true;
-					this.view.popup.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
-				}
-				if (event.key === 'Enter' || event.key === ' ') {
-					event.stopPropagation();
-				}
-			});
+			if (this.shadowRoot) {
+				attachControlStyles(this.shadowRoot, bridgeCss('pptx-ui-ribbon-gallery'));
+			}
 		}
-		get descriptor() {
-			return this.value;
+		get descriptor(): RibbonGalleryDescriptor | undefined {
+			return this.#descriptor;
 		}
 		set descriptor(value: RibbonGalleryDescriptor | undefined) {
-			this.value = value;
-			this.paint();
+			this.#descriptor = value;
+			this.#sync();
 		}
-		get trigger() {
-			return this.view.trigger;
-		}
-		get popup() {
-			return this.view.popup;
-		}
-
-		get translateLabel() {
-			return this.t;
+		get translateLabel(): GalleryTranslate {
+			return this.#t;
 		}
 		set translateLabel(value: GalleryTranslate) {
-			this.t = value;
-			this.paint();
+			this.#t = value;
+			this.#sync();
 		}
-		get disabled() {
-			return this.locked;
-		}
-		set disabled(value: boolean) {
-			this.locked = Boolean(value);
-			this.paint();
-		}
-		get open() {
-			return this.opened;
-		}
-		set open(value: boolean) {
-			const next = Boolean(value) && !this.unavailable();
-			if (next === this.opened) {
-				return;
-			}
-			this.opened = next;
-			this.view.setOpen(next);
-			this.paint();
-			this.view.trigger.setAttribute('aria-expanded', String(next));
-			this.cleanup();
-			if (next && this.isConnected) {
-				this.ownerDocument.addEventListener('pointerdown', this.outside, true);
-				this.ownerDocument.addEventListener('keydown', this.escape);
-				this.ownerDocument.defaultView?.addEventListener('resize', this.position);
-				this.ownerDocument.addEventListener('scroll', this.position, true);
-				this.position();
-			}
-		}
-		close(): void {
-			this.open = false;
-		}
-		connectedCallback(): void {
+		override connectedCallback(): void {
 			attachRibbonGalleryStyles(this.ownerDocument);
-			this.append(this.view.root);
-			this.paint();
+			super.connectedCallback();
 		}
-		disconnectedCallback(): void {
-			this.close();
-			this.cleanup();
-		}
-		attributeChangedCallback(): void {
-			this.paint();
-		}
-		private unavailable() {
-			return this.locked || !this.value || this.value.disabled || !galleryHasItems(this.value);
-		}
-		private paint(): void {
-			if (!this.value) {
-				this.close();
-				this.view.clear();
-				this.view.trigger.disabled = true;
-				return;
+		/** The ribbon control's own artwork when it has one, else the named pptx glyph. */
+		override triggerIcon(): Element | null {
+			const doc = this.ownerDocument;
+			const controlId = this.getAttribute('data-ribbon-control');
+			if (!this.#descriptor?.command && controlId && RIBBON_CONTROL_ICONS[controlId]) {
+				const svg = createRibbonControlIcon(doc, controlId);
+				svg.setAttribute('aria-hidden', 'true');
+				return svg;
 			}
-			const hadFocus = this.contains(this.ownerDocument.activeElement);
-			if (this.view.root.parentElement !== this) {
-				this.append(this.view.root);
+			if (this.#descriptor?.command) {
+				return super.triggerIcon();
 			}
-			const focusedId = this.ownerDocument.activeElement?.getAttribute('data-gallery-item');
-			const focusInPopup = this.view.popup.contains(this.ownerDocument.activeElement);
-			this.view.paint(
-				this.value,
-				this.t,
-				this.unavailable(),
-				this.getAttribute('mode') === 'inline' && !this.hasAttribute('chevron-only'),
-				this.hasAttribute('chevron-only'),
-				this.getAttribute('icon') ?? 'palette',
-				this.open,
-				this.getAttribute('data-ribbon-control') ?? undefined,
+			const name = this.getAttribute('icon') ?? 'palette';
+			const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svg.setAttribute('aria-hidden', 'true');
+			const icon = `pptx:${RIBBON_ICON_PATHS[name] ? name : 'palette'}`;
+			if (!getIcon(icon)) {
+				registerIcon(icon, RIBBON_ICON_PATHS[name] ?? RIBBON_ICON_PATHS.palette ?? '');
+			}
+			paintIcon(svg, icon);
+			return svg;
+		}
+		#sync(): void {
+			setShared.call(
+				this,
+				this.#descriptor ? officeGalleryState(this.#descriptor, this.#t) : undefined,
 			);
-			if (this.value.command) {
-				this.view.trigger.removeAttribute('aria-expanded');
-			} else {
-				this.view.trigger.setAttribute('aria-expanded', String(this.open));
+			// The shared element mounts its view only once connected; pptx hosts (vanilla builds
+			// the whole ribbon detached) populate and query galleries before insertion.
+			const view = this.trigger.parentElement;
+			if (this.#descriptor && !this.isConnected && view && view.parentElement !== this) {
+				this.append(view);
 			}
-			this.toggleAttribute('data-command', Boolean(this.value.command));
-			this.toggleAttribute('data-command-large', Boolean(this.value.command?.large));
-			if (this.unavailable()) {
-				this.close();
-			}
-			if (this.open) {
-				this.position();
-			}
-			if (focusedId && hadFocus) {
-				(focusInPopup ? this.view.popup : this)
-					.querySelector<HTMLButtonElement>(`[data-gallery-item="${CSS.escape(focusedId)}"]`)
-					?.focus();
-			}
-		}
-		private pick(itemId: string): void {
-			if (
-				this.unavailable() ||
-				!this.value?.sections.some((section) => section.items.some((item) => item.id === itemId))
-			) {
-				return;
-			}
-			this.close();
-			this.view.trigger.focus();
-			this.dispatchEvent(
-				new CustomEvent('gallery-pick', {
-					detail: { gallery: this.value.id, itemId },
-					bubbles: true,
-					composed: true,
-				}),
-			);
-		}
-		private readonly outside = (event: Event): void => {
-			if (!event.composedPath().includes(this)) {
-				this.close();
-			}
-		};
-		private readonly escape = (event: KeyboardEvent): void => {
-			if (event.key === 'Escape') {
-				event.stopPropagation();
-				this.close();
-				this.view.trigger.focus();
-			}
-		};
-		private readonly position = (): void => {
-			const window = this.ownerDocument.defaultView;
-			if (!window) {
-				return;
-			}
-			const anchor = this.view.trigger.getBoundingClientRect();
-			const width = this.view.popup.getBoundingClientRect().width;
-			this.view.popup.style.left = `${Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8))}px`;
-			this.view.popup.style.top = `${Math.max(8, Math.min(anchor.bottom + 4, window.innerHeight - this.view.popup.getBoundingClientRect().height - 8))}px`;
-		};
-		private cleanup(): void {
-			this.ownerDocument.removeEventListener('pointerdown', this.outside, true);
-			this.ownerDocument.removeEventListener('keydown', this.escape);
-			this.ownerDocument.defaultView?.removeEventListener('resize', this.position);
-			this.ownerDocument.removeEventListener('scroll', this.position, true);
 		}
 	}
-	registry.define('pptx-ui-ribbon-gallery', RibbonGallery);
+	registry.define(
+		'pptx-ui-ribbon-gallery',
+		PptxRibbonGallery as unknown as CustomElementConstructor,
+	);
 }

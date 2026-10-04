@@ -87,7 +87,7 @@ export type { PptxUiRibbonInsertElement, RibbonInsertRequestEvent } from './ribb
 export type { PptxUiRibbonViewElement, RibbonViewRequestEvent } from './ribbon-view';
 export type { PptxUiRibbonSectionElement } from './ribbon-section';
 export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
-export type { GalleryTranslate } from './ribbon-gallery-view';
+export type { GalleryTranslate } from './ribbon-gallery';
 export type { RibbonToggleRequestEvent } from './office-alias-types';
 export type {
 	PptxUiSubtitleSettingsElement,

@@ -25,6 +25,7 @@ export const OFFICE_ALIAS_TAGS = [
 	'pptx-ui-context-menu',
 	'pptx-ui-title-bar',
 	'pptx-ui-status-bar',
+	'pptx-ui-ribbon-gallery',
 ] as const;
 
 /** Every alias maps the shared tokens onto the pptx theme and control tokens. */
@@ -89,6 +90,11 @@ const BASE = `
 const EXTRAS: Partial<Record<(typeof OFFICE_ALIAS_TAGS)[number], string>> = {
 	'pptx-ui-title-bar': TITLE_BAR_BRIDGE,
 	'pptx-ui-status-bar': STATUS_BAR_BRIDGE,
+	'pptx-ui-ribbon-gallery': `:host { --office-foreground: var(--pptx-foreground, #f9fafb); --office-background: var(--pptx-background, #111827);
+	--office-gallery-strip-background: color-mix(in srgb, var(--pptx-muted, #2a2a3d) 30%, transparent);
+	--office-command-icon-color: var(--pptx-primary, #6366f1); --office-z-popover: 1200;
+	--office-popover-foreground: var(--pptx-popover-foreground, #f9fafb); --office-shadow-lg: 0 8px 24px #0006;
+	--office-icon-stroke: 1.6; --office-line-height-tight: 11px; }`,
 	'pptx-ui-select': `:host { --office-select-background: var(--pptx-select-control-bg, var(--pptx-background, #11111b)); }
 :host(.bg-muted) { --office-select-background: var(--pptx-muted, #1f2937); }
 :host(.bg-popover) { --office-select-background: var(--pptx-popover, #111827); }`,
