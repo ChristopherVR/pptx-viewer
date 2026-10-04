@@ -86,9 +86,12 @@ test('control instances reuse one parsed stylesheet per type', async ({ page }) 
 			document.body.append(first, second);
 			const firstRoot = first.shadowRoot!;
 			const secondRoot = second.shadowRoot!;
+			// The shared control sheet plus the pptx token bridge: both parsed once per type.
+			const sheets = firstRoot.adoptedStyleSheets;
 			const reused =
-				firstRoot.adoptedStyleSheets.length === 1 &&
-				firstRoot.adoptedStyleSheets[0] === secondRoot.adoptedStyleSheets[0] &&
+				sheets.length > 0 &&
+				sheets.length === secondRoot.adoptedStyleSheets.length &&
+				sheets.every((sheet, index) => sheet === secondRoot.adoptedStyleSheets[index]) &&
 				!firstRoot.querySelector('style') &&
 				!secondRoot.querySelector('style');
 			first.remove();

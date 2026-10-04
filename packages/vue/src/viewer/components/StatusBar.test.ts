@@ -20,17 +20,19 @@ describe('statusBar adapter', () => {
 	};
 
 	it('renders the slide counter and an empty deck', () => {
-		expect(open().root.querySelector('.counter')!.textContent).toBe('Slide 1 of 7');
-		expect(open({ slideCount: 0 }).root.querySelector('.counter')!.textContent).toBe('No slides');
+		expect(open().root.querySelector('[data-item="counter"]')!.textContent).toBe('Slide 1 of 7');
+		expect(open({ slideCount: 0 }).root.querySelector('[data-item="counter"]')!.textContent).toBe(
+			'No slides',
+		);
 	});
 
 	it('reflects autosave + dirty state', () => {
 		expect(open().text()).toContain('All saved');
 		expect(open({ isDirty: true }).text()).toContain('Unsaved changes');
 		expect(open({ autosaveStatus: 'saving' }).text()).toContain('Saving');
-		expect(open({ autosaveStatus: 'error' }).root.querySelector('.save')!.className).toContain(
-			'error',
-		);
+		expect(
+			open({ autosaveStatus: 'error' }).root.querySelector('[data-item="save"]')!.className,
+		).toContain('error');
 		expect(open({ autosaveStatus: 'saved', lastSavedAt: Date.now() }).text()).toContain('just now');
 	});
 

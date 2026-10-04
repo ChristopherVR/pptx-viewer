@@ -95,7 +95,7 @@
 		"html2canvas-pro": "^2.4.2",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.2",
-		"ooxml-ui": "^0.17.0",
+		"ooxml-ui": "^0.18.2",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-mcp": "workspace:*",

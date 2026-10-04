@@ -43,9 +43,9 @@ function open(props: Record<string, unknown> = {}) {
 describe('statusBar adapter', () => {
 	it('renders the counter, zoom percent and save state', () => {
 		const { root, button } = open({ current: 2, zoomPercent: 125, isDirty: true });
-		expect(root.querySelector('.counter')!.textContent).toBe('Slide 3 of 7');
+		expect(root.querySelector('[data-item="counter"]')!.textContent).toBe('Slide 3 of 7');
 		expect(button('Zoom to fit').textContent).toBe('125%');
-		expect(root.querySelector('.save')!.textContent).toBe('Unsaved changes');
+		expect(root.querySelector('[data-item="save"]')!.textContent).toBe('Unsaved changes');
 	});
 
 	it('routes every control to its callback', () => {

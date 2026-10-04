@@ -32,8 +32,8 @@ describe('pptx-ui-status-bar', () => {
 	it('renders the counter, save text, names and pressed state', () => {
 		const host = mount({ notesExpanded: true });
 		const root = host.shadowRoot!;
-		expect(root.querySelector('.counter')!.textContent).toBe('Slide 3 of 10');
-		expect(root.querySelector('.save')!.textContent).toBe('All saved');
+		expect(root.querySelector('[data-item="counter"]')!.textContent).toBe('Slide 3 of 10');
+		expect(root.querySelector('[data-item="save"]')!.textContent).toBe('All saved');
 		expect(button(host, 'pptx.statusBar.toggleNotes')!.getAttribute('aria-pressed')).toBe('true');
 		expect(button(host, 'pptx.statusBar.normalView')!.getAttribute('aria-pressed')).toBe('true');
 		expect(button(host, 'pptx.statusBar.slideShow')!.getAttribute('aria-pressed')).toBe('false');
@@ -99,17 +99,23 @@ describe('pptx-ui-status-bar', () => {
 	it('isolates instances and clamps the counter', () => {
 		const first = mount({ activeSlideIndex: 99 });
 		const second = mount({ slideCount: 0 });
-		expect(first.shadowRoot!.querySelector('.counter')!.textContent).toBe('Slide 10 of 10');
-		expect(second.shadowRoot!.querySelector('.counter')!.textContent).toBe(
+		expect(first.shadowRoot!.querySelector('[data-item="counter"]')!.textContent).toBe(
+			'Slide 10 of 10',
+		);
+		expect(second.shadowRoot!.querySelector('[data-item="counter"]')!.textContent).toBe(
 			'pptx.statusBar.noSlides',
 		);
 	});
 
 	it('marks saving and error kinds', () => {
 		const host = mount({ saveKind: 'error', saveText: 'x' });
-		expect(host.shadowRoot!.querySelector('.save')!.classList.contains('error')).toBeTruthy();
+		expect(
+			host.shadowRoot!.querySelector('[data-item="save"]')!.classList.contains('error'),
+		).toBeTruthy();
 		host.state = { ...host.state, saveKind: 'saving' };
-		expect(host.shadowRoot!.querySelector('.save')!.classList.contains('saving')).toBeTruthy();
+		expect(
+			host.shadowRoot!.querySelector('[data-item="save"]')!.classList.contains('saving'),
+		).toBeTruthy();
 	});
 });
 

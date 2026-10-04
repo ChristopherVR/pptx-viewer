@@ -72,32 +72,33 @@ function mount(overrides: Partial<StatusBarProps> = {}) {
 describe('react StatusBar adapter', () => {
 	it('renders the counter, language and save state from the shared element', () => {
 		const { q } = mount();
-		expect(q('.counter').textContent).toBe('Slide 3 of 10');
-		expect(q('.save').textContent).toBe(translationsEn['pptx.statusBar.allSaved']);
+		expect(q('[data-item="counter"]').textContent).toBe('Slide 3 of 10');
+		expect(q('[data-item="save"]').textContent).toBe(translationsEn['pptx.statusBar.allSaved']);
 		expect(q('.bar').textContent).toContain(translationsEn['pptx.statusBar.language']);
 	});
 
 	it('clamps the counter and reports an empty deck', () => {
-		expect(mount({ slideCount: 5, activeSlideIndex: 9 }).q('.counter').textContent).toBe(
-			'Slide 5 of 5',
-		);
-		expect(mount({ slideCount: 0 }).q('.counter').textContent).toBe('No slides');
+		expect(
+			mount({ slideCount: 5, activeSlideIndex: 9 }).q('[data-item="counter"]').textContent,
+		).toBe('Slide 5 of 5');
+		expect(mount({ slideCount: 0 }).q('[data-item="counter"]').textContent).toBe('No slides');
 	});
 
 	it('derives the save indicator from dirty and autosave state', () => {
-		expect(mount({ isDirty: true }).q('.save').textContent).toBe('Unsaved changes');
+		expect(mount({ isDirty: true }).q('[data-item="save"]').textContent).toBe('Unsaved changes');
 		expect(
 			mount({ autosaveStatus: { state: 'saving' } })
-				.q('.save')
+				.q('[data-item="save"]')
 				.classList.contains('saving'),
 		).toBeTruthy();
 		expect(
 			mount({ autosaveStatus: { state: 'error', message: 'x' } })
-				.q('.save')
+				.q('[data-item="save"]')
 				.classList.contains('error'),
 		).toBeTruthy();
 		expect(
-			mount({ autosaveStatus: { state: 'saved', timestamp: Date.now() } }).q('.save').textContent,
+			mount({ autosaveStatus: { state: 'saved', timestamp: Date.now() } }).q('[data-item="save"]')
+				.textContent,
 		).toContain('just now');
 	});
 
