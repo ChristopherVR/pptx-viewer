@@ -1,22 +1,29 @@
-import { definePptxCheckbox } from './checkbox';
-import { definePptxCompatToasts } from './compat-toasts';
-import { definePptxContextMenu } from './context-menu';
-import { definePptxDialogFooter } from './dialog-footer';
 import { HOST_STYLES } from './host-styles';
 import { definePptxMobileBar } from './mobile-bar';
 import { definePptxMobileToolbar } from './mobile-toolbar';
 import { definePptxNotesToolbar } from './notes-toolbar';
-import { definePptxPasteOptions } from './paste-options';
+import {
+	definePptxCheckbox,
+	definePptxCompatToasts,
+	definePptxContextMenu,
+	definePptxDialogFooter,
+	definePptxPasteOptions,
+	definePptxRadio,
+	definePptxReadOnlyBanner,
+	definePptxRibbonCommand,
+	definePptxRibbonGroup,
+	definePptxRibbonToggle,
+	definePptxSearchField,
+	definePptxSelect,
+	definePptxSwitch,
+} from './office-aliases';
+import { OFFICE_TOKEN_BRIDGE } from './office-token-bridge';
 import { definePptxPresentToolbar } from './present-toolbar';
 import { definePptxPresenterConsole } from './presenter-console';
-import { definePptxRadio } from './radio';
-import { definePptxReadOnlyBanner } from './read-only-banner';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
 import { definePptxRibbonAnimations } from './ribbon-animations';
-import { definePptxRibbonCommand } from './ribbon-command';
 import { definePptxRibbonDraw } from './ribbon-draw';
 import { definePptxRibbonGallery } from './ribbon-gallery';
-import { definePptxRibbonGroup } from './ribbon-group';
 import {
 	definePptxRibbonHomeArrangeAlign,
 	definePptxRibbonHomeArrangeEdit,
@@ -34,37 +41,33 @@ import {
 } from './ribbon-home';
 import { definePptxRibbonInsert } from './ribbon-insert';
 import { definePptxRibbonSection } from './ribbon-section';
-import { definePptxRibbonToggle } from './ribbon-toggle';
 import { definePptxRibbonTransitions } from './ribbon-transitions';
 import { definePptxRibbonView } from './ribbon-view';
-import { definePptxSearchField } from './search-field';
-import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
 import { definePptxStatusBar } from './status-bar';
 import { definePptxSubtitleSettings } from './subtitle-settings';
-import { definePptxSwitch } from './switch';
 import { definePptxThemeEditor } from './theme-editor';
 import { definePptxTitleBar } from './title-bar';
 
 export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-editor';
-export type { CompatToastsRequestEvent, PptxUiCompatToastsElement } from './compat-toasts';
-export type { DialogFooterRequestEvent, PptxUiDialogFooterElement } from './dialog-footer';
+export type { CompatToastsRequestEvent, PptxUiCompatToastsElement } from './office-alias-types';
+export type { DialogFooterRequestEvent, PptxUiDialogFooterElement } from './office-alias-types';
 export type { MobileBarRequestEvent, PptxUiMobileBarElement } from './mobile-bar';
 export type { MobileToolbarRequestEvent, PptxUiMobileToolbarElement } from './mobile-toolbar';
-export type { PasteOptionsRequestEvent, PptxUiPasteOptionsElement } from './paste-options';
+export type { PasteOptionsRequestEvent, PptxUiPasteOptionsElement } from './office-alias-types';
 export type { PptxUiPresentToolbarElement, PresentToolbarRequestEvent } from './present-toolbar';
 export type {
 	PptxUiPresenterConsoleElement,
 	PresenterConsoleRequestEvent,
 } from './presenter-console';
-export type { PptxUiReadOnlyBannerElement, ReadOnlyBannerRequestEvent } from './read-only-banner';
+export type { PptxUiReadOnlyBannerElement, ReadOnlyBannerRequestEvent } from './office-alias-types';
 
 export { attachRibbonOverflow, reflowRibbon } from './ribbon-overflow';
 export type { RibbonRowOptions } from './ribbon-overflow';
 export { HOME_LAUNCHER_GROUPS, homeLaunchers } from './ribbon-launchers';
 export type { RibbonLauncher, RibbonLaunchers } from './ribbon-launchers';
 
-export type { RibbonCommandRequestEvent } from './ribbon-command';
+export type { RibbonCommandRequestEvent } from './office-alias-types';
 export type {
 	PptxUiRibbonAnimationsElement,
 	RibbonAnimationsRequestEvent,
@@ -85,7 +88,7 @@ export type { PptxUiRibbonViewElement, RibbonViewRequestEvent } from './ribbon-v
 export type { PptxUiRibbonSectionElement } from './ribbon-section';
 export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
 export type { GalleryTranslate } from './ribbon-gallery-view';
-export type { RibbonToggleRequestEvent } from './ribbon-toggle';
+export type { RibbonToggleRequestEvent } from './office-alias-types';
 export type {
 	PptxUiSubtitleSettingsElement,
 	SubtitleSettingsChangeEvent,
@@ -98,7 +101,7 @@ export type {
 	ContextMenuCloseEvent,
 	ContextMenuRequestEvent,
 	PptxUiContextMenuElement,
-} from './context-menu';
+} from './office-alias-types';
 export type {
 	ContextMenuCloseDetail,
 	ContextMenuCloseReason,
@@ -177,7 +180,7 @@ export function registerPptxWebControls(): void {
 	if (!document.getElementById('pptx-ui-control-hosts')) {
 		const style = document.createElement('style');
 		style.id = 'pptx-ui-control-hosts';
-		style.textContent = HOST_STYLES;
+		style.textContent = HOST_STYLES + OFFICE_TOKEN_BRIDGE;
 		document.head.append(style);
 	}
 	for (const [name, define] of controls) {

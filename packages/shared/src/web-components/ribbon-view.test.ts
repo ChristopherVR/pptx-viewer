@@ -65,7 +65,7 @@ describe('shared View ribbon', () => {
 		const request = vi.fn();
 		host.addEventListener('view-request', request);
 		const row = host.querySelector('[data-ribbon-control="view.show.ruler"]')!;
-		(row.shadowRoot!.querySelector('pptx-ui-checkbox') as HTMLElement).click();
+		(row.shadowRoot!.querySelector('[role="checkbox"]') as HTMLElement).click();
 		expect(request.mock.calls[0][0].detail).toStrictEqual({
 			kind: 'option',
 			value: 'showRulers',

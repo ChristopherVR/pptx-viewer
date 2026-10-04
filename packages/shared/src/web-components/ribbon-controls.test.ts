@@ -122,7 +122,7 @@ describe('shared ribbon controls', () => {
 		host.setAttribute('label', 'Subtitles');
 		document.body.append(host);
 		const checkbox = host.shadowRoot!.querySelector<HTMLElement & { checked: boolean }>(
-			'pptx-ui-checkbox',
+			'[role="checkbox"]',
 		)!;
 		const request = vi.fn();
 		host.addEventListener('toggle-request', request);

@@ -76,6 +76,9 @@ export default defineConfig({
 			checks: { pluginTimings: false },
 			external: [
 				'svelte',
+				// Shared Office controls: one copy, owned by the host's node_modules.
+				'ooxml-ui',
+				/^ooxml-ui\//u,
 				/^svelte\//u,
 				'jszip',
 				'fast-xml-parser',

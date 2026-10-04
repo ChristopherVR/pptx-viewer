@@ -88,6 +88,9 @@ export default defineConfig({
 			plugins: [terser({ format: { comments: false } })],
 			external: [
 				'vue',
+				// Shared Office controls: one copy, owned by the host's node_modules.
+				'ooxml-ui',
+				/^ooxml-ui\//u,
 				'lucide-vue-next',
 				'jspdf',
 				'html2canvas-pro',

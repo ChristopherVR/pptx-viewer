@@ -1,28 +1,33 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { CHECKBOX_STYLES } from './checkbox-styles';
 import { CONTROL_TOKENS, FOCUS_RING, tok } from './control-tokens';
 import type { ControlToken } from './control-tokens';
 import { HOST_STYLES } from './host-styles';
 import { registerPptxWebControls } from './index';
-import { RADIO_STYLES } from './radio-styles';
-import { SEARCH_STYLES } from './search-field-styles';
-import { SELECT_STYLES } from './select-styles';
-import { SWITCH_STYLES } from './switch-styles';
+import { bridgeCss } from './office-token-bridge';
+
+const OFFICE_TOKEN_BRIDGE = bridgeCss('pptx-ui-checkbox');
 
 beforeAll(registerPptxWebControls);
 afterEach(() => {
 	document.body.replaceChildren();
 });
 
+// Search, checkbox, radio and switch are ooxml-ui elements now (`office-ui-*`, aliased under their
+// pptx tags); the bridge maps their --office-* tokens onto these pptx control tokens.
 const SHARED_CSS = {
-	search: SEARCH_STYLES,
-	select: SELECT_STYLES,
-	checkbox: CHECKBOX_STYLES,
-	radio: RADIO_STYLES,
-	switch: SWITCH_STYLES,
+	bridge: OFFICE_TOKEN_BRIDGE,
 };
+
+/** The CSS a shared control renders into its shadow root (jsdom uses the `<style>` fallback). */
+function shadowCss(tag: string): string {
+	const el = document.createElement(tag);
+	document.body.append(el);
+	const text = [...el.shadowRoot!.querySelectorAll('style')].map((s) => s.textContent).join(' ');
+	el.remove();
+	return text;
+}
 
 describe('canonical control tokens', () => {
 	it('every shared token a primitive reads is declared with a default', () => {
@@ -54,12 +59,24 @@ describe('canonical control tokens', () => {
 
 	it('one focus ring and one touch target feed every primitive', () => {
 		expect(FOCUS_RING).toContain('--pptx-focus-ring-width');
-		expect(CHECKBOX_STYLES).toContain(FOCUS_RING);
-		expect(SELECT_STYLES).toContain(FOCUS_RING);
-		expect(SELECT_STYLES).toContain('--pptx-touch-target');
-		expect(CHECKBOX_STYLES).toContain('--pptx-checkbox-size-touch');
+		expect(OFFICE_TOKEN_BRIDGE).toContain('--office-target-size-touch: var(--pptx-touch-target');
+		// The shared elements read --office-* focus and size tokens; the bridge feeds them.
+		expect(OFFICE_TOKEN_BRIDGE).toContain('--office-focus-width: var(--pptx-focus-ring-width');
+		expect(OFFICE_TOKEN_BRIDGE).toContain(
+			'--office-checkbox-size-touch: var(--pptx-checkbox-size-touch',
+		);
+		for (const tag of [
+			'pptx-ui-search',
+			'pptx-ui-select',
+			'pptx-ui-checkbox',
+			'pptx-ui-radio',
+			'pptx-ui-switch',
+		]) {
+			const css = shadowCss(tag);
+			expect(css.includes('forced-colors: active') ? tag : `${tag}: no forced-colors`).toBe(tag);
+			expect(css.includes('var(--office-focus-width') ? tag : `${tag}: no focus token`).toBe(tag);
+		}
 		for (const css of Object.values(SHARED_CSS)) {
-			expect(css).toContain('forced-colors: active');
 			expect(css).not.toMatch(/#e86a40|accent-color:\s*#/);
 		}
 	});
@@ -117,9 +134,10 @@ describe('search field states', () => {
 
 	it('draws exactly one visible input: the host owns border and focus', () => {
 		const { input } = make({ variant: 'titlebar' });
-		expect(SEARCH_STYLES).toMatch(/input \{[^}]*border: 0;[^}]*outline: 0;/);
+		const css = shadowCss('pptx-ui-search');
+		expect(css).toMatch(/input \{[^}]*border: 0;[^}]*outline: 0;/);
 		expect(input.type).toBe('search');
-		expect(SEARCH_STYLES).toContain(':host(:focus-within) { border-color:');
+		expect(css).toContain(':host(:focus-within) { border-color:');
 	});
 
 	it('forwards one input event per keystroke and keeps value in sync', () => {
@@ -438,5 +456,21 @@ describe('switch', () => {
 		expect(onChange).not.toHaveBeenCalled();
 		expect(toggle.getAttribute('aria-disabled')).toBe('true');
 		expect(toggle.tabIndex).toBe(-1);
+	});
+});
+
+describe('office token bridge', () => {
+	it('is one valid :host block of --office-* declarations per alias', () => {
+		const css = bridgeCss('pptx-ui-switch');
+		const body = css.slice(css.indexOf('{') + 1, css.indexOf('}'));
+		const declarations = body
+			.split(';')
+			.map((part) => part.trim())
+			.filter(Boolean);
+		expect(css.startsWith(':host {')).toBeTruthy();
+		expect(declarations.length).toBeGreaterThan(30);
+		for (const declaration of declarations) {
+			expect(declaration).toMatch(/^--office-[a-z0-9-]+:\s\S/u);
+		}
 	});
 });
