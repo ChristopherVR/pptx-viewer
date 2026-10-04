@@ -1,5 +1,7 @@
+import { defineRibbonSection } from 'ooxml-ui/controls';
+
 import type { RibbonGroupView } from '../render/ribbon-command-view';
-import { createRibbonSectionView } from './ribbon-section-view';
+import { definePptxRibbonCommand, definePptxRibbonGroup } from './office-aliases';
 
 export interface PptxUiRibbonSectionElement extends HTMLElement {
 	groups: readonly RibbonGroupView[];
@@ -11,26 +13,24 @@ declare global {
 	}
 }
 
-/** Whole command/group families use one keyed view and the existing intent ABI. */
+/**
+ * `pptx-ui-ribbon-section`: the shared keyed `office-ui-ribbon-section` building pptx groups
+ * and commands, so the `data-ribbon-group` / `data-ribbon-control` customization ids and the
+ * existing intent events stay unchanged.
+ */
 export function definePptxRibbonSection(registry: CustomElementRegistry): void {
 	if (registry.get('pptx-ui-ribbon-section')) {
 		return;
 	}
-	class RibbonSection extends HTMLElement implements PptxUiRibbonSectionElement {
-		private model: readonly RibbonGroupView[] = [];
-		private readonly render = createRibbonSectionView(this);
-		get groups() {
-			return this.model;
-		}
-		set groups(value: readonly RibbonGroupView[]) {
-			this.model = value;
-			this.render(value);
-		}
-		connectedCallback(): void {
-			this.style.display = 'inline-flex';
-			this.style.alignItems = 'stretch';
-			this.render(this.model);
-		}
+	definePptxRibbonGroup(registry);
+	definePptxRibbonCommand(registry);
+	defineRibbonSection(registry);
+	const Base = registry.get('office-ui-ribbon-section') as unknown as new () => HTMLElement;
+	class PptxRibbonSection extends Base {
+		static groupTag = 'pptx-ui-ribbon-group';
+		static commandTag = 'pptx-ui-ribbon-command';
+		static groupIdAttribute = 'data-ribbon-group';
+		static commandIdAttribute = 'data-ribbon-control';
 	}
-	registry.define('pptx-ui-ribbon-section', RibbonSection);
+	registry.define('pptx-ui-ribbon-section', PptxRibbonSection);
 }
