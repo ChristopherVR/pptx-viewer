@@ -7,6 +7,15 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.23.0) - 2026-10-04
+
+### Features
+
+- **viewer:** Run shared controls on ooxml-ui office-ui elements (by @ChristopherVR) ([926b8e9](https://github.com/ChristopherVR/pptx-viewer/commit/926b8e90a12cbc60727e0ea4a388cd4845279b57))
+- **viewer:** Run the title bar on the shared office-ui-title-bar (by @ChristopherVR) ([c022507](https://github.com/ChristopherVR/pptx-viewer/commit/c0225077a1306a632a8e42a6792bb61c04f20afb))
+- **viewer:** Run the status bar on the shared office-ui-status-bar (by @ChristopherVR) ([f7ec490](https://github.com/ChristopherVR/pptx-viewer/commit/f7ec4908339cc12d823a08f811730dcb74ca2e86))
+- **viewer:** Run ribbon sections on the shared office-ui-ribbon-section (by @ChristopherVR) ([f13c2ae](https://github.com/ChristopherVR/pptx-viewer/commit/f13c2aef9fa5660b7cc2e28775d27787482fc5a0))
+
 ## [4.22.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.22.1) - 2026-10-03
 
 ### Bug Fixes
