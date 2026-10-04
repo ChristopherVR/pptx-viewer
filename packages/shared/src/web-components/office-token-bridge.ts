@@ -1,4 +1,5 @@
 import { tok } from './control-tokens';
+import { TITLE_BAR_BRIDGE } from './title-bar-styles';
 
 /**
  * The `pptx-ui-*` tags implemented by `ooxml-ui` (see `office-aliases.ts`). Their shadow CSS reads
@@ -21,6 +22,7 @@ export const OFFICE_ALIAS_TAGS = [
 	'pptx-ui-ribbon-command',
 	'pptx-ui-ribbon-group',
 	'pptx-ui-context-menu',
+	'pptx-ui-title-bar',
 ] as const;
 
 /** Every alias maps the shared tokens onto the pptx theme and control tokens. */
@@ -83,6 +85,7 @@ const BASE = `
 
 /** Per-tag extras: pptx sizes and colours where its controls differ from the Office defaults. */
 const EXTRAS: Partial<Record<(typeof OFFICE_ALIAS_TAGS)[number], string>> = {
+	'pptx-ui-title-bar': TITLE_BAR_BRIDGE,
 	'pptx-ui-select': `:host { --office-select-background: var(--pptx-select-control-bg, var(--pptx-background, #11111b)); }
 :host(.bg-muted) { --office-select-background: var(--pptx-muted, #1f2937); }
 :host(.bg-popover) { --office-select-background: var(--pptx-popover, #111827); }`,
