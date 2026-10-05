@@ -199,7 +199,7 @@ describe('pptx-ui-title-bar', () => {
 		host.innerHTML = '<b slot="collaboration">c</b><i slot="account">a</i>';
 		document.body.append(host);
 		const slots = [...root(host).querySelectorAll('slot')].map((s) => s.name);
-		expect(slots).toStrictEqual(['collaboration', 'account']);
+		expect(slots).toStrictEqual(['actions', 'collaboration', 'account']);
 	});
 
 	it('searches commands, caps results and offers content search', () => {
