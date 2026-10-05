@@ -17,6 +17,8 @@ import { WebCheckbox } from '../WebControls';
 export interface ChartQuickActionsOverlayProps {
 	element: ChartPptxElement;
 	canEdit: boolean;
+	/** Effective stage scale (`zoom.editorScale`), so gaps stay a constant screen size. */
+	scale?: number;
 	onUpdateElement: (elementId: string, updates: Partial<PptxElement>) => void;
 }
 
@@ -48,6 +50,7 @@ const ICONS: Record<
 export function ChartQuickActionsOverlay({
 	element,
 	canEdit,
+	scale: stageScale = 1,
 	onUpdateElement,
 }: ChartQuickActionsOverlayProps): React.ReactElement | null {
 	const { t } = useTranslation();
@@ -67,10 +70,22 @@ export function ChartQuickActionsOverlay({
 		return () => document.removeEventListener('mousedown', handler);
 	}, [open]);
 
+	// The buttons are a constant screen size (inverse-scaled below), so the
+	// descriptor is built against the on-screen box, whose gaps are then screen
+	// constants, and each resulting position is divided back to slide px.
+	// Laying them out in slide px made them overlap whenever the stage was
+	// zoomed out.
+	const scale = stageScale || 1;
+	const screenPx = (value: number) => value / scale;
 	const descriptor = buildChartQuickActionsDescriptor({
 		isChartSelected: true,
 		chartData: element.chartData,
-		selectionBox: { x: element.x, y: element.y, width: element.width, height: element.height },
+		selectionBox: {
+			x: element.x * scale,
+			y: element.y * scale,
+			width: element.width * scale,
+			height: element.height * scale,
+		},
 	});
 	if (!descriptor || !element.chartData) {
 		return null;
@@ -104,8 +119,8 @@ export function ChartQuickActionsOverlay({
 						onClick={() => setOpen((prev) => (prev === button.id ? null : button.id))}
 						style={{
 							position: 'absolute',
-							left: button.x,
-							top: button.y,
+							left: screenPx(button.x),
+							top: screenPx(button.y),
 							width: button.size,
 							height: button.size,
 							scale: 'var(--pptx-handle-inverse-scale, 1)',
@@ -131,8 +146,8 @@ export function ChartQuickActionsOverlay({
 							data-testid='chart-quick-elements-popover'
 							style={{
 								position: 'absolute',
-								left: button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4,
-								top: button.y,
+								left: screenPx(button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4),
+								top: screenPx(button.y),
 								scale: 'var(--pptx-handle-inverse-scale, 1)',
 								transformOrigin: 'top left',
 							}}
@@ -162,8 +177,8 @@ export function ChartQuickActionsOverlay({
 							data-testid='chart-quick-styles-popover'
 							style={{
 								position: 'absolute',
-								left: button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4,
-								top: button.y,
+								left: screenPx(button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4),
+								top: screenPx(button.y),
 								scale: 'var(--pptx-handle-inverse-scale, 1)',
 								transformOrigin: 'top left',
 							}}
@@ -203,8 +218,8 @@ export function ChartQuickActionsOverlay({
 							data-testid='chart-quick-filters-popover'
 							style={{
 								position: 'absolute',
-								left: button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4,
-								top: button.y,
+								left: screenPx(button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4),
+								top: screenPx(button.y),
 								scale: 'var(--pptx-handle-inverse-scale, 1)',
 								transformOrigin: 'top left',
 							}}

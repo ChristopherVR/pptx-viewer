@@ -588,6 +588,7 @@ function SlideCanvasContent({
 							<ChartQuickActionsOverlay
 								element={selectedElement}
 								canEdit={canEdit}
+								scale={zoom.editorScale}
 								onUpdateElement={stableUpdateSmartArtElement}
 							/>
 						)}

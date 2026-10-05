@@ -177,4 +177,35 @@ test.describe('chart quick actions (Elements/Styles/Filters)', () => {
 			);
 		}
 	});
+
+	test('the buttons never overlap, however far the slide is zoomed out', async ({
+		browser,
+	}, testInfo) => {
+		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
+			await selectChart(page, origin);
+			const zoomOut = page.getByRole('button', { name: /^zoom out$/iu }).first();
+			for (let i = 0; i < 4; i += 1) {
+				await zoomOut.click();
+			}
+			await expect(page.locator('[data-testid="chart-quick-action-elements"]')).toBeVisible();
+			const boxes = [];
+			for (const id of ['elements', 'styles', 'filters']) {
+				boxes.push(await page.locator(`[data-testid="chart-quick-action-${id}"]`).boundingBox());
+			}
+			return boxes;
+		});
+
+		for (const { framework, value } of results) {
+			const where = `[${framework.name}]`;
+			for (let i = 1; i < value.length; i += 1) {
+				const above = value[i - 1];
+				const below = value[i];
+				expect(above && below, `${where} both buttons laid out`).toBeTruthy();
+				// Stacked top to bottom: the next button starts below the previous one's bottom edge.
+				expect(below!.y, `${where} button ${i} clears button ${i - 1}`).toBeGreaterThanOrEqual(
+					above!.y + above!.height - 0.5,
+				);
+			}
+		}
+	});
 });
