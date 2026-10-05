@@ -85,12 +85,12 @@ describe('shapeEffectOverlay', () => {
 			},
 		});
 		const path = wrapper.get('path');
-		expect(path.attributes('d')).toBe('M 0 0 L 400 1');
+		expect(path.attributes('d')).toBe('M 0 0 L 400 0');
 		expect(path.attributes('stroke')).toBe('#000000');
-		// The viewBox is the PAINTED (authored) box, matching the wrapper's own
-		// CSS size 1:1, so the rule is not stretched into a diagonal or padded
-		// into a thick bar (issue #285).
-		expect(wrapper.get('svg').attributes('viewBox')).toBe('0 0 400 0');
+		// A zero-height viewBox would stop the <svg> rendering, so a flat rule
+		// gets none and its path is drawn in the wrapper's own pixels.
+		expect(wrapper.get('svg').attributes('viewBox')).toBeUndefined();
+		expect(wrapper.get('svg').attributes('style')).toContain('min-height: 1px');
 		expect(wrapper.html()).not.toContain('<defs');
 	});
 
