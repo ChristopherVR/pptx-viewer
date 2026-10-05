@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.41.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.41.2) - 2026-10-05
+
+### Bug Fixes
+
+- **shared:** Draw zero-height and zero-width line shapes ([#404](https://github.com/ChristopherVR/pptx-viewer/issues/404)) (by @IHAGI-c) ([8366e0c](https://github.com/ChristopherVR/pptx-viewer/commit/8366e0c672c0838dfc2a5ab894797774d37860d6))
+
 ## [2.41.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.41.1) - 2026-10-05
 
 ### Build & CI

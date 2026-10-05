@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.24.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.24.2) - 2026-10-05
+
+### Bug Fixes
+
+- **shared:** Draw zero-height and zero-width line shapes ([#404](https://github.com/ChristopherVR/pptx-viewer/issues/404)) (by @IHAGI-c) ([8366e0c](https://github.com/ChristopherVR/pptx-viewer/commit/8366e0c672c0838dfc2a5ab894797774d37860d6))
+- **shared:** Skip defining the 3D view element without HTMLElement (by @ChristopherVR) ([8a08d33](https://github.com/ChristopherVR/pptx-viewer/commit/8a08d33560c06c555bf137465022d1a30fdc402a))
+- **vanilla:** Follow the ooxml-ui 0.28 gallery and select contracts (by @ChristopherVR) ([2dd5a64](https://github.com/ChristopherVR/pptx-viewer/commit/2dd5a646ff526a1065fea853e29d25b056e231dc))
+
 ## [4.24.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.24.1) - 2026-10-05
 
 ### Testing

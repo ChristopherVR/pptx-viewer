@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-10-05
 
+_Releases: pptx-react-viewer@4.24.2, pptx-vue-viewer@4.24.2, pptx-angular-viewer@4.24.2, pptx-vanilla-viewer@3.24.2, pptx-svelte-viewer@4.24.2, @christophervr/pptx-viewer@2.41.2_
+
+### Bug Fixes
+
+- **shared:** Draw zero-height and zero-width line shapes ([#404](https://github.com/ChristopherVR/pptx-viewer/issues/404)) (by @IHAGI-c) ([8366e0c](https://github.com/ChristopherVR/pptx-viewer/commit/8366e0c672c0838dfc2a5ab894797774d37860d6))
+- **shared:** Skip defining the 3D view element without HTMLElement (by @ChristopherVR) ([8a08d33](https://github.com/ChristopherVR/pptx-viewer/commit/8a08d33560c06c555bf137465022d1a30fdc402a))
+- **vanilla:** Follow the ooxml-ui 0.28 gallery and select contracts (by @ChristopherVR) ([2dd5a64](https://github.com/ChristopherVR/pptx-viewer/commit/2dd5a646ff526a1065fea853e29d25b056e231dc))
+
+### Documentation
+
+- Add a depends-on field to the pull request template (by @ChristopherVR) ([15ed646](https://github.com/ChristopherVR/pptx-viewer/commit/15ed646e473e8f8b4e48ae810cd6791f7ac91ce5))
+
+## 2026-10-05
+
 _Releases: pptx-viewer-core@4.11.2, pptx-react-viewer@4.24.1, pptx-vue-viewer@4.24.1, pptx-angular-viewer@4.24.1, pptx-vanilla-viewer@3.24.1, pptx-svelte-viewer@4.24.1, @christophervr/pptx-viewer@2.41.1_
 
 ### Bug Fixes
