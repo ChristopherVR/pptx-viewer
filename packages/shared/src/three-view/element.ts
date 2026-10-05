@@ -273,6 +273,11 @@ function createElementClass(): CustomElementConstructor {
  * Every binding calls this once before rendering the element.
  */
 export function defineThreeViewElement(registry?: CustomElementRegistry): void {
+	// Lit's Node build defines a global `customElements` but no `HTMLElement`, so a bare
+	// `customElements` check no longer means "this is a browser".
+	if (typeof HTMLElement === 'undefined') {
+		return;
+	}
 	const target = registry ?? (typeof customElements === 'undefined' ? undefined : customElements);
 	if (!target || target.get(THREE_VIEW_TAG)) {
 		return;
