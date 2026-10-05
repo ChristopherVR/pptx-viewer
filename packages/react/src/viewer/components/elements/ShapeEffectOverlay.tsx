@@ -238,6 +238,8 @@ export function ShapeEffectOverlay({
 						inset: 0,
 						width: '100%',
 						height: '100%',
+						minWidth: 1,
+						minHeight: 1,
 						overflow: 'visible',
 						pointerEvents: 'none',
 					}}
@@ -270,6 +272,8 @@ export function ShapeEffectOverlay({
 						inset: 0,
 						width: '100%',
 						height: '100%',
+						minWidth: 1,
+						minHeight: 1,
 						overflow: 'visible',
 						pointerEvents: 'none',
 					}}

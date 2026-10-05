@@ -217,7 +217,7 @@ describe('shapeEffectOverlay stroke-only preset', () => {
 
 	it('strokes the geometry with a flat colour and no paint server', () => {
 		const html = markup(rule());
-		expect(html).toContain('d="M 0 0 L 400 1"');
+		expect(html).toContain('d="M 0 0 L 400 0"');
 		expect(html).toContain('stroke="#000000"');
 		expect(html).not.toContain('<linearGradient');
 	});
@@ -225,9 +225,18 @@ describe('shapeEffectOverlay stroke-only preset', () => {
 	it('sizes the viewBox to the PAINTED (authored) box, matching the wrapper 1:1', () => {
 		// The viewBox must equal the wrapper's own CSS box (its authored extent,
 		// unpadded since issue #285): the overlay <svg> is displayed at 100%/100%
-		// of that wrapper, so a viewBox padded past it would stretch the rule
-		// non-uniformly instead of keeping it horizontal.
-		expect(markup(rule())).toContain('viewBox="0 0 400 0"');
+		// of that wrapper, so a viewBox padded past it would stretch the line
+		// non-uniformly.
+		expect(markup(rule({ height: 120 }))).toContain('viewBox="0 0 400 120"');
+	});
+
+	it('leaves the viewBox out of a flat rule and keeps the <svg> at least 1px', () => {
+		// A zero dimension, in the viewBox or in the <svg> box, stops the
+		// overlay from rendering at all.
+		const html = markup(rule());
+		expect(html).not.toContain('viewBox=');
+		expect(html).toContain('min-height:1px');
+		expect(markup(rule({ width: 0, height: 120 }))).toContain('d="M 0 0 L 0 120"');
 	});
 
 	it('drops the container fill, border and clip-path', () => {
