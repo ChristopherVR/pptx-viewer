@@ -98,9 +98,12 @@ describe('stroke-only preset geometry', () => {
 	it('strokes the evaluated geometry over the authored (painted) box', () => {
 		const svg = renderStrokeOutline(document, rule());
 		expect(svg).not.toBeNull();
-		expect(svg?.getAttribute('viewBox')).toBe('0 0 400 0');
+		// A zero-height box gets no viewBox and a 1px minimum size: a zero
+		// dimension in either stops the <svg> from rendering at all.
+		expect(svg?.getAttribute('viewBox')).toBeNull();
+		expect(svg?.getAttribute('style')).toContain('min-height:1px');
 		const path = svg?.querySelector('path');
-		expect(path?.getAttribute('d')).toBe('M 0 0 L 400 1');
+		expect(path?.getAttribute('d')).toBe('M 0 0 L 400 0');
 		expect(path?.getAttribute('stroke')).toBe('#000000');
 		expect(svg?.querySelector('defs')).toBeNull();
 	});
@@ -122,6 +125,12 @@ describe('stroke-only preset geometry', () => {
 		const box = rule({ shapeType: 'rect', height: 100 });
 		expect(renderStrokeOutline(document, box)).not.toBeNull();
 		expect(getShapeFillStrokeStyle(box)['border']).toBeUndefined();
+	});
+
+	it('draws a vertical rule straight, without a zero-width viewBox', () => {
+		const svg = renderStrokeOutline(document, rule({ width: 0, height: 120 }));
+		expect(svg?.getAttribute('viewBox')).toBeNull();
+		expect(svg?.querySelector('path')?.getAttribute('d')).toBe('M 0 0 L 0 120');
 	});
 });
 
