@@ -16,6 +16,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { strokeOutlineViewBox } from '../internal/shared';
 import { getStrokeOutline } from './element-effect-defs';
 import { getShapeFillStrokeStyle } from './element-style';
 
@@ -141,8 +142,15 @@ describe('elementRenderer stroke outline (stroke-only preset)', () => {
 		const outline = getStrokeOutline(rule());
 		expect(outline!.paint).toBeUndefined();
 		expect(outline!.stroke).toBe('#000000');
-		expect(outline!.d).toBe('M 0 0 L 400 1');
+		expect(outline!.d).toBe('M 0 0 L 400 0');
 		expect(outline!.strands).toStrictEqual([{ strokeWidth: 2, offset: 0 }]);
+	});
+
+	it('gives a flat rule no viewBox, since a zero-height one would hide the <svg>', () => {
+		expect(strokeOutlineViewBox(rule())).toBeUndefined();
+		expect(
+			strokeOutlineViewBox(rule({ width: 0, height: 120 } as Partial<PptxElement>)),
+		).toBeUndefined();
 	});
 
 	it('leaves the container with no border, no fill and no clip-path', () => {
