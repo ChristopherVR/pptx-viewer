@@ -19,7 +19,10 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import {
+	commitSmartArtNodeFill,
 	elementInLocalFrame,
+	measureSvgViewportRect,
+	resolvePalette,
 	resolveSmartArtThreeViewSpec,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
@@ -31,9 +34,11 @@ import { useI18n } from 'vue-i18n';
 import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { useRendering3DFlags } from '../composables/rendering-3d-flags';
-import { inlineEditorRect, useSmartArtInlineEditState } from '../composables/smartart-inline-edit';
+import { useSmartArtInlineEditState } from '../composables/smartart-inline-edit';
 import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
+import { useSmartArtHoverRect } from '../composables/useSmartArtHoverRect';
 import SmartArtHitTestWrapper from './SmartArtHitTestWrapper.vue';
+import SmartArtNodeStyleBar from './SmartArtNodeStyleBar.vue';
 import SmartArtRenderer from './SmartArtRenderer.vue';
 import ThreeView from './ThreeView';
 
@@ -94,6 +99,58 @@ const canEdit = computed(() => Boolean(nodeEdit?.canEdit()));
 
 const editState = useSmartArtInlineEditState();
 
+// The 2D renderer's hover swatch bar, over the scene: hover is tracked on the
+// hit-test overlay, whose SVG shares the container's coordinates.
+const palette = computed<string[]>(() => resolvePalette(smartArtData.value));
+const styleBarEl = ref<HTMLElement | null>(null);
+const {
+	hoveredNodeId,
+	hoveredNodeRect,
+	onMouseMove: onHoverMouseMove,
+	onMouseLeave: onHoverMouseLeave,
+} = useSmartArtHoverRect(containerRef);
+
+/** Approximate rendered size of the style bar (6 swatches + padding/border). */
+const STYLE_BAR_WIDTH = 168;
+const STYLE_BAR_HEIGHT = 40;
+
+const styleBarStyle = computed<CSSProperties | undefined>(() => {
+	const rect = hoveredNodeRect.value;
+	const container = containerRef.value;
+	if (!rect || !container) {
+		return undefined;
+	}
+	const maxLeft = Math.max(0, container.clientWidth - STYLE_BAR_WIDTH);
+	const maxTop = Math.max(0, container.clientHeight - STYLE_BAR_HEIGHT);
+	return {
+		position: 'absolute',
+		left: `${Math.min(maxLeft, Math.max(0, rect.left + rect.width - STYLE_BAR_WIDTH))}px`,
+		top: `${Math.min(maxTop, Math.max(0, rect.top - 22))}px`,
+		zIndex: 25,
+	};
+});
+
+/**
+ * The overlay and the bar are siblings, so crossing from one to the other fires
+ * `mouseleave` on the first; only a leave to somewhere else ends the hover.
+ */
+function onHoverLeave(event: MouseEvent): void {
+	const to = event.relatedTarget;
+	const host = containerRef.value;
+	if (to instanceof Node && host?.contains(to) && !(to instanceof HTMLTextAreaElement)) {
+		return;
+	}
+	onHoverMouseLeave();
+}
+
+/** Apply a fill colour to a node through the host's style commit. */
+function handleChangeNodeStyle(nodeId: string, fill: string): void {
+	const next = commitSmartArtNodeFill(props.element, nodeId, fill);
+	if (next) {
+		nodeEdit?.commitStyle?.(props.element.id, { smartArtData: next } as Partial<PptxElement>);
+	}
+}
+
 /** Walk up from an event target to find the nearest element with data-node-id. */
 function findNodeEl(target: EventTarget | null): Element | null {
 	let el = target instanceof Element ? target : null;
@@ -121,7 +178,12 @@ function onOverlayDblClick(e: MouseEvent): void {
 		return;
 	}
 	const currentText = data.nodes.find((n) => n.id === nodeId)?.text ?? '';
-	const rect = inlineEditorRect(nodeEl.getBoundingClientRect(), container.getBoundingClientRect());
+	// In the diagram's own SVG coordinates, as the 2D renderer measures: screen
+	// rects are wrong once the element is turned or the slide zoomed.
+	const rect = measureSvgViewportRect(nodeEl);
+	if (!rect) {
+		return;
+	}
 	editState.begin(nodeId, currentText, rect);
 	void nextTick(() => {
 		editorEl.value?.focus();
@@ -179,8 +241,27 @@ function commitEdit(): void {
 
 		<template v-if="canEdit">
 			<!-- Invisible SVG overlay: data-node-id groups are pointer-events hit targets -->
-			<div class="pptx-vue-smartart-3d-hittest" @dblclick.stop="onOverlayDblClick">
+			<div
+				class="pptx-vue-smartart-3d-hittest"
+				@dblclick.stop="onOverlayDblClick"
+				@mousemove="onHoverMouseMove($event, styleBarEl)"
+				@mouseleave="onHoverLeave"
+			>
 				<SmartArtHitTestWrapper :element="localElement" :zIndex="0" />
+			</div>
+
+			<!-- Per-node fill colour picker (hover swatch bar), as on the 2D diagram -->
+			<div
+				v-if="hoveredNodeId && !editState.isEditing.value && hoveredNodeRect"
+				ref="styleBarEl"
+				:style="styleBarStyle"
+				@mousemove="onHoverMouseMove($event, styleBarEl)"
+				@mouseleave="onHoverLeave"
+			>
+				<SmartArtNodeStyleBar
+					:palette="palette"
+					@pick-fill="handleChangeNodeStyle(hoveredNodeId!, $event)"
+				/>
 			</div>
 
 			<!-- Inline node text editor, positioned over the clicked node -->

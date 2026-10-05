@@ -17,7 +17,8 @@
 	 * `SmartArtView` sits over the scene in the element's local frame with its
 	 * SVG paint hidden. Its node groups stay hit-testable, so a double-click on
 	 * a node opens the same textarea editor the 2D view uses, committing through
-	 * `onsmartartnodecommit` (as React and Vue do over their 3D scenes).
+	 * `onsmartartnodecommit` (as React and Vue do over their 3D scenes). The
+	 * layer also offers the 2D view's hover fill swatches (`onsmartartnodefill`).
 	 */
 	import {
 		EDIT_LAYER_MARKER_ATTRS,
@@ -43,6 +44,7 @@
 		editable = false,
 		presenting = false,
 		onsmartartnodecommit,
+		onsmartartnodefill,
 	}: ElementRendererProps = $props();
 
 	const getRendering3DFlags = useRendering3DFlags();
@@ -89,7 +91,7 @@
 		</ThreeView>
 		{#if editable && !presenting && onsmartartnodecommit}
 			<div class="pptx-svelte-smartart-3d-edit-layer" data-smartart-3d-edit-layer="true" aria-hidden="true" use:editLayerOnly>
-				<SmartArtView element={localElement} {mediaDataUrls} zIndex={0} {editable} {onsmartartnodecommit} />
+				<SmartArtView element={localElement} {mediaDataUrls} zIndex={0} {editable} {onsmartartnodecommit} {onsmartartnodefill} />
 			</div>
 		{/if}
 	</div>
