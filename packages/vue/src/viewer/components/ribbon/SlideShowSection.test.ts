@@ -54,7 +54,8 @@ function surfaceText(wrapper: ReturnType<typeof mountSlideShowSection>): string 
 			?.getAttribute('label') ?? '') +
 		wrapper
 			.findAll('pptx-ui-ribbon-command,pptx-ui-ribbon-group,pptx-ui-ribbon-toggle')
-			.map((host) => host.attributes('label'))
+			// Vue sets `label` as a property once the element is upgraded, so read both.
+			.map((host) => host.attributes('label') ?? (host.element as { label?: string }).label ?? '')
 			.join(' ') +
 		wrapper.find('pptx-ui-slide-show-options').element.shadowRoot?.textContent
 	);

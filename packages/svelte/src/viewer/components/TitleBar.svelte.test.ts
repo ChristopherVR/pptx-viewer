@@ -157,6 +157,6 @@ describe('the title bar adapter', () => {
 			[...target.querySelector('pptx-ui-title-bar')!.shadowRoot!.querySelectorAll('slot')].map(
 				(slot) => slot.name,
 			),
-		).toStrictEqual(['collaboration', 'account']);
+		).toStrictEqual(['actions', 'collaboration', 'account']);
 	});
 });

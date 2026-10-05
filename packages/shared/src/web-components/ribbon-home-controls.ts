@@ -222,6 +222,8 @@ export function buildSelectControl(
 			// on an open option, so only write what changed.
 			if (select.getAttribute('aria-label') !== label) {
 				select.setAttribute('aria-label', label);
+				// ooxml-ui before the fix for relabelling did not repaint the trigger on this change.
+				(select as { requestUpdate?: () => void }).requestUpdate?.();
 			}
 			select.title = label;
 			select.hidden = Boolean(current?.hidden);

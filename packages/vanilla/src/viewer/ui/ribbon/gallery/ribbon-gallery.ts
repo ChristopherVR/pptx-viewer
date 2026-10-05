@@ -36,8 +36,13 @@ export function createRibbonGallery(
 	});
 	const control: RibbonGalleryControl = {
 		el,
-		trigger: el.trigger,
-		popup: el.popup,
+		// Live reads: the element re-renders its trigger, so a node captured here goes stale.
+		get trigger() {
+			return el.trigger;
+		},
+		get popup() {
+			return el.popup;
+		},
 		isOpen: () => el.open,
 		close: () => el.close(),
 		refresh(ctx, editable) {
