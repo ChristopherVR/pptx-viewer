@@ -207,7 +207,7 @@ describe('buildStrokeOutline stroke-only ("open") presets', () => {
 		// Painted as a flat colour: there is no paint server to define.
 		expect(outline!.paint).toBeUndefined();
 		expect(outline!.stroke).toBe('#000000');
-		expect(outline!.d).toBe('M 0 0 L 400 1');
+		expect(outline!.d).toBe('M 0 0 L 400 0');
 		expect(outline!.strokeWidth).toBe(2);
 	});
 
@@ -279,8 +279,18 @@ describe('buildStrokeOutline stroke-only ("open") presets', () => {
 		// the overlay <svg> is displayed at 100%/100% of that wrapper, so a
 		// viewBox padded past the authored size (the old MIN_ELEMENT_SIZE
 		// behaviour) would stretch the outline non-uniformly (issue #285).
-		expect(strokeOutlineViewBox(line())).toBe('0 0 400 0');
 		expect(strokeOutlineViewBox(line({ width: 200, height: 120 }))).toBe('0 0 200 120');
+	});
+
+	it('leaves the viewBox out for a flat line, which a zero-height viewBox would hide', () => {
+		expect(strokeOutlineViewBox(line())).toBeUndefined();
+		expect(strokeOutlineViewBox(line({ width: 0, height: 120 }))).toBeUndefined();
+	});
+
+	it('leaves the viewBox out for a sub-pixel box, which the 1px <svg> would stretch', () => {
+		expect(strokeOutlineViewBox(line({ width: 400, height: 0.5 }))).toBeUndefined();
+		expect(strokeOutlineViewBox(line({ width: 0.5, height: 120 }))).toBeUndefined();
+		expect(strokeOutlineViewBox(line({ width: 1, height: 1 }))).toBe('0 0 1 1');
 	});
 
 	it('ignores custom geometry and non-shape elements', () => {
