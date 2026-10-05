@@ -16,6 +16,11 @@
 		"paths": {
 			"pptx-vanilla-viewer": ["../../packages/vanilla/src/index.ts"],
 			"pptx-viewer-core/converter": ["../../packages/core/src/converter/index.ts"],
+			"pptx-viewer-core/chart": ["../../packages/core/src/chart/index.ts"],
+			"pptx-viewer-core/color": ["../../packages/core/src/color/index.ts"],
+			"pptx-viewer-core/geometry": ["../../packages/core/src/geometry/index.ts"],
+			"pptx-viewer-core/math": ["../../packages/core/src/math/index.ts"],
+			"pptx-viewer-core/text": ["../../packages/core/src/text/index.ts"],
 			"pptx-viewer-core": ["../../packages/core/src/index.ts"],
 			"pptx-viewer-shared": ["../../packages/shared/src/index.ts"],
 			"pptx-viewer-shared/*": ["../../packages/shared/src/*"],
