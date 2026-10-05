@@ -56,11 +56,17 @@ describe('getStrokeOnlyPresetPaths', () => {
 		).toBeUndefined();
 	});
 
-	it('evaluates a degenerate box at a 1px floor instead of dividing by zero', () => {
-		const paths = getStrokeOnlyPresetPaths(
-			shape({ shapeType: 'line', width: 400, height: 0 } as Partial<PptxElement>),
-		);
-		expect(paths).toStrictEqual([{ d: 'M 0 0 L 400 1', fill: 'none', stroke: true }]);
+	it('keeps a horizontal or vertical line straight at zero height or width', () => {
+		expect(
+			getStrokeOnlyPresetPaths(
+				shape({ shapeType: 'line', width: 400, height: 0 } as Partial<PptxElement>),
+			),
+		).toStrictEqual([{ d: 'M 0 0 L 400 0', fill: 'none', stroke: true }]);
+		expect(
+			getStrokeOnlyPresetPaths(
+				shape({ shapeType: 'line', width: 0, height: 120 } as Partial<PptxElement>),
+			),
+		).toStrictEqual([{ d: 'M 0 0 L 0 120', fill: 'none', stroke: true }]);
 	});
 });
 

@@ -350,10 +350,17 @@ export function buildStrokeOutline(element: PptxElement): StrokeOutline | undefi
  * INTERACTIVE-only padded box (see `elementHitTargetStyle`); painting the
  * outline at that padded size in read-only rendering stretched a hairline
  * rule's border across a much taller box than it was authored at (issue #285).
+ *
+ * Returns `undefined` for a box under 1px on either side. A zero side would
+ * hide the `<svg>`, and the 1px minimum size the bindings give it would stretch
+ * a sub-pixel one. The path is then drawn in the wrapper's own pixels.
  */
-export function strokeOutlineViewBox(element: PptxElement): string {
+export function strokeOutlineViewBox(element: PptxElement): string | undefined {
 	const width = Math.max(element.width, 0);
 	const height = Math.max(element.height, 0);
+	if (width < 1 || height < 1) {
+		return undefined;
+	}
 	return `0 0 ${width} ${height}`;
 }
 

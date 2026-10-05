@@ -44,10 +44,11 @@ export function getStrokeOnlyPresetPaths(element: PptxElement): PresetSubpathRes
 	if (element.pathData) {
 		return undefined;
 	}
+	// Evaluate at the authored size; a zero side is a straight horizontal or vertical line.
 	const result = evaluatePresetShape(
 		shapeType,
-		Math.max(element.width, 1),
-		Math.max(element.height, 1),
+		Math.max(element.width, 0),
+		Math.max(element.height, 0),
 		element.shapeAdjustments,
 	);
 	if (!result || !result.fillNone) {

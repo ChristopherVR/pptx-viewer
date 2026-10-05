@@ -17,6 +17,9 @@ import {
 import { createEl, createSvgEl } from '../dom';
 import { buildReflectionMirrorContent } from './reflection-mirror-content';
 
+const OUTLINE_SVG_STYLE =
+	'position:absolute;inset:0;width:100%;height:100%;min-width:1px;min-height:1px;overflow:visible;pointer-events:none';
+
 /**
  * Hidden SVG definitions referenced by shape-level effect filters: the DAG
  * duotone recolour (`filter: url(#dag-duotone-<id>)`), the soft-edge feather
@@ -147,10 +150,7 @@ export function renderHollowHitOutline(doc: Document, element: PptxElement): SVG
 		viewBox: strokeOutlineViewBox(element),
 		preserveAspectRatio: 'none',
 	});
-	svg.setAttribute(
-		'style',
-		'position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none',
-	);
+	svg.setAttribute('style', OUTLINE_SVG_STYLE);
 	const path = createSvgEl(doc, 'path', {
 		d: hit.d,
 		fill: 'none',
@@ -204,10 +204,7 @@ export function renderStrokeOutline(doc: Document, element: PptxElement): SVGSVG
 		viewBox: strokeOutlineViewBox(element),
 		preserveAspectRatio: 'none',
 	});
-	svg.setAttribute(
-		'style',
-		'position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none',
-	);
+	svg.setAttribute('style', OUTLINE_SVG_STYLE);
 	// A flat-coloured outline (an open preset) needs no paint server at all.
 	if (outline.paint) {
 		const defs = createSvgEl(doc, 'defs');

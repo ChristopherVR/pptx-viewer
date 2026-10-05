@@ -207,6 +207,8 @@ const reflection = computed<CSSProperties | undefined>(() =>
 			inset: 0;
 			width: 100%;
 			height: 100%;
+			min-width: 1px;
+			min-height: 1px;
 			overflow: visible;
 			pointer-events: none;
 		"
@@ -296,6 +298,8 @@ const reflection = computed<CSSProperties | undefined>(() =>
 			inset: 0;
 			width: 100%;
 			height: 100%;
+			min-width: 1px;
+			min-height: 1px;
 			overflow: visible;
 			pointer-events: none;
 		"
