@@ -24,4 +24,4 @@ jobs:
       issues: write
     with:
       install-command: 'bun install'
-      verify-command: 'bun run typecheck && bun run test'
+      verify-command: 'bun run build && bun run typecheck && bun run test'
