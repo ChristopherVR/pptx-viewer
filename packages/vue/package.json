@@ -119,7 +119,7 @@
 		"html2canvas-pro": "^2.5.1",
 		"jspdf": "^4.2.1",
 		"lucide-vue-next": "^1.0.0",
-		"ooxml-ui": "^0.20.0",
+		"ooxml-ui": "^0.28.0",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-mcp": "workspace:*",
 		"tailwind-merge": "^3.7.0"
@@ -140,7 +140,7 @@
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.3",
 		"terser": "^5.51.2",
-		"three": "^0.186.0",
+		"three": "^0.186.1",
 		"typescript": "6.0.3",
 		"vite": "^8.3.2",
 		"vite-plugin-dts": "^5.1.2",
