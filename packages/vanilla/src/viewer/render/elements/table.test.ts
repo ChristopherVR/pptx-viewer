@@ -239,3 +239,24 @@ describe('renderTableElement', () => {
 		expect(td.style.paddingTop).toBe('0px');
 	});
 });
+
+describe('renderTableElement cell borders', () => {
+	it('draws no border on a side the deck gives none, and keeps a border it gives', () => {
+		const data: PptxTableData = {
+			columnWidths: [0.5, 0.5],
+			rows: [
+				{
+					cells: [
+						{ text: 'plain' },
+						{ text: 'ruled', style: { borderLeftWidth: 2, borderLeftColor: '#ff0000' } },
+					],
+				},
+			],
+		};
+		const [plain, ruled] = Array.from(renderTable(buildTableElement(data)).querySelectorAll('td'));
+		// The cell no longer starts from a 1px white border that would push its content in.
+		expect(plain?.getAttribute('style') ?? '').not.toMatch(/border/u);
+		expect(ruled?.style.borderLeft).toBe('2px solid #ff0000');
+		expect(ruled?.style.borderRight).toBe('');
+	});
+});

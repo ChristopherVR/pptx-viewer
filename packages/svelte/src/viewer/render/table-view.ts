@@ -25,12 +25,15 @@ import { styleToString } from '../style';
  * objects the `TableView` SFC template can iterate.
  */
 
-/** Base `<td>` style (kept inline so the SFC needs no scoped cell CSS). */
+/**
+ * Base `<td>` style (kept inline so the SFC needs no scoped cell CSS). It draws no border: a side
+ * the deck gives no border renders with none, as PowerPoint does, and a cell's own borders come
+ * from its style.
+ */
 const CELL_BASE_STYLE: CssStyleMap = {
 	position: 'relative',
 	padding: '1px 4px',
 	verticalAlign: 'top',
-	border: '1px solid rgba(255, 255, 255, 0.3)',
 	whiteSpace: 'pre-wrap',
 	wordBreak: 'break-word',
 	overflowWrap: 'break-word',
