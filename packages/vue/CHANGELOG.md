@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.24.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.24.1) - 2026-10-05
+
+### Testing
+
+- **shared:** Match control styles without relying on their formatting (by @ChristopherVR) ([e32497c](https://github.com/ChristopherVR/pptx-viewer/commit/e32497ca6e4367f5ddaf07cdda186bddec9e7271))
+- **shared:** Expect the title bar's actions slot (by @ChristopherVR) ([3076cb8](https://github.com/ChristopherVR/pptx-viewer/commit/3076cb8f5f1d2ba6ce4dee4d75f171ffaaa6341a))
+
+### Build & CI
+
+- **deps:** Adopt ooxml-core 0.20.0 and ooxml-ui 0.28.0 (by @ChristopherVR) ([3f52fa1](https://github.com/ChristopherVR/pptx-viewer/commit/3f52fa103a39a1c1cdfe04068a2cae8b624aa8d6))
+
 ## [4.24.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.24.0) - 2026-10-04
 
 ### Features

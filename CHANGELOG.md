@@ -8,6 +8,25 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-10-05
+
+_Releases: pptx-viewer-core@4.11.2, pptx-react-viewer@4.24.1, pptx-vue-viewer@4.24.1, pptx-angular-viewer@4.24.1, pptx-vanilla-viewer@3.24.1, pptx-svelte-viewer@4.24.1, @christophervr/pptx-viewer@2.41.1_
+
+### Bug Fixes
+
+- Resolve core subpaths in the parity harness and give the dense panel test room (by @ChristopherVR) ([c341544](https://github.com/ChristopherVR/pptx-viewer/commit/c34154447bdc9ec89d026fba0b1a059b14c79848))
+
+### Testing
+
+- **shared:** Match control styles without relying on their formatting (by @ChristopherVR) ([e32497c](https://github.com/ChristopherVR/pptx-viewer/commit/e32497ca6e4367f5ddaf07cdda186bddec9e7271))
+- **shared:** Expect the title bar's actions slot (by @ChristopherVR) ([3076cb8](https://github.com/ChristopherVR/pptx-viewer/commit/3076cb8f5f1d2ba6ce4dee4d75f171ffaaa6341a))
+
+### Build & CI
+
+- Follow ooxml-core and ooxml-ui releases automatically (by @ChristopherVR) ([e954db0](https://github.com/ChristopherVR/pptx-viewer/commit/e954db0c5b67ee8a1bd5262026d4a4ac4f91594f))
+- Build the packages before the ooxml sync verifies (by @ChristopherVR) ([f4dd115](https://github.com/ChristopherVR/pptx-viewer/commit/f4dd11585f7ec76761587129c096e6783df892e5))
+- **deps:** Adopt ooxml-core 0.20.0 and ooxml-ui 0.28.0 (by @ChristopherVR) ([3f52fa1](https://github.com/ChristopherVR/pptx-viewer/commit/3f52fa103a39a1c1cdfe04068a2cae8b624aa8d6))
+
 ## 2026-10-04
 
 _Releases: pptx-viewer-core@4.11.1, pptx-react-viewer@4.24.0, pptx-vue-viewer@4.24.0, pptx-angular-viewer@4.24.0, pptx-vanilla-viewer@3.24.0, pptx-svelte-viewer@4.24.0, pptx-viewer-mcp@2.7.1, @christophervr/pptx-viewer@2.41.0_

@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.11.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.11.2) - 2026-10-05
+
+### Build & CI
+
+- **deps:** Adopt ooxml-core 0.20.0 and ooxml-ui 0.28.0 (by @ChristopherVR) ([3f52fa1](https://github.com/ChristopherVR/pptx-viewer/commit/3f52fa103a39a1c1cdfe04068a2cae8b624aa8d6))
+
 ## [4.11.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.11.1) - 2026-10-04
 
 ### Dependencies
