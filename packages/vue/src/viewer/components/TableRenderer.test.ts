@@ -724,3 +724,16 @@ describe('tableRenderer', () => {
 		expect(wrapper.find('.pptx-vue-table-resize__col').exists()).toBeFalsy();
 	});
 });
+
+describe('tableRenderer cell border source', () => {
+	it('gives the base cell no border of its own, only the editable grid', async () => {
+		// Scoped SFC CSS is not applied in jsdom, so guard the stylesheet itself.
+		const { default: source } = (await import('./TableRenderer.vue?raw')) as { default: string };
+		const rule = (selector: string): string => {
+			const start = source.indexOf(`${selector} {`);
+			return start < 0 ? '' : source.slice(start, source.indexOf('}', start));
+		};
+		expect(rule('.pptx-vue-table__cell')).not.toContain('border:');
+		expect(rule('.pptx-vue-table__cell--editable')).toContain('border: 1px solid');
+	});
+});

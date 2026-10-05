@@ -653,11 +653,11 @@ onBeforeUnmount(() => {
 	table-layout: fixed;
 }
 
+/* No border of its own: a side the deck gives no border renders with none, as PowerPoint does. */
 .pptx-vue-table__cell {
 	position: relative;
 	padding: 1px 4px;
 	vertical-align: top;
-	border: 1px solid rgba(255, 255, 255, 0.3);
 	white-space: pre-wrap;
 	word-break: break-word;
 	overflow-wrap: break-word;
@@ -665,6 +665,8 @@ onBeforeUnmount(() => {
 
 .pptx-vue-table__cell--editable {
 	cursor: cell;
+	/* A faint grid while editing, so cells of a borderless table can still be found. */
+	border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .pptx-vue-table__cell--selected {

@@ -206,10 +206,12 @@ export function renderTableElement(
 											<td
 												key={`${element.id}-cell-${rowIndex}-${cellIndex}`}
 												className={cn(
-													'border px-1 py-0.5 align-top',
+													'px-1 py-0.5 align-top',
+													// No border of its own: a side the deck gives no border renders
+													// with none, as PowerPoint does. Editing keeps a faint grid.
 													isEditable && hasCellSelectionHandler
-														? 'border-blue-200/70 cursor-cell'
-														: 'border-white/30',
+														? 'border border-blue-200/70 cursor-cell'
+														: null,
 													selectedCell?.rowIndex === rowIndex &&
 														selectedCell?.columnIndex === cellIndex
 														? 'ring-1 ring-inset ring-blue-500'
