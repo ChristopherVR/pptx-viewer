@@ -944,6 +944,7 @@ export * from './smartart-3d-geom';
 export * from './smartart-3d-model';
 export * from './smartart-3d-element';
 export * from './smartart-3d-edit-layer';
+export * from './smartart-node-commit';
 export * from './chart-3d-spec';
 export * from './smartart-3d-spatial';
 export * from './smartart-3d-layout-source';

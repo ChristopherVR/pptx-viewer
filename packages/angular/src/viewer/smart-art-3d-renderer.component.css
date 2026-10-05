@@ -24,3 +24,31 @@
 	z-index: 20;
 	outline: none;
 }
+
+/* The 2D diagram's hover swatch bar, over the scene. */
+.pptx-ng-smartart-3d-style-bar {
+	position: absolute;
+	pointer-events: auto;
+	display: flex;
+	gap: 6px;
+	padding: 6px 8px;
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid var(--border, #e2e8f0);
+	border-radius: 9999px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Sized generously: the bar lives inside the slide canvas's zoom transform, so
+   a small swatch shrinks to a few real pixels when zoomed out. */
+.pptx-ng-smartart-3d-swatch {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+	cursor: pointer;
+	transition: transform 0.1s;
+}
+
+.pptx-ng-smartart-3d-swatch:hover {
+	transform: scale(1.25);
+}

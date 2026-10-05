@@ -5,7 +5,11 @@
 import type { PptxElement, PptxSmartArtData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { computeNode3DEditBox, getSmartArtData } from './smart-art-3d-renderer-helpers';
+import {
+	computeNode3DStyleBarStyle,
+	getSmartArtData,
+	toNode3DEditBox,
+} from './smart-art-3d-renderer-helpers';
 
 function smartArtData(): PptxSmartArtData {
 	return {
@@ -48,15 +52,40 @@ describe('getSmartArtData', () => {
 	});
 });
 
-describe('computeNode3DEditBox', () => {
-	it('positions the box relative to the container', () => {
-		const nodeRect = { left: 120, top: 80, width: 40, height: 20 } as DOMRect;
-		const containerRect = { left: 100, top: 50, width: 400, height: 300 } as DOMRect;
-		expect(computeNode3DEditBox(nodeRect, containerRect)).toStrictEqual({
+describe('toNode3DEditBox', () => {
+	it("uses the node rect in the diagram's own coordinates as the box", () => {
+		expect(toNode3DEditBox({ left: 20, top: 30, width: 40, height: 20 })).toStrictEqual({
 			x: 20,
 			y: 30,
 			width: 40,
 			height: 20,
 		});
+	});
+});
+
+describe('computeNode3DStyleBarStyle', () => {
+	const container = { clientWidth: 400, clientHeight: 300 };
+
+	it('is absent without a hovered node or a container', () => {
+		expect(computeNode3DStyleBarStyle(null, container)).toBeNull();
+		expect(
+			computeNode3DStyleBarStyle({ left: 0, top: 0, width: 1, height: 1 }, undefined),
+		).toBeNull();
+	});
+
+	it('sits above the node, right-aligned to it', () => {
+		const style = computeNode3DStyleBarStyle(
+			{ left: 100, top: 100, width: 200, height: 50 },
+			container,
+		);
+		expect(style).toMatchObject({ left: '132px', top: '78px', position: 'absolute' });
+	});
+
+	it('stays inside the container', () => {
+		const style = computeNode3DStyleBarStyle(
+			{ left: 380, top: 2, width: 100, height: 50 },
+			container,
+		);
+		expect(style).toMatchObject({ left: '232px', top: '0px' });
 	});
 });

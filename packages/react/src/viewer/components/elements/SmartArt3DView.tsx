@@ -12,9 +12,14 @@
  * @module SmartArt3DView
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { updateSmartArtNodeText } from 'pptx-viewer-core';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
-import { resolveSmartArtThreeViewSpec, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+import {
+	commitSmartArtNodeFill,
+	commitSmartArtNodeText,
+	measureSvgViewportRect,
+	resolvePalette,
+	resolveSmartArtThreeViewSpec,
+} from 'pptx-viewer-shared';
 import React, { useMemo } from 'react';
 
 import { SmartArtEditableLayer } from './SmartArtEditableLayer';
@@ -78,12 +83,18 @@ export function SmartArt3DView({
 	}
 
 	const handleCommitNodeText = (nodeId: string, text: string): void => {
-		if (!shouldCommitSmartArtNodeText(smartArtData, nodeId, text)) {
-			return;
+		const next = commitSmartArtNodeText(element, nodeId, text);
+		if (next) {
+			onUpdateElement!({ smartArtData: next } as Partial<PptxElement>);
 		}
-		onUpdateElement!({
-			smartArtData: updateSmartArtNodeText(smartArtData, nodeId, text),
-		} as Partial<PptxElement>);
+	};
+
+	// The same hover swatch bar the 2D renderer offers, over the scene.
+	const handleChangeNodeStyle = (nodeId: string, fill: string): void => {
+		const next = commitSmartArtNodeFill(element, nodeId, fill);
+		if (next) {
+			onUpdateElement!({ smartArtData: next } as Partial<PptxElement>);
+		}
 	};
 
 	return (
@@ -94,6 +105,11 @@ export function SmartArt3DView({
 				smartArtData={smartArtData}
 				canEdit
 				onCommitNodeText={handleCommitNodeText}
+				palette={resolvePalette(smartArtData)}
+				onChangeNodeStyle={handleChangeNodeStyle}
+				// In the diagram's own SVG coordinates, as the 2D renderer measures:
+				// screen rects are wrong once the element is turned or the slide zoomed.
+				measureNodeRect={measureSvgViewportRect}
 			>
 				<div className='absolute inset-0 opacity-0'>
 					<SmartArtRenderer element={element} canEdit={false} />

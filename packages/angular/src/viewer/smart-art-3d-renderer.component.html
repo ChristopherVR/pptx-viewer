@@ -32,9 +32,35 @@
 		</pptx-ng-three-view>
 		@if (canEdit()) {
 			<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
-			<div class="pptx-ng-smartart-3d-hittest" (dblclick)="onOverlayDblClick($event)">
+			<div
+				class="pptx-ng-smartart-3d-hittest"
+				(dblclick)="onOverlayDblClick($event)"
+				(mousemove)="onOverlayMouseMove($event)"
+				(mouseleave)="onHoverLeave($event)"
+			>
 				<pptx-smart-art-renderer [element]="element()" [editable]="false" />
 			</div>
+			@if (hoveredNodeId() && !editState() && styleBarStyle()) {
+				<!-- Per-node fill colour picker (hover swatch bar), as on the 2D diagram -->
+				<div
+					class="pptx-ng-smartart-3d-style-bar"
+					[ngStyle]="styleBarStyle()!"
+					(mousedown)="$event.stopPropagation()"
+					(click)="$event.stopPropagation()"
+					(mouseleave)="onHoverLeave($event)"
+				>
+					@for (color of palette().slice(0, 6); track color) {
+						<button
+							type="button"
+							class="pptx-ng-smartart-3d-swatch"
+							data-pptx-compact
+							[attr.aria-label]="'pptx.smartArt.setFill' | translate: { color: color }"
+							[style.background]="color"
+							(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"
+						></button>
+					}
+				</div>
+			}
 			@if (editState()) {
 				<textarea
 					#nodeEditor3d

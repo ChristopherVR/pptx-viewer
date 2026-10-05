@@ -16,18 +16,25 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import {
+	commitSmartArtNodeFill,
 	elementHitTargetStyle,
+	measureSvgViewportRect,
+	resolvePalette,
 	resolveSmartArtThreeViewSpec,
 	shouldRenderHitTarget,
 	smartArtNodeAtPoint,
 } from '../internal/shared';
-import type { TextStyleAnimationDescriptor } from '../internal/shared';
+import type { InlineEditRect, TextStyleAnimationDescriptor } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import { Rendering3DService } from './rendering-3d.service';
 import { SLIDE_CONTEXT } from './slide-context';
-import { computeNode3DEditBox, getSmartArtData } from './smart-art-3d-renderer-helpers';
+import {
+	computeNode3DStyleBarStyle,
+	getSmartArtData,
+	toNode3DEditBox,
+} from './smart-art-3d-renderer-helpers';
 import { commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
@@ -120,6 +127,16 @@ export class SmartArt3DRendererComponent {
 
 	private readonly smartArtData = computed(() => getSmartArtData(this.element()));
 
+	/** Resolved palette for the hover swatch bar, as on the 2D diagram. */
+	protected readonly palette = computed<string[]>(() => resolvePalette(this.smartArtData()));
+
+	protected readonly hoveredNodeId = signal<string | null>(null);
+	private readonly hoveredNodeRect = signal<InlineEditRect | null>(null);
+
+	protected readonly styleBarStyle = computed<Record<string, string> | null>(() =>
+		computeNode3DStyleBarStyle(this.hoveredNodeRect(), this.containerEl()?.nativeElement),
+	);
+
 	constructor() {
 		// Auto-focus the textarea when the editor opens.
 		effect(() => {
@@ -154,7 +171,10 @@ export class SmartArt3DRendererComponent {
 		}
 		const nodeEl = smartArtNodeAtPoint(overlay, event.clientX, event.clientY);
 		const nodeId = nodeEl?.getAttribute('data-smartart-node-id');
-		if (!nodeEl || !nodeId) {
+		// In the diagram's own SVG coordinates, as the 2D renderer measures: a
+		// screen rect is wrong once the element is turned or the slide zoomed.
+		const rect = nodeEl ? measureSvgViewportRect(nodeEl) : null;
+		if (!nodeEl || !nodeId || !rect) {
 			return;
 		}
 		// The editor owns this double-click: the stage must not act on it too.
@@ -162,11 +182,60 @@ export class SmartArt3DRendererComponent {
 		const currentText = data.nodes.find((n) => n.id === nodeId)?.text ?? '';
 		this.draftText = currentText;
 		this.editSettled = false;
-		this.editState.set({
-			nodeId,
-			box: computeNode3DEditBox(nodeEl.getBoundingClientRect(), container.getBoundingClientRect()),
-			text: currentText,
-		});
+		this.hoveredNodeId.set(null);
+		this.hoveredNodeRect.set(null);
+		this.editState.set({ nodeId, box: toNode3DEditBox(rect), text: currentText });
+	}
+
+	/**
+	 * Track the node under the pointer for the fill swatch bar. The overlay's
+	 * node groups take no pointer events, so the node is found by geometry.
+	 */
+	onOverlayMouseMove(event: MouseEvent): void {
+		const overlay = event.currentTarget;
+		if (!(overlay instanceof Element) || this.editState()) {
+			return;
+		}
+		const nodeEl = smartArtNodeAtPoint(overlay, event.clientX, event.clientY);
+		const id = nodeEl?.getAttribute('data-smartart-node-id') ?? null;
+		if (id !== this.hoveredNodeId()) {
+			this.hoveredNodeId.set(id);
+			this.hoveredNodeRect.set(id && nodeEl ? measureSvgViewportRect(nodeEl) : null);
+		}
+	}
+
+	/**
+	 * The overlay and the bar are siblings, so crossing from one to the other
+	 * fires `mouseleave` on the first; only a leave elsewhere ends the hover.
+	 */
+	onHoverLeave(event: MouseEvent): void {
+		const to = event.relatedTarget;
+		if (to instanceof Node && this.containerEl()?.nativeElement.contains(to)) {
+			return;
+		}
+		this.hoveredNodeId.set(null);
+		this.hoveredNodeRect.set(null);
+	}
+
+	/** Apply a fill colour to a node through the same commit path as a text edit. */
+	handleChangeNodeStyle(nodeId: string, fill: string): void {
+		const next = commitSmartArtNodeFill(this.element(), nodeId, fill);
+		if (!next || !this.editor) {
+			return;
+		}
+		const slideIndex = findOwningSlideIndex(
+			this.editor.slides(),
+			this.element().id,
+			this.slideContext?.slideId() ?? null,
+		);
+		if (slideIndex < 0) {
+			return;
+		}
+		this.hoveredNodeId.set(null);
+		this.hoveredNodeRect.set(null);
+		this.editor.updateElement(slideIndex, this.element().id, {
+			smartArtData: next,
+		} as Partial<PptxElement>);
 	}
 
 	/** Update the live draft text on each keystroke. */
