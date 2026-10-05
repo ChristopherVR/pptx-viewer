@@ -169,7 +169,7 @@
 		aria-hidden="true"
 		viewBox={outlineViewBox}
 		preserveAspectRatio="none"
-		style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none"
+		style="position:absolute;inset:0;width:100%;height:100%;min-width:1px;min-height:1px;overflow:visible;pointer-events:none"
 	>
 		<path
 			d={hollowHit.d}
@@ -189,7 +189,7 @@
 		aria-hidden="true"
 		viewBox={outlineViewBox}
 		preserveAspectRatio="none"
-		style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none"
+		style="position:absolute;inset:0;width:100%;height:100%;min-width:1px;min-height:1px;overflow:visible;pointer-events:none"
 	>
 		{#if strokeOutline.paint}
 			<defs>
