@@ -53,15 +53,24 @@ const ICONS: Record<QuickActionId, typeof Plus> = {
 	filters: Filter,
 };
 
+// The buttons keep a constant screen size (`--pptx-vue-hs`), so the descriptor
+// is built against the on-screen box and each position divided back to stage px
+// by `screenPx`. Laying them out in stage px made them overlap when zoomed out.
+const scale = computed(() => props.zoom || 1);
+
+function screenPx(value: number): number {
+	return value / scale.value;
+}
+
 const descriptor = computed(() =>
 	buildChartQuickActionsDescriptor({
 		isChartSelected: true,
 		chartData: props.element.chartData,
 		selectionBox: {
-			x: props.element.x,
-			y: props.element.y,
-			width: props.element.width,
-			height: props.element.height,
+			x: props.element.x * scale.value,
+			y: props.element.y * scale.value,
+			width: props.element.width * scale.value,
+			height: props.element.height * scale.value,
 		},
 	}),
 );
@@ -141,8 +150,8 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 				class="flex items-center justify-center rounded bg-white border border-gray-300 shadow-sm hover:bg-gray-100 text-gray-700"
 				:style="{
 					position: 'absolute',
-					left: `${button.x}px`,
-					top: `${button.y}px`,
+					left: `${screenPx(button.x)}px`,
+					top: `${screenPx(button.y)}px`,
 					width: `${button.size}px`,
 					height: `${button.size}px`,
 					scale: 'var(--pptx-vue-hs, 1)',
@@ -159,8 +168,8 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 				class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2 w-44 z-10 shadow-lg"
 				:style="{
 					position: 'absolute',
-					left: `${button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4}px`,
-					top: `${button.y}px`,
+					left: `${screenPx(button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4)}px`,
+					top: `${screenPx(button.y)}px`,
 					scale: 'var(--pptx-vue-hs, 1)',
 					transformOrigin: 'top left',
 				}"
@@ -191,8 +200,8 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 				class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2 w-48 z-10 shadow-lg grid grid-cols-3 gap-1.5"
 				:style="{
 					position: 'absolute',
-					left: `${button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4}px`,
-					top: `${button.y}px`,
+					left: `${screenPx(button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4)}px`,
+					top: `${screenPx(button.y)}px`,
 					scale: 'var(--pptx-vue-hs, 1)',
 					transformOrigin: 'top left',
 				}"
@@ -227,8 +236,8 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 				class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2 w-48 z-10 shadow-lg"
 				:style="{
 					position: 'absolute',
-					left: `${button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4}px`,
-					top: `${button.y}px`,
+					left: `${screenPx(button.x + CHART_QUICK_ACTION_BUTTON_SIZE + 4)}px`,
+					top: `${screenPx(button.y)}px`,
 					scale: 'var(--pptx-vue-hs, 1)',
 					transformOrigin: 'top left',
 				}"
