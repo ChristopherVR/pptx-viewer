@@ -124,10 +124,10 @@ test('undo removes the added effect from the saved deck', async ({ page }) => {
 	const undo = page.getByRole('button', { name: 'Undo', exact: true }).first();
 	await expect(undo).toBeEnabled();
 	await undo.click();
-	// The undo is applied asynchronously: poll the saved deck instead of racing a single save.
-	await expect
-		.poll(async () => (await savedSlideXml(page)).xml, { timeout: 15_000 })
-		.not.toContain('<p:timing');
+	// Saving while the undo is still in flight loses it, and every poll would save again:
+	// wait for the UI to show the undo (Redo becomes available), then save once.
+	await expect(page.getByRole('button', { name: 'Redo', exact: true }).first()).toBeEnabled();
+	expect((await savedSlideXml(page)).xml).not.toContain('<p:timing');
 });
 
 test('a redone effect survives save and reload and previews on the saved deck', async ({
