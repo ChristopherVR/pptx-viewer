@@ -1,7 +1,0 @@
-src/
-tsconfig.json
-tsconfig.build.json
-vite.config.ts
-vitest.config.ts
-*.test.ts
-.gitignore
