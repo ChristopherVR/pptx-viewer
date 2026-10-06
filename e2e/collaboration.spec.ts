@@ -625,7 +625,8 @@ test.describe('collaboration sync', () => {
 
 			// ... and the peer observes the same geometry change. Both pages share
 			// one viewport size, so their stage scales match and the on-screen
-			// delta is comparable directly (tolerance for rounding).
+			// delta is comparable directly (tolerance for rounding). Wait for the host's own delta,
+			// not the requested drag: the host may land up to 5px short of it (checked above).
 			await expect
 				.poll(
 					async () => {
@@ -634,7 +635,7 @@ test.describe('collaboration sync', () => {
 					},
 					{ timeout: 20_000 },
 				)
-				.toBeGreaterThan(dragBy.x - 6);
+				.toBeGreaterThanOrEqual(Math.round(hostDelta.x) - 3);
 			const peerAfter = (await peerTarget.boundingBox())!;
 			expect(Math.abs(peerAfter.x - peerBefore!.x - hostDelta.x)).toBeLessThanOrEqual(3);
 			expect(Math.abs(peerAfter.y - peerBefore!.y - hostDelta.y)).toBeLessThanOrEqual(3);

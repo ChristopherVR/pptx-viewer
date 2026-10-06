@@ -236,6 +236,9 @@ test.describe('blackboard mode', () => {
 
 test.describe('selection-pane rename', () => {
 	test('double-click renames, Escape cancels, undo restores', async ({ browser }, testInfo) => {
+		// It drives every framework's demo in one test, and took 59.4s of the 60s budget on a CI
+		// runner before timing out, so give it the tripled budget rather than a lucky margin.
+		test.slow();
 		const results = await acrossFrameworks(browser, testInfo, (page, origin) =>
 			probeRename(page, origin),
 		);
