@@ -8,6 +8,16 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-10-06
+
+_Releases: pptx-react-viewer@4.24.3, pptx-vue-viewer@4.24.3, pptx-angular-viewer@4.24.3, pptx-vanilla-viewer@3.24.3, pptx-svelte-viewer@4.24.3, @christophervr/pptx-viewer@2.41.3_
+
+### Bug Fixes
+
+- **react,vue:** Keep chart quick-action buttons from overlapping when zoomed out (by @ChristopherVR) ([3bf1bfc](https://github.com/ChristopherVR/pptx-viewer/commit/3bf1bfcaa37876a2da97b75793ea982b13d16289))
+- **shared:** Make 3D SmartArt rotate, edit and recolour like the 2D diagram (by @ChristopherVR) ([29473d4](https://github.com/ChristopherVR/pptx-viewer/commit/29473d42fdfd8a1b5dff4f2259ecad68ecbd57bc))
+- Draw no default table cell border, and let the ooxml sync push to main ([#408](https://github.com/ChristopherVR/pptx-viewer/issues/408)) (by @ChristopherVR) ([11914db](https://github.com/ChristopherVR/pptx-viewer/commit/11914db10cd8f65504e1e5a777848731d88a949a))
+
 ## 2026-10-05
 
 _Releases: pptx-react-viewer@4.24.2, pptx-vue-viewer@4.24.2, pptx-angular-viewer@4.24.2, pptx-vanilla-viewer@3.24.2, pptx-svelte-viewer@4.24.2, @christophervr/pptx-viewer@2.41.2_

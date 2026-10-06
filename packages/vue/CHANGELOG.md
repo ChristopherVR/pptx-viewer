@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.24.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.24.3) - 2026-10-06
+
+### Bug Fixes
+
+- **react,vue:** Keep chart quick-action buttons from overlapping when zoomed out (by @ChristopherVR) ([3bf1bfc](https://github.com/ChristopherVR/pptx-viewer/commit/3bf1bfcaa37876a2da97b75793ea982b13d16289))
+- **shared:** Make 3D SmartArt rotate, edit and recolour like the 2D diagram (by @ChristopherVR) ([29473d4](https://github.com/ChristopherVR/pptx-viewer/commit/29473d42fdfd8a1b5dff4f2259ecad68ecbd57bc))
+- Draw no default table cell border, and let the ooxml sync push to main ([#408](https://github.com/ChristopherVR/pptx-viewer/issues/408)) (by @ChristopherVR) ([11914db](https://github.com/ChristopherVR/pptx-viewer/commit/11914db10cd8f65504e1e5a777848731d88a949a))
+
 ## [4.24.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.24.2) - 2026-10-05
 
 ### Bug Fixes

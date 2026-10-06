@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.24.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.24.3) - 2026-10-06
+
+### Bug Fixes
+
+- **shared:** Make 3D SmartArt rotate, edit and recolour like the 2D diagram (by @ChristopherVR) ([29473d4](https://github.com/ChristopherVR/pptx-viewer/commit/29473d42fdfd8a1b5dff4f2259ecad68ecbd57bc))
+
 ## [4.24.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.24.2) - 2026-10-05
 
 ### Bug Fixes

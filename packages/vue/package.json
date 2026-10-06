@@ -1,6 +1,6 @@
 {
 	"name": "pptx-vue-viewer",
-	"version": "4.24.2",
+	"version": "4.24.3",
 	"description": "pptx-viewer for Vue 3: a PowerPoint viewer and editor component to render, edit, and export PPTX slides in the browser.",
 	"keywords": [
 		"editor",
