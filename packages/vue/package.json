@@ -119,7 +119,7 @@
 		"html2canvas-pro": "^2.5.1",
 		"jspdf": "^4.2.1",
 		"lucide-vue-next": "^1.0.0",
-		"ooxml-ui": "^0.28.0",
+		"ooxml-ui": "^0.29.1",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-mcp": "workspace:*",
 		"tailwind-merge": "^3.7.0"

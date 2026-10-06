@@ -107,7 +107,7 @@
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.2",
 		"lucide": "^1.52.0",
-		"ooxml-ui": "^0.28.0",
+		"ooxml-ui": "^0.29.1",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-mcp": "workspace:*"
 	},

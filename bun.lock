@@ -213,7 +213,7 @@
         "html2canvas-pro": "^2.5.1",
         "jspdf": "^4.2.1",
         "jszip": "^3.10.2",
-        "ooxml-ui": "^0.28.0",
+        "ooxml-ui": "^0.29.1",
         "opentype.js": "^2.0.0",
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-mcp": "workspace:*",
@@ -319,7 +319,7 @@
         "pptx": "./dist/cli/index.mjs",
       },
       "dependencies": {
-        "ooxml-core": "^0.20.0",
+        "ooxml-core": "^0.21.1",
       },
       "devDependencies": {
         "@napi-rs/canvas": "^1.0.10",
@@ -364,7 +364,7 @@
         "clsx": "^2.1.1",
         "dompurify": "^3.4.16",
         "html2canvas-pro": "^2.5.1",
-        "ooxml-ui": "^0.28.0",
+        "ooxml-ui": "^0.29.1",
         "opentype.js": "^2.0.0",
         "pptx-viewer-mcp": "workspace:*",
         "tailwind-merge": "^3.7.0",
@@ -437,7 +437,7 @@
       "version": "0.1.0",
       "dependencies": {
         "dompurify": "^3.4.16",
-        "ooxml-ui": "^0.28.0",
+        "ooxml-ui": "^0.29.1",
         "opentype.js": "^2.0.0",
         "zod": "^4.6.5",
       },
@@ -478,7 +478,7 @@
         "html2canvas-pro": "^2.5.1",
         "jspdf": "^4.2.1",
         "jszip": "^3.10.2",
-        "ooxml-ui": "^0.28.0",
+        "ooxml-ui": "^0.29.1",
         "opentype.js": "^2.0.0",
         "pptx-viewer-mcp": "workspace:*",
       },
@@ -558,7 +558,7 @@
         "jspdf": "^4.2.1",
         "jszip": "^3.10.2",
         "lucide": "^1.52.0",
-        "ooxml-ui": "^0.28.0",
+        "ooxml-ui": "^0.29.1",
         "opentype.js": "^2.0.0",
         "pptx-viewer-mcp": "workspace:*",
       },
@@ -598,7 +598,7 @@
         "html2canvas-pro": "^2.5.1",
         "jspdf": "^4.2.1",
         "lucide-vue-next": "^1.0.0",
-        "ooxml-ui": "^0.28.0",
+        "ooxml-ui": "^0.29.1",
         "opentype.js": "^2.0.0",
         "pptx-viewer-mcp": "workspace:*",
         "tailwind-merge": "^3.7.0",
@@ -2057,9 +2057,9 @@
 
     "onetime": ["onetime@7.0.0", "", { "dependencies": { "mimic-function": "^5.0.0" } }, "sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ=="],
 
-    "ooxml-core": ["ooxml-core@0.20.0", "", { "dependencies": { "@xmldom/xmldom": "^0.9.12", "emf-converter": "^4.8.19", "fast-xml-parser": "^5.11.2", "jszip": "^3.10.2", "lib0": "^0.2.119", "mtx-decompressor": "^1.8.0", "prosemirror-collab": "^1.3.1", "prosemirror-commands": "^1.7.2", "prosemirror-history": "^1.5.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.12", "prosemirror-state": "^1.4.4", "prosemirror-transform": "^1.12.2", "prosemirror-view": "^1.42.6", "utif": "3.1.0", "y-protocols": "^1.0.7", "yjs": "^13.6.33" }, "peerDependencies": { "@napi-rs/canvas": "^1.0.9", "node-forge": "^1.3.0", "xml-crypto": "^6.0.0" }, "optionalPeers": ["@napi-rs/canvas", "node-forge", "xml-crypto"], "bin": { "pptx": "dist/pptx/cli/index.mjs" } }, "sha512-bbn667ZgvPgWsHhhj5TYZe16nzx0+/hUhM+KqGJi8OwmjSSD/IsdESZEUaeqxuxe/9Fbc8csjmp3vcJy3ty9DA=="],
+    "ooxml-core": ["ooxml-core@0.21.1", "", { "dependencies": { "@xmldom/xmldom": "^0.9.12", "emf-converter": "^4.8.19", "fast-xml-parser": "^5.11.2", "jszip": "^3.10.2", "lib0": "^0.2.119", "mtx-decompressor": "^1.8.0", "prosemirror-collab": "^1.3.1", "prosemirror-commands": "^1.7.2", "prosemirror-history": "^1.5.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.12", "prosemirror-state": "^1.4.4", "prosemirror-transform": "^1.12.2", "prosemirror-view": "^1.42.6", "utif": "3.1.0", "y-protocols": "^1.0.7", "yjs": "^13.6.33" }, "peerDependencies": { "@napi-rs/canvas": "^1.0.9", "node-forge": "^1.3.0", "xml-crypto": "^6.0.0" }, "optionalPeers": ["@napi-rs/canvas", "node-forge", "xml-crypto"], "bin": { "pptx": "dist/pptx/cli/index.mjs" } }, "sha512-TeMrs9xBLrZgMKJUzpzdgLmlb/EJFOz04J6T4sygtETIuclB4lUktiGHwRZ+y4vA79Ab7eJt2HsW6Arprkv9gA=="],
 
-    "ooxml-ui": ["ooxml-ui@0.28.0", "", { "dependencies": { "emf-converter": "4.8.9", "lit": "^3.3.3", "ooxml-core": "^0.20.0", "prosemirror-collab": "^1.3.1", "prosemirror-commands": "^1.7.2", "prosemirror-history": "^1.5.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.12", "prosemirror-state": "^1.4.4", "prosemirror-transform": "^1.12.2", "prosemirror-view": "^1.42.6" } }, "sha512-LGuzUZyB1IYU3eV4LksI0FrUXU9UXcrryv/p2EHRKKTMVlewlp1EIyTNqqgqc8MrF4Yf3ACREkfxWcjMTz8DLQ=="],
+    "ooxml-ui": ["ooxml-ui@0.29.1", "", { "dependencies": { "emf-converter": "4.8.9", "lit": "^3.3.3", "ooxml-core": "^0.21.0", "prosemirror-collab": "^1.3.1", "prosemirror-commands": "^1.7.2", "prosemirror-history": "^1.5.1", "prosemirror-keymap": "^1.2.3", "prosemirror-model": "^1.25.12", "prosemirror-state": "^1.4.4", "prosemirror-transform": "^1.12.2", "prosemirror-view": "^1.42.6" } }, "sha512-q9vw0dD2Up9rR8wmZoslzgGp6nhTBOx09vClGkBMZCHdyMLNDNyaDCYZwWvp+RcNI+CLfs8K7wJKS9iVeUwPuw=="],
 
     "opentype.js": ["opentype.js@2.0.0", "", { "bin": { "ot": "bin/ot" } }, "sha512-kCyjv6xdDY1W/jLWZ/L3QhhTlKUqDZMQ5+Jdlw12b3dXkKNpYBqqlMMj0YDQPShWFTMwgZI1hG14kN3XUDSg/A=="],
 

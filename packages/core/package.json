@@ -100,7 +100,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"ooxml-core": "^0.20.0"
+		"ooxml-core": "^0.21.1"
 	},
 	"devDependencies": {
 		"@napi-rs/canvas": "^1.0.10",

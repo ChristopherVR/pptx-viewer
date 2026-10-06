@@ -119,7 +119,7 @@
 		"clsx": "^2.1.1",
 		"dompurify": "^3.4.16",
 		"html2canvas-pro": "^2.5.1",
-		"ooxml-ui": "^0.28.0",
+		"ooxml-ui": "^0.29.1",
 		"opentype.js": "^2.0.0",
 		"pptx-viewer-mcp": "workspace:*",
 		"tailwind-merge": "^3.7.0"
